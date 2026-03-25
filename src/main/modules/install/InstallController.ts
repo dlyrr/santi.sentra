@@ -108,10 +108,6 @@ export const registerInstallHandlers = (): void => {
     return RobloxInstallService.getActiveInstallPath()
   })
 
-  handle('run-spoofer', z.tuple([]), async () => {
-    return RobloxInstallService.runSpoofer()
-  })
-
   handle('detect-default-installations', z.tuple([]), async () => {
     return RobloxInstallService.detectDefaultInstallations()
   })

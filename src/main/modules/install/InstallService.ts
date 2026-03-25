@@ -137,39 +137,6 @@ export class RobloxInstallService {
   private static readonly CACHE_DURATION = 1000 * 60 * 15 // 15 minutes
   private static installationStartTime = 0 // Track when installation begins
 
-  static async runSpoofer(): Promise<void> {
-    try {
-      let spooferExe = ''
-
-      // Try production path first (spoofer next to executable)
-      let prodPath = path.join(path.dirname(process.execPath), 'spoofer', 'SENTRA Spoofer.exe')
-      if (fs.existsSync(prodPath)) {
-        spooferExe = prodPath
-      } else {
-        // Fallback to dev path (in assets folder)
-        let devPath = path.join(app.getAppPath(), 'assets', 'spoofer', 'SENTRA Spoofer.exe')
-        if (fs.existsSync(devPath)) {
-          spooferExe = devPath
-        }
-      }
-
-      if (!spooferExe) {
-        throw new Error(`SENTRA Spoofer not found in production path or dev assets folder`)
-      }
-
-      // Use shell.openPath to execute the file natively
-      const result = await shell.openPath(spooferExe)
-      if (result) {
-        throw new Error(result)
-      }
-      console.log('[runSpoofer] Launched successfully:', spooferExe)
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      console.error('[runSpoofer] Failed:', errorMsg)
-      throw new Error(errorMsg)
-    }
-  }
-
   static async getDeployHistory(force = false): Promise<Record<string, string[]>> {
     const now = Date.now()
     // Force fresh fetch if installation started recently (within last 30 seconds)

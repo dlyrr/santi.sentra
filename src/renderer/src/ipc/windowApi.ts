@@ -392,7 +392,6 @@ export interface InstallationsApi {
   installFont: (installPath: string, fontPath: string) => Promise<void>
   installCursor: (installPath: string, cursorPath: string) => Promise<void>
   detectDefaultInstallations: () => Promise<DetectedInstallation[]>
-  runSpoofer: () => Promise<void>
   createBackup: (accounts: unknown[], backupPin: string, savePath?: string) => Promise<string>
   restoreBackup: (filepath: string, backupPin: string) => Promise<unknown[]>
   pickBackupFile: () => Promise<string>

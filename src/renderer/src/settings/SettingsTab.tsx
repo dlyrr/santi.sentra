@@ -63,7 +63,6 @@ import {
 import { useSetAppUnlocked } from '@renderer/stores/useUIStore'
 import { useTheme, CustomThemeName } from '@renderer/theme/ThemeContext'
 import PinSetupDialog from '@renderer/components/UI/security/PinSetupDialog'
-import SpooferIcon from '@renderer/components/UI/icons/SpooferIcon'
 import BackupIcon from '@renderer/components/UI/icons/BackupIcon'
 import { useInstallations } from '@renderer/features/install/stores/useInstallationsStore'
 import {
@@ -1720,31 +1719,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
               </Section>
 
               <Section title="Tools" description="Security and system utilities.">
-                <SettingsCard
-                  title="Sentra Spoofer"
-                  description="Run the Spoofer to bypass detection systems."
-                  icon={<SpooferIcon size={16} />}
-                >
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => window.api.runSpoofer().catch((error) => {
-                        console.error('Spoofer error:', error)
-                        addNotification({
-                          type: 'error',
-                          title: 'Spoofer failed',
-                          message: error.message
-                        })
-                      })}
-                      className="px-4 py-2 text-sm font-medium rounded-lg text-neutral-300 bg-neutral-800 hover:bg-neutral-700 hover:text-white border border-neutral-700 hover:border-neutral-600 transition-all duration-200 shadow-sm hover:shadow-md"
-                    >
-                      Launch Spoofer
-                    </button>
-                    <p className="text-xs text-neutral-500">
-                      Launch the Spoofer utility.
-                    </p>
-                  </div>
-                </SettingsCard>
-
                 <SettingsCard
                   title="Backup Accounts"
                   description="Create an encrypted backup of all your accounts."

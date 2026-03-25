@@ -236,7 +236,6 @@ export const installApi = {
     invoke('install-font', z.void(), installPath, fontPath),
   installCursor: (installPath: string, cursorPath: string) =>
     invoke('install-cursor', z.void(), installPath, cursorPath),
-  runSpoofer: () => invoke('run-spoofer', z.void()),
   createBackup: (accounts: unknown[], backupPin: string, savePath?: string) =>
     invoke('create-backup', z.string(), accounts, backupPin, savePath),
   restoreBackup: (filepath: string, backupPin: string) =>

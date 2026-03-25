@@ -15,16 +15,11 @@ extraResources:
     to: 'assets/lists/roblox_items.db'
   - from: 'resources/app-update.yml'
     to: 'app-update.yml'
-  - from: 'resources/spoofer'
-    to: 'spoofer'
-  - from: 'assets/spoofer'
-    to: 'spoofer'
   - from: 'assets/icons'
     to: 'assets/icons'
 asar: true
 asarUnpack:
   - resources/**
-  - spoofer/**
 win:
   executableName: sentra
   legalTrademarks: sentra
