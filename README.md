@@ -231,5 +231,6 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE) - 
 **⭐ Star this repo if you find it helpful!**
 
 Made with ❤️ by [sashaga2a24](https://github.com/sashaga2a24)
+Credits to : TITAN Spoofer https://github.com/dutchpsycho/TITAN-Spoofer-Byfron/tree/master (removed from project in latest version)
 
 </div>
