@@ -44,6 +44,10 @@ export const safeRequest = <T>(options: RequestOptions): Promise<T> => {
       reject(new RequestError('Request timed out', 408))
     }, 30000)
 
+    const clearTimeoutSafely = () => {
+      clearTimeout(timeout)
+    }
+
     request.on('redirect', () => {
       request.followRedirect()
     })
@@ -55,7 +59,7 @@ export const safeRequest = <T>(options: RequestOptions): Promise<T> => {
       })
 
       response.on('end', () => {
-        clearTimeout(timeout)
+        clearTimeoutSafely()
         if (response.statusCode >= 200 && response.statusCode < 300) {
           try {
             const result = data ? JSON.parse(data) : {}
@@ -81,10 +85,14 @@ export const safeRequest = <T>(options: RequestOptions): Promise<T> => {
           )
         }
       })
+
+      response.on('error', () => {
+        clearTimeoutSafely()
+      })
     })
 
     request.on('error', (error) => {
-      clearTimeout(timeout)
+      clearTimeoutSafely()
       reject(error)
     })
 

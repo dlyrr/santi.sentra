@@ -129,6 +129,11 @@ class GameSessionService extends EventEmitter {
       this.pollingInterval = null
     }
   }
+
+  destroy(): void {
+    this.stopPolling()
+    this.currentSession = null
+  }
 }
 
 export const gameSessionService = new GameSessionService()

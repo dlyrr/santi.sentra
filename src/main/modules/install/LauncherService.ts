@@ -12,7 +12,7 @@ export class RobloxLauncherService {
   private static async getRobloxProcessCount(): Promise<number> {
     try {
       if (process.platform === 'darwin') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true')
+        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true', { timeout: 5000 })
         const lines = stdout
           .trim()
           .split('\n')
@@ -20,7 +20,8 @@ export class RobloxLauncherService {
         return lines.length
       } else {
         const { stdout } = await execAsync(
-          'tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH'
+          'tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH',
+          { timeout: 5000 }
         )
         if (stdout.includes('No tasks')) {
           return 0
@@ -30,7 +31,10 @@ export class RobloxLauncherService {
           .split('\n')
           .filter((line) => line.includes('RobloxPlayerBeta.exe')).length
       }
-    } catch {
+    } catch (error) {
+      if ((error as any).killed === true) {
+        console.warn('[LauncherService] Process count check timed out')
+      }
       return 0
     }
   }
@@ -43,14 +47,22 @@ export class RobloxLauncherService {
     installPath?: string
   ) {
     try {
-      // Validate and refresh cookie before launching
-      const isValid = await cookieRefreshService.validateAndRefresh(cookie)
+      // Validate cookie without forcing refresh (prevents main account sign-out)
+      let isValid = true
+      try {
+        // Only validate, don't force refresh during game launch
+        const csrfToken = await RobloxAuthService.getCsrfToken(cookie)
+        isValid = !!csrfToken
+      } catch (err) {
+        isValid = false
+      }
+      
       if (!isValid) {
         throw new Error('Cookie is no longer valid. Please re-add the account.')
       }
 
-      const csrfToken = await RobloxAuthService.getCsrfToken(cookie)
-      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, csrfToken)
+      const csrfTokenForTicket = await RobloxAuthService.getCsrfToken(cookie)
+      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, csrfTokenForTicket)
 
       const nowMs = Date.now()
       const browserTrackerId = Date.now().toString() + Math.floor(Math.random() * 10000)

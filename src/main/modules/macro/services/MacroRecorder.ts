@@ -153,7 +153,8 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
     }
 
     if (this.mouseMoveTimeout) {
-      clearTimeout(this.mouseMoveTimeout);
+      clearTimeout(this.mouseMoveTimeout)
+      this.mouseMoveTimeout = undefined
     }
   }
 

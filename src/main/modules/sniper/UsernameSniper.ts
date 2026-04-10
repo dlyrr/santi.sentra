@@ -96,6 +96,7 @@ export class UsernameSniperService extends EventEmitter {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         const result = await new Promise<UsernameCheckResult>((resolve, reject) => {
+          let isResolved = false
           const options: any = {
             hostname: 'auth.roblox.com',
             path: `/v1/usernames/validate?Username=${encodeURIComponent(cleaned)}&Birthday=2000-01-01`,
@@ -123,6 +124,8 @@ export class UsernameSniperService extends EventEmitter {
             });
 
             res.on('end', () => {
+              if (isResolved) return
+              isResolved = true
               try {
                 const response = JSON.parse(data);
                 const code = response.code !== undefined ? response.code : -1;
@@ -148,11 +151,15 @@ export class UsernameSniperService extends EventEmitter {
           });
 
           req.on('error', (error: any) => {
+            if (isResolved) return
+            isResolved = true
             lastError = error;
             reject(error);
           });
 
           req.setTimeout(15000, () => {
+            if (isResolved) return
+            isResolved = true
             req.destroy();
             lastError = new Error('Request timeout');
             reject(lastError);
@@ -242,6 +249,7 @@ export class UsernameSniperService extends EventEmitter {
         activePromises++;
 
         // Don't use proxies for now
+        const hasErrorListeners = this.listenerCount('error') > 0;
         this.checkUsername(username)
           .then(result => {
             session.checked++;
@@ -255,18 +263,15 @@ export class UsernameSniperService extends EventEmitter {
             } else if (result.code === 2 || result.code === 10) {
               session.censored.push(result.username);
               this.emit('censored', { sessionId, username: result.username });
-            } else {
-              // Only emit error if there are listeners, to avoid unhandled rejection
-              if (this.listenerCount('error') > 0) {
-                this.emit('error', { sessionId, username: result.username, message: result.message });
-              }
+            } else if (hasErrorListeners) {
+              this.emit('error', { sessionId, username: result.username, message: result.message });
             }
 
             this.emit('progress', { sessionId, checked: session.checked, total: session.usernames.length, loop: session.currentLoop, totalLoops: loopTarget });
           })
           .catch(err => {
             session.checked++;
-            if (this.listenerCount('error') > 0) {
+            if (hasErrorListeners) {
               this.emit('error', { sessionId, username, message: err.message });
             }
             this.emit('progress', { sessionId, checked: session.checked, total: session.usernames.length, loop: session.currentLoop, totalLoops: loopTarget });

@@ -42,6 +42,7 @@ export interface ProfileData {
   totalFavorites: number
   concurrentPlayers: number
   groupMemberCount: number
+  notes?: string
   gameActivity?: {
     name: string
     placeId: number
@@ -110,6 +111,7 @@ export const useProfileData = ({ userId, requestCookie, initialData }: UseProfil
       totalFavorites: initialData?.totalFavorites || 0,
       concurrentPlayers: initialData?.concurrentPlayers || 0,
       groupMemberCount: initialData?.groupMemberCount || 0,
+      notes: initialData?.notes,
       gameActivity
     }
   }, [profilePlatform, userPresence, initialData, avatarUrl, isPlatformError])

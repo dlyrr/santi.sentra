@@ -1075,6 +1075,11 @@ export interface GeneratorApi {
   getPassword: (accountId: string) => Promise<{ success: boolean; password: string }>
   getCookie: (accountId: string) => Promise<{ success: boolean; cookie: string }>
   createAccountWithUsername: (username: string) => Promise<{ success: boolean; accountId?: string; error?: string }>
+  // Sniper-generated accounts
+  sniperGetAccounts: () => Promise<{ success: boolean; accounts: any[] }>
+  sniperAddAccount: (account: any) => Promise<{ success: boolean }>
+  sniperRemoveAccount: (accountId: string) => Promise<{ success: boolean }>
+  sniperMoveToMain: (accountId: string) => Promise<{ success: boolean }>
 }
 
 export interface ProxyApi {

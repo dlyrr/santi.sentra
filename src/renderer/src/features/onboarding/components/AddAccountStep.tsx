@@ -99,7 +99,8 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
       robuxBalance: 0,
       friendCount: 0,
       followerCount: 0,
-      followingCount: 0
+      followingCount: 0,
+      notes: ''
     }
 
     // Save all accounts including the new one

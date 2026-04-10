@@ -10,5 +10,13 @@ export async function invoke<T>(
   ...args: unknown[]
 ): Promise<T> {
   const result = await ipcRenderer.invoke(channel, ...args)
-  return schema.parse(result)
+  try {
+    return schema.parse(result)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error(`[IPC] Validation error for channel "${channel}":`, error.issues)
+      throw new Error(`IPC validation failed for ${channel}: ${error.issues.map(e => `${e.path.join('.')} - ${e.message}`).join('; ')}`)
+    }
+    throw error
+  }
 }

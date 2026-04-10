@@ -114,6 +114,7 @@ class StorageService {
   private encryptedBlob: string | null = null
   // PIN lockout state for persistence
   private pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null as number | null }
+  private pinVerificationInProgress: boolean = false
 
   constructor() {
     // determine current path and try migrating any prior config
@@ -421,38 +422,27 @@ class StorageService {
 
     // If we haven't decrypted yet, try to decrypt
     if (this.decryptedAccounts === null && this.data.encryptedAccounts) {
-      console.log('[StorageService] getAccounts: decryptedAccounts is null, attempting decryption. pinHash:', !!pinHash, 'currentVerifiedPin:', !!this.currentVerifiedPin)
       if (pinHash) {
-        // PIN is set - need verified PIN to decrypt
         if (this.currentVerifiedPin) {
-          console.log('[StorageService] getAccounts: Decrypting with verified PIN')
           this.decryptedAccounts = this.decryptAccountsWithPin(
             this.data.encryptedAccounts,
             this.currentVerifiedPin
           )
           if (!this.decryptedAccounts) {
-            console.warn('[StorageService] getAccounts: Decryption returned null')
             this.decryptedAccounts = []
-          } else {
-            console.log('[StorageService] getAccounts: ✓ Decrypted', this.decryptedAccounts.length, 'accounts')
           }
         } else {
-          console.log('[StorageService] getAccounts: PIN is set but not verified, returning empty')
           this.decryptedAccounts = []
         }
       } else {
-        // No PIN set - try to load as plaintext
         try {
           const parsed = JSON.parse(this.data.encryptedAccounts)
           if (Array.isArray(parsed)) {
-            console.log('[StorageService] getAccounts: Loaded', parsed.length, 'plaintext accounts')
             this.decryptedAccounts = parsed
           } else {
-            console.warn('[StorageService] getAccounts: Stored data is not array')
             this.decryptedAccounts = []
           }
         } catch (error) {
-          console.warn('[StorageService] getAccounts: Failed to parse plaintext accounts')
           this.decryptedAccounts = []
         }
       }
@@ -938,76 +928,85 @@ class StorageService {
     lockoutSeconds?: number
     accounts?: Account[]
   } {
-    const trimmedPin = pin.trim()
-    const hash = this.getPinHash()
-
-    if (!hash) {
-      return { success: false, locked: false, remainingAttempts: 5 }
+    if (this.pinVerificationInProgress) {
+      return { success: false, locked: true, remainingAttempts: 0, lockoutSeconds: 1 }
     }
 
-    const now = Date.now()
+    this.pinVerificationInProgress = true
+    try {
+      const trimmedPin = pin.trim()
+      const hash = this.getPinHash()
 
-    // Check if currently locked
-    if (this.pinLockoutState.lockedUntil && now < this.pinLockoutState.lockedUntil) {
-      const seconds = Math.ceil((this.pinLockoutState.lockedUntil - now) / 1000)
-      return { success: false, locked: true, remainingAttempts: 0, lockoutSeconds: seconds }
-    }
-
-    // Check if attempts should reset (15 minutes since last attempt)
-    if (this.pinLockoutState.lastAttempt && now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000) {
-      this.pinLockoutState.count = 0
-      this.pinLockoutState.lastAttempt = 0
-      this.pinLockoutState.lockedUntil = null
-    }
-
-    const result = pinService.verifyPin(trimmedPin, hash)
-
-    if (result.success) {
-      console.log('[StorageService] PIN verification successful')
-      this.currentVerifiedPin = trimmedPin
-      pinService.resetAttempts()
-      pinService.markVerified()
-
-      // Reset lockout state on successful verification
-      this.pinLockoutState.count = 0
-      this.pinLockoutState.lastAttempt = 0
-      this.pinLockoutState.lockedUntil = null
-      this.save()
-
-      this.#decryptConfigBlobIfNeeded()
-      this.decryptedAccounts = null  // Force re-decryption with verified PIN
-      console.log('[StorageService] verifyPin: ✓ PIN verified, decryptedAccounts cache cleared for re-decryption')
-
-      // Return accounts along with success response
-      const accounts = this.getAccounts()
-      console.log('[StorageService] verifyPin: Returning', accounts.length, 'accounts from getAccounts()')
-      return { success: true, locked: false, remainingAttempts: 5, accounts }
-    } else {
-      console.log('[StorageService] PIN verification failed, updating lockout state')
-    }
-
-    // Failed attempt - update lockout state
-    this.pinLockoutState.count++
-    this.pinLockoutState.lastAttempt = now
-
-    const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count)
-
-    if (this.pinLockoutState.count >= 5) {
-      // Calculate lockout duration with progressive penalty
-      const lockoutMultiplier = Math.min(this.pinLockoutState.count - 4, 12) // Start at 1, max 12
-      const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier // 5 min * multiplier
-      this.pinLockoutState.lockedUntil = now + lockoutDuration
-      this.save()
-      return {
-        success: false,
-        locked: true,
-        remainingAttempts: 0,
-        lockoutSeconds: Math.ceil(lockoutDuration / 1000)
+      if (!hash) {
+        return { success: false, locked: false, remainingAttempts: 5 }
       }
-    }
 
-    this.save()
-    return { success: false, locked: false, remainingAttempts }
+      const now = Date.now()
+
+      // Check if currently locked
+      if (this.pinLockoutState.lockedUntil && now < this.pinLockoutState.lockedUntil) {
+        const seconds = Math.ceil((this.pinLockoutState.lockedUntil - now) / 1000)
+        return { success: false, locked: true, remainingAttempts: 0, lockoutSeconds: seconds }
+      }
+
+      // Check if attempts should reset (15 minutes since last attempt)
+      if (this.pinLockoutState.lastAttempt && now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000) {
+        this.pinLockoutState.count = 0
+        this.pinLockoutState.lastAttempt = 0
+        this.pinLockoutState.lockedUntil = null
+      }
+
+      const result = pinService.verifyPin(trimmedPin, hash)
+
+      if (result.success) {
+        console.log('[StorageService] PIN verification successful')
+        this.currentVerifiedPin = trimmedPin
+        pinService.resetAttempts()
+        pinService.markVerified()
+
+        // Reset lockout state on successful verification
+        this.pinLockoutState.count = 0
+        this.pinLockoutState.lastAttempt = 0
+        this.pinLockoutState.lockedUntil = null
+        this.save()
+
+        this.#decryptConfigBlobIfNeeded()
+        this.decryptedAccounts = null  // Force re-decryption with verified PIN
+        console.log('[StorageService] verifyPin: ✓ PIN verified, decryptedAccounts cache cleared for re-decryption')
+
+        // Return accounts along with success response
+        const accounts = this.getAccounts()
+        console.log('[StorageService] verifyPin: Returning', accounts.length, 'accounts from getAccounts()')
+        return { success: true, locked: false, remainingAttempts: 5, accounts }
+      } else {
+        console.log('[StorageService] PIN verification failed, updating lockout state')
+      }
+
+      // Failed attempt - update lockout state
+      this.pinLockoutState.count++
+      this.pinLockoutState.lastAttempt = now
+
+      const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count)
+
+      if (this.pinLockoutState.count >= 5) {
+        // Calculate lockout duration with progressive penalty
+        const lockoutMultiplier = Math.min(this.pinLockoutState.count - 4, 12) // Start at 1, max 12
+        const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier // 5 min * multiplier
+        this.pinLockoutState.lockedUntil = now + lockoutDuration
+        this.save()
+        return {
+          success: false,
+          locked: true,
+          remainingAttempts: 0,
+          lockoutSeconds: Math.ceil(lockoutDuration / 1000)
+        }
+      }
+
+      this.save()
+      return { success: false, locked: false, remainingAttempts }
+    } finally {
+      this.pinVerificationInProgress = false
+    }
   }
 
   /**

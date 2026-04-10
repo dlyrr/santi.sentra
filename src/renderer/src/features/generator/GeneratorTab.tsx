@@ -175,7 +175,8 @@ export const GeneratorTab = () => {
         robuxBalance: 0,
         friendCount: 0,
         followerCount: 0,
-        followingCount: 0
+        followingCount: 0,
+        notes: ''
       })
     } catch (err) {
       console.error('Failed to add account:', err)

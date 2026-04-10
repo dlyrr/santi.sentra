@@ -56,7 +56,7 @@ export class GeneratorService extends EventEmitter {
   private signupBrowserWindow: any = null // Custom Electron browser window for signup
   private signupBrowserWebContents: any = null // WebContents for injecting JavaScript
   private signupBrowserPartition: string = '' // Partition for cookie access
-  private isCreatingAccount: boolean = false // Prevent parallel account creations
+  private creatingAccountIds: Set<string> = new Set() // Track account IDs being created (atomic operations)
   private accountCreationQueue: Array<() => Promise<AccountCreationResult>> = [] // Queue for rapid account creations
 
   constructor() {
@@ -247,16 +247,26 @@ export class GeneratorService extends EventEmitter {
    * Launch browser and navigate to Roblox signup page
    */
   async launchBrowser(): Promise<void> {
+    const browserLaunchTimeout = 30000 // 30 second timeout for entire launch process
+    const launchStartTime = Date.now()
+    
     try {
+      const checkTimeout = () => {
+        if (Date.now() - launchStartTime > browserLaunchTimeout) {
+          throw new Error('Browser launch timeout - operation took too long')
+        }
+      }
+
       // Close any existing browser window first
       if (this.signupBrowserWindow && !this.signupBrowserWindow.isDestroyed()) {
         try {
           this.signupBrowserWindow.close()
-          await new Promise(resolve => setTimeout(resolve, 500))
+          await new Promise(resolve => setTimeout(resolve, 200))
         } catch (err) {
           console.warn('[Generator] Error closing existing window:', err)
         }
       }
+      checkTimeout()
 
       // Get custom window dimensions from settings
       try {
@@ -268,7 +278,8 @@ export class GeneratorService extends EventEmitter {
         console.warn('[Generator] Error getting settings, using defaults:', settingErr)
       }
 
-      console.log('[Generator] Attempting to call RobloxLoginWindowService.openSignupBrowser...')
+      console.log('[Generator] Opening signup browser...')
+      checkTimeout()
       
       // Open the custom signup browser (with toolbar for captcha evasion)
       try {
@@ -277,17 +288,38 @@ export class GeneratorService extends EventEmitter {
         this.signupBrowserWebContents = signupBrowserInfo.webContents
         this.signupBrowserPartition = signupBrowserInfo.partition
 
-        console.log('[Generator] Custom signup browser opened successfully!')
-        console.log('[Generator] BrowserWindow:', this.signupBrowserWindow ? 'exists' : 'null')
-        console.log('[Generator] WebContents:', this.signupBrowserWebContents ? 'exists' : 'null')
+        console.log('[Generator] Signup browser opened')
       } catch (browserErr) {
-        console.error('[Generator] FAILED to call openSignupBrowser:', browserErr)
-        throw new Error(`Browser service error: ${String(browserErr)}`)
+        console.error('[Generator] Failed to open browser:', browserErr)
+        throw new Error(`Browser launch failed: ${String(browserErr)}`)
+      }
+      checkTimeout()
+      
+      // Wait for form to load - reduced from 4s to 2s with polling
+      let formLoaded = false
+      const formLoadStartTime = Date.now()
+      const formLoadTimeout = 12000 // 12 seconds max for form to load
+      
+      while (!formLoaded && Date.now() - formLoadStartTime < formLoadTimeout) {
+        try {
+          if (!this.signupBrowserWebContents) break
+          const hasForm = await this.signupBrowserWebContents.executeJavaScript(`
+            !!(document.getElementById('signup-username') || document.querySelector('input[placeholder*="Username"]'))
+          `)
+          if (hasForm) {
+            formLoaded = true
+            break
+          }
+        } catch (err) {
+          console.debug('[Generator] Form check attempt failed:', err instanceof Error ? err.message : String(err))
+        }
+        await new Promise(resolve => setTimeout(resolve, 500))
       }
       
-      // Wait longer for the React form to fully load and render
-      console.log('[Generator] Waiting 4 seconds for signup form to fully load...')
-      await new Promise(resolve => setTimeout(resolve, 4000))
+      if (!formLoaded) {
+        console.warn('[Generator] Form did not load within timeout')
+      }
+      checkTimeout()
 
       // Debug: Check if form inputs exist and their structure
       try {
@@ -300,8 +332,6 @@ export class GeneratorService extends EventEmitter {
             return {
               usernameExists: !!usernameInput,
               passwordExists: !!passwordInput,
-              usernameValue: usernameInput?.value || 'NOT FOUND',
-              passwordValue: passwordInput?.value || 'NOT FOUND',
               usernameTag: usernameInput?.tagName,
               passwordTag: passwordInput?.tagName,
               usernameOnChange: !!usernameInput?.onchange,
@@ -311,8 +341,7 @@ export class GeneratorService extends EventEmitter {
               allInputs: allInputs.map(i => ({ 
                 id: i.id, 
                 name: i.name, 
-                type: i.type, 
-                value: i.value,
+                type: i.type,
                 classes: i.className,
                 readonly: i.readOnly,
                 disabled: i.disabled
@@ -321,7 +350,11 @@ export class GeneratorService extends EventEmitter {
           })()
         `)
         
-        console.log('[Generator] Form structure debug:', JSON.stringify(formDebug, null, 2))
+        console.log('[Generator] Form structure debug: fields exist', {
+          usernameExists: formDebug.usernameExists,
+          passwordExists: formDebug.passwordExists,
+          totalInputs: formDebug.allInputs?.length || 0
+        })
       } catch (debugErr) {
         console.warn('[Generator] Could not debug form structure:', debugErr)
       }
@@ -392,9 +425,16 @@ export class GeneratorService extends EventEmitter {
       const system = await this.detectSignupSystem()
 
       // Parse birth date (format: YYYY-MM-DD)
-      const [year, month, day] = accountData.birthDate!.split('-')
+      if (!accountData.birthDate || !accountData.birthDate.match(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/)) {
+        throw new Error(`Invalid birth date format: ${accountData.birthDate}. Expected YYYY-MM-DD.`)
+      }
+      const [year, month, day] = accountData.birthDate.split('-')
+      const monthNum = parseInt(month)
+      if (monthNum < 1 || monthNum > 12) {
+        throw new Error(`Invalid month: ${month}. Must be between 01-12.`)
+      }
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      const monthValue = monthNames[parseInt(month) - 1]
+      const monthValue = monthNames[monthNum - 1]
 
       const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -453,11 +493,39 @@ export class GeneratorService extends EventEmitter {
         // NEW SYSTEM: Using radix combobox buttons - simulate user clicks
         console.log(`[Generator] Using NEW system selectors (radix combobox)`)
 
+        if (!this.signupBrowserWebContents) {
+          throw new Error('Browser not launched - missing webContents')
+        }
+
         // For new system, we need to find and click the combobox buttons and then the menu items
         // This is complex because it involves clicking buttons and waiting for menu to appear
         console.log(`[Generator] Setting birthday month: ${monthValue}`)
         
-        // Click month button with verification
+        // Cache buttons query to avoid multiple DOM traversals
+        const clickDateButton = async (ariaLabelPart: string, dateValue: string) => {
+          if (!this.signupBrowserWebContents) {
+            throw new Error('Browser closed during form filling')
+          }
+          await this.signupBrowserWebContents.executeJavaScript(`
+            (() => {
+              const allButtons = Array.from(document.querySelectorAll('button[role="combobox"]'))
+              const btn = allButtons.find(b => b.getAttribute('aria-label')?.includes('${ariaLabelPart}'))
+              if (btn) btn.click()
+            })()
+          `)
+          await sleep(600)
+          
+          await this.signupBrowserWebContents.executeJavaScript(`
+            (() => {
+              const options = Array.from(document.querySelectorAll('[role="option"]'))
+              const opt = options.find(o => o.textContent?.trim() === '${dateValue}')
+              if (opt) opt.click()
+            })()
+          `)
+          await sleep(600)
+        }
+        
+        // Click month button and option
         const monthBtnClicked = await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
             const allButtons = Array.from(document.querySelectorAll('button[role="combobox"]'))
@@ -465,10 +533,8 @@ export class GeneratorService extends EventEmitter {
             if (monthBtn) {
               monthBtn.click()
               return true
-            } else {
-              console.log('Month button not found. Available buttons:', allButtons.map(b => b.getAttribute('aria-label')))
-              return false
             }
+            return false
           })()
         `)
         console.log('[Generator] Month button clicked:', monthBtnClicked)
@@ -478,69 +544,51 @@ export class GeneratorService extends EventEmitter {
         const monthOptionClicked = await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
             const allOptions = Array.from(document.querySelectorAll('[role="option"]'))
-            const optionTexts = allOptions.map(o => o.textContent?.trim())
-            console.log('[DEBUG] All month options:', optionTexts)
-            console.log('[DEBUG] Looking for: "${monthValue}"')
-            
-            // Try exact match first
             let options = allOptions.filter(el => el.textContent?.trim() === '${monthValue}')
             
-            // If no exact match, try partial match
             if (options.length === 0) {
-              console.log('[DEBUG] No exact match, trying partial match')
               options = allOptions.filter(el => el.textContent?.trim().includes('${monthValue}'))
             }
             
-            // If still no match, just click the first option
             if (options.length === 0) {
-              console.log('[DEBUG] No partial match either, trying first non-empty option')
               options = allOptions.filter(el => el.textContent?.trim().length > 0).slice(0, 1)
             }
             
             if (options.length > 0) {
-              console.log('[DEBUG] Clicking option:', options[0].textContent?.trim())
               options[0].click()
               return { found: true, text: options[0].textContent?.trim() }
-            } else {
-              console.log('[DEBUG] No options found at all')
-              return { found: false, allOptions: optionTexts }
             }
+            return { found: false }
           })()
         `)
         console.log('[Generator] Month option result:', monthOptionClicked)
         await sleep(600)
 
-        // Click day combobox
-        console.log(`[Generator] Setting birthday day: ${day}`)
+        const dayFormatted = String(parseInt(day)).padStart(2, '0')
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
-            const dayBtn = Array.from(document.querySelectorAll('button[role="combobox"]')).find(
-              btn => btn.getAttribute('aria-label')?.includes('Day')
-            )
+            const buttons = Array.from(document.querySelectorAll('button[role="combobox"]'))
+            const dayBtn = buttons.find(btn => btn.getAttribute('aria-label')?.includes('Day'))
             if (dayBtn) dayBtn.click()
           })()
         `)
         await sleep(600)
         
-        // Find and click the day option (with zero padding)
-        const dayFormatted = String(parseInt(day)).padStart(2, '0')
+        // Find and click the day option
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
-            const options = Array.from(document.querySelectorAll('[role="option"]')).filter(
-              el => el.textContent?.trim() === '${dayFormatted}'
-            )
-            if (options.length > 0) options[0].click()
+            const options = Array.from(document.querySelectorAll('[role="option"]'))
+            const opt = options.find(el => el.textContent?.trim() === '${dayFormatted}')
+            if (opt) opt.click()
           })()
         `)
         await sleep(600)
 
-        // Click year combobox
         console.log(`[Generator] Setting birthday year: ${year}`)
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
-            const yearBtn = Array.from(document.querySelectorAll('button[role="combobox"]')).find(
-              btn => btn.getAttribute('aria-label')?.includes('Year')
-            )
+            const buttons = Array.from(document.querySelectorAll('button[role="combobox"]'))
+            const yearBtn = buttons.find(btn => btn.getAttribute('aria-label')?.includes('Year'))
             if (yearBtn) yearBtn.click()
           })()
         `)
@@ -549,10 +597,9 @@ export class GeneratorService extends EventEmitter {
         // Find and click the year option
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
-            const options = Array.from(document.querySelectorAll('[role="option"]')).filter(
-              el => el.textContent?.trim() === '${year}'
-            )
-            if (options.length > 0) options[0].click()
+            const options = Array.from(document.querySelectorAll('[role="option"]'))
+            const opt = options.find(el => el.textContent?.trim() === '${year}')
+            if (opt) opt.click()
           })()
         `)
         await sleep(600)
@@ -565,7 +612,7 @@ export class GeneratorService extends EventEmitter {
           const input = document.getElementById('signup-username')
           if (input) {
             // Direct method: set the value and immediately trigger events
-            const text = '${accountData.username}'
+            const text = ${JSON.stringify(accountData.username)}
             
             // Get the input's setter via Object.getOwnPropertyDescriptor
             const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
@@ -595,7 +642,7 @@ export class GeneratorService extends EventEmitter {
           const input = document.getElementById('signup-password')
           if (input) {
             // Direct method: set the value and immediately trigger events
-            const text = '${accountData.password}'
+            const text = ${JSON.stringify(accountData.password)}
             
             // Get the input's setter via Object.getOwnPropertyDescriptor
             const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
@@ -615,21 +662,26 @@ export class GeneratorService extends EventEmitter {
           return { filledValue: 'INPUT_NOT_FOUND' }
         })()
       `)
-      console.log('[Generator] Password fill result:', passwordResult)
+      console.log('[Generator] Password filled for field signup-password')
       await sleep(500)
 
       console.log('[Generator] Form filled successfully')
       
-      // Verify the form values persisted
+      // Verify the form values persisted (log only non-sensitive metadata)
       const verifyValues = await this.signupBrowserWebContents.executeJavaScript(`
         (() => {
           const username = document.getElementById('signup-username')?.value || ''
           const password = document.getElementById('signup-password')?.value || ''
           const month = document.getElementById('MonthDropdown')?.value || document.querySelector('button[role="combobox"][aria-label*="Month"]')?.textContent || ''
-          return { username, password, month }
+          return { 
+            usernameLength: username.length,
+            passwordLength: password.length,
+            monthSet: !!month,
+            allFieldsFilled: !!(username && password && month)
+          }
         })()
       `)
-      console.log('[Generator] Form verification:', verifyValues)
+      console.log('[Generator] Form fields populated:', verifyValues)
       
       this.emit('form-filled', accountData)
     } catch (err) {
@@ -784,20 +836,22 @@ export class GeneratorService extends EventEmitter {
       // Close custom signup window if open
       if (this.signupBrowserWindow && !this.signupBrowserWindow.isDestroyed()) {
         try {
+          // First close the window
           this.signupBrowserWindow.close()
-          console.log('[Generator] Signup browser window closed')
         } catch (err) {
-          console.warn('[Generator] Error closing signup window:', err)
+          console.warn('[Generator] Error closing window:', err)
         }
+        
+        // Clear references immediately
         this.signupBrowserWindow = null
         this.signupBrowserWebContents = null
         this.signupBrowserPartition = ''
+        
+        // Brief wait for OS to clean up
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
 
-      // Give the OS time to fully release resources
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      console.log('[Generator] Browser fully closed')
+      console.log('[Generator] Browser cleaned up')
       this.emit('browser-closed')
     } catch (err) {
       console.error('[Generator] Error closing browser:', err)
@@ -828,7 +882,6 @@ export class GeneratorService extends EventEmitter {
 
       // Monitor for .ROBLOSECURITY cookie instead of waiting for captcha timeout
       console.log('[Generator] Monitoring for .ROBLOSECURITY cookie (max 5 minutes)...')
-      console.log('[Generator] >>> PLEASE COMPLETE THE CAPTCHA IN THE BROWSER WINDOW <<<')
       this.emit('waiting-for-captcha', { message: 'Please complete the captcha in the browser window. Account will be added when logged in.' })
 
       // Poll for cookie until it appears
@@ -846,15 +899,16 @@ export class GeneratorService extends EventEmitter {
             if (cookies && cookies.length > 0) {
               robloxSecurityCookie = cookies[0].value
               cookieFound = true
-              console.log('[Generator] ✓ .ROBLOSECURITY cookie detected! Account created successfully')
               break
             }
           }
-        } catch (err) {}
+        } catch (err) {
+          // Silently ignore cookie retrieval errors during polling
+        }
         
         pollAttempts++
-        if (pollAttempts % 20 === 0) {
-          console.log('[Generator] Still waiting for cookie... (', Math.round(pollAttempts * 0.5), 's elapsed)')
+        if (pollAttempts % 60 === 0) {
+          console.log('[Generator] Waiting for captcha completion... (', Math.round(pollAttempts * 0.5), 's elapsed)')
         }
         await sleep(500)
       }
@@ -864,7 +918,6 @@ export class GeneratorService extends EventEmitter {
       }
 
       // Add account to storage with the cookie we found (or empty string if not found)
-      console.log('[Generator] Adding account to storage...')
       await this.addAccountToStorage(accountData, robloxSecurityCookie, false)
 
       console.log('[Generator] Account signup workflow completed successfully')
@@ -985,67 +1038,51 @@ export class GeneratorService extends EventEmitter {
   }
 
   async createAccountWithUsername(username: string): Promise<AccountCreationResult> {
+    // Add this creation task to the queue and wait for it to be processed
     return new Promise((resolve) => {
-      // Add this creation task to the queue
-      this.accountCreationQueue.push(async () => {
-        try {
-          console.log(`[Generator] Starting AUTO-GENERATE account creation with username: ${username} (from sniper)`)
-          console.log(`[Generator] Queue length: ${this.accountCreationQueue.length}`)
+      const taskPromise = new Promise<AccountCreationResult>((taskResolve) => {
+        this.accountCreationQueue.push(async () => {
+          try {
+            console.log(`[Generator] Processing account creation for: ${username}`)
+            
+            const password = this.generatePassword()
+            const birthDate = this.generateBirthDate()
 
-          // Create account data with the provided username
-          const password = this.generatePassword()
-          const birthDate = this.generateBirthDate()
+            const accountData: GeneratedAccountData = {
+              id: randomUUID(),
+              username,
+              password,
+              birthDate,
+              createdAt: Date.now()
+            }
 
-          const accountData: GeneratedAccountData = {
-            id: randomUUID(),
-            username,
-            password,
-            birthDate,
-            createdAt: Date.now()
+            const result = await this.processAccountCreation(accountData, true, true)
+            taskResolve(result)
+            return result
+          } catch (error) {
+            console.error(`[Generator] Account creation error for ${username}:`, error)
+            const errorResult = {
+              success: false,
+              error: String(error),
+              timestamp: Date.now()
+            }
+            taskResolve(errorResult)
+            return errorResult
           }
+        })
 
-          console.log(`[Generator] Created account data: ${accountData.username}`)
-
-          // For sniper auto-generate, use the FULL process with browser (forceLaunchBrowser=true)
-          // This will launch browser, fill form, submit, and add to accounts AND sniper storage
-          return await this.processAccountCreation(accountData, true, true)
-        } catch (error) {
-          console.error(`[Generator] CRITICAL ERROR in createAccountWithUsername:`, error)
-          return {
-            success: false,
-            error: String(error),
-            timestamp: Date.now()
-          }
+        // Only process if not already processing
+        if (this.accountCreationQueue.length === 1) {
+          this.processAccountCreationQueue()
         }
       })
-
-      // Process the queue
-      this.processAccountCreationQueue().then(resolve).catch((error) => {
-        console.error('[Generator] Queue processing error:', error)
-        resolve({
-          success: false,
-          error: String(error),
-          timestamp: Date.now()
-        })
-      })
+      
+      taskPromise.then(resolve)
     })
   }
 
   private async processAccountCreationQueue(): Promise<AccountCreationResult> {
-    // If already processing, wait
-    if (this.isCreatingAccount) {
-      console.log('[Generator] Account creation in progress, queuing...')
-      return new Promise((resolve) => {
-        const checkQueue = setInterval(async () => {
-          if (!this.isCreatingAccount) {
-            clearInterval(checkQueue)
-            resolve(await this.processAccountCreationQueue())
-          }
-        }, 100)
-      })
-    }
-
-    // If no queued tasks, return
+    // Let the queue process one task at a time if there are queued tasks
     if (this.accountCreationQueue.length === 0) {
       return {
         success: true,
@@ -1053,8 +1090,7 @@ export class GeneratorService extends EventEmitter {
       }
     }
 
-    // Process next task
-    this.isCreatingAccount = true
+    // Process next task (FIFO to prevent race conditions)
     const task = this.accountCreationQueue.shift()
 
     try {
@@ -1067,7 +1103,6 @@ export class GeneratorService extends EventEmitter {
         timestamp: Date.now()
       }
     } finally {
-      this.isCreatingAccount = false
       // Process next item in queue if available
       if (this.accountCreationQueue.length > 0) {
         return this.processAccountCreationQueue()
@@ -1132,7 +1167,9 @@ export class GeneratorService extends EventEmitter {
               break
             }
           }
-        } catch (err) {}
+        } catch (err) {
+          console.debug('[Generator] Cookie poll attempt failed:', err instanceof Error ? err.message : String(err))
+        }
         
         pollAttempts++
         if (pollAttempts % 20 === 0) {

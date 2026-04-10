@@ -31,6 +31,7 @@ export class RobloxLoginWindowService {
       const loginSession = session.fromPartition(this.PARTITION, { cache: true })
 
       let isResolved = false
+      let isPromiseSettled = false
       let rejectionError: Error | null = null
 
       const handleCookieChange = (
@@ -41,6 +42,7 @@ export class RobloxLoginWindowService {
       ) => {
         if (!removed && cookie.name === '.ROBLOSECURITY') {
           isResolved = true
+          isPromiseSettled = true
           resolve(cookie.value)
           this.loginWindow?.close()
         }
@@ -119,7 +121,10 @@ export class RobloxLoginWindowService {
 
         this.loginWindow.on('closed', async () => {
           await cleanup()
-          if (!isResolved) reject(rejectionError ?? new Error('LOGIN_WINDOW_CLOSED'))
+          if (!isPromiseSettled) {
+            isPromiseSettled = true
+            reject(rejectionError ?? new Error('LOGIN_WINDOW_CLOSED'))
+          }
         })
 
         this.loginWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -139,7 +144,10 @@ export class RobloxLoginWindowService {
             this.loginWindow.close()
           } else {
             await cleanup()
-            reject(rejectionError)
+            if (!isPromiseSettled) {
+              isPromiseSettled = true
+              reject(rejectionError)
+            }
           }
         }
       }
@@ -151,7 +159,10 @@ export class RobloxLoginWindowService {
           return
         }
         await cleanup()
-        reject(rejectionError)
+        if (!isPromiseSettled) {
+          isPromiseSettled = true
+          reject(rejectionError)
+        }
       })
     })
 

@@ -95,8 +95,9 @@ export const SniperTab = () => {
           window.api.generator.createAccountWithUsername(data.username)
             .then(result => {
               console.log(`[SniperTab] Auto-generate SUCCESS result:`, result)
-              if (result.success && result.username && result.password) {
-                trackGeneratedAccount(result.username, result.password)
+              if (result.success && result.accountId) {
+                // Reload accounts after creation - the account is stored in generator storage
+                loadSniperAccounts()
               }
             })
             .catch(err => {
@@ -155,10 +156,25 @@ export const SniperTab = () => {
     // Setup listeners on mount
     setupListeners()
 
-    // Re-setup listeners when tab regains visibility
+    return () => {
+      unsubscribersRef.current.forEach(unsub => {
+        try { unsub() } catch (err) {}
+      })
+      unsubscribersRef.current = []
+    }
+  }, [autoGenerate])
+
+  // Re-setup listeners when tab regains visibility (separate effect to prevent duplicate listeners)
+  useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        setupListeners()
+      if (!document.hidden && unsubscribersRef.current.length === 0) {
+        // If listeners were somehow cleaned up, re-subscribe
+        window.api.sniper.onValid((data) => {
+          setResults((prev) => ({
+            ...prev,
+            valid: [...prev.valid, data.username],
+          }))
+        })
       }
     }
 
@@ -166,12 +182,8 @@ export const SniperTab = () => {
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      unsubscribersRef.current.forEach(unsub => {
-        try { unsub() } catch (err) {}
-      })
-      unsubscribersRef.current = []
     }
-  }, [autoGenerate])
+  }, []) // Empty dependency - should only run once
 
   // Sync with backend when tab regains focus
   useEffect(() => {
@@ -212,7 +224,6 @@ export const SniperTab = () => {
       syncSessionState()
     }
 
-    // Sync when page regains visibility
     const handleVisibilityChange = () => {
       if (!document.hidden && sessionId) {
         syncSessionState()
@@ -220,7 +231,6 @@ export const SniperTab = () => {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
@@ -411,7 +421,8 @@ export const SniperTab = () => {
         robuxBalance: 0,
         friendCount: 0,
         followerCount: 0,
-        followingCount: 0
+        followingCount: 0,
+        notes: ''
       })
     } catch (err) {
       console.error('[SniperTab] Failed to add account to accounts tab:', err)

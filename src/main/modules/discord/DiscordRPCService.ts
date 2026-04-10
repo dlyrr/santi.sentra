@@ -149,6 +149,29 @@ class DiscordRPCService {
     }
 
     await this.disconnect()
+    this.currentGame = null
+    this.currentTab = null
+  }
+
+  async destroy(): Promise<void> {
+    // Cleanup event listeners
+    if (this.client) {
+      this.client.removeAllListeners()
+    }
+    gameSessionService.removeAllListeners('game-started')
+    gameSessionService.removeAllListeners('game-ended')
+    
+    // Clear all timeouts
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
+    }
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout)
+      this.updateTimeout = null
+    }
+    
+    await this.disable()
   }
 
   private async connect(): Promise<void> {

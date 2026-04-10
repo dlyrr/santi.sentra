@@ -207,9 +207,11 @@ export class RobloxInstallService {
     installPath: string,
     onProgress: (status: string, progress: number, detail?: string) => void
   ): Promise<boolean> {
-    if (!BINARY_TYPES[binaryType]) return false
+    if (!BINARY_TYPES[binaryType]) {
+      onProgress('Invalid binary type', 0)
+      return false
+    }
 
-    // Mark installation start time to bypass cache for latest versions
     this.installationStartTime = Date.now()
 
     try {
@@ -217,12 +219,17 @@ export class RobloxInstallService {
       const verTag = version.startsWith('version-') ? version : `version-${version}`
       const base = `${AWS_MIRROR}${blobDir}${verTag}-`
 
-      onProgress('Fetching manifest...', 0)
+      onProgress('Fetching manifest for version: ' + verTag, 0)
       let manifest = ''
       try {
         manifest = await safeFetchText(base + 'rbxPkgManifest.txt')
-      } catch (e) {
-        console.error('Failed to fetch manifest', e)
+        if (!manifest || manifest.length === 0) {
+          throw new Error('Manifest is empty - version may not exist')
+        }
+      } catch (e: any) {
+        const errorMsg = e?.message || String(e)
+        console.error(`[InstallService] Manifest fetch failed for ${verTag}:`, errorMsg)
+        onProgress(`Version not found: ${verTag}`, 0, errorMsg)
         return false
       }
 
@@ -231,6 +238,11 @@ export class RobloxInstallService {
         .map((l) => l.trim())
         .filter((l) => l.endsWith('.zip'))
       const pkgs = [...new Set(pkgsRaw)]
+
+      if (pkgs.length === 0) {
+        onProgress('No packages found in manifest', 0)
+        return false
+      }
 
       const roots = pkgs.includes('RobloxApp.zip')
         ? EXTRACT_ROOTS['player']

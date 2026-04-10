@@ -889,7 +889,8 @@ const App: React.FC = () => {
         robuxBalance: 0,
         friendCount: 0,
         followerCount: 0,
-        followingCount: 0
+        followingCount: 0,
+        notes: ''
       }
 
       const isFirstAccount = accounts.length === 0

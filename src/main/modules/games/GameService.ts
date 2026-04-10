@@ -17,6 +17,15 @@ import {
 } from '@shared/ipc-schemas/games'
 
 export class RobloxGameService {
+  /**
+   * Helper method to split array into chunks
+   */
+  private static chunk<T>(arr: T[], size: number): T[][] {
+    return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+      arr.slice(i * size, i * size + size)
+    )
+  }
+
   static async getGameThumbnail16x9(universeId: number): Promise<string[]> {
     try {
       const thumbResult = await request(
@@ -83,18 +92,27 @@ export class RobloxGameService {
       url: `https://apis.roblox.com/explore-api/v1/get-sorts?sessionId=${sessionId}&gameSortsContext=GamesDefaultSorts`
     })
 
-    let rawSorts: any[] = []
-    if (result.sorts && Array.isArray(result.sorts)) {
-      rawSorts = result.sorts
-    } else if (result.data && Array.isArray(result.data)) {
-      rawSorts = result.data
-    } else if (Array.isArray(result)) {
-      rawSorts = result
+    interface GameSort {
+      contentType?: string
+      sortId?: string
+      sortDisplayName?: string
+      token?: string
+      name?: string
+      id?: string
+      displayName?: string
     }
 
-    const gameSorts = rawSorts.filter((s: any) => s.contentType === 'Games' || !s.contentType)
+    const rawSorts: GameSort[] = Array.isArray(result?.sorts)
+      ? result.sorts
+      : Array.isArray(result?.data)
+        ? result.data
+        : Array.isArray(result)
+          ? result
+          : []
 
-    return gameSorts.map((s: any) => ({
+    const gameSorts = rawSorts.filter((s) => s.contentType === 'Games' || !s.contentType)
+
+    return gameSorts.map((s) => ({
       token: s.sortId || s.token || s.id,
       name: s.sortDisplayName || s.name || s.displayName || 'Unknown',
       displayName: s.sortDisplayName || s.displayName || s.name || 'Unknown'
@@ -192,7 +210,7 @@ export class RobloxGameService {
     }
   }
 
-  private static async hydrateGames(universeIds: number[], initialData: any[]) {
+  private static async hydrateGames(universeIds: number[], initialData: unknown[] = []) {
     if (universeIds.length === 0) return []
 
     const orderedUniverseIds: number[] = []
@@ -206,15 +224,10 @@ export class RobloxGameService {
 
     if (orderedUniverseIds.length === 0) return []
 
-    const chunk = (arr: any[], size: number) =>
-      Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-        arr.slice(i * size, i * size + size)
-      )
-
     const detailsMap: Record<number, GameDetails> = {}
 
     try {
-      const chunks = chunk(orderedUniverseIds, 50)
+      const chunks = this.chunk(orderedUniverseIds, 50)
 
       for (const ids of chunks) {
         try {
@@ -238,7 +251,7 @@ export class RobloxGameService {
     const thumbnailsMap: Record<number, string> = {}
 
     try {
-      const chunks = chunk(orderedUniverseIds, 50)
+      const chunks = this.chunk(orderedUniverseIds, 50)
       for (const ids of chunks) {
         try {
           const thumbResult = await request(z.object({ data: z.array(gameThumbnailSchema) }), {
@@ -263,7 +276,7 @@ export class RobloxGameService {
     const votesMap: Record<number, { up: number; down: number }> = {}
     if (initialData.length === 0) {
       try {
-        const chunks = chunk(orderedUniverseIds, 50)
+        const chunks = this.chunk(orderedUniverseIds, 50)
         for (const ids of chunks) {
           try {
             const votesResult = await request(z.object({ data: z.array(gameVoteSchema) }), {
@@ -346,11 +359,7 @@ export class RobloxGameService {
 
     const placeIdToUniverseId: Record<string, number> = {}
 
-    const chunk = (arr: any[], size: number) =>
-      Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-        arr.slice(i * size, i * size + size)
-      )
-    const placeIdChunks = chunk(placeIds, 50)
+    const placeIdChunks = this.chunk(placeIds, 50)
 
     try {
       await Promise.all(

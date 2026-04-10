@@ -216,21 +216,19 @@ export class UserAgentService {
     if (this.autoSwapInterval) {
       clearInterval(this.autoSwapInterval)
       this.autoSwapInterval = null
-    }
-
-    // Update settings to disable auto-swap
-    const settings = storageService.getSettings()
-    const updatedSettings = {
-      ...settings,
-      userAgentSettings: {
-        currentUserAgentIndex: settings?.userAgentSettings?.currentUserAgentIndex ?? 0,
-        autoSwapUserAgent: false,
-        autoSwapIntervalMinutes: settings?.userAgentSettings?.autoSwapIntervalMinutes ?? 30
+      
+      const settings = storageService.getSettings()
+      const updatedSettings = {
+        ...settings,
+        userAgentSettings: {
+          currentUserAgentIndex: settings?.userAgentSettings?.currentUserAgentIndex ?? 0,
+          autoSwapUserAgent: false,
+          autoSwapIntervalMinutes: settings?.userAgentSettings?.autoSwapIntervalMinutes ?? 60
+        }
       }
+      storageService.setSettings(updatedSettings)
+      console.log('[UserAgentService] Auto-swap stopped')
     }
-    storageService.setSettings(updatedSettings)
-
-    console.log('[UserAgentService] Auto-swap stopped')
   }
 
   /**
