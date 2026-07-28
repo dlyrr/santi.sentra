@@ -21,7 +21,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
     <>
       {/* Level 1: Main Categories */}
       <div
-        className="flex items-center gap-1 p-2 overflow-x-auto scrollbar-thin border-b border-neutral-800/50 scroll-smooth"
+        className="flex items-center gap-1 p-2 overflow-x-auto scrollbar-thin border-b border-[var(--color-border)]/50 scroll-smooth"
         onWheel={(e: React.WheelEvent<HTMLDivElement>) => {
           // Translate vertical wheel to horizontal scroll for better UX
           if (Math.abs(e.deltaY) > 0) {

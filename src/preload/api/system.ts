@@ -45,16 +45,10 @@ export const systemApi = {
       // Normalize `tint` to values the running main process currently accepts.
       // If the main is still on the old enum, it likely only accepts ['neutral','cool'].
       if (outgoing && typeof outgoing === 'object' && 'tint' in outgoing) {
-        const allowed = ['neutral', 'cool']
+        const allowed = ['neutral', 'cool', 'warm', 'forest', 'twilight']
         const t = String(outgoing.tint)
         if (!allowed.includes(t)) {
-          const map: Record<string, string> = {
-            warm: 'neutral',
-            forest: 'neutral',
-            twilight: 'cool',
-            default: 'neutral'
-          }
-          outgoing.tint = map[t] ?? 'neutral'
+          outgoing.tint = 'neutral'
         }
       }
 
@@ -106,7 +100,14 @@ export const systemApi = {
         memoryLimit: z.number(),
         useDirectX12: z.boolean(),
         lowEndGraphics: z.boolean(),
-        disableDualChannelAudio: z.boolean()
+        disableDualChannelAudio: z.boolean(),
+        antiAfkEnabled: z.boolean(),
+        renameWindowsEnabled: z.boolean(),
+        framerateCapEnabled: z.boolean(),
+        framerateCapValue: z.number(),
+        optimizeRamEnabled: z.boolean(),
+        ramOptimizeLimit: z.number(),
+        headlessModeEnabled: z.boolean()
       })
     ),
   setRobloxSettings: (settings: {
@@ -117,6 +118,13 @@ export const systemApi = {
     useDirectX12?: boolean
     lowEndGraphics?: boolean
     disableDualChannelAudio?: boolean
+    antiAfkEnabled?: boolean
+    renameWindowsEnabled?: boolean
+    framerateCapEnabled?: boolean
+    framerateCapValue?: number
+    optimizeRamEnabled?: boolean
+    ramOptimizeLimit?: number
+    headlessModeEnabled?: boolean
   }) => invoke('set-roblox-settings', z.void(), settings),
 
   // Multiple instances setting

@@ -34,7 +34,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div className={cn('relative', containerClassName)}>
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Search size={16} className="text-neutral-500" />
+        <Search size={16} className="text-[var(--color-text-muted)]" />
       </div>
       <Input
         type="text"
@@ -48,7 +48,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {showClearButton && value && (
         <button
           onClick={handleClear}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-neutral-500 hover:text-white transition-colors"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
         >
           <X size={14} />
         </button>

@@ -11,7 +11,8 @@ import {
   useCurrentAvatar,
   useInventory,
   useUserOutfits,
-  useFavoriteItems
+  useFavoriteItems,
+  useAccountsManager
 } from '@renderer/hooks/queries'
 import { useInvalidateAvatar3D } from './hooks/useAvatar3DManifest'
 import { useAvatarStore } from './stores/useAvatarStore'
@@ -21,6 +22,8 @@ import { CategorySelector } from './components/CategorySelector'
 import { SearchBar } from './components/SearchBar'
 import { useInventoryFilter } from './hooks/useInventoryFilter'
 import { useAvatarActions } from './hooks/useAvatarActions'
+import { useBulkInventory } from './hooks/useBulkInventory'
+import { useSelectedIds } from '@renderer/stores/useSelectionStore'
 import {
   CATEGORIES,
   getAssetTypeIds,
@@ -58,6 +61,19 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
     useAvatarRenderResize(avatarRenderContainerRef)
   const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024)
   const [resetCameraSignal, setResetCameraSignal] = useState(0)
+  const [isResettingBulk, setIsResettingBulk] = useState(false)
+
+  const selectedIds = useSelectedIds()
+  const { accounts = [] } = useAccountsManager()
+  // For multi-account mode: track if reset gate has been cleared
+  const selectedAccounts = useMemo(
+    () => accounts.filter((a) => selectedIds.has(a.id)),
+    [accounts, selectedIds]
+  )
+  const selectedAccountIds = useMemo(() => selectedAccounts.map((a) => a.id), [selectedAccounts])
+
+  const effectiveAccount = account || (selectedAccounts.length > 0 ? selectedAccounts[0] : null)
+  const isBulkMode = selectedIds.size >= 2
 
   const [isRendering, setIsRendering] = useState(false)
   const [renderText, setRenderText] = useState('')
@@ -84,7 +100,7 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
 
   const renderAvatar = useCallback(async (_userId: string) => {}, [])
 
-  const { data: currentAvatarData, refetch: refetchCurrentAvatar } = useCurrentAvatar(account)
+  const { data: currentAvatarData, refetch: refetchCurrentAvatar } = useCurrentAvatar(effectiveAccount)
   const { data: favoriteItems = [] } = useFavoriteItems()
   const { invalidateAvatar } = useInvalidateAvatar3D()
 
@@ -94,15 +110,24 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
 
   const isInventoryCat = isInventoryCategory(mainCategory)
 
-  const { data: inventoryData = [], isLoading: isLoadingInventory } = useInventory(
-    account,
+  const { data: singleInventoryData = [], isLoading: isLoadingSingleInventory } = useInventory(
+    effectiveAccount,
     assetTypeIds,
-    { enabled: isInventoryCat && assetTypeIds.length > 0 }
+    { enabled: isInventoryCat && assetTypeIds.length > 0 && !isBulkMode }
   )
+
+  const { data: bulkInventoryData = [], isLoading: isLoadingBulkInventory } = useBulkInventory(
+    selectedAccounts,
+    assetTypeIds,
+    { enabled: isInventoryCat && assetTypeIds.length > 0 && isBulkMode }
+  )
+
+  const inventoryData = isBulkMode ? bulkInventoryData : singleInventoryData
+  const isLoadingInventory = isBulkMode ? isLoadingBulkInventory : isLoadingSingleInventory
 
   const isEditable = subCategory === 'Creations'
   const { data: outfitsData = [], isLoading: isLoadingOutfits } = useUserOutfits(
-    account,
+    effectiveAccount,
     isEditable
   )
 
@@ -164,7 +189,9 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
     handleUpdateWithWorn,
     handleDeleteOutfit
   } = useAvatarActions({
-    account,
+    account: effectiveAccount,
+    accounts: selectedAccounts,
+    isBulkMode,
     mainCategory,
     subCategory,
     inventoryItems,
@@ -239,9 +266,9 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
   }
 
   const handleRefreshAvatar = async () => {
-    if (account?.userId) {
+    if (effectiveAccount?.userId) {
       await refetchCurrentAvatar()
-      invalidateAvatar(account.userId)
+      invalidateAvatar(effectiveAccount.userId)
     }
   }
 
@@ -282,85 +309,129 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
 
   const handleUpdate = async () => {
     await refetchCurrentAvatar()
-    if (account?.userId) {
-      invalidateAvatar(account.userId)
+    if (effectiveAccount?.userId) {
+      invalidateAvatar(effectiveAccount.userId)
     }
   }
 
-  if (!account) {
+  if (!effectiveAccount) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-neutral-950 text-neutral-500 flex-col gap-2">
-        <User size={48} className="opacity-20" />
-        <p>Please select an account to view the avatar editor.</p>
+      <div className="flex h-full items-center justify-center text-[var(--color-text-secondary)]">
+        Please select an account or multiple accounts to view the avatar editor
       </div>
     )
   }
 
+  // Multi-account bulk mode — no reset gate, go straight to editor
+
   return (
-    <div className="flex flex-col lg:flex-row h-full w-full bg-neutral-950 animate-tab-enter overflow-hidden">
-      <div className="w-full lg:w-1/2 h-full">
-        <AvatarViewport
-          userId={account?.userId}
-          cookie={account?.cookie}
-          account={account}
-          currentAvatarType={
-            currentAvatarType === 'R6' || currentAvatarType === 'R15' ? currentAvatarType : null
-          }
-          isRendering={isRendering}
-          renderText={renderText}
-          onRefresh={handleRefreshAvatar}
-          onReset={resetCamera}
-          resetSignal={resetCameraSignal}
-          onRenderStart={handleRenderStart}
-          onRenderComplete={handleRenderComplete}
-          onRenderError={handleRenderError}
-          onRenderStatusChange={handleRenderStatusChange}
-          isLargeScreen={isLargeScreen}
-          isResizing={isResizing}
-          onResizeStart={handleResizeStart}
-          avatarRenderWidth={avatarRenderWidth}
-          containerRef={avatarRenderContainerRef}
-        />
-      </div>
-
-      <div className="w-full lg:w-1/2 h-full bg-neutral-950 flex flex-col min-w-0">
-        <div className="flex flex-col border-b border-neutral-800 bg-neutral-950 z-10 shadow-sm">
-          <CategorySelector
-            mainCategory={mainCategory}
-            subCategory={subCategory}
-            onMainCategoryChange={handleMainCategoryChange}
-            onSubCategoryChange={setSubCategory}
-          />
-
-          <SearchBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            placeholder={`Search ${subCategory}...`}
-            show={!(mainCategory === 'Body' && (subCategory === 'Skin' || subCategory === 'Scale'))}
-          />
+    <div className="flex h-full flex-col p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            <User className="h-6 w-6 text-[var(--accent-color)]" />
+            Avatar
+          </h1>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            {selectedIds.size >= 2
+              ? 'Bulk mode active'
+              : 'View and modify your Roblox avatar appearance'}
+          </p>
         </div>
-
-        <InventoryGrid
-          account={account}
-          filteredItems={filteredItems}
-          isLoading={isLoading}
-          isUpdatingAvatar={isUpdatingAvatar}
-          loadingItemId={loadingItemId}
-          equippedIds={equippedIds}
-          favoriteIds={favoriteIds}
-          favoriteBurstKeys={favoriteBurstKeys}
-          mainCategory={mainCategory}
-          subCategory={subCategory}
-          currentBodyColors={currentBodyColors}
-          currentScales={currentScales}
-          currentAvatarType={currentAvatarType}
-          onItemClick={toggleEquip}
-          onItemContextMenu={handleContextMenu}
-          onUpdate={handleUpdate}
-          scrollPosition={scrollPosition}
-          onScroll={setScrollPosition}
-        />
+        {selectedIds.size >= 2 && (
+          <button
+            disabled={isResettingBulk}
+            onClick={async () => {
+              if (!confirm('Are you sure you want to reset all selected avatars to their default appearance?')) return
+              setIsResettingBulk(true)
+              try {
+                for (const account of selectedAccounts) {
+                  if (account.cookie) {
+                    await window.api.setWearingAssets(account.cookie, [])
+                  }
+                }
+                showNotification(`Reset ${selectedAccounts.length} avatars to default successfully`, 'success')
+              } catch (err) {
+                console.error(err)
+                showNotification('Failed to reset all avatars', 'error')
+              } finally {
+                setIsResettingBulk(false)
+              }
+            }}
+            className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors text-sm font-medium"
+          >
+            {isResettingBulk ? 'Resetting...' : 'Reset All'}
+          </button>
+        )}
       </div>
+
+      {effectiveAccount && (
+        <div className="flex h-[calc(100%-80px)] flex-col gap-6 lg:flex-row">
+          <div className="w-full lg:w-1/2 h-full">
+            <AvatarViewport
+              userId={effectiveAccount?.userId}
+              cookie={effectiveAccount?.cookie}
+              account={effectiveAccount}
+              currentAvatarType={
+                currentAvatarType === 'R6' || currentAvatarType === 'R15' ? currentAvatarType : null
+              }
+              isRendering={isRendering}
+              renderText={renderText}
+              onRefresh={handleRefreshAvatar}
+              onReset={resetCamera}
+              resetSignal={resetCameraSignal}
+              onRenderStart={handleRenderStart}
+              onRenderComplete={handleRenderComplete}
+              onRenderError={handleRenderError}
+              onRenderStatusChange={handleRenderStatusChange}
+              isLargeScreen={isLargeScreen}
+              isResizing={isResizing}
+              onResizeStart={handleResizeStart}
+              avatarRenderWidth={avatarRenderWidth}
+              containerRef={avatarRenderContainerRef}
+            />
+          </div>
+
+          <div className="w-full lg:w-1/2 h-full bg-[var(--color-app-bg)] flex flex-col min-w-0">
+            <div className="flex flex-col border-b border-[var(--color-border)] bg-[var(--color-app-bg)] z-10 shadow-sm">
+              <CategorySelector
+                mainCategory={mainCategory}
+                subCategory={subCategory}
+                onMainCategoryChange={handleMainCategoryChange}
+                onSubCategoryChange={setSubCategory}
+              />
+
+              <SearchBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                placeholder={`Search ${subCategory}...`}
+                show={!(mainCategory === 'Body' && (subCategory === 'Skin' || subCategory === 'Scale'))}
+              />
+            </div>
+
+            <InventoryGrid
+              account={effectiveAccount}
+              filteredItems={filteredItems}
+              isLoading={isLoading}
+              isUpdatingAvatar={isUpdatingAvatar}
+              loadingItemId={loadingItemId}
+              equippedIds={equippedIds}
+              favoriteIds={favoriteIds}
+              favoriteBurstKeys={favoriteBurstKeys}
+              mainCategory={mainCategory}
+              subCategory={subCategory}
+              currentBodyColors={currentBodyColors}
+              currentScales={currentScales}
+              currentAvatarType={currentAvatarType}
+              onItemClick={toggleEquip}
+              onItemContextMenu={handleContextMenu}
+              onUpdate={handleUpdate}
+              scrollPosition={scrollPosition}
+              onScroll={setScrollPosition}
+            />
+          </div>
+        </div>
+      )}
 
       <AccessoryContextMenu
         activeMenu={contextMenu}
@@ -377,7 +448,7 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
         isOpen={!!selectedAccessory}
         onClose={() => setSelectedAccessory(null)}
         assetId={selectedAccessory?.id || null}
-        account={account}
+        account={effectiveAccount}
         initialData={
           selectedAccessory
             ? {

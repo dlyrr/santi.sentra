@@ -26,23 +26,23 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
+      <DialogContent className="w-full max-w-md bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-950">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <LogIn className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <LogIn className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-white">Launch Options</h3>
-              <p className="text-sm text-neutral-500">
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Launch Options</h3>
+              <p className="text-sm text-[var(--color-text-muted)]">
                 {selectedCount} selected account{selectedCount !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="pressable p-1 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+            className="pressable p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
           >
             <X size={20} />
           </button>
@@ -52,7 +52,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Method Selection */}
           <div className="space-y-3">
-            <label className="block text-base font-medium text-neutral-400">Join Method</label>
+            <label className="block text-base font-medium text-[var(--color-text-secondary)]">Join Method</label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
@@ -60,7 +60,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                 className={`pressable flex flex-col items-center justify-center gap-2 p-3 rounded border transition-all ${
                   method === JoinMethod.Username
                     ? 'bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]'
-                    : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'
+                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]'
                 }`}
               >
                 <User size={24} />
@@ -73,7 +73,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                 className={`pressable flex flex-col items-center justify-center gap-2 p-3 rounded border transition-all ${
                   method === JoinMethod.PlaceId
                     ? 'bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]'
-                    : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'
+                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]'
                 }`}
               >
                 <MapPin size={24} />
@@ -86,7 +86,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                 className={`pressable flex flex-col items-center justify-center gap-2 p-3 rounded border transition-all ${
                   method === JoinMethod.JobId
                     ? 'bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]'
-                    : 'bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300'
+                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]'
                 }`}
               >
                 <Briefcase size={24} />
@@ -102,7 +102,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                 <div className="space-y-2">
                   <label
                     htmlFor="placeIdInput"
-                    className="block text-base font-medium text-neutral-400 pb-2"
+                    className="block text-base font-medium text-[var(--color-text-secondary)] pb-2"
                   >
                     Game Place ID
                   </label>
@@ -112,14 +112,14 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                     value={placeId}
                     onChange={(e) => setPlaceId(e.target.value)}
                     placeholder="e.g. 1818"
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all"
+                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all"
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <label
                     htmlFor="jobIdInput"
-                    className="block text-base font-medium text-neutral-400 pb-2"
+                    className="block text-base font-medium text-[var(--color-text-secondary)] pb-2"
                   >
                     Server Job ID
                   </label>
@@ -129,7 +129,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     placeholder="e.g. 772-112-991"
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all"
+                    className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all"
                     required
                   />
                 </div>
@@ -138,7 +138,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
               <div className="space-y-2">
                 <label
                   htmlFor="targetInput"
-                  className="block text-base font-medium text-neutral-400 pb-2"
+                  className="block text-base font-medium text-[var(--color-text-secondary)] pb-2"
                 >
                   {method === JoinMethod.Username && 'Target Username'}
                   {method === JoinMethod.PlaceId && 'Game Place ID'}
@@ -149,7 +149,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
                   placeholder={method === JoinMethod.Username ? 'e.g. Builderman' : 'e.g. 1818'}
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all"
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all"
                   required
                 />
               </div>

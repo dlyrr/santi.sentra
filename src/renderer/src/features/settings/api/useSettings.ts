@@ -4,7 +4,8 @@ import { queryKeys } from '../../../../../shared/queryKeys'
 import { Settings, DEFAULT_ACCENT_COLOR } from '@renderer/types'
 import {
   DEFAULT_SIDEBAR_TAB_ORDER,
-  sanitizeSidebarHidden
+  sanitizeSidebarHidden,
+  sanitizeSidebarOrder
 } from '@shared/navigation'
 import { applyAccentColor } from '@renderer/utils/themeUtils'
 import { applyTint, getCurrentThemeNameFromDom } from '@renderer/theme/theme'
@@ -59,7 +60,7 @@ export function useSettings() {
         tint: (data?.tint as Settings['tint']) || 'neutral',
         showSidebarProfileCard: data?.showSidebarProfileCard ?? true,
         privacyMode: data?.privacyMode ?? false,
-        sidebarTabOrder: DEFAULT_SIDEBAR_TAB_ORDER,
+        sidebarTabOrder: sanitizeSidebarOrder(data?.sidebarTabOrder),
         sidebarHiddenTabs: sanitizeSidebarHidden(data?.sidebarHiddenTabs)
       }
     },

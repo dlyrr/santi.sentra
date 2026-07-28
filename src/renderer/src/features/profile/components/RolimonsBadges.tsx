@@ -35,7 +35,7 @@ export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
     const getColorType = (badgeKey: string): string => {
       const badgeMeta = ROLIMONS_BADGES[badgeKey]
       if (!badgeMeta) return 'neutral'
-      // Handle color classes like text-emerald-400 or text-white
+      // Handle color classes like text-emerald-400 or text-[var(--color-text-primary)]
       const colorMatch = badgeMeta.color.match(/text-(\w+)(?:-\d+)?/)
       return colorMatch ? colorMatch[1] : 'neutral'
     }

@@ -15,7 +15,7 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
 
     if (!account.userId || !account.cookie) {
       return (
-        <div className="flex items-center justify-center h-full text-neutral-500 bg-[var(--color-surface)]">
+        <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] bg-[var(--color-surface)]">
           Account data missing
         </div>
       )

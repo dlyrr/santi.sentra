@@ -5,36 +5,20 @@ import { randomUUID } from 'crypto'
 import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxInstallService } from './InstallService'
 import { cookieRefreshService } from '../auth/CookieRefreshService'
+import { RobloxUserService } from '../users/UserService'
+
+import { ProcessMonitor } from '../watcher/ProcessMonitor'
 
 const execAsync = promisify(exec)
 
 export class RobloxLauncherService {
+  public static activeLaunches = new Map<string, string>() // browserTrackerId -> username
+
   private static async getRobloxProcessCount(): Promise<number> {
     try {
-      if (process.platform === 'darwin') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true', { timeout: 5000 })
-        const lines = stdout
-          .trim()
-          .split('\n')
-          .filter((line) => line.length > 0 && /^\d+$/.test(line))
-        return lines.length
-      } else {
-        const { stdout } = await execAsync(
-          'tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH',
-          { timeout: 5000 }
-        )
-        if (stdout.includes('No tasks')) {
-          return 0
-        }
-        return stdout
-          .trim()
-          .split('\n')
-          .filter((line) => line.includes('RobloxPlayerBeta.exe')).length
-      }
+      const pids = await ProcessMonitor.getRobloxProcessPids()
+      return pids.length
     } catch (error) {
-      if ((error as any).killed === true) {
-        console.warn('[LauncherService] Process count check timed out')
-      }
       return 0
     }
   }
@@ -47,22 +31,9 @@ export class RobloxLauncherService {
     installPath?: string
   ) {
     try {
-      // Validate cookie without forcing refresh (prevents main account sign-out)
-      let isValid = true
-      try {
-        // Only validate, don't force refresh during game launch
-        const csrfToken = await RobloxAuthService.getCsrfToken(cookie)
-        isValid = !!csrfToken
-      } catch (err) {
-        isValid = false
-      }
-      
-      if (!isValid) {
-        throw new Error('Cookie is no longer valid. Please re-add the account.')
-      }
-
-      const csrfTokenForTicket = await RobloxAuthService.getCsrfToken(cookie)
-      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, csrfTokenForTicket)
+      // getAuthenticationTicket automatically handles CSRF validation and retry.
+      // We pass an empty string initially, which triggers a 403, grabs the token, and retries.
+      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, '')
 
       const nowMs = Date.now()
       const browserTrackerId = Date.now().toString() + Math.floor(Math.random() * 10000)
@@ -116,7 +87,8 @@ export class RobloxLauncherService {
       if (installPath) {
         await RobloxInstallService.launchWithProtocol(installPath, protocolLaunchCommand)
       } else {
-        // On Windows without install path, try to find and launch with -p flag for multiple instances
+        // No install path specified - use system default via protocol handler
+        // On Windows, try to find a default installation first for multi-instance support
         if (process.platform === 'win32') {
           try {
             const installations = await RobloxInstallService.detectDefaultInstallations()
@@ -135,25 +107,43 @@ export class RobloxLauncherService {
         }
       }
 
-      const startTime = Date.now()
-      // Increased timeout: 30s for both platforms (was 20s macOS, 10s Windows)
-      // Process detection can be slow on some systems
-      const timeout = 30000
-      let processStarted = false
+      // Poll for process start in background - don't block the caller
+      // This allows multiple accounts to launch concurrently
+      const pollForProcess = async () => {
+        const startTime = Date.now()
+        const timeout = 30000
 
-      while (Date.now() - startTime < timeout) {
-        await new Promise((resolve) => setTimeout(resolve, 500)) // Check every 500ms instead of 1s
-        const currentCount = await this.getRobloxProcessCount()
+        while (Date.now() - startTime < timeout) {
+          await new Promise((resolve) => setTimeout(resolve, 500))
+          const currentCount = await this.getRobloxProcessCount()
 
-        if (currentCount > initialCount) {
-          processStarted = true
-          break
+          if (currentCount > initialCount) {
+            return true
+          }
         }
+        return false
       }
 
-      // Return success even if process count didn't increase on first check
-      // The game might be launching asynchronously
-      return { success: processStarted || process.platform === 'darwin' }
+      // Fire-and-forget process polling (don't await - return immediately)
+      pollForProcess().catch((err) => console.warn('[LauncherService] Process poll error:', err))
+
+      // Register the launch for window renaming
+      RobloxUserService.getAuthenticatedUser(cookie)
+        .then((user) => {
+          if (user && user.name) {
+            this.activeLaunches.set(browserTrackerId, user.name)
+            // Limit map size to prevent memory leaks
+            if (this.activeLaunches.size > 100) {
+              const keys = Array.from(this.activeLaunches.keys())
+              for (let i = 0; i < 50; i++) this.activeLaunches.delete(keys[i])
+            }
+          }
+        })
+        .catch(() => {})
+
+      // Return success immediately after sending the launch command
+      // The game may still be starting up
+      return { success: true }
     } catch (error: any) {
       console.error('Failed to launch Roblox:', error)
       throw new Error(`Failed to launch Roblox: ${error.message}`)
@@ -172,8 +162,8 @@ export class RobloxLauncherService {
     installPath?: string
   ) {
     try {
-      const csrfToken = await RobloxAuthService.getCsrfToken(cookie)
-      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, csrfToken)
+      // getAuthenticationTicket handles CSRF internally
+      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, '')
 
       const nowMs = Date.now()
       const browserTrackerId = Date.now().toString() + Math.floor(Math.random() * 10000)
@@ -223,25 +213,40 @@ export class RobloxLauncherService {
         }
       }
 
-      const startTime = Date.now()
-      // Increased timeout: 30s for both platforms (was 20s macOS, 10s Windows)
-      // Process detection can be slow on some systems
-      const timeout = 30000
-      let processStarted = false
+      // Poll for process start in background - don't block the caller
+      const pollForProcess = async () => {
+        const startTime = Date.now()
+        const timeout = 30000
 
-      while (Date.now() - startTime < timeout) {
-        await new Promise((resolve) => setTimeout(resolve, 500)) // Check every 500ms instead of 1s
-        const currentCount = await this.getRobloxProcessCount()
+        while (Date.now() - startTime < timeout) {
+          await new Promise((resolve) => setTimeout(resolve, 500))
+          const currentCount = await this.getRobloxProcessCount()
 
-        if (currentCount > initialCount) {
-          processStarted = true
-          break
+          if (currentCount > initialCount) {
+            return true
+          }
         }
+        return false
       }
 
-      // Return success even if process count didn't increase on first check
-      // The game might be launching asynchronously
-      return { success: processStarted || process.platform === 'darwin' }
+      // Fire-and-forget process polling
+      pollForProcess().catch((err) => console.warn('[LauncherService] Private server process poll error:', err))
+
+      // Register the launch for window renaming
+      RobloxUserService.getAuthenticatedUser(cookie)
+        .then((user) => {
+          if (user && user.name) {
+            this.activeLaunches.set(browserTrackerId, user.name)
+            if (this.activeLaunches.size > 100) {
+              const keys = Array.from(this.activeLaunches.keys())
+              for (let i = 0; i < 50; i++) this.activeLaunches.delete(keys[i])
+            }
+          }
+        })
+        .catch(() => {})
+
+      // Return success immediately
+      return { success: true }
     } catch (error: any) {
       console.error('Failed to launch private server:', error)
       throw new Error(`Failed to launch private server: ${error.message}`)

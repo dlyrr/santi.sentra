@@ -318,14 +318,14 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
           onChange={(e) => handleInputChange(index, e.target.value, target)}
           onKeyDown={(e) => handleKeyDown(index, e, target)}
           disabled={isLocked || isSubmitting}
-          className={`w-10 h-12 text-center text-xl font-mono rounded-lg border-2 bg-neutral-900 text-white focus:outline-none transition-all ${
+          className={`w-10 h-12 text-center text-xl font-mono rounded-lg border-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none transition-all ${
             isLocked || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
           } ${
             hasError
               ? 'border-red-500 bg-red-500/10'
               : digit
                 ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/5'
-                : 'border-neutral-700 focus:border-neutral-500'
+                : 'border-[var(--color-border-strong)] focus:border-[var(--accent-color)]'
           }`}
         />
       ))}
@@ -359,13 +359,13 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                       <AlertTriangle className="w-5 h-5 text-red-500" />
                       <span className="text-sm text-red-400">Account locked</span>
                     </div>
-                    <p className="text-sm text-neutral-400 text-center">
+                    <p className="text-sm text-[var(--color-text-secondary)] text-center">
                       Too many failed attempts. Try again in {formatTime(lockoutSeconds)}
                     </p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm text-neutral-400 text-center">
+                    <p className="text-sm text-[var(--color-text-secondary)] text-center">
                       Enter your current PIN to continue
                     </p>
 
@@ -374,7 +374,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                     <div className="flex justify-center">
                       <button
                         onClick={() => setShowPin(!showPin)}
-                        className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                        className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                       >
                         {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         {showPin ? 'Hide PIN' : 'Show PIN'}
@@ -400,7 +400,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                     <DialogFooter>
                       <button
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+                        className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
                       >
                         Cancel
                       </button>
@@ -430,7 +430,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                   <span className="text-sm text-green-400">PIN lock is currently enabled</span>
                 </div>
 
-                <p className="text-sm text-neutral-400">
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Your app is protected with a 6-digit PIN. Would you like to remove it?
                 </p>
 
@@ -463,7 +463,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                       setError(null)
                     }}
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 rounded-lg transition-colors"
                   >
                     Change PIN
                   </button>
@@ -472,7 +472,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                     disabled={isSubmitting}
                     className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                       removeConfirm
-                        ? 'text-white bg-red-600 hover:bg-red-500'
+                        ? 'text-[var(--color-text-primary)] bg-red-600 hover:bg-red-500'
                         : 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
                     } disabled:opacity-50`}
                   >
@@ -490,7 +490,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-4"
               >
-                <p className="text-sm text-neutral-400 text-center">
+                <p className="text-sm text-[var(--color-text-secondary)] text-center">
                   {currentPin
                     ? 'Enter your new 6-digit PIN'
                     : 'Enter a 6-digit PIN to protect your app'}
@@ -501,7 +501,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                 <div className="flex justify-center">
                   <button
                     onClick={() => setShowPin(!showPin)}
-                    className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                   >
                     {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     {showPin ? 'Hide PIN' : 'Show PIN'}
@@ -521,7 +521,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                 <DialogFooter>
                   <button
                     onClick={currentPin ? handleBack : onClose}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
                   >
                     {currentPin ? 'Back' : 'Cancel'}
                   </button>
@@ -544,14 +544,14 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <p className="text-sm text-neutral-400 text-center">Confirm your PIN</p>
+                <p className="text-sm text-[var(--color-text-secondary)] text-center">Confirm your PIN</p>
 
                 {renderPinInputs(confirmPin, confirmInputRefs, 'confirm', !!error)}
 
                 <div className="flex justify-center">
                   <button
                     onClick={() => setShowPin(!showPin)}
-                    className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                   >
                     {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     {showPin ? 'Hide PIN' : 'Show PIN'}
@@ -572,7 +572,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({ isOpen, onClose, onSave
                   <button
                     onClick={handleBack}
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-neutral-400 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 rounded-lg transition-colors"
                   >
                     Back
                   </button>

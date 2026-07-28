@@ -2,9 +2,9 @@ import { EventEmitter } from 'events'
 import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { randomUUID } from 'crypto'
 import * as crypto from 'crypto'
+import { session } from 'electron'
 import { getDataFile } from '../../utils/paths'
 import { storageService } from '../system/StorageService'
-import { RobloxUserService } from '../users/UserService'
 import type { Account } from '../../../renderer/src/types'
 // @ts-ignore - imported for use in Account initialization
 import { AccountStatus } from '../../../renderer/src/types'
@@ -128,7 +128,7 @@ export class GeneratorService extends EventEmitter {
         return accounts
       }
       return null
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }
@@ -501,30 +501,6 @@ export class GeneratorService extends EventEmitter {
         // This is complex because it involves clicking buttons and waiting for menu to appear
         console.log(`[Generator] Setting birthday month: ${monthValue}`)
         
-        // Cache buttons query to avoid multiple DOM traversals
-        const clickDateButton = async (ariaLabelPart: string, dateValue: string) => {
-          if (!this.signupBrowserWebContents) {
-            throw new Error('Browser closed during form filling')
-          }
-          await this.signupBrowserWebContents.executeJavaScript(`
-            (() => {
-              const allButtons = Array.from(document.querySelectorAll('button[role="combobox"]'))
-              const btn = allButtons.find(b => b.getAttribute('aria-label')?.includes('${ariaLabelPart}'))
-              if (btn) btn.click()
-            })()
-          `)
-          await sleep(600)
-          
-          await this.signupBrowserWebContents.executeJavaScript(`
-            (() => {
-              const options = Array.from(document.querySelectorAll('[role="option"]'))
-              const opt = options.find(o => o.textContent?.trim() === '${dateValue}')
-              if (opt) opt.click()
-            })()
-          `)
-          await sleep(600)
-        }
-        
         // Click month button and option
         const monthBtnClicked = await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
@@ -637,7 +613,7 @@ export class GeneratorService extends EventEmitter {
 
       // Fill password - use same direct value injection method as username
       console.log(`[Generator] Filling password`)
-      const passwordResult = await this.signupBrowserWebContents.executeJavaScript(`
+      await this.signupBrowserWebContents.executeJavaScript(`
         (() => {
           const input = document.getElementById('signup-password')
           if (input) {
@@ -893,7 +869,6 @@ export class GeneratorService extends EventEmitter {
       while (!cookieFound && pollAttempts < maxPollAttempts) {
         try {
           if (this.signupBrowserPartition) {
-            const { session } = require('electron')
             const signupSession = session.fromPartition(this.signupBrowserPartition)
             const cookies = await signupSession.cookies.get({ name: '.ROBLOSECURITY' })
             if (cookies && cookies.length > 0) {
@@ -902,7 +877,7 @@ export class GeneratorService extends EventEmitter {
               break
             }
           }
-        } catch (err) {
+        } catch (_err) {
           // Silently ignore cookie retrieval errors during polling
         }
         
@@ -915,9 +890,11 @@ export class GeneratorService extends EventEmitter {
 
       if (!cookieFound) {
         console.warn('[Generator] Timeout waiting for cookie (5 minutes elapsed)')
+        await this.closeBrowser()
+        throw new Error('Account creation failed: no .ROBLOSECURITY cookie was set. The captcha may not have been completed, or signup was rejected.')
       }
 
-      // Add account to storage with the cookie we found (or empty string if not found)
+      // Add account to storage with the cookie we found
       await this.addAccountToStorage(accountData, robloxSecurityCookie, false)
 
       console.log('[Generator] Account signup workflow completed successfully')
@@ -1039,45 +1016,41 @@ export class GeneratorService extends EventEmitter {
 
   async createAccountWithUsername(username: string): Promise<AccountCreationResult> {
     // Add this creation task to the queue and wait for it to be processed
-    return new Promise((resolve) => {
-      const taskPromise = new Promise<AccountCreationResult>((taskResolve) => {
-        this.accountCreationQueue.push(async () => {
-          try {
-            console.log(`[Generator] Processing account creation for: ${username}`)
-            
-            const password = this.generatePassword()
-            const birthDate = this.generateBirthDate()
+    return new Promise<AccountCreationResult>((resolve) => {
+      this.accountCreationQueue.push(async () => {
+        try {
+          console.log(`[Generator] Processing account creation for: ${username}`)
+          
+          const password = this.generatePassword()
+          const birthDate = this.generateBirthDate()
 
-            const accountData: GeneratedAccountData = {
-              id: randomUUID(),
-              username,
-              password,
-              birthDate,
-              createdAt: Date.now()
-            }
-
-            const result = await this.processAccountCreation(accountData, true, true)
-            taskResolve(result)
-            return result
-          } catch (error) {
-            console.error(`[Generator] Account creation error for ${username}:`, error)
-            const errorResult = {
-              success: false,
-              error: String(error),
-              timestamp: Date.now()
-            }
-            taskResolve(errorResult)
-            return errorResult
+          const accountData: GeneratedAccountData = {
+            id: randomUUID(),
+            username,
+            password,
+            birthDate,
+            createdAt: Date.now()
           }
-        })
 
-        // Only process if not already processing
-        if (this.accountCreationQueue.length === 1) {
-          this.processAccountCreationQueue()
+          const result = await this.processAccountCreation(accountData, true, true)
+          resolve(result)
+          return result
+        } catch (error) {
+          console.error(`[Generator] Account creation error for ${username}:`, error)
+          const errorResult = {
+            success: false,
+            error: String(error),
+            timestamp: Date.now()
+          }
+          resolve(errorResult)
+          return errorResult
         }
       })
-      
-      taskPromise.then(resolve)
+
+      // Only process if not already processing
+      if (this.accountCreationQueue.length === 1) {
+        void this.processAccountCreationQueue()
+      }
     })
   }
 
@@ -1105,29 +1078,22 @@ export class GeneratorService extends EventEmitter {
     } finally {
       // Process next item in queue if available
       if (this.accountCreationQueue.length > 0) {
-        return this.processAccountCreationQueue()
+        void this.processAccountCreationQueue()
       }
     }
   }
 
   private async processAccountCreation(accountData: GeneratedAccountData, forceLaunchBrowser: boolean = false, fromSniper: boolean = false): Promise<AccountCreationResult> {
     try {
-      // Launch browser if enabled or forced (from sniper auto-generate)
-      if (forceLaunchBrowser || this.config.autoLaunchBrowser) {
-        console.log('[Generator] Launching browser for account creation (forceLaunchBrowser=' + forceLaunchBrowser + ')')
-        try {
-          await this.launchBrowser()
-          console.log('[Generator] Browser launched successfully!')
-        } catch (launchErr) {
-          console.error('[Generator] CRITICAL: Failed to launch browser:', launchErr)
-          throw new Error(`Failed to launch browser: ${String(launchErr)}`)
-        }
-      } else {
-        console.warn('[Generator] Browser launch disabled and not forced - will not create account')
-        throw new Error('Browser not launched - autoLaunchBrowser is false')
-      }
-
-      // Fill form
+      // Always launch browser for account creation
+      console.log('[Generator] Launching browser for account creation (forceLaunchBrowser=' + forceLaunchBrowser + ')')
+      try {
+        await this.launchBrowser()
+        console.log('[Generator] Browser launched successfully!')
+      } catch (launchErr) {
+        console.error('[Generator] CRITICAL: Failed to launch browser:', launchErr)
+        throw new Error(`Failed to launch browser: ${String(launchErr)}`)
+      }      // Fill form
       try {
         console.log('[Generator] Filling form...')
         await this.fillForm(accountData)
@@ -1157,7 +1123,6 @@ export class GeneratorService extends EventEmitter {
       while (!cookieFound && pollAttempts < maxPollAttempts) {
         try {
           if (this.signupBrowserPartition) {
-            const { session } = require('electron')
             const signupSession = session.fromPartition(this.signupBrowserPartition)
             const cookies = await signupSession.cookies.get({ name: '.ROBLOSECURITY' })
             if (cookies && cookies.length > 0) {
@@ -1176,6 +1141,11 @@ export class GeneratorService extends EventEmitter {
           console.log('[Generator] Still waiting for cookie... (', Math.round(pollAttempts * 0.5), 's elapsed)')
         }
         await sleep(500)
+      }
+
+      if (!cookieFound) {
+        console.error('[Generator] CRITICAL: Failed to get .ROBLOSECURITY cookie after signup')
+        throw new Error('Account creation failed - no cookie returned (likely captcha/rate limit)')
       }
 
       // Add account to storage (closes signup browser and opens real browser)

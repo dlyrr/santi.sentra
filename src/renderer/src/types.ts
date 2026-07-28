@@ -11,14 +11,12 @@ export type TabId =
   | 'Settings'
   | 'Avatar'
   | 'Install'
-  | 'News'
   | 'AccountSettings'
   | 'Executor'
   | 'Watcher'
   | 'Macro'
   | 'Sniper'
   | 'Generator'
-  | 'Proxy'
 
 export enum AccountStatus {
   Online = 'Online',
@@ -47,9 +45,11 @@ export interface Account {
   isPremium?: boolean
   isAdmin?: boolean
   joinDate?: string
+  age?: number
   placeVisits?: number
   totalFavorites?: number
   concurrentPlayers?: number
+  cookieInvalid?: boolean
   groupMemberCount?: number
 }
 
@@ -151,12 +151,19 @@ export interface Settings {
   browserWindowHeight?: number | null
   // Show a return-page button inside the in-app browser window UI
   showReturnPageButton?: boolean
-  // User Agent settings
   userAgentSettings?: {
     currentUserAgentIndex: number
     autoSwapUserAgent: boolean
     autoSwapIntervalMinutes: number
   }
+  
+  // Performance & Utility Settings
+  antiAfkEnabled?: boolean
+  renameWindowsEnabled?: boolean
+  framerateCapEnabled?: boolean
+  framerateCapValue?: number
+  optimizeRamEnabled?: boolean
+  ramOptimizeLimit?: number
 }
 
 export type AccessoryType =

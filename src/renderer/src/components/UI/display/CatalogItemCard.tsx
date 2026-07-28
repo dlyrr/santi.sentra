@@ -128,12 +128,12 @@ export const CatalogItemCard = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.02, 0.3) }}
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className="group relative flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 text-[var(--color-text-secondary)]"
+      className="group relative flex flex-col bg-[var(--color-surface-strong)]/70 border border-white/5 rounded-2xl overflow-hidden cursor-pointer hover:border-white/15 hover:shadow-2xl hover:shadow-black/40 hover:-translate-y-1 transition-all duration-300 text-[var(--color-text-secondary)] backdrop-blur-sm"
     >
       {/* Image Container */}
       <div
@@ -246,8 +246,11 @@ export const CatalogItemCard = ({
 
           {thumbnailUrl ? (
             <>
+              {/* Skeleton shimmer */}
               {!imageLoaded && (
-                <div className="absolute inset-0 bg-[var(--color-border-subtle)] animate-pulse" />
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="w-full h-full bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-[shimmer_1.5s_infinite]" style={{ backgroundSize: '200% 100%' }} />
+                </div>
               )}
               <img
                 src={thumbnailUrl}
@@ -265,11 +268,13 @@ export const CatalogItemCard = ({
             </div>
           )}
         </div>
+        {/* Glare effect overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-tl from-white/0 via-white/0 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
       </div>
 
       {/* Item Info */}
       <div
-        className={`flex flex-col gap-1.5 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface-muted)] ${isCompact ? 'p-2' : 'p-3'}`}
+        className={`flex flex-col gap-1.5 bg-[var(--color-surface-muted)]/60 ${isCompact ? 'p-2' : 'p-3'}`}
       >
         {isNameTruncated ? (
           <Tooltip>
@@ -387,7 +392,7 @@ export const CatalogItemCard = ({
                 displayPrice !== 'Not For Sale' ? (
                   <span className="flex items-center gap-1">
                     {!isOffSale && displayPrice !== 'Free' && (
-                      <RobuxIcon className="w-4 h-4 text-white" />
+                      <RobuxIcon className="w-4 h-4 text-[var(--color-text-primary)]" />
                     )}
                     {displayPrice}
                   </span>

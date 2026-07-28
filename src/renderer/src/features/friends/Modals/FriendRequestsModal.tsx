@@ -118,7 +118,7 @@ const RequestCard: React.FC<{
   const mutualText = formatMutualFriends(request.mutualFriendsList)
 
   return (
-    <div className="group relative bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800/50 hover:border-neutral-700/50 rounded-xl transition-all duration-200">
+    <div className="group relative bg-[var(--color-surface)]/40 hover:bg-[var(--color-surface)]/70 border border-[var(--color-border)]/50 hover:border-[var(--color-border-strong)]/50 rounded-xl transition-all duration-200">
       <div className="p-4">
         {/* Main content row */}
         <div className="flex items-start gap-3">
@@ -138,12 +138,12 @@ const RequestCard: React.FC<{
           <div className="flex-1 min-w-0">
             <button onClick={() => onOpenProfile(request)} className="text-left pressable w-full">
               <div className="flex items-center gap-2">
-                <h4 className="font-semibold text-white truncate group-hover:text-[var(--accent-color)] transition-colors">
+                <h4 className="font-semibold text-[var(--color-text-primary)] truncate group-hover:text-[var(--accent-color)] transition-colors">
                   {request.displayName}
                 </h4>
-                {alias && <span className="text-xs text-neutral-500 truncate">({alias})</span>}
+                {alias && <span className="text-xs text-[var(--color-text-muted)] truncate">({alias})</span>}
               </div>
-              <p className="text-sm text-neutral-500 truncate">@{request.username}</p>
+              <p className="text-sm text-[var(--color-text-muted)] truncate">@{request.username}</p>
             </button>
 
             {/* Meta info badges */}
@@ -151,7 +151,7 @@ const RequestCard: React.FC<{
               {/* Source badge */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-neutral-800/50 rounded-md text-xs text-neutral-400">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--color-surface-hover)]/50 rounded-md text-xs text-[var(--color-text-secondary)]">
                     <SourceIcon size={12} />
                     <span className="truncate max-w-[100px]">
                       {formatSource(request, universeNames)}
@@ -164,7 +164,7 @@ const RequestCard: React.FC<{
               {/* Time badge */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-neutral-800/50 rounded-md text-xs text-neutral-500">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--color-surface-hover)]/50 rounded-md text-xs text-[var(--color-text-muted)]">
                     <Clock size={11} />
                     <span>{formatTimeAgo(request.created)}</span>
                   </div>
@@ -211,7 +211,7 @@ const RequestCard: React.FC<{
                 <button
                   onClick={() => onDecline(request)}
                   disabled={isProcessing}
-                  className="pressable flex items-center justify-center w-9 h-9 bg-neutral-800/80 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 rounded-lg transition-all disabled:opacity-50"
+                  className="pressable flex items-center justify-center w-9 h-9 bg-[var(--color-surface-hover)]/80 hover:bg-red-500/20 text-[var(--color-text-secondary)] hover:text-red-400 rounded-lg transition-all disabled:opacity-50"
                 >
                   <UserX size={16} />
                 </button>
@@ -472,24 +472,24 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-xl h-[85vh] bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)] flex flex-col">
+      <DialogContent className="w-full max-w-xl h-[85vh] bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)] flex flex-col">
         {/* Header */}
-        <div className="flex flex-col gap-4 p-6 border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-md z-10 shrink-0">
+        <div className="flex flex-col gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 backdrop-blur-md z-10 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-strong)]">
-                <Users className="text-white" size={20} />
+                <Users className="text-[var(--color-text-primary)]" size={20} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-white tracking-tight">Friend Requests</h3>
+                  <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">Friend Requests</h3>
                   {stats.total > 0 && (
                     <span className="px-2 py-0.5 bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-xs font-semibold rounded-full">
                       {stats.total}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-neutral-400 font-medium">
+                <p className="text-sm text-[var(--color-text-secondary)] font-medium">
                   {stats.total === 0
                     ? 'No pending requests'
                     : stats.withMutuals > 0
@@ -504,7 +504,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
           {/* Search Bar */}
           <div className="relative group">
             <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-text-primary)] transition-colors"
               size={18}
             />
             <input
@@ -512,15 +512,15 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
               placeholder="Search requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color-ring)] focus:border-[var(--color-border-strong)] transition-all"
+              className="w-full bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color-ring)] focus:border-[var(--color-border-strong)] transition-all"
             />
           </div>
         </div>
 
         {/* Bulk Actions */}
         {requests.length > 1 && !isLoading && !error && (
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-neutral-800/50 bg-neutral-900/30 shrink-0">
-            <span className="text-xs text-neutral-500">Bulk actions</span>
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)]/50 bg-[var(--color-surface)]/30 shrink-0">
+            <span className="text-xs text-[var(--color-text-muted)]">Bulk actions</span>
             <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -544,7 +544,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                   <button
                     onClick={() => setConfirmAction('decline')}
                     disabled={!!processingId || !!processingAll}
-                    className="pressable inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-neutral-800/50 hover:bg-red-500/10 text-neutral-400 hover:text-red-400 rounded-lg transition-colors disabled:opacity-50"
+                    className="pressable inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[var(--color-surface-hover)]/50 hover:bg-red-500/10 text-[var(--color-text-secondary)] hover:text-red-400 rounded-lg transition-colors disabled:opacity-50"
                   >
                     {processingAll === 'decline' ? (
                       <Loader2 size={12} className="animate-spin" />

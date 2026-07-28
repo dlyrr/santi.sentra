@@ -109,8 +109,8 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
         >
           <Check className="w-10 h-10 text-emerald-500" />
         </motion.div>
-        <h3 className="text-xl font-semibold text-white mb-2">Installation Complete!</h3>
-        <p className="text-neutral-400 text-sm">Your Roblox is ready to use</p>
+        <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Installation Complete!</h3>
+        <p className="text-[var(--color-text-secondary)] text-sm">Your Roblox is ready to use</p>
       </motion.div>
     )
   }
@@ -121,11 +121,11 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <div className="w-16 h-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto mb-4">
-          <Download className="w-8 h-8 text-neutral-400" />
+        <div className="w-16 h-16 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
+          <Download className="w-8 h-8 text-[var(--color-text-secondary)]" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-1">Create Installation</h3>
-        <p className="text-sm text-neutral-500">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Create Installation</h3>
+        <p className="text-sm text-[var(--color-text-muted)]">
           Set up a custom Roblox installation for version control
         </p>
       </div>
@@ -142,7 +142,7 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-400 block mb-1.5">Name</label>
+          <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-1.5">Name</label>
           <input
             type="text"
             value={name}
@@ -154,7 +154,7 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-400 block mb-1.5">Type</label>
+          <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-1.5">Type</label>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -163,7 +163,7 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
               className={`pressable flex items-center gap-3 p-3 rounded-lg border transition-all disabled:opacity-50 ${
                 type === BinaryType.WindowsPlayer
                   ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800'
+                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
               }`}
             >
               <Laptop size={20} />
@@ -176,7 +176,7 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
               className={`pressable flex items-center gap-3 p-3 rounded-lg border transition-all disabled:opacity-50 ${
                 type === BinaryType.WindowsStudio
                   ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800'
+                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
               }`}
             >
               <Box size={20} />
@@ -186,7 +186,7 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-neutral-400 block mb-1.5">Version</label>
+          <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-1.5">Version</label>
           <CustomDropdown
             options={versionOptions}
             value={version}
@@ -233,11 +233,11 @@ const InstallationStep: React.FC<InstallationStepProps> = ({ onComplete, onSkip 
         )}
       </button>
 
-      <div className="pt-4 border-t border-neutral-800">
+      <div className="pt-4 border-t border-[var(--color-border)]">
         <button
           onClick={onSkip}
           disabled={isInstalling}
-          className="w-full text-center text-sm text-neutral-500 hover:text-neutral-300 transition-colors py-2 disabled:opacity-50"
+          className="w-full text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors py-2 disabled:opacity-50"
         >
           {hasExistingInstallations ? 'Use existing installation' : 'Skip for now'}
         </button>

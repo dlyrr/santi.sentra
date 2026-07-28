@@ -91,24 +91,24 @@ const GameCard = ({ game }: GameCardProps) => {
 
   return (
     <Card
-      className="flex items-center gap-3 p-3 bg-neutral-900/50 border-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group"
+      className="flex items-center gap-3 p-3 bg-[var(--color-surface)]/50 border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-all cursor-pointer group"
       onClick={handleOpenGame}
     >
-      <div className="w-16 h-16 rounded-lg overflow-hidden bg-neutral-800 shrink-0">
+      <div className="w-16 h-16 rounded-lg overflow-hidden bg-[var(--color-surface-hover)] shrink-0">
         {game.thumbnailUrl ? (
           <img src={game.thumbnailUrl} alt={game.name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-neutral-600">
+          <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
             <Gamepad2 size={24} />
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-white truncate text-sm group-hover:text-[var(--accent-color)] transition-colors">
+        <h4 className="font-medium text-[var(--color-text-primary)] truncate text-sm group-hover:text-[var(--accent-color)] transition-colors">
           {game.name}
         </h4>
         {game.placeVisits !== undefined && (
-          <div className="flex items-center gap-1 text-xs text-neutral-500 mt-0.5">
+          <div className="flex items-center gap-1 text-xs text-[var(--color-text-muted)] mt-0.5">
             <TrendingUp size={12} />
             <span>{formatNumber(game.placeVisits)} visits</span>
           </div>
@@ -116,7 +116,7 @@ const GameCard = ({ game }: GameCardProps) => {
       </div>
       <ExternalLink
         size={16}
-        className="text-neutral-600 group-hover:text-neutral-400 transition-colors shrink-0"
+        className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors shrink-0"
       />
     </Card>
   )
@@ -145,7 +145,7 @@ const MemberAvatar = ({
       className="group w-28 flex flex-col items-center gap-2 cursor-pointer shrink-0"
       onClick={onClick}
     >
-      <div className="relative w-24 h-24 rounded-full bg-neutral-800 shadow-md ring-2 ring-transparent group-hover:ring-neutral-700 transition-all overflow-hidden">
+      <div className="relative w-24 h-24 rounded-full bg-[var(--color-surface-hover)] shadow-md ring-2 ring-transparent group-hover:ring-neutral-700 transition-all overflow-hidden">
         {thumbnail && (
           <img
             src={thumbnail}
@@ -156,12 +156,12 @@ const MemberAvatar = ({
       </div>
       <div className="text-center w-full">
         <div
-          className={`text-sm font-bold truncate flex items-center justify-center gap-1 ${hasVerifiedBadge ? 'text-[#3385ff]' : 'text-white'}`}
+          className={`text-sm font-bold truncate flex items-center justify-center gap-1 ${hasVerifiedBadge ? 'text-[#3385ff]' : 'text-[var(--color-text-primary)]'}`}
         >
           <span className="truncate">{displayName}</span>
           {hasVerifiedBadge && <VerifiedIcon width={12} height={12} className="shrink-0" />}
         </div>
-        <div className="text-xs font-medium text-neutral-500 truncate mt-0.5">@{username}</div>
+        <div className="text-xs font-medium text-[var(--color-text-muted)] truncate mt-0.5">@{username}</div>
       </div>
     </motion.div>
   )
@@ -192,7 +192,7 @@ const MembersSection = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-white">Members</h3>
+        <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Members</h3>
         <CustomDropdown
           options={[
             { value: 'all', label: 'All Members' },
@@ -219,10 +219,10 @@ const MembersSection = ({
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
               onClick={() => scroll('left')}
-              className="absolute -left-3 z-20 w-10 h-10 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 rounded-full shadow-lg transition-colors border border-neutral-700"
+              className="absolute -left-3 z-20 w-10 h-10 flex items-center justify-center bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-full shadow-lg transition-colors border border-[var(--color-border-strong)]"
               aria-label="Scroll left"
             >
-              <ChevronLeft size={24} className="text-white" />
+              <ChevronLeft size={24} className="text-[var(--color-text-primary)]" />
             </motion.button>
           )}
         </AnimatePresence>
@@ -235,10 +235,10 @@ const MembersSection = ({
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
               onClick={() => scroll('right')}
-              className="absolute -right-3 z-20 w-10 h-10 flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 rounded-full shadow-lg transition-colors border border-neutral-700"
+              className="absolute -right-3 z-20 w-10 h-10 flex items-center justify-center bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-full shadow-lg transition-colors border border-[var(--color-border-strong)]"
               aria-label="Scroll right"
             >
-              <ChevronRight size={24} className="text-white" />
+              <ChevronRight size={24} className="text-[var(--color-text-primary)]" />
             </motion.button>
           )}
         </AnimatePresence>
@@ -248,9 +248,9 @@ const MembersSection = ({
             {membersLoading ? (
               [1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="w-28 space-y-2 flex flex-col items-center shrink-0">
-                  <div className="w-24 h-24 rounded-full bg-neutral-800 animate-pulse" />
-                  <div className="h-4 w-16 bg-neutral-800 rounded animate-pulse" />
-                  <div className="h-3 w-12 bg-neutral-800 rounded animate-pulse" />
+                  <div className="w-24 h-24 rounded-full bg-[var(--color-surface-hover)] animate-pulse" />
+                  <div className="h-4 w-16 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+                  <div className="h-3 w-12 bg-[var(--color-surface-hover)] rounded animate-pulse" />
                 </div>
               ))
             ) : members.length > 0 ? (
@@ -267,7 +267,7 @@ const MembersSection = ({
                 )
               })
             ) : (
-              <div className="text-neutral-500 text-sm py-4">No members found.</div>
+              <div className="text-[var(--color-text-muted)] text-sm py-4">No members found.</div>
             )}
           </div>
         </div>
@@ -294,9 +294,9 @@ const WallPost = ({
   }
 
   return (
-    <div className="flex gap-4 p-4 bg-neutral-900/30 rounded-xl border border-neutral-800/50">
+    <div className="flex gap-4 p-4 bg-[var(--color-surface)]/30 rounded-xl border border-[var(--color-border)]/50">
       <Avatar
-        className="w-10 h-10 rounded-full border border-neutral-700 shrink-0 cursor-pointer hover:ring-2 hover:ring-neutral-600 transition-all"
+        className="w-10 h-10 rounded-full border border-[var(--color-border-strong)] shrink-0 cursor-pointer hover:ring-2 hover:ring-neutral-600 transition-all"
         onClick={handlePosterClick}
       >
         <AvatarImage src={thumbnail} alt={post.poster.user.username} />
@@ -306,7 +306,7 @@ const WallPost = ({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <span
-              className={`font-semibold text-sm inline-flex items-center gap-1 cursor-pointer hover:underline ${post.poster.user.hasVerifiedBadge ? 'text-[#3385ff]' : 'text-neutral-200'}`}
+              className={`font-semibold text-sm inline-flex items-center gap-1 cursor-pointer hover:underline ${post.poster.user.hasVerifiedBadge ? 'text-[#3385ff]' : 'text-[var(--color-text-primary)]'}`}
               onClick={handlePosterClick}
             >
               {post.poster.user.displayName}
@@ -315,25 +315,25 @@ const WallPost = ({
               )}
             </span>
             <span
-              className="text-xs text-neutral-500 cursor-pointer hover:text-neutral-400"
+              className="text-xs text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-text-secondary)]"
               onClick={handlePosterClick}
             >
               @{post.poster.user.username}
             </span>
             {post.poster.role && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 border border-neutral-700">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] border border-[var(--color-border-strong)]">
                 {post.poster.role.name}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-600">{formatRelativeDate(post.created)}</span>
-            <button className="text-neutral-600 hover:text-neutral-400 transition-colors">
+            <span className="text-xs text-[var(--color-text-muted)]">{formatRelativeDate(post.created)}</span>
+            <button className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors">
               <MoreHorizontal size={14} />
             </button>
           </div>
         </div>
-        <p className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed">{post.body}</p>
+        <p className="text-sm text-[var(--color-text-secondary)] whitespace-pre-wrap leading-relaxed">{post.body}</p>
       </div>
     </div>
   )
@@ -574,20 +574,20 @@ export const GroupDetailsPanel = ({
             className="p-8 space-y-8 max-w-5xl mx-auto w-full"
           >
             <div className="flex items-start gap-4">
-              <div className="w-32 h-32 rounded-2xl bg-neutral-800 animate-pulse" />
+              <div className="w-32 h-32 rounded-2xl bg-[var(--color-surface-hover)] animate-pulse" />
               <div className="flex-1 space-y-3 pt-2">
-                <div className="h-8 w-64 bg-neutral-800 rounded animate-pulse" />
-                <div className="h-4 w-48 bg-neutral-800 rounded animate-pulse" />
+                <div className="h-8 w-64 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+                <div className="h-4 w-48 bg-[var(--color-surface-hover)] rounded animate-pulse" />
                 <div className="flex gap-2 pt-2">
-                  <div className="h-8 w-24 bg-neutral-800 rounded animate-pulse" />
-                  <div className="h-8 w-24 bg-neutral-800 rounded animate-pulse" />
+                  <div className="h-8 w-24 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+                  <div className="h-8 w-24 bg-[var(--color-surface-hover)] rounded animate-pulse" />
                 </div>
               </div>
             </div>
-            <div className="h-12 bg-neutral-800 rounded-lg animate-pulse" />
+            <div className="h-12 bg-[var(--color-surface-hover)] rounded-lg animate-pulse" />
             <div className="space-y-4">
-              <div className="h-32 bg-neutral-800 rounded-xl animate-pulse" />
-              <div className="h-48 bg-neutral-800 rounded-xl animate-pulse" />
+              <div className="h-32 bg-[var(--color-surface-hover)] rounded-xl animate-pulse" />
+              <div className="h-48 bg-[var(--color-surface-hover)] rounded-xl animate-pulse" />
             </div>
           </motion.div>
         ) : detailsError || !details ? (
@@ -617,9 +617,9 @@ export const GroupDetailsPanel = ({
             {/* Header Section */}
             <div className="relative">
               <div className="flex flex-col md:flex-row gap-6 items-start">
-                <Avatar className="w-32 h-32 rounded-2xl border-4 border-neutral-800 shadow-xl shrink-0 bg-neutral-800">
+                <Avatar className="w-32 h-32 rounded-2xl border-4 border-[var(--color-border)] shadow-xl shrink-0 bg-[var(--color-surface-hover)]">
                   <AvatarImage src={thumbnailUrl} alt={details.name} />
-                  <AvatarFallback className="rounded-2xl bg-neutral-800 text-neutral-400 text-3xl">
+                  <AvatarFallback className="rounded-2xl bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] text-3xl">
                     {details.name.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -627,7 +627,7 @@ export const GroupDetailsPanel = ({
                 <div className="flex-1 min-w-0 space-y-4">
                   <div>
                     <div className="flex items-center gap-3 flex-wrap mb-1">
-                      <h2 className="text-3xl font-bold text-white tracking-tight">
+                      <h2 className="text-3xl font-bold text-[var(--color-text-primary)] tracking-tight">
                         {details.name}
                       </h2>
                       {details.hasVerifiedBadge && <VerifiedIcon width={24} height={24} />}
@@ -667,10 +667,10 @@ export const GroupDetailsPanel = ({
                     </div>
 
                     {details.owner && (
-                      <p className="text-sm text-neutral-400 flex items-center gap-1">
+                      <p className="text-sm text-[var(--color-text-secondary)] flex items-center gap-1">
                         By{' '}
                         <span
-                          className={`font-medium hover:underline cursor-pointer inline-flex items-center gap-1 ${details.owner.hasVerifiedBadge ? 'text-[#3385ff]' : 'text-white'}`}
+                          className={`font-medium hover:underline cursor-pointer inline-flex items-center gap-1 ${details.owner.hasVerifiedBadge ? 'text-[#3385ff]' : 'text-[var(--color-text-primary)]'}`}
                           onClick={ownerUserId ? () => onViewProfile?.(ownerUserId) : undefined}
                         >
                           {details.owner.displayName || details.owner.username}
@@ -683,19 +683,19 @@ export const GroupDetailsPanel = ({
                   </div>
 
                   <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center gap-2">
-                      <Users size={14} className="text-neutral-400" />
-                      <span className="font-medium text-white">
+                    <div className="px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-2">
+                      <Users size={14} className="text-[var(--color-text-secondary)]" />
+                      <span className="font-medium text-[var(--color-text-primary)]">
                         {details.memberCount ? formatNumber(details.memberCount) : '0'}
                       </span>
-                      <span className="text-neutral-500">Members</span>
+                      <span className="text-[var(--color-text-muted)]">Members</span>
                     </div>
 
                     {userRole && !isPending && (
-                      <div className="px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center gap-2">
-                        <Shield size={14} className="text-neutral-400" />
-                        <span className="text-neutral-500">Rank:</span>
-                        <span className="font-medium text-white">{userRole.name}</span>
+                      <div className="px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center gap-2">
+                        <Shield size={14} className="text-[var(--color-text-secondary)]" />
+                        <span className="text-[var(--color-text-muted)]">Rank:</span>
+                        <span className="font-medium text-[var(--color-text-primary)]">{userRole.name}</span>
                       </div>
                     )}
 
@@ -709,7 +709,7 @@ export const GroupDetailsPanel = ({
 
                   {/* Description */}
                   {details.description && (
-                    <p className="text-sm text-neutral-400 leading-relaxed max-w-3xl line-clamp-3">
+                    <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl line-clamp-3">
                       {details.description}
                     </p>
                   )}
@@ -723,7 +723,7 @@ export const GroupDetailsPanel = ({
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-sm text-neutral-400 hover:text-white transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                         >
                           <SocialIcon type={link.type} />
                           <span>{link.title}</span>
@@ -757,11 +757,11 @@ export const GroupDetailsPanel = ({
                 {/* Shout Section */}
                 {details.shout && details.shout.body && details.shout.body.trim() && (
                   <div className="space-y-2">
-                    <h3 className="text-lg font-bold text-white">Shout</h3>
-                    <Card className="p-5 bg-neutral-900/50 border-neutral-800 relative overflow-hidden">
+                    <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Shout</h3>
+                    <Card className="p-5 bg-[var(--color-surface)]/50 border-[var(--color-border)] relative overflow-hidden">
                       <div className="flex gap-4">
                         <Avatar
-                          className="w-12 h-12 rounded-full border border-neutral-700 shrink-0 cursor-pointer hover:ring-2 hover:ring-neutral-600 transition-all"
+                          className="w-12 h-12 rounded-full border border-[var(--color-border-strong)] shrink-0 cursor-pointer hover:ring-2 hover:ring-neutral-600 transition-all"
                           onClick={
                             shoutPosterUserId ? () => onViewProfile?.(shoutPosterUserId) : undefined
                           }
@@ -774,7 +774,7 @@ export const GroupDetailsPanel = ({
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center justify-between">
                             <span
-                              className={`font-semibold inline-flex items-center gap-1 cursor-pointer hover:underline ${details.shout.poster?.hasVerifiedBadge ? 'text-[#3385ff]' : 'text-white'}`}
+                              className={`font-semibold inline-flex items-center gap-1 cursor-pointer hover:underline ${details.shout.poster?.hasVerifiedBadge ? 'text-[#3385ff]' : 'text-[var(--color-text-primary)]'}`}
                               onClick={
                                 shoutPosterUserId
                                   ? () => onViewProfile?.(shoutPosterUserId)
@@ -786,11 +786,11 @@ export const GroupDetailsPanel = ({
                                 <VerifiedIcon width={14} height={14} className="shrink-0" />
                               )}
                             </span>
-                            <span className="text-xs text-neutral-500">
+                            <span className="text-xs text-[var(--color-text-muted)]">
                               {formatRelativeDate(details.shout.updated)}
                             </span>
                           </div>
-                          <p className="text-neutral-300 whitespace-pre-wrap">
+                          <p className="text-[var(--color-text-secondary)] whitespace-pre-wrap">
                             {details.shout.body}
                           </p>
                         </div>
@@ -813,12 +813,12 @@ export const GroupDetailsPanel = ({
                 {/* Wall Section */}
                 {!wallError && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-bold text-white">Wall</h3>
+                    <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Wall</h3>
 
                     <div className="relative">
                       <textarea
                         placeholder="Say something..."
-                        className="w-full bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-neutral-700 resize-none h-24"
+                        className="w-full bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl p-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-border-strong)] resize-none h-24"
                       />
                       <div className="absolute bottom-4 right-3">
                         <Button size="sm" className="h-8 px-4">
@@ -832,7 +832,7 @@ export const GroupDetailsPanel = ({
                         [1, 2, 3].map((i) => (
                           <div
                             key={i}
-                            className="h-24 bg-neutral-900/30 rounded-xl border border-neutral-800/50 animate-pulse"
+                            className="h-24 bg-[var(--color-surface)]/30 rounded-xl border border-[var(--color-border)]/50 animate-pulse"
                           />
                         ))
                       ) : wallPosts.length > 0 ? (
@@ -849,7 +849,7 @@ export const GroupDetailsPanel = ({
                           />
                         ))
                       ) : (
-                        <div className="text-center py-8 text-neutral-500">No wall posts yet</div>
+                        <div className="text-center py-8 text-[var(--color-text-muted)]">No wall posts yet</div>
                       )}
                     </div>
                   </div>
@@ -859,8 +859,8 @@ export const GroupDetailsPanel = ({
                 {games.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-white">Games</h3>
-                      <span className="text-xs text-neutral-500">{games.length} games</span>
+                      <h3 className="text-lg font-bold text-[var(--color-text-primary)]">Games</h3>
+                      <span className="text-xs text-[var(--color-text-muted)]">{games.length} games</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {games.slice(0, 6).map((game: GroupGame) => (
@@ -881,7 +881,7 @@ export const GroupDetailsPanel = ({
                 {/* Store Search Bar */}
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search size={16} className="text-neutral-500" />
+                    <Search size={16} className="text-[var(--color-text-muted)]" />
                   </div>
                   <Input
                     type="text"
@@ -890,7 +890,7 @@ export const GroupDetailsPanel = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setStoreSearchQuery(e.target.value)
                     }
-                    className="pl-11 h-10 text-sm bg-neutral-900/50 border-neutral-800"
+                    className="pl-11 h-10 text-sm bg-[var(--color-surface)]/50 border-[var(--color-border)]"
                   />
                 </div>
 
@@ -900,7 +900,7 @@ export const GroupDetailsPanel = ({
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
                       <div
                         key={i}
-                        className="aspect-square rounded-xl bg-neutral-900/50 border border-neutral-800 animate-pulse"
+                        className="aspect-square rounded-xl bg-[var(--color-surface)]/50 border border-[var(--color-border)] animate-pulse"
                       />
                     ))}
                   </div>

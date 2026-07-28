@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/UI/display/Card'
-import { Play, Pause, Square, Download, Trash2, AlertCircle, Upload, X, Settings, Copy, Key, Clipboard, Plus } from 'lucide-react'
+import { 
+  Play, Pause, Square, Download, Trash2, AlertCircle, Settings, Copy, Key, 
+  Clipboard, Plus, Sparkles, CheckCircle2, Loader2, Upload
+} from 'lucide-react'
 import { useAccountsManager } from '../auth/api/useAccounts'
 import { AccountStatus } from '@renderer/types'
 import { v4 as uuidv4 } from 'uuid'
+import { SniperSettingsModal } from './SniperSettingsModal'
 
 interface SniperResult {
   valid: string[]
@@ -17,7 +19,6 @@ interface SniperResult {
 }
 
 export const SniperTab = () => {
-  // Try to restore sessionId from sessionStorage on mount (clears on app restart)
   const [sessionId, setSessionId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('sniper_sessionId') || ''
@@ -41,14 +42,12 @@ export const SniperTab = () => {
   const [showSettings, setShowSettings] = useState<boolean>(false)
   const [autoGenerate, setAutoGenerate] = useState<boolean>(false)
   const [generatedAccounts, setGeneratedAccounts] = useState<any[]>([])
-  const [accountPasswords, setAccountPasswords] = useState<Map<string, string>>(new Map())
   const [isAddingToAccounts, setIsAddingToAccounts] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const unsubscribersRef = useRef<Array<() => void>>([])
   const isRunningRef = useRef(false)
   const { addAccount } = useAccountsManager()
 
-  // Save sessionId to sessionStorage whenever it changes
   useEffect(() => {
     if (sessionId) {
       sessionStorage.setItem('sniper_sessionId', sessionId)
@@ -57,9 +56,8 @@ export const SniperTab = () => {
     }
   }, [sessionId])
 
-  // Load sniper accounts from encrypted storage on mount
   useEffect(() => {
-    loadSniperAccounts()
+    void loadSniperAccounts()
   }, [])
 
   const loadSniperAccounts = async () => {
@@ -73,53 +71,28 @@ export const SniperTab = () => {
     }
   }
 
-  // Set up persistent listeners and re-attach on visibility change
   useEffect(() => {
     const setupListeners = () => {
-      // Clean up old listeners first
-      unsubscribersRef.current.forEach(unsub => {
-        try { unsub() } catch (err) {}
+      unsubscribersRef.current.forEach((unsub) => {
+        try { unsub() } catch { /* ignore cleanup errors */ }
       })
       unsubscribersRef.current = []
 
-      // Set up new listeners
       const unsubscribeValid = window.api.sniper.onValid((data) => {
-        console.log(`[SniperTab] onValid event received:`, data)
-        setResults((prev) => ({
-          ...prev,
-          valid: [...prev.valid, data.username],
-        }))
-        console.log(`[SniperTab] autoGenerate state:`, autoGenerate)
+        setResults((prev) => ({ ...prev, valid: [...prev.valid, data.username] }))
         if (autoGenerate) {
-          console.log(`[SniperTab] AUTO-GENERATE ENABLED - Calling createAccountWithUsername for: ${data.username}`)
-          window.api.generator.createAccountWithUsername(data.username)
-            .then(result => {
-              console.log(`[SniperTab] Auto-generate SUCCESS result:`, result)
-              if (result.success && result.accountId) {
-                // Reload accounts after creation - the account is stored in generator storage
-                loadSniperAccounts()
-              }
-            })
-            .catch(err => {
-              console.error(`[SniperTab] Auto-generate FAILED error:`, err)
-            })
-        } else {
-          console.log(`[SniperTab] AUTO-GENERATE NOT ENABLED - Skipping account creation`)
+          void window.api.generator.createAccountWithUsername(data.username).then((result) => {
+            if (result.success && result.accountId) { void loadSniperAccounts() }
+          })
         }
       })
 
       const unsubscribeTaken = window.api.sniper.onTaken((data) => {
-        setResults((prev) => ({
-          ...prev,
-          taken: [...prev.taken, data.username],
-        }))
+        setResults((prev) => ({ ...prev, taken: [...prev.taken, data.username] }))
       })
 
       const unsubscribeCensored = window.api.sniper.onCensored((data) => {
-        setResults((prev) => ({
-          ...prev,
-          censored: [...prev.censored, data.username],
-        }))
+        setResults((prev) => ({ ...prev, censored: [...prev.censored, data.username] }))
       })
 
       const unsubscribeProgress = window.api.sniper.onProgress((data) => {
@@ -131,77 +104,51 @@ export const SniperTab = () => {
         }))
       })
 
-      const unsubscribeCompleted = window.api.sniper.onCompleted((data) => {
+      const unsubscribeCompleted = window.api.sniper.onCompleted(() => {
         isRunningRef.current = false
-        setResults((prev) => ({
-          ...prev,
-          status: 'completed',
-        }))
+        setResults((prev) => ({ ...prev, status: 'completed' }))
       })
 
       const unsubscribeError = window.api.sniper.onError((data) => {
         console.error('[Frontend] onError:', data)
       })
 
-      unsubscribersRef.current = [
-        unsubscribeValid,
-        unsubscribeTaken,
-        unsubscribeCensored,
-        unsubscribeProgress,
-        unsubscribeCompleted,
-        unsubscribeError,
-      ]
+      unsubscribersRef.current = [unsubscribeValid, unsubscribeTaken, unsubscribeCensored, unsubscribeProgress, unsubscribeCompleted, unsubscribeError]
     }
 
-    // Setup listeners on mount
     setupListeners()
 
     return () => {
-      unsubscribersRef.current.forEach(unsub => {
-        try { unsub() } catch (err) {}
+      unsubscribersRef.current.forEach((unsub) => {
+        try { unsub() } catch { /* ignore cleanup errors */ }
       })
       unsubscribersRef.current = []
     }
   }, [autoGenerate])
 
-  // Re-setup listeners when tab regains visibility (separate effect to prevent duplicate listeners)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && unsubscribersRef.current.length === 0) {
-        // If listeners were somehow cleaned up, re-subscribe
         window.api.sniper.onValid((data) => {
-          setResults((prev) => ({
-            ...prev,
-            valid: [...prev.valid, data.username],
-          }))
+          setResults((prev) => ({ ...prev, valid: [...prev.valid, data.username] }))
         })
       }
     }
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => { document.removeEventListener('visibilitychange', handleVisibilityChange) }
+  }, [])
 
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, []) // Empty dependency - should only run once
-
-  // Sync with backend when tab regains focus
   useEffect(() => {
     const syncSessionState = async () => {
       if (!sessionId) return
-
       try {
         const session = await window.api.sniper.getSession(sessionId)
         if (session.success && session.session) {
           const sess = session.session
-          
-          // Restore usernames and fileName
           setUsernames(sess.usernames || [])
           if (sess.usernames && sess.usernames.length > 0) {
             setFileName(`${sess.usernames.length} usernames`)
           }
-          
-          // Sync results state from backend
           setResults({
             valid: sess.valid || [],
             taken: sess.taken || [],
@@ -211,7 +158,6 @@ export const SniperTab = () => {
             currentLoop: sess.currentLoop || 0,
             totalLoops: sess.totalLoops || 1,
           })
-
           isRunningRef.current = sess.status === 'running'
         }
       } catch (error) {
@@ -219,63 +165,29 @@ export const SniperTab = () => {
       }
     }
 
-    // Always sync on mount if sessionId exists
-    if (sessionId) {
-      syncSessionState()
-    }
+    if (sessionId) { void syncSessionState() }
 
     const handleVisibilityChange = () => {
-      if (!document.hidden && sessionId) {
-        syncSessionState()
-      }
+      if (!document.hidden && sessionId) { void syncSessionState() }
     }
-
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
+    return () => { document.removeEventListener('visibilitychange', handleVisibilityChange) }
   }, [sessionId])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     setFileName(file.name)
-
     const reader = new FileReader()
     reader.onload = async (event) => {
       const text = event.target?.result as string
-      const lines = text
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-
+      const lines = text.split('\n').map((line) => line.trim()).filter((line) => line.length > 0)
       setUsernames(lines)
-
       try {
-        // Proxies are optional - sniper will work without them
-        let proxyUrls: string[] = []
-        try {
-          const allProxies = await window.api.proxy.getAllProxies()
-          proxyUrls = allProxies.success && allProxies.proxies 
-            ? allProxies.proxies.map((p: any) => `${p.host}:${p.port}`)
-            : []
-        } catch (err) {
-          console.warn('Proxies unavailable, sniper will run without them')
-        }
-
-        const response = await window.api.sniper.createSession(lines, proxyUrls, loopEnabled, loopCount, checkInterval)
+        const response = await window.api.sniper.createSession(lines, [], loopEnabled, loopCount, checkInterval)
         if (response.success && response.sessionId) {
           setSessionId(response.sessionId)
-          setResults({
-            valid: [],
-            taken: [],
-            censored: [],
-            progress: 0,
-            status: 'idle' as const,
-            currentLoop: 0,
-            totalLoops: loopCount
-          } as SniperResult)
+          setResults({ valid: [], taken: [], censored: [], progress: 0, status: 'idle' as const, currentLoop: 0, totalLoops: loopCount })
         }
       } catch (error) {
         console.error('Failed to create sniper session:', error)
@@ -286,22 +198,9 @@ export const SniperTab = () => {
 
   const handleStartSniper = async () => {
     if (!sessionId) return
-
     try {
-      // Mark as running - persistent listeners are already set up
       isRunningRef.current = true
-      
-      // Clear previous results and update UI
-      setResults((prev) => ({ 
-        ...prev, 
-        status: 'running', 
-        valid: [], 
-        taken: [], 
-        censored: [], 
-        progress: 0 
-      }))
-      
-      // Start the sniper - listeners will receive events
+      setResults((prev) => ({ ...prev, status: 'running', valid: [], taken: [], censored: [], progress: 0 }))
       const response = await window.api.sniper.startSniper(sessionId)
       if (!response.success) {
         console.error('Failed to start sniper:', response.error)
@@ -317,12 +216,9 @@ export const SniperTab = () => {
 
   const handlePauseSniper = async () => {
     if (!sessionId) return
-
     try {
       const response = await window.api.sniper.pauseSession(sessionId)
-      if (response.success) {
-        setResults((prev) => ({ ...prev, status: 'paused' }))
-      }
+      if (response.success) { setResults((prev) => ({ ...prev, status: 'paused' })) }
     } catch (error) {
       console.error('Failed to pause sniper:', error)
     }
@@ -330,13 +226,10 @@ export const SniperTab = () => {
 
   const handleStopSniper = async () => {
     if (!sessionId) return
-
     try {
       isRunningRef.current = false
       const response = await window.api.sniper.stopSession(sessionId)
-      if (response.success) {
-        setResults((prev) => ({ ...prev, status: 'idle' }))
-      }
+      if (response.success) { setResults((prev) => ({ ...prev, status: 'idle' })) }
     } catch (error) {
       console.error('Failed to stop sniper:', error)
     }
@@ -344,7 +237,6 @@ export const SniperTab = () => {
 
   const handleExportValid = async () => {
     if (results.valid.length === 0) return
-
     const content = results.valid.join('\n')
     const element = document.createElement('a')
     element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content))
@@ -357,7 +249,6 @@ export const SniperTab = () => {
 
   const handleClearSession = async () => {
     if (!sessionId) return
-
     try {
       isRunningRef.current = false
       const response = await window.api.sniper.clearSession(sessionId)
@@ -366,63 +257,32 @@ export const SniperTab = () => {
         setUsernames([])
         setResults({ valid: [], taken: [], censored: [], progress: 0, status: 'idle', currentLoop: 0, totalLoops: 1 })
         setFileName('')
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ''
-        }
+        if (fileInputRef.current) { fileInputRef.current.value = '' }
       }
     } catch (error) {
       console.error('Failed to clear session:', error)
     }
   }
 
-  const trackGeneratedAccount = (account: any) => {
-    // Account is already added to storage by GeneratorService
-    // Just reload the list
-    loadSniperAccounts()
-  }
-
   const handleAddToAccounts = async (account: any) => {
     setIsAddingToAccounts(account.id)
     try {
-      // Step 1: Fetch user data by username (userId, displayName, etc)
       let userId = ''
       let displayName = account.username
       let avatarUrl = ''
-      
       try {
         const userResult = await window.api.user.getUserByUsername(account.username)
-        if (userResult) {
-          userId = String(userResult.id || '')
-          displayName = userResult.displayName || account.username
-        }
-      } catch (err) {
-        console.error('[SniperTab] Failed to fetch user by username:', err)
-      }
-
-      // Step 2: Fetch avatar URL
+        if (userResult) { userId = String(userResult.id || ''); displayName = userResult.displayName || account.username }
+      } catch (err) { console.error('[SniperTab] Failed to fetch user by username:', err) }
       try {
         const avatarResult = await window.api.user.getAvatarUrlByUsername(account.username)
         avatarUrl = avatarResult?.url || ''
-      } catch (err) {
-        console.error('[SniperTab] Failed to fetch avatar for', account.username, ':', err)
-      }
-
-      // Step 3: Create and add the account with all fetched data
+      } catch (err) { console.error('[SniperTab] Failed to fetch avatar for', account.username, ':', err) }
       addAccount({
-        id: uuidv4(),
-        username: account.username,
-        displayName: displayName,
-        userId: userId,
-        cookie: account.cookie || undefined,
-        password: account.password,
-        status: AccountStatus.Offline,
-        avatarUrl: avatarUrl,
-        lastActive: new Date().toISOString(),
-        robuxBalance: 0,
-        friendCount: 0,
-        followerCount: 0,
-        followingCount: 0,
-        notes: ''
+        id: uuidv4(), username: account.username, displayName, userId,
+        cookie: account.cookie || undefined, password: account.password,
+        status: AccountStatus.Offline, avatarUrl, lastActive: new Date().toISOString(),
+        robuxBalance: 0, friendCount: 0, followerCount: 0, followingCount: 0, notes: ''
       })
     } catch (err) {
       console.error('[SniperTab] Failed to add account to accounts tab:', err)
@@ -436,11 +296,7 @@ export const SniperTab = () => {
     if (confirm('Delete this account?')) {
       try {
         const result = await window.api.generator.sniperRemoveAccount(accountId)
-        if (result.success) {
-          await loadSniperAccounts()
-        } else {
-          alert('Failed to delete account')
-        }
+        if (result.success) { await loadSniperAccounts() } else { alert('Failed to delete account') }
       } catch (err) {
         console.error('[SniperTab] Failed to delete account:', err)
         alert('Failed to delete account')
@@ -451,300 +307,175 @@ export const SniperTab = () => {
   const handleClearAllAccounts = async () => {
     if (confirm('Delete all generated accounts?')) {
       try {
-        for (const account of generatedAccounts) {
-          await window.api.generator.sniperRemoveAccount(account.id)
-        }
+        for (const account of generatedAccounts) { await window.api.generator.sniperRemoveAccount(account.id) }
         setGeneratedAccounts([])
-      } catch (err) {
-        console.error('[SniperTab] Failed to clear accounts:', err)
-        alert('Failed to clear accounts')
-      }
+      } catch (err) { console.error('[SniperTab] Failed to clear accounts:', err) }
     }
   }
 
   const handleBulkCopy = async () => {
     try {
-      const copyData = generatedAccounts.map((account) => {
-        const password = account.password || ''
-        const cookie = account.cookie || ''
-        return `${account.username}:${password}:${cookie}`
-      })
+      const copyData = generatedAccounts.map((account) => `${account.username}:${account.password || ''}:${account.cookie || ''}`)
       await navigator.clipboard.writeText(copyData.join('\n'))
       alert(`Copied ${copyData.length} accounts to clipboard`)
-    } catch (err) {
-      console.error('[SniperTab] Failed to bulk copy:', err)
-      alert('Failed to copy accounts')
-    }
+    } catch (err) { console.error('[SniperTab] Failed to bulk copy:', err) }
   }
 
+  const statusColor = {
+    idle: 'text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] border-[var(--color-border-strong)]',
+    running: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    paused: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    completed: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+  }[results.status]
+
   return (
-    <div className="flex flex-col h-full w-full bg-[var(--color-app-bg)] text-[var(--color-text-primary)] font-sans">
-      {/* Header with title and status */}
-      <div className="border-b border-[var(--color-border)] p-4">
-        <h1 className="text-2xl font-bold mb-2">Sniper</h1>
-        <p className="text-[var(--color-text-muted)] text-sm mb-4">
-          Scan for available usernames and check their status
-        </p>
-
-        {/* File Upload Section */}
-        <div className="bg-[var(--color-surface)] rounded-lg p-4 space-y-3 mb-4">
+    <div className="flex h-full flex-col overflow-y-auto bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
+      <div className="flex flex-col gap-5 p-6 max-w-5xl mx-auto w-full">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <label className="block text-sm font-medium mb-2">Username List</label>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".txt"
-                  onChange={handleFileSelect}
-                  disabled={!!sessionId}
-                  className="hidden"
-                />
-                <Button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  disabled={!!sessionId} 
-                  className="w-full h-9 text-sm"
-                >
-                  Choose .txt File
-                </Button>
-              </div>
-              <Button 
-                onClick={() => setShowSettings(!showSettings)}
-                disabled={!!sessionId}
-                variant="outline"
-                className="h-9 px-3"
-                title="Sniper settings"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-            </div>
-            {fileName && (
-              <div className="flex gap-2 items-center mt-2">
-                <p className="text-xs text-gray-600 dark:text-gray-400 flex-1">📄 {fileName} ({usernames.length} usernames)</p>
-                <Button
-                  onClick={handleClearSession}
-                  variant="outline"
-                  className="h-7 px-2 text-xs"
-                  title="Change file"
-                >
-                  <X className="w-3 h-3 mr-1" />
-                  Change
-                </Button>
-              </div>
-            )}
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Username Sniper</h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">Rapid availability scanner</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${statusColor}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${results.status === 'running' ? 'animate-pulse bg-emerald-400' : 'bg-current'}`} />
+              {results.status}
+            </span>
+            <button
+              onClick={() => setShowSettings((v) => !v)}
+              className={`rounded-xl border p-2 text-[var(--color-text-muted)] transition hover:text-[var(--color-text-primary)] ${showSettings ? 'border-[var(--accent-color-border)] bg-[var(--accent-color-faint)] text-[var(--accent-color)]' : 'border-[var(--color-border)] bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)]'}`}
+              title="Sniper Settings"
+            >
+              <Settings size={18} />
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-4 space-y-3">
-          <h3 className="text-sm font-semibold">Settings</h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={loopEnabled}
-                  onChange={(e) => setLoopEnabled(e.target.checked)}
-                  disabled={!!sessionId}
-                  className="rounded w-4 h-4"
-                />
-                <span className="text-sm">Loop Scan</span>
-              </label>
-              {loopEnabled && (
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-[var(--color-text-muted)]">Times:</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={loopCount}
-                    onChange={(e) => setLoopCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    disabled={!!sessionId}
-                    className="w-14 px-2 py-1 text-xs border rounded dark:bg-gray-900 dark:border-gray-700"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label className="text-sm flex-1">Check Interval (ms)</label>
-              <input
-                type="number"
-                min="1"
-                max="5000"
-                step="1"
-                value={checkInterval}
-                onChange={(e) => setCheckInterval(Math.max(1, parseInt(e.target.value) || 200))}
-                disabled={!!sessionId}
-                className="w-20 px-2 py-1 text-sm border rounded dark:bg-gray-900 dark:border-gray-700"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-2 border-t dark:border-gray-700">
-              <label className="flex items-center gap-2 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={autoGenerate}
-                  onChange={(e) => setAutoGenerate(e.target.checked)}
-                  className="rounded w-4 h-4"
-                />
-                <span className="text-sm">Auto-Generate on Valid</span>
-              </label>
-            </div>
+        {/* Stats Row */}
+        {results.status !== 'idle' && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Valid', value: results.valid.length, color: 'text-emerald-500', border: 'border-emerald-500/20 bg-emerald-500/5' },
+              { label: 'Taken', value: results.taken.length, color: 'text-amber-500', border: 'border-amber-500/20 bg-amber-500/5' },
+              { label: 'Censored', value: results.censored.length, color: 'text-red-500', border: 'border-red-500/20 bg-red-500/5' },
+              { label: 'Progress', value: `${results.progress.toFixed(0)}%`, color: 'text-sky-500', border: 'border-sky-500/20 bg-sky-500/5' },
+            ].map(stat => (
+              <div key={stat.label} className={`rounded-xl border p-4 ${stat.border}`}>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">{stat.label}</p>
+                <p className={`mt-1 text-2xl font-black ${stat.color}`}>{stat.value}</p>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Status Section */}
-      {results.status !== 'idle' && (
-        <div className="bg-[var(--color-surface)] border-b border-[var(--color-border)] p-4">
-          <div className="grid grid-cols-4 gap-2 text-sm mb-3">
-            <div className="p-2 bg-[var(--color-input-bg)] rounded">
-              <div className="text-[var(--color-text-muted)] text-xs">Status</div>
-              <div className="font-semibold text-blue-500">{results.status.toUpperCase()}</div>
+        {/* Progress Bar */}
+        {results.status === 'running' && (
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-4">
+            <div className="mb-2 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1.5">
+                <Loader2 size={12} className="animate-spin" />
+                Scanning... Loop {results.currentLoop}/{results.totalLoops}
+              </span>
+              <span>{results.progress.toFixed(1)}%</span>
             </div>
-            <div className="p-2 bg-[var(--color-input-bg)] rounded">
-              <div className="text-[var(--color-text-muted)] text-xs">Valid</div>
-              <div className="font-semibold text-green-500">{results.valid.length}</div>
-            </div>
-            <div className="p-2 bg-[var(--color-input-bg)] rounded">
-              <div className="text-[var(--color-text-muted)] text-xs">Taken</div>
-              <div className="font-semibold text-yellow-500">{results.taken.length}</div>
-            </div>
-            <div className="p-2 bg-[var(--color-input-bg)] rounded">
-              <div className="text-[var(--color-text-muted)] text-xs">Censored</div>
-              <div className="font-semibold text-red-500">{results.censored.length}</div>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-[var(--color-text-muted)]">Progress</span>
-              <span className="font-mono">{Math.round(results.progress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-surface-muted)]">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
+                className="h-full rounded-full bg-[var(--accent-color)] transition-all duration-300"
                 style={{ width: `${results.progress}%` }}
               />
             </div>
           </div>
+        )}
+
+        {/* Main Control Panel */}
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-5">
+          <div className="flex flex-col gap-4">
+            {/* File Upload Area */}
+            <input ref={fileInputRef} type="file" accept=".txt" onChange={handleFileSelect} disabled={!!sessionId} className="hidden" />
+            
+            <div
+              onClick={() => !sessionId && fileInputRef.current?.click()}
+              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+                sessionId 
+                  ? 'cursor-default border-[var(--color-border)] opacity-60' 
+                  : 'border-[var(--color-border)] hover:border-[var(--accent-color)] hover:bg-[var(--color-surface-hover)]'
+              }`}
+            >
+              <Upload className={`mb-3 h-8 w-8 transition-colors ${sessionId ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--accent-color)]'}`} />
+              <p className="font-semibold text-[var(--color-text-secondary)]">
+                {fileName ? fileName : 'Upload Username List (.txt)'}
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                {usernames.length > 0 ? `${usernames.length} usernames loaded` : 'Click to browse or drop a .txt file'}
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3">
+              {sessionId && results.status === 'idle' && (
+                <button onClick={handleStartSniper} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent-color)] py-3 font-bold text-[var(--color-text-primary)] transition hover:brightness-110">
+                  <Play size={18} /> Start Scan
+                </button>
+              )}
+              {sessionId && results.status === 'running' && (
+                <>
+                  <button onClick={handlePauseSniper} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-3 font-bold text-amber-500 transition hover:bg-amber-500/20">
+                    <Pause size={18} /> Pause
+                  </button>
+                  <button onClick={handleStopSniper} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-3 font-bold text-red-500 transition hover:bg-red-500/20">
+                    <Square size={18} /> Stop
+                  </button>
+                </>
+              )}
+              {sessionId && results.status === 'paused' && (
+                <>
+                  <button onClick={handleStartSniper} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-3 font-bold text-emerald-500 transition hover:bg-emerald-500/20">
+                    <Play size={18} /> Resume
+                  </button>
+                  <button onClick={handleStopSniper} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-3 font-bold text-red-500 transition hover:bg-red-500/20">
+                    <Square size={18} /> Stop
+                  </button>
+                </>
+              )}
+              {sessionId && results.status === 'completed' && (
+                <button onClick={handleClearSession} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-3 font-bold text-[var(--color-text-secondary)] transition hover:text-red-500">
+                  <Trash2 size={18} /> Clear Session
+                </button>
+              )}
+              {!sessionId && (
+                <div className="flex flex-1 items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-sm text-sky-500">
+                  <AlertCircle size={16} className="shrink-0" />
+                  Upload a .txt list above to start scanning usernames.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {/* Control Buttons */}
-        {sessionId && (
-          <div className="flex gap-2">
-            {results.status === 'idle' && (
-              <Button onClick={handleStartSniper} className="flex-1 h-9 text-sm flex items-center justify-center gap-2">
-                <Play className="w-4 h-4" />
-                Start Scan
-              </Button>
-            )}
-
-            {results.status === 'running' && (
-              <>
-                <Button
-                  onClick={handlePauseSniper}
-                  variant="outline"
-                  className="flex-1 h-9 text-sm flex items-center justify-center gap-2"
-                >
-                  <Pause className="w-4 h-4" />
-                  Pause
-                </Button>
-                <Button
-                  onClick={handleStopSniper}
-                  variant="destructive"
-                  className="flex-1 h-9 text-sm flex items-center justify-center gap-2"
-                >
-                  <Square className="w-4 h-4" />
-                  Stop
-                </Button>
-              </>
-            )}
-
-            {results.status === 'paused' && (
-              <>
-                <Button onClick={handleStartSniper} className="flex-1 h-9 text-sm flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700">
-                  <Play className="w-4 h-4" />
-                  Resume
-                </Button>
-                <Button
-                  onClick={handleStopSniper}
-                  variant="destructive"
-                  className="flex-1 h-9 text-sm flex items-center justify-center gap-2"
-                >
-                  <Square className="w-4 h-4" />
-                  Stop
-                </Button>
-              </>
-            )}
-
-            {results.status === 'completed' && (
-              <Button onClick={handleClearSession} className="flex-1 h-9 text-sm">
-                <Trash2 className="w-4 h-4 mr-1" />
-                Clear Session
-              </Button>
-            )}
-          </div>
-        )}
-
-        {!sessionId && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3 flex gap-2">
-            <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-800 dark:text-blue-300">Upload a .txt file with usernames to start scanning</p>
-          </div>
-        )}
-
-        {/* Valid Usernames Section */}
+        {/* Valid Usernames Panel */}
         {results.valid.length > 0 && (
-          <div className="bg-[var(--color-surface)] rounded-lg p-3 border border-green-500/30">
-            <div className="flex justify-between items-center mb-2 flex-wrap gap-2">
-              <h3 className="text-sm font-semibold text-green-600 dark:text-green-400">
-                ✓ Valid Usernames ({results.valid.length})
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-semibold text-emerald-500">
+                <CheckCircle2 size={18} />
+                Valid Usernames ({results.valid.length})
               </h3>
               <div className="flex gap-2">
-                <Button 
-                  onClick={async () => {
-                    const bulkText = results.valid.join('\n')
-                    await navigator.clipboard.writeText(bulkText)
-                    alert(`Copied ${results.valid.length} usernames to clipboard`)
-                  }}
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-7 px-2 text-xs text-green-600 hover:text-green-700"
-                  title="Copy all valid usernames"
-                >
-                  <Copy className="w-3 h-3 mr-1" />
-                  Copy All
-                </Button>
-                <Button 
-                  onClick={handleExportValid} 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-7 px-2 text-xs"
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  Export
-                </Button>
+                <button onClick={() => void navigator.clipboard.writeText(results.valid.join('\n'))} className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/20">
+                  <Copy size={13} /> Copy All
+                </button>
+                <button onClick={handleExportValid} className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/20">
+                  <Download size={13} /> Export
+                </button>
               </div>
             </div>
-            <div className="max-h-40 overflow-y-auto space-y-1">
-              {results.valid.map((username, idx) => (
-                <div 
-                  key={idx} 
-                  className="text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded flex justify-between items-center"
-                >
-                  <span className="font-mono truncate">{username}</span>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(username)}
-                    className="ml-2 opacity-60 hover:opacity-100"
-                    title="Copy username"
-                  >
-                    📋
+            <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+              {results.valid.map((username, index) => (
+                <div key={`${username}-${index}`} className="flex items-center justify-between rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-2.5">
+                  <span className="font-mono text-sm font-medium text-[var(--color-text-primary)]">{username}</span>
+                  <button onClick={() => void navigator.clipboard.writeText(username)} className="text-[var(--color-text-muted)] transition hover:text-[var(--color-text-primary)]" title="Copy">
+                    <Copy size={14} />
                   </button>
                 </div>
               ))}
@@ -752,118 +483,82 @@ export const SniperTab = () => {
           </div>
         )}
 
-        {/* Generated Accounts List - Card Style */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Generated Accounts ({generatedAccounts.length})</span>
-              {generatedAccounts.length > 0 && (
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleBulkCopy}
-                    size="sm"
-                    variant="outline"
-                    className="text-purple-600 hover:text-purple-700"
-                    title="Copy all in username:password:cookie format"
-                  >
-                    <Copy className="w-4 h-4 mr-1" />
-                    Bulk Copy
-                  </Button>
-                  <Button
-                    onClick={handleClearAllAccounts}
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-500"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {generatedAccounts.length === 0 ? (
-              <p className="text-sm text-gray-500">No accounts generated yet. Enable auto-generate in settings when sniper finds valid usernames.</p>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {generatedAccounts.map((account) => (
-                  <div
-                    key={account.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{account.username}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Created: {new Date(account.lastActive).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          try {
-                            const password = account.password || ''
-                            const cookie = account.cookie || ''
-                            const fullData = `${account.username}:${password}:${cookie}`
-                            await navigator.clipboard.writeText(fullData)
-                          } catch (err) {
-                            console.error('Failed to copy account data:', err)
-                          }
-                        }}
-                        className="text-gray-500 hover:text-purple-400 transition-colors p-1"
-                        title="Copy username:password:cookie"
-                      >
-                        <Clipboard className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          try {
-                            if (account.password) {
-                              await navigator.clipboard.writeText(account.password)
-                            } else {
-                              alert('Password not available')
-                            }
-                          } catch (err) {
-                            console.error('Failed to copy password:', err)
-                          }
-                        }}
-                        className="text-gray-500 hover:text-blue-400 transition-colors p-1"
-                        title="Copy password"
-                      >
-                        <Key className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteAccount(account.id)
-                        }}
-                        className="text-gray-500 hover:text-red-400 transition-colors p-1"
-                        title="Delete account"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleAddToAccounts(account)
-                        }}
-                        disabled={isAddingToAccounts === account.id}
-                        className="text-gray-500 hover:text-green-400 transition-colors p-1"
-                        title="Add to accounts tab"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+        {/* Generated Accounts Panel */}
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
+              <Sparkles size={18} className="text-[var(--accent-color)]" />
+              Generated Accounts
+              <span className="ml-1 rounded-full bg-[var(--accent-color-faint)] px-2 py-0.5 text-xs font-bold text-[var(--accent-color)]">
+                {generatedAccounts.length}
+              </span>
+            </h3>
+            {generatedAccounts.length > 0 && (
+              <div className="flex gap-2">
+                <button onClick={handleBulkCopy} className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-hover)]">
+                  <Copy size={13} /> Bulk Copy
+                </button>
+                <button onClick={handleClearAllAccounts} className="flex h-8 items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/5 px-3 text-xs font-semibold text-red-500 transition hover:bg-red-500/10">
+                  <Trash2 size={13} /> Clear All
+                </button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          {generatedAccounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] py-12 text-center">
+              <Sparkles className="mb-3 h-8 w-8 text-[var(--color-text-muted)]" />
+              <p className="text-sm text-[var(--color-text-muted)]">No generated accounts yet.</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">Enable auto-generate and scan a valid username list.</p>
+            </div>
+          ) : (
+            <div className="max-h-[350px] space-y-2 overflow-y-auto pr-1">
+              {generatedAccounts.map((account) => (
+                <div key={account.id} className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 hover:bg-[var(--color-surface-hover)]">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-[var(--color-text-primary)]">{account.username}</p>
+                    <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                      {account.password ? (
+                        <span className="text-emerald-500">● Credentials available</span>
+                      ) : (
+                        <span>○ Waiting for data</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => void navigator.clipboard.writeText(`${account.username}:${account.password || ''}:${account.cookie || ''}`)} className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]" title="Copy all credentials">
+                      <Clipboard size={15} />
+                    </button>
+                    <button onClick={() => void navigator.clipboard.writeText(account.password || '')} className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]" title="Copy password">
+                      <Key size={15} />
+                    </button>
+                    <button onClick={() => void handleDeleteAccount(account.id)} className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-red-500/10 hover:text-red-500" title="Delete">
+                      <Trash2 size={15} />
+                    </button>
+                    <button onClick={() => void handleAddToAccounts(account)} disabled={isAddingToAccounts === account.id} className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-emerald-500/10 hover:text-emerald-500 disabled:opacity-40" title="Add to accounts">
+                      {isAddingToAccounts === account.id ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      <SniperSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        sessionId={!!sessionId}
+        loopEnabled={loopEnabled}
+        setLoopEnabled={setLoopEnabled}
+        loopCount={loopCount}
+        setLoopCount={setLoopCount}
+        checkInterval={checkInterval}
+        setCheckInterval={setCheckInterval}
+        autoGenerate={autoGenerate}
+        setAutoGenerate={setAutoGenerate}
+      />
     </div>
   )
 }
-
-export default SniperTab

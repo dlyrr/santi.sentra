@@ -56,11 +56,11 @@ const GenericContextMenu: React.FC<GenericContextMenuProps> = ({
       {position && (
         <motion.div
           ref={menuRef}
-          initial={{ opacity: 0, y: 8, scale: 0.95 }}
+          initial={{ opacity: 0, y: 4, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.95 }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}
-          className="fixed z-[1100] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden"
+          exit={{ opacity: 0, y: 4, scale: 0.98 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.2 }}
+          className="fixed z-[1100] bg-[var(--color-surface)]/80 backdrop-blur-xl border border-[var(--color-border-strong)] rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.25)] overflow-hidden"
           style={{ top: y, left: x, width }}
           onContextMenu={(e) => {
             e.preventDefault()

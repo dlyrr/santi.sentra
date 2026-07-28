@@ -417,12 +417,12 @@ const Avatar3DCanvas: React.FC<Avatar3DCanvasProps> = ({
       {showError && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="text-center px-4">
-            <p className="text-neutral-500 text-xs">3D view unavailable</p>
+            <p className="text-[var(--color-text-muted)] text-xs">3D view unavailable</p>
           </div>
         </div>
       )}
       {!objectId && !manifestUrl && !showLoading && !error && (
-        <div className="absolute inset-0 flex items-center justify-center text-xs tracking-wider uppercase text-neutral-600 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-xs tracking-wider uppercase text-[var(--color-text-muted)] pointer-events-none">
           {emptyMessage}
         </div>
       )}

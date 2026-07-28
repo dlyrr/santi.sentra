@@ -399,7 +399,7 @@ const InstallTab: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col h-full bg-neutral-950 overflow-hidden text-[var(--color-text-secondary)]"
+        className="flex flex-col h-full bg-[var(--color-app-bg)] overflow-hidden text-[var(--color-text-secondary)]"
       >
         <InstallationsHeader
           count={allInstallations.length}

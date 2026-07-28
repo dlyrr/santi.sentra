@@ -67,11 +67,11 @@ export const DescriptionWithMentions: React.FC<DescriptionWithMentionsProps> = (
                   handleMentionClick(username)
                 }
               }}
-              className={`pressable inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold text-white align-middle transition ${canNavigate ? 'cursor-pointer border-[var(--accent-color-border)] bg-[rgba(var(--accent-color-rgb),0.12)] hover:bg-[rgba(var(--accent-color-rgb),0.18)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent-color)]' : 'cursor-default border-[rgba(var(--accent-color-rgb),0.15)] bg-[rgba(var(--accent-color-rgb),0.08)] opacity-70'}`}
+              className={`pressable inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold text-[var(--color-text-primary)] align-middle transition ${canNavigate ? 'cursor-pointer border-[var(--accent-color-border)] bg-[rgba(var(--accent-color-rgb),0.12)] hover:bg-[rgba(var(--accent-color-rgb),0.18)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--accent-color)]' : 'cursor-default border-[rgba(var(--accent-color-rgb),0.15)] bg-[rgba(var(--accent-color-rgb),0.08)] opacity-70'}`}
               aria-disabled={!canNavigate}
               style={{ marginLeft: '0.2rem', marginRight: '0.2rem' }}
             >
-              <span className="relative w-4 h-4 rounded-full overflow-hidden border border-[rgba(var(--accent-color-rgb),0.2)] bg-neutral-700">
+              <span className="relative w-4 h-4 rounded-full overflow-hidden border border-[rgba(var(--accent-color-rgb),0.2)] bg-[var(--color-surface-hover)]">
                 {mentionData?.avatarUrl ? (
                   <img
                     src={mentionData.avatarUrl}
@@ -79,7 +79,7 @@ export const DescriptionWithMentions: React.FC<DescriptionWithMentionsProps> = (
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="w-full h-full inline-block bg-neutral-800 animate-pulse" />
+                  <span className="w-full h-full inline-block bg-[var(--color-surface-hover)] animate-pulse" />
                 )}
               </span>
               <span>@{mentionData?.name ?? username}</span>

@@ -4,7 +4,9 @@ import { startTransition } from 'react'
 import { TabId, JoinConfig, Account, Game, RobloxInstallation } from '../types'
 
 // Modal types for consolidated modal state
-export type ModalType = 'join' | 'addAccount' | 'instanceSelection'
+export type ModalType = 'join' | 'addAccount' | 'instanceSelection' | 'changeDisplayName'
+
+export type NavLayout = 'sidebar' | 'topbar'
 
 interface UIState {
   // Navigation
@@ -12,6 +14,9 @@ interface UIState {
 
   // Sidebar (persisted)
   isSidebarCollapsed: boolean
+
+  // Nav layout (persisted)
+  navLayout: NavLayout
 
   // Modals - consolidated into a record
   modals: Record<ModalType, boolean>
@@ -41,6 +46,9 @@ interface UIActions {
   setSidebarCollapsed: (collapsed: boolean) => void
   toggleSidebarCollapsed: () => void
 
+  // Nav layout
+  setNavLayout: (layout: NavLayout) => void
+
   // Modals - unified API
   openModal: (modal: ModalType) => void
   closeModal: (modal: ModalType) => void
@@ -68,10 +76,12 @@ type UIStore = UIState & UIActions
 const initialState: UIState = {
   activeTab: 'Accounts',
   isSidebarCollapsed: false,
+  navLayout: 'sidebar',
   modals: {
     join: false,
     addAccount: false,
-    instanceSelection: false
+    instanceSelection: false,
+    changeDisplayName: false
   },
   activeMenu: null,
   editingAccount: null,
@@ -104,6 +114,9 @@ export const useUIStore = create<UIStore>()(
             false,
             'toggleSidebarCollapsed'
           ),
+
+        // Nav layout
+        setNavLayout: (navLayout) => set({ navLayout }, false, 'setNavLayout'),
 
         // Modals - unified API
         openModal: (modal) =>
@@ -146,9 +159,10 @@ export const useUIStore = create<UIStore>()(
       }),
       {
         name: 'ui-storage',
-        // Only persist sidebar state - other UI state should reset on reload
+        // Persist sidebar and nav layout state
         partialize: (state) => ({
-          isSidebarCollapsed: state.isSidebarCollapsed
+          isSidebarCollapsed: state.isSidebarCollapsed,
+          navLayout: state.navLayout
         })
       }
     ),
@@ -162,6 +176,9 @@ export const useSetActiveTab = () => useUIStore((state) => state.setActiveTab)
 
 export const useSidebarCollapsed = () => useUIStore((state) => state.isSidebarCollapsed)
 export const useToggleSidebarCollapsed = () => useUIStore((state) => state.toggleSidebarCollapsed)
+
+export const useNavLayout = () => useUIStore((state) => state.navLayout)
+export const useSetNavLayout = () => useUIStore((state) => state.setNavLayout)
 
 export const useModals = () => useUIStore((state) => state.modals)
 export const useOpenModal = () => useUIStore((state) => state.openModal)

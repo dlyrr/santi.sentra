@@ -70,15 +70,15 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-950">
+      <DialogContent className="w-full max-w-md bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <UserPlus size={20} className="text-neutral-300" />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <UserPlus size={20} className="text-[var(--color-text-secondary)]" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-white">Add Friend</h3>
-              <p className="text-sm text-neutral-500">Send a friend request</p>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Add Friend</h3>
+              <p className="text-sm text-[var(--color-text-muted)]">Send a friend request</p>
             </div>
           </div>
           <DialogClose disabled={isLoading} />
@@ -102,7 +102,7 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
           )}
 
           <div className="space-y-2">
-            <label htmlFor="usernameInput" className="text-sm font-medium text-neutral-400">
+            <label htmlFor="usernameInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
               Username
             </label>
             <input
@@ -115,7 +115,7 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
               }}
               disabled={isLoading || !selectedAccount}
               placeholder="Enter player username..."
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               autoFocus
             />
           </div>
@@ -125,7 +125,7 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="pressable flex-1 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

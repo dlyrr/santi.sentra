@@ -91,43 +91,7 @@ export default function WatcherSettings({
           </p>
         </div>
 
-        {/* Check Interval */}
-        <div>
-          <label className="block font-medium mb-2">
-            Check Interval (milliseconds)
-          </label>
-          <input
-            type="number"
-            min="1000"
-            max="60000"
-            step="1000"
-            value={localConfig.checkIntervalMs}
-            onChange={(e) => handleChange('checkIntervalMs', parseInt(e.target.value, 10))}
-            className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
-          />
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            How often to check process status and log files
-          </p>
-        </div>
 
-        {/* Log Check Interval */}
-        <div>
-          <label className="block font-medium mb-2">
-            Log Check Interval (milliseconds)
-          </label>
-          <input
-            type="number"
-            min="500"
-            max="10000"
-            step="500"
-            value={localConfig.logCheckIntervalMs}
-            onChange={(e) => handleChange('logCheckIntervalMs', parseInt(e.target.value, 10))}
-            className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
-          />
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            How often to check log files for crash indicators
-          </p>
-        </div>
       </div>
 
       {/* Info Box */}

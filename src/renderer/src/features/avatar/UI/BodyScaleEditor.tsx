@@ -99,7 +99,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
       {/* Avatar Type */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <label className="text-sm font-medium text-neutral-300">Body Type</label>
+          <label className="text-sm font-medium text-[var(--color-text-secondary)]">Body Type</label>
         </div>
         <div className="flex gap-2">
           <Button
@@ -125,8 +125,8 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
           {/* Height */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-neutral-300">Height</label>
-              <span className="text-sm text-neutral-500">{formatPercent(height)}</span>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)]">Height</label>
+              <span className="text-sm text-[var(--color-text-muted)]">{formatPercent(height)}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
               {HEIGHT_OPTIONS.map((option) => (
@@ -146,8 +146,8 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
           {/* Width */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-neutral-300">Width</label>
-              <span className="text-sm text-neutral-500">{formatPercent(width)}</span>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)]">Width</label>
+              <span className="text-sm text-[var(--color-text-muted)]">{formatPercent(width)}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
               {WIDTH_OPTIONS.map((option) => (
@@ -167,8 +167,8 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
           {/* Head */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-neutral-300">Head</label>
-              <span className="text-sm text-neutral-500">{formatPercent(head)}</span>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)]">Head</label>
+              <span className="text-sm text-[var(--color-text-muted)]">{formatPercent(head)}</span>
             </div>
             <div className="flex gap-2 flex-wrap">
               {HEAD_OPTIONS.map((option) => (
@@ -188,8 +188,8 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
           {/* Proportions */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-neutral-300">Proportions</label>
-              <span className="text-sm text-neutral-500">
+              <label className="text-sm font-medium text-[var(--color-text-secondary)]">Proportions</label>
+              <span className="text-sm text-[var(--color-text-muted)]">
                 {formatProportionPercent(proportion)}
               </span>
             </div>
@@ -201,7 +201,7 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
                 step={5}
                 value={proportion}
                 onChange={(e) => setProportion(Number(e.target.value))}
-                className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                className="w-full h-2 bg-[var(--color-surface-hover)] rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
             </div>
           </div>
@@ -209,8 +209,8 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
           {/* Body Type Slider */}
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-neutral-300">Body Shape</label>
-              <span className="text-sm text-neutral-500">{formatProportionPercent(bodyType)}</span>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)]">Body Shape</label>
+              <span className="text-sm text-[var(--color-text-muted)]">{formatProportionPercent(bodyType)}</span>
             </div>
             <div className="relative">
               <input
@@ -220,16 +220,16 @@ const BodyScaleEditor: React.FC<BodyScaleEditorProps> = ({
                 step={5}
                 value={bodyType}
                 onChange={(e) => setBodyType(Number(e.target.value))}
-                className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                className="w-full h-2 bg-[var(--color-surface-hover)] rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
-              <div className="flex justify-between text-xs text-neutral-600 mt-1"></div>
+              <div className="flex justify-between text-xs text-[var(--color-text-muted)] mt-1"></div>
             </div>
           </div>
         </>
       )}
 
       {avatarType === 'R6' && (
-        <div className="flex-1 flex items-center justify-center text-neutral-500 text-sm">
+        <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)] text-sm">
           <p>R6 avatars use classic body proportions and don&apos;t support custom scaling.</p>
         </div>
       )}

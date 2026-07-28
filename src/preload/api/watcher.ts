@@ -40,7 +40,14 @@ const watcherConfigSchema = z.object({
   autoRestart: z.boolean(),
   restartDelaySeconds: z.number(),
   checkIntervalMs: z.number(),
-  logCheckIntervalMs: z.number()
+  logCheckIntervalMs: z.number(),
+  enableRAMLimiter: z.boolean().optional(),
+  ramLimitMB: z.number().optional(),
+  enableRAMCleanupAttempts: z.boolean().optional(),
+  enableClientTimeout: z.boolean().optional(),
+  clientTimeoutSeconds: z.number().optional(),
+  enableCPULimiter: z.boolean().optional(),
+  cpuLimitPercent: z.number().optional()
 })
 
 const watcherEventSchema = z.object({
@@ -98,8 +105,8 @@ export const watcherApi = {
     ),
 
   // Remove a session
-  removeSession: (sessionId: string) =>
-    invoke('watcher:remove-session', z.object({ success: z.boolean() }), sessionId),
+  removeSession: (sessionId: string, killProcess?: boolean) =>
+    invoke('watcher:remove-session', z.object({ success: z.boolean() }), sessionId, killProcess),
 
   // Get watcher configuration
   getConfig: () =>

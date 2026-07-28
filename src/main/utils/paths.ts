@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { join } from 'path'
+import path, { join } from 'path'
 
 /**
  * Returns a directory where the application should store its data.
@@ -8,25 +8,99 @@ import { join } from 'path'
  */
 import fs from 'fs'
 
-export function getDataPath(): string {
-  // primary location: Documents/Sentra (as originally desired)
-  const docPath = join(app.getPath('documents'), 'Sentra')
+function migrateDocsConfigToUserData(docPath: string, userDataPath: string) {
+  const docsConfig = join(docPath, 'config.json')
+  const userConfig = join(userDataPath, 'config.json')
+
   try {
-    if (!fs.existsSync(docPath)) {
-      fs.mkdirSync(docPath, { recursive: true })
+    if (!fs.existsSync(docsConfig)) return
+    const docData = fs.readFileSync(docsConfig, 'utf8').trim()
+    if (!docData) return
+    const docsJson = JSON.parse(docData)
+
+    if (!fs.existsSync(userConfig)) {
+      fs.copyFileSync(docsConfig, userConfig)
+      return
     }
-    // try to touch a temp file to verify write access
-    const testFile = join(docPath, '.sentra_write_test')
-    fs.writeFileSync(testFile, '')
-    fs.unlinkSync(testFile)
-    return docPath
-  } catch (e) {
-    console.warn('[paths] Documents directory not writable, falling back to userData', e)
-    const userDataPath = join(app.getPath('userData'), 'Sentra')
+
+    const userData = fs.readFileSync(userConfig, 'utf8').trim()
+    const userJson = userData ? JSON.parse(userData) : {}
+
+    const userHasAccounts = !!(
+      userJson.encryptedAccounts ||
+      userJson.encryptedSniperAccounts ||
+      userJson.encrypted ||
+      userJson.accounts
+    )
+    const docsHasAccounts = !!(
+      docsJson.encryptedAccounts ||
+      docsJson.encryptedSniperAccounts ||
+      docsJson.encrypted ||
+      docsJson.accounts
+    )
+
+    const shouldMergeAccounts = !userHasAccounts && docsHasAccounts
+    const shouldCopyAll = !userData || userData === '{}' || userData === ''
+
+    if (!shouldMergeAccounts && !shouldCopyAll) {
+      return
+    }
+
+    const merged = { ...docsJson, ...userJson }
+
+    // Preserve existing PIN metadata from user data if present.
+    if (userJson.settings?.pinCodeHash) {
+      merged.settings = {
+        ...(docsJson.settings || {}),
+        ...userJson.settings
+      }
+    }
+
+    // Preserve lockout state from user data if present.
+    if (userJson.settings?.pinLockout) {
+      merged.settings = merged.settings || {}
+      merged.settings.pinLockout = userJson.settings.pinLockout
+    }
+
+    fs.writeFileSync(userConfig, JSON.stringify(merged, null, 2))
+  } catch (error) {
+    console.warn('[paths] Failed to migrate Documents config to userData:', error)
+  }
+}
+
+export function getDataPath(): string {
+  const baseUserData = app.getPath('userData')
+  const appName = app.name?.trim() || 'sentra'
+  const normalizedAppName = appName.toLowerCase()
+  const baseName = path.basename(baseUserData).toLowerCase()
+
+  let userDataPath = baseUserData
+  if (baseName !== normalizedAppName) {
+    userDataPath = join(path.dirname(baseUserData), normalizedAppName)
+  }
+
+  try {
     if (!fs.existsSync(userDataPath)) {
       fs.mkdirSync(userDataPath, { recursive: true })
     }
+    console.log('[paths] getDataPath ->', { baseUserData, userDataPath, appName })
+    const testFile = join(userDataPath, '.sentra_write_test')
+    fs.writeFileSync(testFile, '')
+    fs.unlinkSync(testFile)
+
+    const docPath = join(app.getPath('documents'), 'Sentra')
+    if (fs.existsSync(docPath)) {
+      migrateDocsConfigToUserData(docPath, userDataPath)
+    }
+
     return userDataPath
+  } catch (e) {
+    console.warn('[paths] userData directory not writable, falling back to documents', e)
+    const docPath = join(app.getPath('documents'), 'Sentra')
+    if (!fs.existsSync(docPath)) {
+      fs.mkdirSync(docPath, { recursive: true })
+    }
+    return docPath
   }
 }
 

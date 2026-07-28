@@ -14,7 +14,25 @@ export const registerAuthHandlers = (): void => {
     RobloxAuthService.validateCookieFormat(cookie)
 
     const userData = await RobloxUserService.getAuthenticatedUser(cookie)
-    return userData
+    try {
+      const detailed = await RobloxUserService.getDetailedStats(cookie, userData.id)
+      const birthdate = await RobloxUserService.getBirthdate(cookie)
+      let age: number | undefined
+      if (birthdate) {
+        const today = new Date()
+        age = today.getFullYear() - birthdate.birthYear
+        if (
+          today.getMonth() + 1 < birthdate.birthMonth ||
+          (today.getMonth() + 1 === birthdate.birthMonth && today.getDate() < birthdate.birthDay)
+        ) {
+          age--
+        }
+      }
+      return { ...userData, created: detailed.joinDate, age }
+    } catch (e) {
+      console.warn('Failed to fetch detailed stats or birthdate during validation', e)
+      return userData
+    }
   })
 
   handle('generate-quick-login-code', z.tuple([]), async () => {

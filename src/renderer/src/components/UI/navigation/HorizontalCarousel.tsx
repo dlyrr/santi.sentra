@@ -36,7 +36,7 @@ export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
       {(title || (showControls && hasChildren)) && (
         <div className="flex items-center justify-between mb-4">
           {title && (
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
               {title}
               {titleExtra}
             </h3>
@@ -49,8 +49,8 @@ export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
                 className={cn(
                   'p-1.5 rounded-lg transition-all',
                   canScrollLeft
-                    ? 'bg-neutral-800 hover:bg-neutral-700 text-white'
-                    : 'bg-neutral-900 text-neutral-600 cursor-not-allowed'
+                    ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
                 )}
               >
                 <ChevronLeft size={16} />
@@ -61,8 +61,8 @@ export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
                 className={cn(
                   'p-1.5 rounded-lg transition-all',
                   canScrollRight
-                    ? 'bg-neutral-800 hover:bg-neutral-700 text-white'
-                    : 'bg-neutral-900 text-neutral-600 cursor-not-allowed'
+                    ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
                 )}
               >
                 <ChevronRight size={16} />

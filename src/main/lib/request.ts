@@ -86,8 +86,9 @@ export const safeRequest = <T>(options: RequestOptions): Promise<T> => {
         }
       })
 
-      response.on('error', () => {
+      response.on('error', (error) => {
         clearTimeoutSafely()
+        reject(error)
       })
     })
 

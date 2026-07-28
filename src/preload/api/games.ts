@@ -131,6 +131,8 @@ export const groupsApi = {
     ),
   cancelPendingGroupRequest: (cookie: string, groupId: number) =>
     invoke('cancel-pending-group-request', S.successResponseSchema, cookie, groupId),
+  joinGroup: (cookie: string, groupId: number) =>
+    invoke('join-group', z.object({ captchaChallengeId: z.string().optional(), success: z.boolean().optional() }).passthrough(), cookie, groupId),
   leaveGroup: (cookie: string, groupId: number) =>
     invoke('leave-group', S.successResponseSchema, cookie, groupId),
   searchGroupStore: (

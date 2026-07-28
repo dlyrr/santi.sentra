@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useLayoutEffect, useRef } from 'react'
+import React, { useState, useMemo, useLayoutEffect, useRef, lazy, Suspense } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, X, ChevronRight, Gamepad2 } from 'lucide-react'
-import Avatar3DThumbnail from '@renderer/components/Avatar/Avatar3DThumbnail'
+import { Shield, X, ChevronRight, Gamepad2, Star } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/UI/display/Avatar'
+
+const Avatar3DThumbnail = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail'))
 import { SlidingNumber } from '@renderer/components/UI/specialized/SlidingNumber'
 import { getStatusRingUtilityClass } from '@renderer/utils/statusUtils'
 import { AccountStatus } from '@renderer/types'
-import RobloxPremiumIcon from '@assets/svg/Premium.svg'
 import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
 import { ProfileData } from '../hooks/useProfileData'
 import { formatNumber } from '@renderer/utils/numberUtils'
@@ -137,7 +137,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Background Gradients */}
       {variant === 'default' && (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[rgba(var(--accent-color-rgb),0.08)] via-[var(--color-app-bg)] to-[var(--color-app-bg)] opacity-90" />
+          {/* Avatar-derived blurred background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <img 
+              src={profile.avatarUrl} 
+              alt="" 
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] object-cover opacity-20 blur-[100px] saturate-200 mix-blend-screen"
+            />
+          </div>
+          
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[rgba(var(--accent-color-rgb),0.08)] via-[var(--color-surface-strong)]/80 to-[var(--color-surface-strong)] opacity-90" />
 
           {/* Animated Floor Grid */}
           <div
@@ -198,15 +207,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               style={{ originX: 0.5, originY: 0.5 }}
             >
               <div style={blurIdentity ? { filter: 'blur(16px)' } : undefined}>
-                <Avatar3DThumbnail
-                  userId={userId.toString()}
-                  cookie={cookie}
-                  className="w-full h-full drop-shadow-[0_24px_60px_rgba(0,0,0,0.65)]"
-                  autoRotateSpeed={0.008}
-                  cameraDistanceFactor={1.4}
-                  manualRotationEnabled={isAvatarHovered}
-                  manualZoomEnabled={isAvatarHovered}
-                />
+                <Suspense fallback={null}>
+                  <Avatar3DThumbnail
+                    userId={userId.toString()}
+                    cookie={cookie}
+                    className="w-full h-full drop-shadow-[0_24px_60px_rgba(0,0,0,0.65)]"
+                    autoRotateSpeed={0.008}
+                    cameraDistanceFactor={1.4}
+                    manualRotationEnabled={isAvatarHovered}
+                    manualZoomEnabled={isAvatarHovered}
+                  />
+                </Suspense>
               </div>
             </motion.div>
           </div>
@@ -276,12 +287,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   />
                 )}
                 {profile.isPremium && (
-                  <img
-                    src={RobloxPremiumIcon}
-                    alt="Roblox Premium"
-                    className="w-5 h-5 object-contain drop-shadow-sm select-none brightness-400"
-                    draggable={false}
-                  />
+                  <div className="inline-flex items-center justify-center rounded-full border border-amber-400/30 bg-amber-500/10 p-1 shadow-sm">
+                    <Star size={16} className="text-amber-300 drop-shadow-sm select-none fill-current" />
+                  </div>
                 )}
                 {profile.isAdmin && (
                   <Shield size={20} className="text-red-500 fill-red-500 drop-shadow-sm" />
@@ -370,7 +378,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-9 px-3 gap-2 bg-emerald-500/90 text-white border border-emerald-400/50 hover:bg-emerald-500"
+                    className="h-9 px-3 gap-2 bg-emerald-500/90 text-[var(--color-text-primary)] border border-emerald-400/50 hover:bg-emerald-500"
                     onClick={() => onJoinGame(gameActivity.placeId, gameActivity.jobId, userId)}
                   >
                     <Gamepad2 size={16} className="shrink-0" />

@@ -133,7 +133,7 @@ const resultTypeBadges: Record<
   },
   command: {
     label: 'Command',
-    className: 'bg-neutral-500/15 text-neutral-400 border-neutral-500/20',
+    className: 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] border-[var(--color-border)]',
     icon: <Terminal size={10} />
   }
 }
@@ -220,22 +220,22 @@ const UniversalLimitedRow = memo(
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium truncate text-neutral-200 group-hover:text-white transition-colors">
+            <span className="text-[13px] font-medium truncate text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
               {result.name}
             </span>
             {result.isRare && <Gem size={11} className="text-purple-400 flex-shrink-0" />}
             {result.isHyped && <Flame size={11} className="text-orange-400 flex-shrink-0" />}
             {result.isProjected && <Zap size={11} className="text-yellow-400 flex-shrink-0" />}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mt-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] mt-0.5">
             {result.value !== null ? (
               <span className="text-emerald-400/90">{result.value.toLocaleString()} Value</span>
             ) : (
-              <span className="text-neutral-500">{result.rap.toLocaleString()} RAP</span>
+              <span className="text-[var(--color-text-muted)]">{result.rap.toLocaleString()} RAP</span>
             )}
-            <span className="text-neutral-700">·</span>
+            <span className="text-[var(--color-text-muted)]">·</span>
             <span className={DEMAND_COLORS[result.demand]}>D: {result.demandLabel}</span>
-            <span className="text-neutral-700">·</span>
+            <span className="text-[var(--color-text-muted)]">·</span>
             <span className={TREND_COLORS[result.trend]}>T: {result.trendLabel}</span>
           </div>
         </div>
@@ -252,7 +252,7 @@ const UniversalLimitedRow = memo(
           <ChevronRight
             size={14}
             className={cn(
-              'text-neutral-600 transition-all duration-150',
+              'text-[var(--color-text-muted)] transition-all duration-150',
               isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'
             )}
           />
@@ -306,23 +306,23 @@ const UniversalCatalogRow = memo(
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium truncate text-neutral-200 group-hover:text-white transition-colors">
+            <span className="text-[13px] font-medium truncate text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
               {result.name}
             </span>
             {(result.isLimited || result.isLimitedUnique) && (
               <Gem size={11} className="text-amber-400 flex-shrink-0" />
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mt-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] mt-0.5">
             {result.isForSale && result.price > 0 ? (
               <span className="text-emerald-400/90">R$ {result.price.toLocaleString()}</span>
             ) : (
-              <span className="text-neutral-500">Off Sale</span>
+              <span className="text-[var(--color-text-muted)]">Off Sale</span>
             )}
             {result.description && (
               <>
-                <span className="text-neutral-700">·</span>
-                <span className="truncate max-w-[180px] text-neutral-500">
+                <span className="text-[var(--color-text-muted)]">·</span>
+                <span className="truncate max-w-[180px] text-[var(--color-text-muted)]">
                   {result.description}
                 </span>
               </>
@@ -342,7 +342,7 @@ const UniversalCatalogRow = memo(
           <ChevronRight
             size={14}
             className={cn(
-              'text-neutral-600 transition-all duration-150',
+              'text-[var(--color-text-muted)] transition-all duration-150',
               isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'
             )}
           />
@@ -395,17 +395,17 @@ const UniversalCommandRow = memo(
             'flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150',
             isSelected
               ? 'bg-[var(--accent-color)] text-[var(--accent-color-foreground)] shadow-lg shadow-[var(--accent-color)]/20'
-              : 'bg-neutral-800/80 text-neutral-400 group-hover:bg-neutral-800 group-hover:text-neutral-300'
+              : 'bg-[var(--color-surface-hover)]/80 text-[var(--color-text-secondary)] group-hover:bg-[var(--color-surface-hover)] group-hover:text-[var(--color-text-secondary)]'
           )}
         >
           {iconMap[cmd.icon] || <Sparkles size={16} strokeWidth={1.75} />}
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-[13px] font-medium truncate block text-neutral-200 group-hover:text-white transition-colors">
+          <span className="text-[13px] font-medium truncate block text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
             {cmd.label}
           </span>
           {cmd.description && (
-            <div className="text-[11px] text-neutral-500 truncate mt-0.5">{cmd.description}</div>
+            <div className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">{cmd.description}</div>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -419,13 +419,13 @@ const UniversalCommandRow = memo(
             {badge.label}
           </span>
           {cmd.requiresInput ? (
-            <ChevronRight size={14} className="text-neutral-600" />
+            <ChevronRight size={14} className="text-[var(--color-text-muted)]" />
           ) : (
             <CornerDownLeft
               size={13}
               className={cn(
                 'transition-all duration-150',
-                isSelected ? 'opacity-100 text-neutral-500' : 'opacity-0'
+                isSelected ? 'opacity-100 text-[var(--color-text-muted)]' : 'opacity-0'
               )}
             />
           )}
@@ -493,7 +493,7 @@ const UniversalPlayerRow = memo(
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium truncate text-neutral-200 group-hover:text-white transition-colors">
+            <span className="text-[13px] font-medium truncate text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
               {result.displayName}
             </span>
             {result.hasVerifiedBadge && (
@@ -501,7 +501,7 @@ const UniversalPlayerRow = memo(
             )}
             {result.isFriend && <Users size={11} className="text-emerald-400 flex-shrink-0" />}
           </div>
-          <div className="text-[11px] text-neutral-500 truncate mt-0.5">@{result.name}</div>
+          <div className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">@{result.name}</div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span
@@ -516,7 +516,7 @@ const UniversalPlayerRow = memo(
           <ChevronRight
             size={14}
             className={cn(
-              'text-neutral-600 transition-all duration-150',
+              'text-[var(--color-text-muted)] transition-all duration-150',
               isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'
             )}
           />
@@ -1128,7 +1128,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     {iconMap[activeCommand?.icon || 'sparkles']}
                   </div>
                   <div className="flex-1">
-                    <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium mb-0.5">
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--color-text-muted)] font-medium mb-0.5">
                       {activeCommand?.inputLabel || 'Input'}
                     </div>
                     <input
@@ -1158,7 +1158,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   <ArrowLeft size={16} strokeWidth={2} />
                 </motion.button>
                 <div className="flex-1 flex items-center gap-2.5 rounded-xl px-3 py-2 border bg-[var(--color-surface-muted)] border-[var(--color-border)] focus-within:border-[var(--color-border-strong)] focus-within:bg-[var(--color-surface-hover)] transition-all duration-150">
-                  <Terminal size={15} className="text-neutral-500" strokeWidth={1.75} />
+                  <Terminal size={15} className="text-[var(--color-text-muted)]" strokeWidth={1.75} />
                   <input
                     ref={inputRef}
                     type="text"
@@ -1339,23 +1339,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                               {iconMap[cmd.icon] || <Sparkles size={16} strokeWidth={1.75} />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-[13px] font-medium truncate block text-neutral-200 group-hover:text-white transition-colors">
+                              <span className="text-[13px] font-medium truncate block text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                                 {cmd.label}
                               </span>
                               {cmd.description && (
-                                <div className="text-[11px] text-neutral-500 truncate mt-0.5">
+                                <div className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">
                                   {cmd.description}
                                 </div>
                               )}
                             </div>
                             {cmd.requiresInput ? (
-                              <ChevronRight size={14} className="text-neutral-600 flex-shrink-0" />
+                              <ChevronRight size={14} className="text-[var(--color-text-muted)] flex-shrink-0" />
                             ) : (
                               <CornerDownLeft
                                 size={13}
                                 className={cn(
                                   'flex-shrink-0 transition-all duration-150',
-                                  isSelected ? 'opacity-100 text-neutral-500' : 'opacity-0'
+                                  isSelected ? 'opacity-100 text-[var(--color-text-muted)]' : 'opacity-0'
                                 )}
                               />
                             )}
@@ -1537,7 +1537,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-[13px] font-medium truncate text-neutral-200 group-hover:text-white transition-colors">
+                                <span className="text-[13px] font-medium truncate text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                                   {cmd.label}
                                 </span>
                                 {isRecent && (
@@ -1548,19 +1548,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                                 )}
                               </div>
                               {cmd.description && (
-                                <div className="text-[11px] text-neutral-500 truncate mt-0.5">
+                                <div className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">
                                   {cmd.description}
                                 </div>
                               )}
                             </div>
                             {cmd.requiresInput ? (
-                              <ChevronRight size={14} className="text-neutral-600 flex-shrink-0" />
+                              <ChevronRight size={14} className="text-[var(--color-text-muted)] flex-shrink-0" />
                             ) : (
                               <CornerDownLeft
                                 size={13}
                                 className={cn(
                                   'flex-shrink-0 transition-all duration-150',
-                                  isSelected ? 'opacity-100 text-neutral-500' : 'opacity-0'
+                                  isSelected ? 'opacity-100 text-[var(--color-text-muted)]' : 'opacity-0'
                                 )}
                               />
                             )}
@@ -1617,10 +1617,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                           className="w-9 h-9 rounded-full bg-[var(--color-surface-muted)] flex-shrink-0 ring-1 ring-[var(--color-border-subtle)]"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium truncate text-neutral-200 group-hover:text-white transition-colors">
+                          <div className="text-[13px] font-medium truncate text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                             {friend.displayName}
                           </div>
-                          <div className="text-[11px] text-neutral-500 truncate mt-0.5">
+                          <div className="text-[11px] text-[var(--color-text-muted)] truncate mt-0.5">
                             @{friend.username}
                           </div>
                         </div>
@@ -1636,7 +1636,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                           size={13}
                           className={cn(
                             'flex-shrink-0 transition-all duration-150',
-                            isSelected ? 'opacity-100 text-neutral-500' : 'opacity-0'
+                            isSelected ? 'opacity-100 text-[var(--color-text-muted)]' : 'opacity-0'
                           )}
                         />
                       </motion.button>
@@ -1771,18 +1771,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-[13px] font-medium truncate text-neutral-200 group-hover:text-white transition-colors">
+                              <span className="text-[13px] font-medium truncate text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                                 {item.name}
                               </span>
                               {item.creatorHasVerifiedBadge && (
                                 <VerifiedIcon width={11} height={11} className="flex-shrink-0" />
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 mt-0.5">
+                            <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] mt-0.5">
                               <span className="truncate">by {item.creatorName || 'Unknown'}</span>
                               {item.price !== null && item.price !== undefined && (
                                 <>
-                                  <span className="text-neutral-700">·</span>
+                                  <span className="text-[var(--color-text-muted)]">·</span>
                                   <span className="text-emerald-400/90">
                                     R$ {item.price.toLocaleString()}
                                   </span>
@@ -1790,7 +1790,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                               )}
                               {item.isOffSale && (
                                 <>
-                                  <span className="text-neutral-700">·</span>
+                                  <span className="text-[var(--color-text-muted)]">·</span>
                                   <span className="text-red-400/80">Off Sale</span>
                                 </>
                               )}
@@ -1809,7 +1809,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                             <ChevronRight
                               size={14}
                               className={cn(
-                                'text-neutral-600 transition-all duration-150',
+                                'text-[var(--color-text-muted)] transition-all duration-150',
                                 isSelected
                                   ? 'opacity-100 translate-x-0'
                                   : 'opacity-0 -translate-x-1'

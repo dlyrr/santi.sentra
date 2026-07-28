@@ -55,21 +55,21 @@ const UpdaterCard: React.FC = () => {
       case 'error':
         return <AlertCircle size={16} className="text-red-400" />
       default:
-        return <Info size={16} className="text-neutral-400" />
+        return <Info size={16} className="text-[var(--color-text-secondary)]" />
     }
   }
 
   return (
     <div className="flex flex-col space-y-3">
       {/* Status Card */}
-      <div className="p-4 bg-neutral-900/30 rounded-lg border border-neutral-800/50">
+      <div className="p-4 bg-[var(--color-surface)]/30 rounded-lg border border-[var(--color-border)]/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {getStatusIcon()}
             <div>
-              <p className="text-sm text-white">{getStatusMessage()}</p>
+              <p className="text-sm text-[var(--color-text-primary)]">{getStatusMessage()}</p>
               {state?.status === 'available' && state.info?.releaseNotes && (
-                <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                <p className="text-xs text-[var(--color-text-muted)] mt-1 line-clamp-2">
                   {typeof state.info.releaseNotes === 'string'
                     ? state.info.releaseNotes
                     : 'New features and improvements'}
@@ -85,7 +85,7 @@ const UpdaterCard: React.FC = () => {
               disabled={isChecking}
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2',
-                'bg-neutral-800 text-white hover:bg-neutral-700',
+                'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
@@ -111,7 +111,7 @@ const UpdaterCard: React.FC = () => {
               onClick={installUpdate}
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2',
-                'bg-green-600 text-white hover:bg-green-500'
+                'bg-green-600 text-[var(--color-text-primary)] hover:bg-green-500'
               )}
             >
               <CheckCircle size={14} />
@@ -122,7 +122,7 @@ const UpdaterCard: React.FC = () => {
               onClick={checkForUpdates}
               className={cn(
                 'px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2',
-                'bg-neutral-800 text-white hover:bg-neutral-700'
+                'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
               )}
             >
               <RefreshCw size={14} />
@@ -134,13 +134,13 @@ const UpdaterCard: React.FC = () => {
         {/* Download Progress */}
         {state?.status === 'downloading' && state.progress && (
           <div className="mt-4 space-y-2">
-            <div className="flex justify-between text-xs text-neutral-400">
+            <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
               <span>
                 {formatBytes(state.progress.transferred)} / {formatBytes(state.progress.total)}
               </span>
               <span>{formatSpeed(state.progress.bytesPerSecond)}</span>
             </div>
-            <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--color-surface-hover)] rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-[var(--accent-color)] rounded-full"
                 initial={{ width: 0 }}
@@ -148,7 +148,7 @@ const UpdaterCard: React.FC = () => {
                 transition={{ duration: 0.2 }}
               />
             </div>
-            <p className="text-xs text-neutral-500 text-center">
+            <p className="text-xs text-[var(--color-text-muted)] text-center">
               {Math.round(state.progress.percent)}% complete
             </p>
           </div>
@@ -156,7 +156,7 @@ const UpdaterCard: React.FC = () => {
       </div>
 
       {/* Current Version Info */}
-      <p className="text-xs text-neutral-600 px-1">
+      <p className="text-xs text-[var(--color-text-muted)] px-1">
         Current version: {__APP_VERSION__ || 'development'}
       </p>
     </div>

@@ -106,7 +106,7 @@ const SettingBadge: React.FC<{
       'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm font-medium',
       enabled
         ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-        : 'bg-neutral-800/50 text-neutral-500 border border-neutral-700/50'
+        : 'bg-[var(--color-surface-hover)]/50 text-[var(--color-text-muted)] border border-[var(--color-border-strong)]/50'
     )}
   >
     {enabled ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
@@ -117,12 +117,14 @@ const SettingBadge: React.FC<{
 const SettingValue: React.FC<{
   value: string
   variant?: 'default' | 'accent'
-}> = ({ value, variant = 'default' }) => (
+  blur?: boolean
+}> = ({ value, variant = 'default', blur }) => (
   <span
     className={cn(
       'text-sm font-medium',
-      variant === 'accent' ? 'text-[var(--accent-color)]' : 'text-neutral-200'
+      variant === 'accent' ? 'text-[var(--accent-color)]' : 'text-[var(--color-text-primary)]'
     )}
+    style={blur ? { filter: 'blur(16px)' } : undefined}
   >
     {value.replace(/([A-Z])/g, ' $1').trim()}
   </span>
@@ -137,7 +139,7 @@ const SettingCard: React.FC<{
 }> = ({ icon, title, description, children, className }) => (
   <div
     className={cn(
-      'p-4 bg-[var(--color-surface-strong)] rounded-[var(--radius-xl)] border border-neutral-800/50 hover:border-neutral-700/50 transition-colors [--card-radius:var(--radius-xl)] [--card-gap:0.5rem] [--control-radius:calc(var(--card-radius)_-_var(--card-gap))]',
+      'p-4 bg-[var(--color-surface-strong)] rounded-[var(--radius-xl)] border border-[var(--color-border)]/50 hover:border-[var(--color-border-strong)]/50 transition-colors [--card-radius:var(--radius-xl)] [--card-gap:0.5rem] [--control-radius:calc(var(--card-radius)_-_var(--card-gap))]',
       className
     )}
   >
@@ -146,8 +148,8 @@ const SettingCard: React.FC<{
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-white">{title}</h4>
-        {description && <p className="text-xs text-neutral-500 mt-0.5">{description}</p>}
+        <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{title}</h4>
+        {description && <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>}
         <div className="space-y-3 mt-3">{children}</div>
       </div>
     </div>
@@ -158,8 +160,8 @@ const SettingRow: React.FC<{
   label: string
   children: React.ReactNode
 }> = ({ label, children }) => (
-  <div className="flex items-center justify-between py-1.5 border-b border-neutral-800/30 last:border-0">
-    <span className="text-sm text-neutral-400">{label}</span>
+  <div className="flex items-center justify-between py-1.5 border-b border-[var(--color-border)]/30 last:border-0">
+    <span className="text-sm text-[var(--color-text-secondary)]">{label}</span>
     <div className="flex items-center gap-2">{children}</div>
   </div>
 )
@@ -435,7 +437,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
             </div>
           )}
         </div>
-        <div className="text-sm text-neutral-400">
+        <div className="text-sm text-[var(--color-text-secondary)]">
           {accountSettings && (
             <span className={`flex items-center gap-2 ${privacyMode ? 'privacy-blur' : ''}`}>
               <User size={14} />@{accountSettings.Name}
@@ -500,8 +502,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
               {/* Account Info Section */}
               {activeSection === 'account' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <h3 className="text-lg font-semibold text-white mb-1">Account Information</h3>
-                  <p className="text-sm text-neutral-400 mb-6">
+                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Account Information</h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] mb-6">
                     Your Roblox account details and settings.
                   </p>
 
@@ -512,14 +514,14 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                       description="Your account identity"
                     >
                       <SettingRow label="Username">
-                        <SettingValue value={accountSettings.Name} variant="accent" />
+                        <SettingValue value={accountSettings.Name} variant="accent" blur={privacyMode} />
                       </SettingRow>
                       <SettingRow label="Display Name">
-                        <SettingValue value={accountSettings.DisplayName} />
+                        <SettingValue value={accountSettings.DisplayName} blur={privacyMode} />
                       </SettingRow>
                       <SettingRow label="User ID">
                         <span 
-                          className="text-sm text-neutral-300 font-mono"
+                          className="text-sm text-[var(--color-text-secondary)] font-mono"
                           style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                         >
                           {accountSettings.UserId}
@@ -543,7 +545,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                           value={editingDescription ?? descriptionData?.description ?? ''}
                           onChange={(e) => setEditingDescription(e.target.value)}
                           placeholder="Enter your profile description..."
-                          className="w-full h-20 px-3 py-2 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-[var(--control-radius)] text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-[var(--accent-color)]/50 resize-none"
+                          className="w-full h-20 px-3 py-2 text-sm bg-[var(--color-surface-hover)]/50 border border-[var(--color-border-strong)]/50 rounded-[var(--control-radius)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--accent-color)]/50 resize-none"
                         />
                         <div className="flex items-center gap-2">
                           {editingDescription !== null &&
@@ -559,7 +561,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                                 <button
                                   onClick={() => setEditingDescription(null)}
                                   disabled={updateDescription.isPending}
-                                  className="text-sm px-3 py-1.5 bg-neutral-700/50 text-neutral-400 rounded-[var(--control-radius)] hover:bg-neutral-700/70 transition-colors disabled:opacity-50"
+                                  className="text-sm px-3 py-1.5 bg-[var(--color-surface-hover)]/50 text-[var(--color-text-secondary)] rounded-[var(--control-radius)] hover:bg-[var(--color-surface-hover)]/70 transition-colors disabled:opacity-50"
                                 >
                                   Cancel
                                 </button>
@@ -594,7 +596,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                       </SettingRow>
                       <SettingRow label="Birthdate">
                         {birthdateData ? (
-                          <span className="text-sm text-neutral-300">
+                          <span className="text-sm text-[var(--color-text-secondary)]">
                             {formatBirthdate(
                               birthdateData.birthMonth,
                               birthdateData.birthDay,
@@ -602,7 +604,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                             )}
                           </span>
                         ) : (
-                          <span className="text-sm text-neutral-500">Not set</span>
+                          <span className="text-sm text-[var(--color-text-muted)]">Not set</span>
                         )}
                       </SettingRow>
                       <SettingRow label="Birthdate Locked">
@@ -616,8 +618,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                       description="Email and phone settings"
                     >
                       <SettingRow label="Email">
-                        <span className="text-sm text-neutral-300">
-                          {accountSettings.UserEmail ? accountSettings.UserEmail : <span className="text-neutral-500">Not set</span>}
+                        <span className="text-sm text-[var(--color-text-secondary)]">
+                          {accountSettings.UserEmail ? accountSettings.UserEmail : <span className="text-[var(--color-text-muted)]">Not set</span>}
                         </span>
                       </SettingRow>
                       <SettingRow label="Email Verified">
@@ -658,18 +660,18 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                             .map((name, i) => (
                               <span
                                 key={i}
-                                className="text-sm px-1.5 py-0.5 bg-neutral-800 rounded text-neutral-400"
+                                className="text-sm px-1.5 py-0.5 bg-[var(--color-surface-hover)] rounded text-[var(--color-text-secondary)]"
                               >
                                 {name}
                               </span>
                             ))}
                           {!accountSettings.PreviousUserNames && (
-                            <span className="text-sm text-neutral-500">None</span>
+                            <span className="text-sm text-[var(--color-text-muted)]">None</span>
                           )}
                         </div>
                       </SettingRow>
                       <SettingRow label="Robux for Username Change">
-                        <span className="text-sm text-neutral-300 font-mono">
+                        <span className="text-sm text-[var(--color-text-secondary)] font-mono">
                           {accountSettings.RobuxRemainingForUsernameChange} R$
                         </span>
                       </SettingRow>
@@ -704,27 +706,27 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                       description="Your promotion channels"
                     >
                       <SettingRow label="Facebook">
-                        <span className="text-sm text-neutral-300 truncate max-w-[150px]">
+                        <span className="text-sm text-[var(--color-text-secondary)] truncate max-w-[150px]">
                           {promotionChannelsData?.facebook || 'Not set'}
                         </span>
                       </SettingRow>
                       <SettingRow label="Twitter/X">
-                        <span className="text-sm text-neutral-300 truncate max-w-[150px]">
+                        <span className="text-sm text-[var(--color-text-secondary)] truncate max-w-[150px]">
                           {promotionChannelsData?.twitter || 'Not set'}
                         </span>
                       </SettingRow>
                       <SettingRow label="YouTube">
-                        <span className="text-sm text-neutral-300 truncate max-w-[150px]">
+                        <span className="text-sm text-[var(--color-text-secondary)] truncate max-w-[150px]">
                           {promotionChannelsData?.youtube || 'Not set'}
                         </span>
                       </SettingRow>
                       <SettingRow label="Twitch">
-                        <span className="text-sm text-neutral-300 truncate max-w-[150px]">
+                        <span className="text-sm text-[var(--color-text-secondary)] truncate max-w-[150px]">
                           {promotionChannelsData?.twitch || 'Not set'}
                         </span>
                       </SettingRow>
                       <SettingRow label="Visibility">
-                        <span className="text-sm text-neutral-300">
+                        <span className="text-sm text-[var(--color-text-secondary)]">
                           {promotionChannelsData?.promotionChannelsVisibilityPrivacy
                             ?.replace(/([A-Z])/g, ' $1')
                             .trim() || 'Not set'}
@@ -738,8 +740,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
               {/* Privacy Section */}
               {activeSection === 'privacy' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <h3 className="text-lg font-semibold text-white mb-1">Privacy Settings</h3>
-                  <p className="text-sm text-neutral-400 mb-6">
+                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Privacy Settings</h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] mb-6">
                     Control who can see your information and interact with you.
                   </p>
 
@@ -887,8 +889,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
               {/* Communication Section */}
               {activeSection === 'communication' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <h3 className="text-lg font-semibold text-white mb-1">Communication Settings</h3>
-                  <p className="text-sm text-neutral-400 mb-6">
+                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Communication Settings</h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] mb-6">
                     Manage chat, notifications, and messaging preferences.
                   </p>
 
@@ -982,7 +984,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                       </SettingRow>
                       {userSettings.doNotDisturbTimeWindow && (
                         <SettingRow label="Time Window">
-                          <span className="text-sm text-neutral-300">
+                          <span className="text-sm text-[var(--color-text-secondary)]">
                             {formatTimeWindow(
                               userSettings.doNotDisturbTimeWindow.currentValue.startTimeMinutes,
                               userSettings.doNotDisturbTimeWindow.currentValue.endTimeMinutes
@@ -998,8 +1000,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
               {/* Security Section */}
               {activeSection === 'security' && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <h3 className="text-lg font-semibold text-white mb-1">Security Settings</h3>
-                  <p className="text-sm text-neutral-400 mb-6">
+                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Security Settings</h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] mb-6">
                     Account security and verification status.
                   </p>
 
@@ -1059,7 +1061,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({ account, privac
                       description="Current session details"
                     >
                       <SettingRow label="IP Address">
-                        <span className={`text-sm text-neutral-300 font-mono ${
+                        <span className={`text-sm text-[var(--color-text-secondary)] font-mono ${
                           privacyMode ? 'privacy-blur' : ''
                         }`}>
                           {accountSettings.ClientIpAddress}

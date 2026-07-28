@@ -356,14 +356,14 @@ export const CatalogFilterSidebar = ({
             onClick={() => onUnavailableItemsChange(unavailableItems === 'show' ? 'hide' : 'show')}
             className="flex items-center justify-between w-full group"
           >
-            <span className="text-sm text-neutral-400 group-hover:text-white transition-colors">
+            <span className="text-sm text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
               Show Unavailable
             </span>
             <div
-              className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${unavailableItems === 'show' ? 'bg-[rgba(var(--accent-color-rgb),0.2)]' : 'bg-neutral-800'}`}
+              className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${unavailableItems === 'show' ? 'bg-[rgba(var(--accent-color-rgb),0.2)]' : 'bg-[var(--color-surface-hover)]'}`}
             >
               <div
-                className={`absolute top-1 w-3 h-3 rounded-full shadow-sm transition-all duration-200 ${unavailableItems === 'show' ? 'translate-x-5 bg-white' : 'translate-x-1 bg-neutral-500'}`}
+                className={`absolute top-1 w-3 h-3 rounded-full shadow-sm transition-all duration-200 ${unavailableItems === 'show' ? 'translate-x-5 bg-white' : 'translate-x-1 bg-[var(--color-border-strong)]'}`}
               />
             </div>
           </button>

@@ -59,13 +59,13 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
         </DialogHeader>
         <DialogBody className="space-y-6">
           <div className={cn('flex items-start gap-3 p-3 rounded-lg border', bgColor)}>
-            <p className="text-sm text-neutral-300">{message}</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">{message}</p>
           </div>
           <div className="flex gap-2 pt-2">
             {isConfirm && (
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 text-sm rounded-lg border border-neutral-700 text-neutral-300 hover:bg-neutral-800 transition-colors"
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 {cancelText}
               </button>
@@ -78,7 +78,7 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
               className={cn(
                 'flex-1 px-4 py-2 text-sm rounded-lg font-medium transition-colors',
                 isDangerous
-                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  ? 'bg-red-600 text-[var(--color-text-primary)] hover:bg-red-700'
                   : 'bg-[var(--accent-color)] text-black hover:opacity-90'
               )}
             >

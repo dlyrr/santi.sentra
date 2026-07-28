@@ -60,7 +60,16 @@ export const usersApi = {
   getPastUsernames: (cookie: string, userId: number) =>
     invoke('get-past-usernames', S.usernameHistorySchema, cookie, userId),
   getUserProfile: (cookie: string, userId: number) =>
-    invoke('get-user-profile', S.userProfileResponseSchema, cookie, userId)
+    invoke('get-user-profile', S.userProfileResponseSchema, cookie, userId),
+  getBatchJoinDates: (userIds: number[]) =>
+    invoke('get-batch-join-dates', z.record(z.string(), z.string().nullable()), userIds),
+  setRobloxDisplayName: (cookie: string, newDisplayName: string) =>
+    invoke(
+      'set-roblox-display-name', 
+      z.object({ success: z.boolean(), data: z.any().optional(), error: z.string().optional() }), 
+      cookie, 
+      newDisplayName
+    )
 }
 
 // ============================================================================

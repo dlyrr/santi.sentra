@@ -1,5 +1,5 @@
 import { dirname, join } from 'path'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, renameSync } from 'fs'
 import { app } from 'electron'
 import {
   Account,
@@ -66,7 +66,17 @@ const storeDataSchema = z.object({
     memoryLimit: z.number().optional(),
     useDirectX12: z.boolean().optional(),
     lowEndGraphics: z.boolean().optional(),
-    disableDualChannelAudio: z.boolean().optional()
+    disableDualChannelAudio: z.boolean().optional(),
+    // Performance & Utility
+    antiAfkEnabled: z.boolean().optional(),
+    renameWindowsEnabled: z.boolean().optional(),
+    framerateCapEnabled: z.boolean().optional(),
+    framerateCapValue: z.number().optional(),
+    optimizeRamEnabled: z.boolean().optional(),
+    ramOptimizeLimit: z.number().optional(),
+    headlessModeEnabled: z.boolean().optional(),
+    timeoutRelaunchEnabled: z.boolean().optional(),
+    timeoutRelaunchSeconds: z.number().optional()
   }).optional(),
   settings: z
     .object({
@@ -125,32 +135,47 @@ class StorageService {
 
   private init(): void {
     try {
+      this.migrateLegacyNestedConfigIfNeeded()
+
       if (!existsSync(this.path)) {
-        // attempt migration from old userData location if available
-        const altDir = join(app.getPath('userData'), 'Sentra')
-        const altPath = join(altDir, 'config.json')
-        if (existsSync(altPath)) {
-          try {
-            const altContent = readFileSync(altPath, 'utf-8')
-            // copy file to new location
-            const dir = getDataFile()
-            if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-            writeFileSync(this.path, altContent)
-            console.log('[StorageService] migrated config from userData to Documents')
-          } catch (e) {
-            console.error('[StorageService] failed to migrate config file:', e)
+        const appUserData = app.getPath('userData')
+        const legacyPaths = [
+          join(appUserData, 'config.json'),
+          join(appUserData, 'Sentra', 'config.json'),
+          join(dirname(appUserData), 'sentra', 'config.json'),
+          join(dirname(appUserData), 'Sentra', 'config.json')
+        ]
+
+        for (const legacyPath of legacyPaths) {
+          if (legacyPath !== this.path && existsSync(legacyPath)) {
+            try {
+              const legacyContent = readFileSync(legacyPath, 'utf-8')
+              const dir = dirname(this.path)
+              if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+              writeFileSync(this.path, legacyContent)
+              console.log('[StorageService] migrated config from legacy path to current data path')
+              break
+            } catch (e) {
+              console.error('[StorageService] failed to migrate config file from legacy path:', e)
+            }
           }
         }
       }
 
-      if (!existsSync(this.path)) {
-        const dir = getDataFile()
+      if (existsSync(this.path)) {
+        this.load()
+
+        if ((this.encryptedBlob && !this.getPinHash()) || !this.hasAccountPayload()) {
+          if (this.loadLegacyAccountConfig()) {
+            console.log('[StorageService] restored legacy config during init')
+          }
+        }
+      } else {
+        const dir = dirname(this.path)
         if (!existsSync(dir)) {
           mkdirSync(dir, { recursive: true })
         }
-        this.save()
-      } else {
-        this.load()
+        this.data = {}
       }
     } catch (error) {
       console.error('Failed to initialize storage:', error)
@@ -173,14 +198,15 @@ class StorageService {
       if (decrypted) {
         console.log('[StorageService] full config blob decrypted successfully')
         const raw = JSON.parse(decrypted)
+        console.log('[StorageService] decrypted data contains encryptedAccounts?', !!raw.encryptedAccounts)
         const result = storeDataSchema.safeParse(raw)
         if (result.success) {
           this.data = result.data
+          console.log('[StorageService] schema validation passed, data.encryptedAccounts?', !!this.data.encryptedAccounts)
           this.migratePin()
         } else {
-          console.error('[StorageService] decrypted config validation failed', result.error)
-          // Reset to empty to allow new saves
-          this.data = {}
+          console.error('[StorageService] decrypted config validation failed, keeping raw data', result.error)
+          this.data = raw as StoreData || {}
         }
       } else {
         console.error('[StorageService] failed to decrypt config blob with verified key')
@@ -219,8 +245,30 @@ class StorageService {
         'encrypted' in (rawData as any) &&
         typeof (rawData as any).encrypted === 'string'
       ) {
-        this.encryptedBlob = (rawData as any).encrypted.replace(/^\uFEFF/, '')
+        const encryptedPayload = (rawData as any).encrypted.replace(/^\uFEFF/, '')
+        this.encryptedBlob = encryptedPayload
         this.data = {}
+
+        const metadata: any = {}
+        if (typeof (rawData as any).pinCodeHash === 'string') {
+          metadata.pinCodeHash = (rawData as any).pinCodeHash
+        }
+        if ((rawData as any).pinLockout && typeof (rawData as any).pinLockout === 'object') {
+          metadata.pinLockout = (rawData as any).pinLockout
+        }
+
+        if (Object.keys(metadata).length > 0) {
+          this.data.settings = { ...(this.data.settings ?? {}), ...metadata }
+          if (metadata.pinLockout) {
+            const loadedLockout = metadata.pinLockout
+            const count = Number(loadedLockout.count) || 0
+            const lastAttempt = Number(loadedLockout.lastAttempt) || 0
+            const lockedUntil =
+              loadedLockout.lockedUntil === null ? null : Number(loadedLockout.lockedUntil) || null
+            this.pinLockoutState = { count, lastAttempt, lockedUntil }
+          }
+        }
+
         return
       }
 
@@ -228,6 +276,18 @@ class StorageService {
       if (result.success) {
         this.data = result.data
         this.encryptedBlob = null // Clear any previous encrypted blob state
+
+        // Migrate legacy PIN metadata from root-level fields into settings for current schema.
+        if (!this.data.settings) {
+          this.data.settings = {}
+        }
+        if (!this.data.settings.pinCodeHash && typeof (rawData as any).pinCodeHash === 'string') {
+          this.data.settings.pinCodeHash = (rawData as any).pinCodeHash
+        }
+        if (!this.data.settings.pinLockout && (rawData as any).pinLockout) {
+          this.data.settings.pinLockout = (rawData as any).pinLockout
+        }
+
         this.migratePin()
         // Load PIN lockout state (with sanitization)
         const loadedLockout = this.data.settings?.pinLockout
@@ -242,14 +302,15 @@ class StorageService {
           this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null }
         }
       } else {
-        console.error('Storage validation failed:', result.error)
+        console.error('Storage validation failed, keeping raw data:', result.error)
         try {
           const backupPath = this.path + '.bak'
           writeFileSync(backupPath, fileContent)
         } catch (e) {
           console.error('Failed to backup config:', e)
         }
-        this.data = {}
+        this.data = rawData as StoreData || {}
+        this.encryptedBlob = null
       }
 
       if (this.data.settings?.allowMultipleInstances) {
@@ -271,11 +332,99 @@ class StorageService {
     }
   }
 
-  private save(): void {
-    // if the config is still stored as an encrypted blob we shouldn't overwrite
-    if (this.encryptedBlob) {
-      console.warn('[StorageService] save called while config is still encrypted; skipping write')
+  private hasAccountPayload(): boolean {
+    return !!(
+      this.encryptedBlob ||
+      this.data.encryptedAccounts ||
+      this.data.encryptedSniperAccounts
+    )
+  }
+
+  private loadLegacyAccountConfig(): boolean {
+    const legacySources = [
+      join(app.getPath('documents'), 'Sentra', 'config.json'),
+      join(app.getPath('userData'), 'Sentra', 'config.json'),
+      join(app.getPath('userData'), 'config.json')
+    ]
+
+    for (const legacyPath of legacySources) {
+      if (legacyPath === this.path || !existsSync(legacyPath)) continue
+
+      try {
+        const legacyContent = readFileSync(legacyPath, 'utf-8').replace(/^\uFEFF/, '').trim()
+        if (!legacyContent) continue
+
+        let legacyData: unknown
+        try {
+          legacyData = JSON.parse(legacyContent)
+        } catch {
+          continue
+        }
+
+        const accountsPresent =
+          (legacyData && typeof legacyData === 'object' && 'encryptedAccounts' in legacyData) ||
+          (legacyData && typeof legacyData === 'object' && 'encryptedSniperAccounts' in legacyData) ||
+          (legacyData && typeof legacyData === 'object' && 'encrypted' in legacyData)
+
+        if (!accountsPresent) continue
+
+        writeFileSync(this.path, legacyContent)
+        this.load()
+        return true
+      } catch (error) {
+        console.error('[StorageService] failed to load legacy account config:', error)
+      }
+    }
+
+    return false
+  }
+
+  private migrateLegacyNestedConfigIfNeeded(): void {
+    if (this.encryptedBlob || this.data.encryptedAccounts || this.data.encryptedSniperAccounts) {
       return
+    }
+
+    const appUserData = app.getPath('userData')
+    const legacyNestedPath = join(appUserData, 'Sentra', 'config.json')
+    if (legacyNestedPath === this.path || !existsSync(legacyNestedPath)) {
+      return
+    }
+
+    try {
+      const legacyContent = readFileSync(legacyNestedPath, 'utf-8').trim()
+      if (!legacyContent) {
+        return
+      }
+
+      const legacyJson = JSON.parse(legacyContent)
+      const hasLegacyAccounts =
+        !!legacyJson.encryptedAccounts ||
+        !!legacyJson.encryptedSniperAccounts ||
+        !!legacyJson.encrypted ||
+        !!legacyJson.accounts
+
+      if (!hasLegacyAccounts) {
+        return
+      }
+
+      writeFileSync(this.path, legacyContent)
+      console.log('[StorageService] migrated legacy nested config into current data path')
+      this.load()
+    } catch (error) {
+      console.error('[StorageService] failed to migrate legacy nested config:', error)
+    }
+  }
+
+  private save(): void {
+    // if the config is still stored as an encrypted blob and we do not have
+    // the derived encryption key available, we cannot safely overwrite it.
+    if (this.encryptedBlob && !pinService.hasEncryptionKey()) {
+      console.warn('[StorageService] save called while config is still encrypted and PIN key unavailable; skipping write')
+      return
+    }
+
+    if (this.encryptedBlob && pinService.hasEncryptionKey()) {
+      this.#decryptConfigBlobIfNeeded()
     }
 
     try {
@@ -294,27 +443,94 @@ class StorageService {
       this.data.settings.pinLockout = this.pinLockoutState
 
       if (pinService.hasEncryptionKey()) {
+        console.log('[StorageService] save() encrypting data. has encryptedAccounts?', !!this.data.encryptedAccounts, 'field:', this.data.encryptedAccounts ? this.data.encryptedAccounts.substring(0, 50) : 'NONE')
         const plain = JSON.stringify(this.data, null, 2)
         const enc = pinService.encryptWithVerifiedKey(plain)
         if (enc) {
-          output = JSON.stringify({ encrypted: enc }, null, 2)
+          const wrapper: Record<string, unknown> = { encrypted: enc }
+          if (this.data.settings?.pinCodeHash) {
+            wrapper.pinCodeHash = this.data.settings.pinCodeHash
+          }
+          if (this.pinLockoutState) {
+            wrapper.pinLockout = this.pinLockoutState
+          }
+          output = JSON.stringify(wrapper, null, 2)
+          console.log('[StorageService] save() encrypted wrapper created, size:', output.length)
         } else {
           console.error('[StorageService] failed to encrypt full config with PIN')
           output = JSON.stringify(this.data, null, 2)
         }
+      } else if (this.data.settings?.pinCodeHash && this.encryptedBlob) {
+        // PIN is set but encryption key unavailable - preserve encrypted blob wrapper without decrypting
+        // This prevents data loss when PIN key becomes temporarily unavailable
+        console.warn('[StorageService] save() called without PIN key while config has PIN hash; preserving encrypted blob')
+        const wrapper: Record<string, unknown> = { encrypted: this.encryptedBlob }
+        if (this.data.settings.pinCodeHash) {
+          wrapper.pinCodeHash = this.data.settings.pinCodeHash
+        }
+        if (this.pinLockoutState) {
+          wrapper.pinLockout = this.pinLockoutState
+        }
+        output = JSON.stringify(wrapper, null, 2)
       } else {
+        // No PIN set, save as plaintext
         output = JSON.stringify(this.data, null, 2)
       }
 
-      writeFileSync(this.path, output)
+      // Atomic write: write to a temp file first, then rename.
+      // This prevents config.json from being left in a corrupted state
+      // if the app crashes or loses power mid-write.
+      const tmpPath = this.path + '.tmp'
+      writeFileSync(tmpPath, output)
+      renameSync(tmpPath, this.path)
     } catch (error) {
       console.error('Failed to save storage:', error)
     }
   }
 
   /**
-   * Encrypt accounts with PIN using AES-256-GCM
+   * Update only the PIN hash in the file while preserving encrypted blob
+   * This bypasses the save() guard to allow lockout state updates during verification
    */
+  #updatePinHashOnly(newPinHash: string): void {
+    try {
+      const fileContent = readFileSync(this.path, 'utf-8')
+      const parsed = JSON.parse(fileContent.trim())
+
+      // Update only the PIN hash, preserve everything else (especially encrypted blob)
+      parsed.pinCodeHash = newPinHash
+
+      writeFileSync(this.path, JSON.stringify(parsed, null, 2))
+      console.log('[StorageService] PIN hash updated (lockout state persisted)')
+    } catch (err) {
+      console.warn('[StorageService] Failed to update PIN hash in file:', err)
+    }
+  }
+
+  #persistPinMetadata(): void {
+    if (!this.data.settings) {
+      this.data.settings = {}
+    }
+    this.data.settings.pinLockout = this.pinLockoutState
+
+    if (this.encryptedBlob && !pinService.hasEncryptionKey()) {
+      try {
+        const fileContent = readFileSync(this.path, 'utf-8')
+        const parsed = JSON.parse(fileContent.trim())
+        if (parsed && typeof parsed === 'object') {
+          if (this.data.settings.pinCodeHash) parsed.pinCodeHash = this.data.settings.pinCodeHash
+          parsed.pinLockout = this.pinLockoutState
+          writeFileSync(this.path, JSON.stringify(parsed, null, 2))
+          return
+        }
+      } catch (err) {
+        console.warn('[StorageService] Failed to persist PIN metadata directly:', err)
+      }
+    }
+
+    this.save()
+  }
+
   private encryptAccountsWithPin(accounts: Account[], pin: string): string | null {
     try {
       // Derive key from PIN using PBKDF2 (256-bit key)
@@ -411,27 +627,44 @@ class StorageService {
   public getAccounts(): Account[] {
     // if the entire config is still encrypted we have no data yet
     if (this.encryptedBlob) {
+      console.log('[StorageService] getAccounts: config is still encrypted, attempting decryption')
       // attempt decryption if we have the key available (PIN verified)
       this.#decryptConfigBlobIfNeeded()
       if (this.encryptedBlob) {
+        console.log('[StorageService] getAccounts: decryption failed or no key, returning empty')
         return []
       }
+      console.log('[StorageService] getAccounts: decryption succeeded, encryptedAccounts now:', !!this.data.encryptedAccounts)
     }
 
     const pinHash = this.getPinHash()
 
     // If we haven't decrypted yet, try to decrypt
     if (this.decryptedAccounts === null && this.data.encryptedAccounts) {
+      console.log('[StorageService] getAccounts: need to decrypt accounts. pinHash:', !!pinHash, 'currentVerifiedPin:', !!this.currentVerifiedPin)
       if (pinHash) {
         if (this.currentVerifiedPin) {
           this.decryptedAccounts = this.decryptAccountsWithPin(
             this.data.encryptedAccounts,
             this.currentVerifiedPin
           )
+          console.log('[StorageService] getAccounts: decrypted', this.decryptedAccounts?.length, 'accounts')
           if (!this.decryptedAccounts) {
-            this.decryptedAccounts = []
+            const raw = this.data.encryptedAccounts.trim()
+            if (raw.startsWith('[') || raw.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(raw)
+                if (Array.isArray(parsed)) {
+                  this.decryptedAccounts = parsed
+                }
+              } catch {
+                // ignore malformed plaintext fallback
+              }
+            }
+            this.decryptedAccounts = this.decryptedAccounts ?? []
           }
         } else {
+          console.log('[StorageService] getAccounts: PIN not verified yet, returning empty')
           this.decryptedAccounts = []
         }
       } else {
@@ -466,6 +699,9 @@ class StorageService {
     // If PIN is set, encrypt with current verified PIN
     if (pinHash) {
       if (!this.currentVerifiedPin) {
+        console.error('[StorageService] setAccounts: PIN hash exists but PIN not currently verified. Cannot save encrypted accounts.')
+        // Instead of throwing, we need a mechanism to get the PIN verified
+        // For now, throw so the caller can handle it
         throw new Error('PIN must be verified before saving accounts')
       }
 
@@ -481,6 +717,7 @@ class StorageService {
         throw new Error('Failed to encrypt accounts: result was null')
       }
 
+      console.log('[StorageService] setAccounts: Encrypting', accounts.length, 'accounts with PIN')
       this.data.encryptedAccounts = encrypted
       this.decryptedAccounts = accounts
       this.save()
@@ -488,6 +725,7 @@ class StorageService {
       return true
     } else {
       // No PIN yet - store plaintext for now
+      console.log('[StorageService] setAccounts: Saving', accounts.length, 'plaintext accounts (no PIN set yet)')
       this.data.encryptedAccounts = JSON.stringify(accounts)
       this.decryptedAccounts = accounts
       this.save()
@@ -728,25 +966,38 @@ class StorageService {
   /**
    * Get the raw encrypted PIN hash for verification
    */
+  private isBase64PinHash(raw: string): boolean {
+    return /^[A-Za-z0-9+/]+={0,2}$/.test(raw) && raw.length % 4 === 0
+  }
+
   public getPinHash(): string | null {
     const hash = this.data.settings?.pinCodeHash ?? null
-    if (hash && typeof hash === 'string') {
-      // Validate format: should be hex:hex
-      const parts = hash.split(':')
-      if (parts.length === 2 && /^[0-9a-f]+$/i.test(parts[0]) && /^[0-9a-f]+$/i.test(parts[1])) {
-        return hash
-      }
-      console.warn('[StorageService] Invalid PIN hash format detected, removing corrupted PIN data')
-      // Remove corrupted PIN data
-      if (this.data.settings) {
-        delete this.data.settings.pinCodeHash
-        delete this.data.settings.pinLockout
-      }
-      this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null }
-      this.save()
+    if (!hash || typeof hash !== 'string') return null
+
+    const parts = hash.split(':')
+    const isColonHexFormat =
+      (parts.length === 2 || parts.length === 3) &&
+      parts.every((part) => /^[0-9a-f]+$/i.test(part) && part.length > 0)
+
+    if (isColonHexFormat) {
+      return hash
     }
+
+    if (this.isBase64PinHash(hash)) {
+      return hash
+    }
+
+    console.warn('[StorageService] Invalid PIN hash format detected, removing corrupted PIN data')
+    if (this.data.settings) {
+      delete this.data.settings.pinCodeHash
+      delete this.data.settings.pinLockout
+    }
+    this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null }
+    this.save()
     return null
-  }  /**
+  }
+
+  /**
    * Get encrypted license (if any)
    */
   public getEncryptedLicense(): string | null {
@@ -776,16 +1027,38 @@ class StorageService {
   }
 
   /**
-   * Clear all stored data and persist an empty config.json
+   * Clear all stored data and delete any existing config files.
    */
   public clearAll(): void {
     this.data = {}
+    this.decryptedAccounts = null
+    this.decryptedSniperAccounts = null
+    this.encryptedBlob = null
+    this.currentVerifiedPin = null
+    this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null }
+
     try {
       MultiInstance.Disable()
     } catch (e) {
       // ignore
     }
-    this.save()
+
+    const legacyPaths = [
+      this.path,
+      join(app.getPath('userData'), 'config.json'),
+      join(app.getPath('userData'), 'Sentra', 'config.json'),
+      join(app.getPath('documents'), 'Sentra', 'config.json')
+    ]
+
+    for (const pathToDelete of legacyPaths) {
+      try {
+        if (existsSync(pathToDelete)) {
+          unlinkSync(pathToDelete)
+        }
+      } catch (error) {
+        console.error('[StorageService] failed to delete legacy config file during clearAll:', pathToDelete, error)
+      }
+    }
   }
 
   /**
@@ -816,6 +1089,19 @@ class StorageService {
       }
     } else {
       accounts = accounts || []
+
+      // If we're creating a new PIN and the stored accounts are still plaintext JSON,
+      // parse them so they can be migrated into the new encrypted format.
+      if (!existingHash && this.data.encryptedAccounts && accounts.length === 0) {
+        try {
+          const parsedAccounts = JSON.parse(this.data.encryptedAccounts)
+          if (Array.isArray(parsedAccounts)) {
+            accounts = parsedAccounts
+          }
+        } catch {
+          // if parsing fails, keep the empty array and continue
+        }
+      }
     }
 
     if (existingHash && accounts.length > 0) {
@@ -920,6 +1206,7 @@ class StorageService {
 
   /**
    * Verify a PIN attempt for app unlock
+   * Uses PinService.verifyPinEncrypted which properly handles lockout state
    */
   public verifyPin(pin: string): {
     success: boolean
@@ -928,85 +1215,84 @@ class StorageService {
     lockoutSeconds?: number
     accounts?: Account[]
   } {
-    if (this.pinVerificationInProgress) {
-      return { success: false, locked: true, remainingAttempts: 0, lockoutSeconds: 1 }
+    const trimmedPin = pin.trim()
+    let storedHash = this.getPinHash()
+
+    if (!storedHash) {
+      const recovered = this.loadLegacyAccountConfig()
+      if (recovered) {
+        storedHash = this.getPinHash()
+      }
     }
 
-    this.pinVerificationInProgress = true
-    try {
-      const trimmedPin = pin.trim()
-      const hash = this.getPinHash()
+    const now = Date.now()
 
-      if (!hash) {
-        return { success: false, locked: false, remainingAttempts: 5 }
-      }
-
-      const now = Date.now()
-
-      // Check if currently locked
-      if (this.pinLockoutState.lockedUntil && now < this.pinLockoutState.lockedUntil) {
-        const seconds = Math.ceil((this.pinLockoutState.lockedUntil - now) / 1000)
-        return { success: false, locked: true, remainingAttempts: 0, lockoutSeconds: seconds }
-      }
-
-      // Check if attempts should reset (15 minutes since last attempt)
-      if (this.pinLockoutState.lastAttempt && now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000) {
-        this.pinLockoutState.count = 0
-        this.pinLockoutState.lastAttempt = 0
-        this.pinLockoutState.lockedUntil = null
-      }
-
-      const result = pinService.verifyPin(trimmedPin, hash)
-
-      if (result.success) {
-        console.log('[StorageService] PIN verification successful')
-        this.currentVerifiedPin = trimmedPin
-        pinService.resetAttempts()
-        pinService.markVerified()
-
-        // Reset lockout state on successful verification
-        this.pinLockoutState.count = 0
-        this.pinLockoutState.lastAttempt = 0
-        this.pinLockoutState.lockedUntil = null
-        this.save()
-
-        this.#decryptConfigBlobIfNeeded()
-        this.decryptedAccounts = null  // Force re-decryption with verified PIN
-        console.log('[StorageService] verifyPin: ✓ PIN verified, decryptedAccounts cache cleared for re-decryption')
-
-        // Return accounts along with success response
-        const accounts = this.getAccounts()
-        console.log('[StorageService] verifyPin: Returning', accounts.length, 'accounts from getAccounts()')
-        return { success: true, locked: false, remainingAttempts: 5, accounts }
-      } else {
-        console.log('[StorageService] PIN verification failed, updating lockout state')
-      }
-
-      // Failed attempt - update lockout state
-      this.pinLockoutState.count++
-      this.pinLockoutState.lastAttempt = now
-
-      const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count)
-
-      if (this.pinLockoutState.count >= 5) {
-        // Calculate lockout duration with progressive penalty
-        const lockoutMultiplier = Math.min(this.pinLockoutState.count - 4, 12) // Start at 1, max 12
-        const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier // 5 min * multiplier
-        this.pinLockoutState.lockedUntil = now + lockoutDuration
-        this.save()
-        return {
-          success: false,
-          locked: true,
-          remainingAttempts: 0,
-          lockoutSeconds: Math.ceil(lockoutDuration / 1000)
-        }
-      }
-
-      this.save()
-      return { success: false, locked: false, remainingAttempts }
-    } finally {
-      this.pinVerificationInProgress = false
+    // Check if currently locked
+    if (this.pinLockoutState.lockedUntil && now < this.pinLockoutState.lockedUntil) {
+      const lockoutSeconds = Math.ceil((this.pinLockoutState.lockedUntil - now) / 1000)
+      return { success: false, locked: true, remainingAttempts: 0, lockoutSeconds }
     }
+
+    // Check if attempts should reset (15 minutes since last attempt)
+    if (this.pinLockoutState.lastAttempt && now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000) {
+      this.pinLockoutState.count = 0
+      this.pinLockoutState.lastAttempt = 0
+      this.pinLockoutState.lockedUntil = null
+    }
+
+    if (!storedHash) {
+      return { success: false, locked: false, remainingAttempts: 5 }
+    }
+
+    const verifyResult = pinService.verifyPin(trimmedPin, storedHash)
+
+    if (verifyResult.success) {
+      console.log('[StorageService] PIN verification successful')
+      this.currentVerifiedPin = trimmedPin
+      pinService.resetAttempts()
+      pinService.markVerified()
+
+      // Reset lockout state on successful verification
+      this.pinLockoutState.count = 0
+      this.pinLockoutState.lastAttempt = 0
+      this.pinLockoutState.lockedUntil = null
+      this.save()  // This also decrypts the config blob via #decryptConfigBlobIfNeeded
+
+      this.#decryptConfigBlobIfNeeded()  // Ensure blob is decrypted (no-op if already done)
+      this.decryptedAccounts = null  // Force fresh decryption via getAccounts()
+      console.log('[StorageService] verifyPin: ✓ PIN verified, decryptedAccounts cache cleared for re-decryption')
+
+      // Decrypt accounts now and return them directly so the renderer
+      // doesn't need a separate getAccounts() IPC round-trip
+      const accounts = this.getAccounts()
+      console.log('[StorageService] verifyPin: Returning', accounts.length, 'accounts')
+      return { success: true, locked: false, remainingAttempts: 5, accounts }
+    } else {
+      console.log('[StorageService] PIN verification failed, updating lockout state')
+    }
+
+    // Failed attempt - update lockout state
+    this.pinLockoutState.count++
+    this.pinLockoutState.lastAttempt = now
+
+    const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count)
+
+    if (this.pinLockoutState.count >= 5) {
+      // Calculate lockout duration with progressive penalty
+      const lockoutMultiplier = Math.min(this.pinLockoutState.count - 4, 12)
+      const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier
+      this.pinLockoutState.lockedUntil = now + lockoutDuration
+      this.#persistPinMetadata()
+      return {
+        success: false,
+        locked: true,
+        remainingAttempts: 0,
+        lockoutSeconds: Math.ceil(lockoutDuration / 1000)
+      }
+    }
+
+    this.#persistPinMetadata()
+    return { success: false, locked: false, remainingAttempts }
   }
 
   /**
@@ -1071,12 +1357,8 @@ class StorageService {
       nextSettings.primaryAccountId = settings.primaryAccountId ?? null
     }
 
-    if (process.platform === 'win32') {
-      if ('allowMultipleInstances' in settings) {
-        nextSettings.allowMultipleInstances = !!settings.allowMultipleInstances
-      }
-    } else {
-      nextSettings.allowMultipleInstances = false
+    if ('allowMultipleInstances' in settings) {
+      nextSettings.allowMultipleInstances = !!settings.allowMultipleInstances
     }
 
     if ('defaultInstallationPath' in settings) {
@@ -1327,13 +1609,22 @@ class StorageService {
    */
   public getRobloxSettings() {
     return {
-      allowMultipleLaunches: this.data.robloxSettings?.allowMultipleLaunches ?? true,
-      defaultPhysicsEngine: (this.data.robloxSettings?.defaultPhysicsEngine as 'Terrain' | 'Legacy' | undefined) ?? 'Terrain',
-      enableOptimizations: this.data.robloxSettings?.enableOptimizations ?? true,
+      allowMultipleLaunches: this.data.robloxSettings?.allowMultipleLaunches ?? false,
+      defaultPhysicsEngine: this.data.robloxSettings?.defaultPhysicsEngine ?? 'Terrain',
+      enableOptimizations: this.data.robloxSettings?.enableOptimizations ?? false,
       memoryLimit: this.data.robloxSettings?.memoryLimit ?? 0,
-      useDirectX12: this.data.robloxSettings?.useDirectX12 ?? true,
+      useDirectX12: this.data.robloxSettings?.useDirectX12 ?? false,
       lowEndGraphics: this.data.robloxSettings?.lowEndGraphics ?? false,
-      disableDualChannelAudio: this.data.robloxSettings?.disableDualChannelAudio ?? false
+      disableDualChannelAudio: this.data.robloxSettings?.disableDualChannelAudio ?? false,
+      antiAfkEnabled: this.data.robloxSettings?.antiAfkEnabled ?? false,
+      renameWindowsEnabled: this.data.robloxSettings?.renameWindowsEnabled ?? false,
+      framerateCapEnabled: this.data.robloxSettings?.framerateCapEnabled ?? false,
+      framerateCapValue: this.data.robloxSettings?.framerateCapValue ?? 60,
+      optimizeRamEnabled: this.data.robloxSettings?.optimizeRamEnabled ?? false,
+      ramOptimizeLimit: this.data.robloxSettings?.ramOptimizeLimit ?? 500,
+      headlessModeEnabled: this.data.robloxSettings?.headlessModeEnabled ?? false,
+      timeoutRelaunchEnabled: this.data.robloxSettings?.timeoutRelaunchEnabled ?? false,
+      timeoutRelaunchSeconds: this.data.robloxSettings?.timeoutRelaunchSeconds ?? 3600
     }
   }
 
@@ -1348,6 +1639,15 @@ class StorageService {
     useDirectX12?: boolean
     lowEndGraphics?: boolean
     disableDualChannelAudio?: boolean
+    antiAfkEnabled?: boolean
+    renameWindowsEnabled?: boolean
+    framerateCapEnabled?: boolean
+    framerateCapValue?: number
+    optimizeRamEnabled?: boolean
+    ramOptimizeLimit?: number
+    headlessModeEnabled?: boolean
+    timeoutRelaunchEnabled?: boolean
+    timeoutRelaunchSeconds?: number
   }): void {
     if (!this.data.robloxSettings) {
       this.data.robloxSettings = {}
@@ -1373,9 +1673,36 @@ class StorageService {
     if (settings.disableDualChannelAudio !== undefined) {
       this.data.robloxSettings.disableDualChannelAudio = settings.disableDualChannelAudio
     }
+    if (settings.antiAfkEnabled !== undefined) {
+      this.data.robloxSettings.antiAfkEnabled = settings.antiAfkEnabled
+    }
+    if (settings.renameWindowsEnabled !== undefined) {
+      this.data.robloxSettings.renameWindowsEnabled = settings.renameWindowsEnabled
+    }
+    if (settings.framerateCapEnabled !== undefined) {
+      this.data.robloxSettings.framerateCapEnabled = settings.framerateCapEnabled
+    }
+    if (settings.framerateCapValue !== undefined) {
+      this.data.robloxSettings.framerateCapValue = settings.framerateCapValue
+    }
+    if (settings.optimizeRamEnabled !== undefined) {
+      this.data.robloxSettings.optimizeRamEnabled = settings.optimizeRamEnabled
+    }
+    if (settings.ramOptimizeLimit !== undefined) {
+      this.data.robloxSettings.ramOptimizeLimit = settings.ramOptimizeLimit
+    }
+    if (settings.headlessModeEnabled !== undefined) {
+      this.data.robloxSettings.headlessModeEnabled = settings.headlessModeEnabled
+    }
+    if (settings.timeoutRelaunchEnabled !== undefined) {
+      this.data.robloxSettings.timeoutRelaunchEnabled = settings.timeoutRelaunchEnabled
+    }
+    if (settings.timeoutRelaunchSeconds !== undefined) {
+      this.data.robloxSettings.timeoutRelaunchSeconds = settings.timeoutRelaunchSeconds
+    }
+
     this.save()
   }
 }
 
 export const storageService = new StorageService()
-

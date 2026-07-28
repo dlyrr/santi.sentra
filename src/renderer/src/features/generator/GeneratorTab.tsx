@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@renderer/components/UI/buttons/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/UI/display/Card'
-import { Wand2, Copy, Trash2, Settings, Eye, EyeOff, Download, Clipboard, Key } from 'lucide-react'
+import { Wand2, Trash2, Settings, Clipboard, Key, Zap, Check, UserPlus, X } from 'lucide-react'
 import { useAccountsManager } from '../auth/api/useAccounts'
 import { AccountStatus } from '@renderer/types'
 import { v4 as uuidv4 } from 'uuid'
+import { motion, AnimatePresence } from 'framer-motion'
+import { GeneratorSettingsModal } from './GeneratorSettingsModal'
 
 interface GeneratedAccountData {
   id: string
@@ -19,22 +20,13 @@ interface GeneratorConfig {
   usernamePrefix: string
   passwordLength: number
   includeSpecialChars: boolean
-  autoLaunchBrowser: boolean
   selectedClient?: string
   multiGenerateCount: number
   autoSwapBrowser: boolean
 }
 
 const CLIENT_NAMES = [
-  'Chrome Desktop',
-  'Firefox Desktop',
-  'Safari macOS',
-  'Edge Windows',
-  'Opera',
-  'Brave',
-  'Vivaldi',
-  'Google Bot',
-  'Custom'
+  'Chrome Desktop', 'Firefox Desktop', 'Safari macOS', 'Edge Windows', 'Opera', 'Brave', 'Vivaldi', 'Google Bot', 'Custom'
 ]
 
 export const GeneratorTab = () => {
@@ -42,16 +34,22 @@ export const GeneratorTab = () => {
     usernamePrefix: 'sentra_',
     passwordLength: 16,
     includeSpecialChars: true,
-    autoLaunchBrowser: true,
     selectedClient: 'Chrome Desktop',
     multiGenerateCount: 1,
     autoSwapBrowser: false
   })
+  
   const [createdAccounts, setCreatedAccounts] = useState<GeneratedAccountData[]>([])
   const [isCreating, setIsCreating] = useState(false)
+  const [isSavingConfig, setIsSavingConfig] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [previewAccount, setPreviewAccount] = useState<GeneratedAccountData | null>(null)
   const [isAddingToAccounts, setIsAddingToAccounts] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number } | null>(null)
+  const cancelGenerationRef = useRef(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [customInputActive, setCustomInputActive] = useState(false)
+  
   const { addAccount } = useAccountsManager()
 
   useEffect(() => {
@@ -62,9 +60,7 @@ export const GeneratorTab = () => {
   const loadConfig = async () => {
     try {
       const result = await window.api.generator.getConfig()
-      if (result.success) {
-        setConfig(result.config)
-      }
+      if (result.success) setConfig(result.config)
     } catch (err) {
       console.error('Failed to load config:', err)
     }
@@ -72,74 +68,76 @@ export const GeneratorTab = () => {
 
   const loadAccounts = async () => {
     try {
-      // Load from generator's own storage (not main accounts storage)
       const response = await window.api.generator.getAccounts()
-      
-      const accountArray = (response?.accounts || []) as GeneratedAccountData[]
-      setCreatedAccounts(accountArray)
+      setCreatedAccounts((response?.accounts || []) as GeneratedAccountData[])
     } catch (err) {
       console.error('Failed to load generator accounts:', err)
       setCreatedAccounts([])
     }
   }
 
-  const handleGeneratePreview = async () => {
-    try {
-      const result = await window.api.generator.generateAccountData()
-      if (result.success) {
-        setPreviewAccount({
-          id: uuidv4(),
-          ...result.accountData,
-          createdAt: Date.now()
-        })
-      }
-    } catch (err) {
-      console.error('Failed to generate preview:', err)
-    }
+  const handleCancelGeneration = () => {
+    cancelGenerationRef.current = true
+    setIsCancelling(true)
   }
 
   const handleCreateAccount = async () => {
+    cancelGenerationRef.current = false
+    setIsCancelling(false)
     setIsCreating(true)
+    const countToGenerate = config.multiGenerateCount
+    const originalClient = config.selectedClient
+    setGenerationProgress({ current: 0, total: countToGenerate })
     try {
-      const countToGenerate = config.multiGenerateCount
-      const originalClient = config.selectedClient
-      
+      let clientIndex = CLIENT_NAMES.indexOf(originalClient || 'Chrome Desktop')
       for (let i = 0; i < countToGenerate; i++) {
-        // Auto-swap browser if enabled
+        if (cancelGenerationRef.current) break
+
         if (config.autoSwapBrowser && i > 0) {
-          const nextClientIndex = (CLIENT_NAMES.indexOf(originalClient || 'Chrome Desktop') + 1) % CLIENT_NAMES.length
-          setConfig(prev => ({ ...prev, selectedClient: CLIENT_NAMES[nextClientIndex] }))
+          clientIndex = (clientIndex + 1) % CLIENT_NAMES.length
+          setConfig(prev => ({ ...prev, selectedClient: CLIENT_NAMES[clientIndex] }))
         }
-
-        const result = await window.api.generator.createAccount()
-
-        if (result.success) {
-          // Small delay to ensure storage is persisted
-          await new Promise(resolve => setTimeout(resolve, 300))
+        try {
+          // Race the createAccount call against a cancellation signal so
+          // Cancel feels instant even mid-request
+          const cancelPromise = new Promise<never>((_, reject) => {
+            const interval = setInterval(() => {
+              if (cancelGenerationRef.current) {
+                clearInterval(interval)
+                reject(new Error('cancelled'))
+              }
+            }, 100)
+          })
+          const result = await Promise.race([
+            window.api.generator.createAccount(),
+            cancelPromise
+          ])
+          if (result.success) await new Promise(resolve => setTimeout(resolve, 300))
+        } catch (err: any) {
+          if (err?.message === 'cancelled' || cancelGenerationRef.current) break
+          console.error(`Failed to create account ${i + 1}:`, err)
         }
+        if (cancelGenerationRef.current) break
+        setGenerationProgress({ current: i + 1, total: countToGenerate })
       }
       
-      // Restore original client
       setConfig(prev => ({ ...prev, selectedClient: originalClient }))
-      
-      // Reload accounts
       await loadAccounts()
-      setPreviewAccount(null)
     } catch (err) {
-      console.error('Failed to create account:', err)
+      console.error('Failed to create accounts:', err)
     } finally {
       setIsCreating(false)
+      setIsCancelling(false)
+      setGenerationProgress(null)
+      cancelGenerationRef.current = false
     }
   }
 
   const handleAddToAccounts = async (account: GeneratedAccountData) => {
     setIsAddingToAccounts(account.id)
     try {
-      // Step 1: Fetch the cookie from the generator service
       const cookieResult = await window.api.generator.getCookie(account.id)
       const cookie = cookieResult.success ? cookieResult.cookie : ''
-
-      // Step 2: Fetch user data by username (userId, displayName, etc)
       let userId = ''
       let displayName = account.username
       let avatarUrl = ''
@@ -150,19 +148,13 @@ export const GeneratorTab = () => {
           userId = String(userResult.id || '')
           displayName = userResult.displayName || account.username
         }
-      } catch (err) {
-        console.error('Failed to fetch user by username:', err)
-      }
+      } catch (err) {}
 
-      // Step 3: Fetch avatar URL
       try {
         const avatarResult = await window.api.user.getAvatarUrlByUsername(account.username)
         avatarUrl = avatarResult?.url || ''
-      } catch (err) {
-        console.error('Failed to fetch avatar for', account.username, ':', err)
-      }
+      } catch (err) {}
 
-      // Step 4: Create and add the account with all fetched data
       addAccount({
         id: uuidv4(),
         username: account.username,
@@ -172,11 +164,7 @@ export const GeneratorTab = () => {
         status: AccountStatus.Offline,
         avatarUrl: avatarUrl,
         lastActive: new Date().toISOString(),
-        robuxBalance: 0,
-        friendCount: 0,
-        followerCount: 0,
-        followingCount: 0,
-        notes: ''
+        robuxBalance: 0, friendCount: 0, followerCount: 0, followingCount: 0, notes: ''
       })
     } catch (err) {
       console.error('Failed to add account:', err)
@@ -186,348 +174,297 @@ export const GeneratorTab = () => {
   }
 
   const handleUpdateConfig = async () => {
+    setIsSavingConfig(true)
     try {
       await window.api.generator.updateConfig(config)
       setShowSettings(false)
     } catch (err) {
       console.error('Failed to update config:', err)
+    } finally {
+      setIsSavingConfig(false)
     }
   }
 
   const handleClearAccounts = async () => {
-    try {
-      await window.api.generator.clearAccounts()
-      setCreatedAccounts([])
-    } catch (err) {
-      console.error('Failed to clear accounts:', err)
+    if (confirm('Are you sure you want to clear all generated accounts from your inventory?')) {
+      try {
+        await window.api.generator.clearAccounts()
+        setCreatedAccounts([])
+      } catch (err) {}
     }
+  }
+
+  const triggerCopyFeedback = (id: string) => {
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 1500)
   }
 
   const handleBulkCopy = async () => {
     try {
       const bulkData: string[] = []
-      
       for (const account of createdAccounts) {
         try {
           const passwordResult = await window.api.generator.getPassword(account.id)
           const cookieResult = await window.api.generator.getCookie(account.id)
-          const password = (passwordResult && passwordResult.success && passwordResult.password) ? passwordResult.password : ''
-          const cookie = (cookieResult && cookieResult.success && cookieResult.cookie) ? cookieResult.cookie : ''
-          bulkData.push(`${account.username}:${password}:${cookie}`)
+          bulkData.push(`${account.username}:${passwordResult?.password || ''}:${cookieResult?.cookie || ''}`)
         } catch (err) {
-          console.error(`Failed to get data for account ${account.id}:`, err)
-          // Still add the account with empty password/cookie
           bulkData.push(`${account.username}::`)
         }
       }
-      
-      const bulkText = bulkData.join('\n')
-      await navigator.clipboard.writeText(bulkText)
-      alert(`Copied ${createdAccounts.length} account${createdAccounts.length !== 1 ? 's' : ''} in username:password:cookie format`)
-    } catch (err) {
-      console.error('Failed to bulk copy accounts:', err)
-      alert('Failed to copy accounts to clipboard')
-    }
+      await navigator.clipboard.writeText(bulkData.join('\n'))
+      triggerCopyFeedback('bulk')
+    } catch (err) {}
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
+  const presets = [1, 5, 10, 25]
+  const isPresetSelected = presets.includes(config.multiGenerateCount) && !customInputActive
 
   return (
-    <div className="space-y-6">
-      {/* Generator Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="w-5 h-5" />
+    <div className="h-full flex flex-col p-6 overflow-y-auto space-y-6 bg-[var(--color-background)]">
+      
+      {/* Mini Top Row Bar Header */}
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 max-w-4xl mx-auto w-full">
+        <div className="flex items-center gap-2.5">
+          <Wand2 className="w-4 h-4 text-indigo-500" />
+          <h1 className="text-md font-bold tracking-tight text-[var(--color-text-primary)]">
             Account Generator
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            <Button
-              onClick={handleGeneratePreview}
-              variant="outline"
-              className="flex-1"
-            >
-              Generate Preview
-            </Button>
+          </h1>
+        </div>
+      </div>
+
+      {/* Futuristic Consolidated Console Control Dock */}
+      <motion.div 
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-4xl mx-auto flex items-center justify-between bg-[var(--color-surface)] border border-[var(--color-border)] p-2.5 rounded-xl shadow-sm gap-4"
+      >
+        {/* Count Segment Picker Unit */}
+        <div className="flex items-center gap-1.5 bg-[var(--color-surface-strong)]/60 p-1 rounded-lg border border-[var(--color-border)]/60">
+          <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider px-2">
+            Batch
+          </span>
+          <div className="flex items-center gap-1">
+            {presets.map((num) => (
+              <button
+                key={num}
+                onClick={() => {
+                  setCustomInputActive(false)
+                  setConfig(prev => ({ ...prev, multiGenerateCount: num }))
+                }}
+                className={`px-3 h-7 rounded-md text-xs font-mono font-bold transition-all ${
+                  config.multiGenerateCount === num && !customInputActive
+                    ? 'bg-indigo-600 text-[var(--color-text-primary)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+
+            {/* Inline Custom Input Selector Toggler */}
+            <div className={`flex items-center h-7 px-1.5 rounded-md transition-all ${
+              customInputActive || !isPresetSelected 
+                ? 'bg-[var(--color-background)] border border-indigo-500/30' 
+                : 'hover:bg-[var(--color-surface-hover)]'
+            }`}>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                placeholder="Custom"
+                value={customInputActive || !isPresetSelected ? config.multiGenerateCount : ''}
+                onFocus={() => setCustomInputActive(true)}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 1
+                  setConfig(prev => ({ ...prev, multiGenerateCount: Math.min(100, Math.max(1, val)) }))
+                }}
+                className="w-14 text-center bg-transparent border-0 text-xs font-mono font-bold focus:outline-none text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]/60 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Console Action Segment */}
+        <div className="flex items-center gap-2">
+          {isCreating ? (
+            <>
+              {/* Progress indicator */}
+              {generationProgress && (
+                <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums">
+                  {generationProgress.current}/{generationProgress.total}
+                </span>
+              )}
+              <div className="w-3 h-3 rounded-full border-2 border-indigo-300/20 border-t-indigo-400 animate-spin" />
+              <Button
+                onClick={handleCancelGeneration}
+                disabled={isCancelling}
+                className={`h-9 px-5 rounded-lg font-medium text-xs transition-all shadow-sm border-0 flex items-center gap-2 text-[var(--color-text-primary)] ${
+                  isCancelling
+                    ? 'bg-red-800 opacity-60 cursor-not-allowed'
+                    : 'bg-red-600 hover:bg-red-500'
+                }`}
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{isCancelling ? 'Cancelling...' : 'Cancel'}</span>
+              </Button>
+            </>
+          ) : (
             <Button
               onClick={handleCreateAccount}
-              disabled={isCreating}
-              className="flex-1"
+              className="h-9 px-5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[var(--color-text-primary)] font-medium text-xs transition-all shadow-sm border-0 flex items-center gap-2"
             >
-              {isCreating ? 'Creating...' : `Create (${config.multiGenerateCount})`}
+              <Zap className="w-3.5 h-3.5 fill-white/10" />
+              <span>Generate ({config.multiGenerateCount})</span>
             </Button>
-            <Button
-              onClick={() => setShowSettings(!showSettings)}
-              variant="outline"
-              size="icon"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {previewAccount && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg space-y-2">
-              <p className="text-sm font-medium">Preview Account Data</p>
-              <div className="space-y-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Username:</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">{previewAccount.username}</code>
-                    <button
-                      onClick={() => copyToClipboard(previewAccount.username)}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Password:</span>
-                  <div className="flex items-center gap-2">
-                    <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">{previewAccount.password}</code>
-                    <button
-                      onClick={() => copyToClipboard(previewAccount.password)}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Birth Date:</span>
-                  <code className="bg-white dark:bg-gray-800 px-2 py-1 rounded">{previewAccount.birthDate}</code>
-                </div>
-              </div>
-            </div>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Settings Section */}
-      {showSettings && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Generator Settings</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Client/Browser</label>
-              <select
-                value={config.selectedClient || 'Chrome Desktop'}
-                onChange={(e) => setConfig({ ...config, selectedClient: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md bg-background"
-              >
-                {CLIENT_NAMES.map(client => (
-                  <option key={client} value={client}>{client}</option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Selects user agent for account generation</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Username Prefix</label>
-              <input
-                type="text"
-                value={config.usernamePrefix}
-                onChange={(e) => setConfig({ ...config, usernamePrefix: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md bg-background"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Password Length</label>
-              <input
-                type="number"
-                value={config.passwordLength}
-                onChange={(e) => setConfig({ ...config, passwordLength: parseInt(e.target.value) })}
-                min="8"
-                max="32"
-                className="w-full px-3 py-2 border rounded-md bg-background"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="specialChars"
-                checked={config.includeSpecialChars}
-                onChange={(e) => setConfig({ ...config, includeSpecialChars: e.target.checked })}
-              />
-              <label htmlFor="specialChars" className="text-sm font-medium">
-                Include Special Characters
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="autoBrowser"
-                checked={config.autoLaunchBrowser}
-                onChange={(e) => setConfig({ ...config, autoLaunchBrowser: e.target.checked })}
-              />
-              <label htmlFor="autoBrowser" className="text-sm font-medium">
-                Auto-launch Browser
-              </label>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Accounts to Generate</label>
-              <input
-                type="number"
-                value={config.multiGenerateCount}
-                onChange={(e) => setConfig({ ...config, multiGenerateCount: Math.max(1, parseInt(e.target.value) || 1) })}
-                min="1"
-                max="50"
-                className="w-full px-3 py-2 border rounded-md bg-background"
-              />
-              <p className="text-xs text-gray-500 mt-1">How many accounts to create (1-50)</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="autoSwapBrowser"
-                checked={config.autoSwapBrowser}
-                onChange={(e) => setConfig({ ...config, autoSwapBrowser: e.target.checked })}
-              />
-              <label htmlFor="autoSwapBrowser" className="text-sm font-medium">
-                Auto-swap Browser Each Generation
-              </label>
-            </div>
-            <p className="text-xs text-gray-500">Cycles through client list with each account created</p>
-            <Button onClick={handleUpdateConfig} className="w-full">
-              Save Settings
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          <Button
+            onClick={() => setShowSettings(true)}
+            disabled={isCreating}
+            variant="outline"
+            className="h-9 w-9 p-0 rounded-lg border-[var(--color-border)] bg-[var(--color-surface-strong)]/40 hover:bg-[var(--color-surface-hover)] transition-all disabled:opacity-50"
+            title="Open Advanced Customization Panel"
+          >
+            <Settings className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />
+          </Button>
+        </div>
+      </motion.div>
 
-      {/* Created Accounts Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Created Accounts ({createdAccounts.length})</span>
+      {/* Generated Accounts Space Log */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full max-w-4xl mx-auto flex-1 flex flex-col"
+      >
+        <div className="bg-[var(--color-surface)]/30 border border-[var(--color-border)] rounded-xl overflow-hidden flex flex-col h-full min-h-[420px]">
+          
+          {/* Header Panel */}
+          <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-surface-strong)]/20">
+            <h2 className="text-xs font-bold flex items-center gap-2 text-[var(--color-text-primary)] uppercase tracking-wider">
+              Generated accounts
+              <span className="bg-indigo-500/10 text-indigo-500 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
+                {createdAccounts.length} Units
+              </span>
+            </h2>
             {createdAccounts.length > 0 && (
               <div className="flex gap-2">
-                <Button
-                  onClick={handleBulkCopy}
-                  size="sm"
-                  variant="outline"
-                  className="text-blue-600 hover:text-blue-700"
-                  title="Copy all in username:password:cookie format"
-                >
-                  <Copy className="w-4 h-4 mr-1" />
-                  Bulk Copy
+                <Button onClick={handleBulkCopy} size="sm" variant="outline" className="h-7 border-indigo-500/20 text-indigo-500 text-[11px] hover:bg-indigo-500/5">
+                  {copiedId === 'bulk' ? <Check className="w-3 h-3 mr-1 text-emerald-500" /> : <Clipboard className="w-3 h-3 mr-1" />}
+                  Bulk Export Full Log
                 </Button>
-                <Button
-                  onClick={handleClearAccounts}
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-500"
-                >
-                  Clear All
+                <Button onClick={handleClearAccounts} size="sm" variant="ghost" className="h-7 text-red-500 text-[11px] hover:bg-red-500/5">
+                  Flush Table
                 </Button>
               </div>
             )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {createdAccounts.length === 0 ? (
-            <p className="text-sm text-gray-500">No accounts created yet. Generate and create an account to see it here.</p>
-          ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {createdAccounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{account.username}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Created: {new Date(account.createdAt).toLocaleString()}
-                    </p>
-                    {account.birthDate && (
-                      <p className="text-xs text-gray-500">Birth Date: {account.birthDate}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        try {
-                          const passwordResult = await window.api.generator.getPassword(account.id)
-                          const cookieResult = await window.api.generator.getCookie(account.id)
-                          const password = (passwordResult && passwordResult.success && passwordResult.password) ? passwordResult.password : ''
-                          const cookie = (cookieResult && cookieResult.success && cookieResult.cookie) ? cookieResult.cookie : ''
-                          const fullData = `${account.username}:${password}:${cookie}`
-                          await navigator.clipboard.writeText(fullData)
-                        } catch (err) {
-                          console.error('Failed to copy account data:', err)
-                        }
-                      }}
-                      className="text-gray-500 hover:text-purple-400 transition-colors p-1"
-                      title="Copy username:password:cookie"
+          </div>
+          
+          {/* Output Card Matrix */}
+          <div className="p-4 flex-1 overflow-y-auto">
+            {createdAccounts.length === 0 ? (
+              <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-[var(--color-text-muted)] space-y-2">
+                <Wand2 className="w-6 h-6 opacity-20" />
+                <p className="text-xs font-medium">No accounts generated in memory output.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <AnimatePresence>
+                  {createdAccounts.map((account) => (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.99 }}
+                      key={account.id}
+                      className="border border-[var(--color-border)] bg-[var(--color-surface-strong)]/30 rounded-lg p-3 hover:border-indigo-500/30 transition-colors flex flex-col gap-2.5 shadow-sm"
                     >
-                      <Clipboard className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        try {
-                          const result = await window.api.generator.getPassword(account.id)
-                          if (result && result.success && result.password) {
-                            await navigator.clipboard.writeText(result.password)
-                          } else {
-                            alert('Failed to retrieve password')
-                          }
-                        } catch (err) {
-                          console.error('Failed to get password:', err)
-                          alert('Could not retrieve password')
-                        }
-                      }}
-                      className="text-gray-500 hover:text-blue-400 transition-colors p-1"
-                      title="Copy password"
-                    >
-                      <Key className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleAddToAccounts(account)
-                      }}
-                      disabled={isAddingToAccounts === account.id}
-                      className="text-gray-500 hover:text-green-400 transition-colors p-1 disabled:opacity-50"
-                      title="Add to accounts"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        if (confirm(`Delete account "${account.username}"? This action cannot be undone.`)) {
-                          try {
-                            const result = await window.api.generator.deleteAccount(account.id)
-                            if (result.success) {
-                              await loadAccounts()
-                            } else {
-                              alert('Failed to delete account')
-                            }
-                          } catch (err) {
-                            console.error('Failed to delete account:', err)
-                            alert('Could not delete account')
-                          }
-                        }
-                      }}
-                      className="text-gray-500 hover:text-red-400 transition-colors p-1"
-                      title="Delete account"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      <div className="flex justify-between items-start">
+                        <div className="truncate max-w-[75%]">
+                          <div className="font-mono text-xs font-bold text-[var(--color-text-primary)] truncate">
+                            {account.username}
+                          </div>
+                          <div className="text-[9px] font-mono text-[var(--color-text-muted)] mt-0.5">
+                            {new Date(account.createdAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+
+                        <div className="flex bg-[var(--color-background)] border border-[var(--color-border)] rounded p-0.5 gap-0.5">
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const pr = await window.api.generator.getPassword(account.id)
+                                const cr = await window.api.generator.getCookie(account.id)
+                                await navigator.clipboard.writeText(`${account.username}:${pr?.password || ''}:${cr?.cookie || ''}`)
+                                triggerCopyFeedback(account.id + '-all')
+                              } catch (err) {}
+                            }} 
+                            className="p-1 text-[var(--color-text-muted)] hover:text-indigo-500 rounded transition-colors"
+                          >
+                            {copiedId === account.id + '-all' ? <Check className="w-3 h-3 text-emerald-500" /> : <Clipboard className="w-3 h-3" />}
+                          </button>
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const result = await window.api.generator.getPassword(account.id)
+                                if (result?.success) {
+                                  await navigator.clipboard.writeText(result.password)
+                                  triggerCopyFeedback(account.id + '-pass')
+                                }
+                              } catch (err) {}
+                            }} 
+                            className="p-1 text-[var(--color-text-muted)] hover:text-indigo-500 rounded transition-colors"
+                          >
+                            {copiedId === account.id + '-pass' ? <Check className="w-3 h-3 text-emerald-500" /> : <Key className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-[var(--color-border)]/40">
+                        {account.birthDate ? (
+                          <span className="text-[9px] font-mono bg-[var(--color-background)] text-[var(--color-text-muted)] px-1.5 py-0.5 rounded border border-[var(--color-border)]">
+                            {account.birthDate}
+                          </span>
+                        ) : <div />}
+
+                        <div className="flex items-center gap-1.5">
+                          <Button 
+                            onClick={() => handleAddToAccounts(account)} 
+                            disabled={isAddingToAccounts === account.id} 
+                            size="sm" 
+                            className="h-6 px-2.5 bg-emerald-500/10 hover:bg-emerald-600 text-emerald-600 dark:text-emerald-400 hover:text-[var(--color-text-primary)] border-0 text-[10px] font-semibold rounded transition-colors flex items-center gap-1"
+                          >
+                            <UserPlus className="w-2.5 h-2.5" />
+                            {isAddingToAccounts === account.id ? 'Importing...' : 'Add to Sentra'}
+                          </Button>
+                          <button 
+                            onClick={async () => {
+                              if (confirm(`Purge data item for "${account.username}"?`)) {
+                                await window.api.generator.deleteAccount(account.id)
+                                await loadAccounts()
+                              }
+                            }} 
+                            className="p-1 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      <GeneratorSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        config={config}
+        setConfig={setConfig}
+        handleUpdateConfig={handleUpdateConfig}
+        isSavingConfig={isSavingConfig}
+      />
     </div>
   )
 }

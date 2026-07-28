@@ -348,10 +348,35 @@ export class RobloxLoginWindowService {
         ipcMain.removeListener(ipcChannel, ipcHandler)
       })
 
-      await contentView.webContents.loadURL(url, {
-        httpReferrer: 'https://www.roblox.com/',
-        userAgent: browserWindow.webContents.getUserAgent()
+      // Handle popup / new tab requests from content page - open in external browser
+      contentView.webContents.setWindowOpenHandler(({ url }) => {
+        shell.openExternal(url)
+        return { action: 'deny' }
       })
+
+      // Handle navigation failures gracefully - only close on truly fatal errors
+      contentView.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        // Ignore common non-fatal error codes:
+        // -3 = ERR_ABORTED (navigation cancelled, e.g. redirect)
+        // -6 = ERR_FILE_NOT_FOUND (url paste mid-type)
+        // -102 = ERR_CONNECTION_REFUSED (temp network issue)
+        const nonFatalCodes = new Set([-3, -6, -102, -105, -106, -118])
+        if (isMainFrame && !nonFatalCodes.has(errorCode)) {
+          console.warn(`[Browser] Load failed (${errorCode}): ${errorDescription} @ ${validatedURL}`)
+        }
+        // Never close the window on load failure - let user retry
+      })
+
+      try {
+        await contentView.webContents.loadURL(url, {
+          httpReferrer: 'https://www.roblox.com/',
+          userAgent: browserWindow.webContents.getUserAgent()
+        })
+      } catch (loadError) {
+        // Non-fatal: URL load errors shouldn't close the browser window
+        // The user can still navigate using the toolbar
+        console.warn('[Browser] Initial URL load error (window still open):', loadError)
+      }
     } catch (error) {
       if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
       try {

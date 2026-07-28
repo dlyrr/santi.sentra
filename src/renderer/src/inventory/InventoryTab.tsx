@@ -84,7 +84,7 @@ const InventoryItemCard = ({
         >
           {thumbnailUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-neutral-700/30 animate-pulse" />}
+              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
               <img
                 src={thumbnailUrl}
                 alt={displayName}
@@ -96,7 +96,7 @@ const InventoryItemCard = ({
               />
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-700">
+            <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
               <Package size={32} />
             </div>
           )}
@@ -339,9 +339,9 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
 
   if (!account || !cookie || !userId) {
     return (
-      <div className="flex items-center justify-center h-full text-neutral-500">
+      <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
         <div className="text-center">
-          <User size={48} className="mx-auto mb-4 text-neutral-600" />
+          <User size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
           <p>Select an account to view inventory</p>
         </div>
       </div>
@@ -350,7 +350,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
 
   return (
     <TooltipProvider>
-      <div className="flex h-full bg-neutral-950">
+      <div className="flex h-full bg-[var(--color-app-bg)]">
         {/* Left Sidebar Filter */}
         <InventoryFilterSidebar
           categories={INVENTORY_CATEGORIES}
@@ -368,8 +368,8 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           {/* Toolbar */}
           <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
             <div className="flex items-center gap-4 flex-1">
-              <h1 className="text-xl font-bold text-white">Inventory</h1>
-              <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-semibold tracking-tight text-neutral-400">
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Inventory</h1>
+              <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
                 {selectedSubcategory?.name || selectedCategory?.name || 'All Items'}
               </span>
             </div>
@@ -383,20 +383,20 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                 containerClassName="w-64"
               />
 
-              <div className="h-6 w-[1px] bg-neutral-800 mx-1" />
+              <div className="h-6 w-[1px] bg-[var(--color-surface-hover)] mx-1" />
 
               {/* View Mode Toggle */}
-              <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800">
+              <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
                   onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Default View"
                 >
                   <Grid2X2 size={18} />
                 </button>
                 <button
                   onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Compact View"
                 >
                   <Grid3X3 size={18} />
@@ -406,7 +406,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin bg-neutral-950">
+          <div className="flex-1 overflow-y-auto scrollbar-thin bg-[var(--color-app-bg)]">
             <AnimatePresence mode="wait">
               {isLoading && items.length === 0 ? (
                 <motion.div
@@ -420,12 +420,12 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                   {Array.from({ length: 20 }).map((_, i) => (
                     <div
                       key={i}
-                      className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden"
+                      className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden"
                     >
                       <SkeletonSquareCard showBorder={false} />
                       <div className="p-3 space-y-2">
-                        <div className="h-4 bg-neutral-800 rounded animate-pulse w-3/4" />
-                        <div className="h-3 bg-neutral-800 rounded animate-pulse w-1/2" />
+                        <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse w-3/4" />
+                        <div className="h-3 bg-[var(--color-surface-hover)] rounded animate-pulse w-1/2" />
                       </div>
                     </div>
                   ))}
@@ -483,7 +483,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                       Footer: () =>
                         isFetchingNextPage ? (
                           <div className="h-20 flex items-center justify-center">
-                            <div className="flex items-center gap-2 text-neutral-500">
+                            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
                               <Loader2 size={20} className="animate-spin" />
                               <span>Loading more...</span>
                             </div>

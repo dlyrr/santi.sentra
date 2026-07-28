@@ -43,8 +43,8 @@ export const CatalogActiveFilters = ({
   if (activeFilters.length === 0) return null
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-neutral-800 bg-neutral-900/20">
-      <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider mr-2">
+    <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/20">
+      <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mr-2">
         Active Filters:
       </span>
       <AnimatePresence>
@@ -71,7 +71,7 @@ export const CatalogActiveFilters = ({
       {activeFilters.length > 1 && (
         <button
           onClick={onClearAll}
-          className="text-xs text-neutral-500 hover:text-neutral-300 underline decoration-neutral-700 underline-offset-2 ml-2 transition-colors"
+          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] underline decoration-neutral-700 underline-offset-2 ml-2 transition-colors"
         >
           Clear all
         </button>

@@ -247,5 +247,21 @@ export const INVENTORY_CATEGORIES: InventoryCategory[] = [
         name: 'Emotes'
       }
     ]
+  },
+  {
+    category: 'GamePasses',
+    assetTypes: ['GamePass'],
+    categoryId: 98,
+    name: 'Game Passes',
+    orderIndex: 6,
+    subcategories: []
+  },
+  {
+    category: 'Badges',
+    assetTypes: ['Badge'],
+    categoryId: 99,
+    name: 'Badges',
+    orderIndex: 7,
+    subcategories: []
   }
 ]

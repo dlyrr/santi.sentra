@@ -1,13 +1,6 @@
-/**
- * Proxy Management module - Public API
- */
-
-export * from "./types/ProxyTypes";
-export * from "./interfaces/ProxyInterfaces";
-export { ProxyValidator } from "./utils/ProxyValidator";
-export { ProxyTester } from "./services/ProxyTester";
-export { ProxyPool } from "./services/ProxyPool";
-export {
-  ProxyManager,
-  ProxyManagerFactory,
-} from "./services/ProxyManager";
+export * from './services/ProxyManager'
+export * from './services/ProxyPool'
+export * from './services/ProxyTester'
+export * from './utils/ProxyValidator'
+export * from './interfaces/ProxyInterfaces'
+export * from './types/ProxyTypes'

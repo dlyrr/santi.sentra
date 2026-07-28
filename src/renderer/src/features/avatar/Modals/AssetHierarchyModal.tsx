@@ -51,13 +51,13 @@ interface AssetHierarchyModalProps {
 }
 
 const formatValue = (value: any, type: string, name: string): React.ReactNode => {
-  if (value === null || value === undefined) return <span className="text-neutral-600">null</span>
+  if (value === null || value === undefined) return <span className="text-[var(--color-text-muted)]">null</span>
 
   if (name === 'Source' && typeof value === 'string') {
     return (
       <LuaHighlighter
         code={value}
-        className="w-full max-h-[400px] overflow-y-auto overflow-x-auto rounded border border-neutral-800 bg-neutral-950"
+        className="w-full max-h-[400px] overflow-y-auto overflow-x-auto rounded border border-[var(--color-border)] bg-[var(--color-app-bg)]"
       />
     )
   }
@@ -80,7 +80,7 @@ const formatValue = (value: any, type: string, name: string): React.ReactNode =>
               Pos: {Number(parsedValue.X).toFixed(3)}, {Number(parsedValue.Y).toFixed(3)},{' '}
               {Number(parsedValue.Z).toFixed(3)}
             </div>
-            <div className="text-neutral-500 text-[10px]">
+            <div className="text-[var(--color-text-muted)] text-[10px]">
               R: [{Number(parsedValue.R00).toFixed(2)}, {Number(parsedValue.R01).toFixed(2)},{' '}
               {Number(parsedValue.R02).toFixed(2)}]
             </div>
@@ -99,7 +99,7 @@ const formatValue = (value: any, type: string, name: string): React.ReactNode =>
     if ('url' in parsedValue) {
       return <span className="text-blue-400 underline break-all">{parsedValue.url}</span>
     }
-    return <span className="text-neutral-400 break-all">{JSON.stringify(parsedValue)}</span>
+    return <span className="text-[var(--color-text-secondary)] break-all">{JSON.stringify(parsedValue)}</span>
   }
 
   if (type === 'bool' || typeof value === 'boolean') {
@@ -110,7 +110,7 @@ const formatValue = (value: any, type: string, name: string): React.ReactNode =>
     return <span className="text-yellow-400 font-mono">{String(value)}</span>
   }
 
-  return <span className="text-neutral-300 break-words">{String(value)}</span>
+  return <span className="text-[var(--color-text-secondary)] break-words">{String(value)}</span>
 }
 
 const getIconForClass = (className: string) => {
@@ -150,13 +150,13 @@ const getIconForClass = (className: string) => {
     case 'ParticleEmitter':
       return <Zap size={14} className="text-amber-400/80" />
     case 'Smoke':
-      return <Cloud size={14} className="text-gray-400/80" />
+      return <Cloud size={14} className="text-[var(--color-text-muted)]" />
     case 'Accessory':
       return <Tag size={14} className="text-teal-400/80" />
     case 'Vector3Value':
-      return <Hash size={14} className="text-slate-400/80" />
+      return <Hash size={14} className="text-[var(--color-text-muted)]" />
     default:
-      return <Cuboid size={14} className="text-neutral-500/80" />
+      return <Cuboid size={14} className="text-[var(--color-text-muted)]/80" />
   }
 }
 
@@ -181,8 +181,8 @@ const TreeItem = ({
         className={cn(
           'flex items-center gap-1.5 py-1 px-2 rounded cursor-pointer select-none transition-colors border border-transparent',
           isSelected
-            ? 'bg-[var(--accent-color-muted)]/20 border-[var(--accent-color)]/20 text-neutral-200'
-            : 'hover:bg-neutral-800/50 text-neutral-400 hover:text-neutral-200'
+            ? 'bg-[var(--accent-color-muted)]/20 border-[var(--accent-color)]/20 text-[var(--color-text-primary)]'
+            : 'hover:bg-[var(--color-surface-hover)]/50 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={(e) => {
@@ -192,7 +192,7 @@ const TreeItem = ({
       >
         <div
           className={cn(
-            'p-0.5 rounded-sm hover:bg-white/10 cursor-pointer',
+            'p-0.5 rounded-sm hover:bg-[var(--color-surface)]/10 cursor-pointer',
             !hasChildren && 'invisible'
           )}
           onClick={(e) => {
@@ -273,16 +273,16 @@ export const AssetHierarchyModal = ({
     <Sheet isOpen={isOpen} onClose={onClose} className="items-center">
       <SheetContent className="h-full flex flex-col w-full sm:max-w-5xl mx-auto">
         <SheetHandle />
-        <SheetHeader className="border-b border-neutral-800 pb-4">
+        <SheetHeader className="border-b border-[var(--color-border)] pb-4">
           <SheetTitle className="flex items-center gap-2">
             <Box className="text-[var(--accent-color)]" size={20} />
-            Asset Hierarchy: <span className="text-neutral-400 font-normal">{assetName}</span>
+            Asset Hierarchy: <span className="text-[var(--color-text-secondary)] font-normal">{assetName}</span>
           </SheetTitle>
           <SheetClose />
         </SheetHeader>
         <SheetBody className="flex-1 flex min-h-0 p-0">
           {loading ? (
-            <div className="flex items-center justify-center h-full w-full text-neutral-500">
+            <div className="flex items-center justify-center h-full w-full text-[var(--color-text-muted)]">
               <div className="flex flex-col items-center gap-3">
                 <div className="w-6 h-6 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin" />
                 <span>Parsing RBXMX...</span>
@@ -298,8 +298,8 @@ export const AssetHierarchyModal = ({
           ) : hierarchy ? (
             <div className="flex w-full h-full">
               {/* Left Panel: Tree View */}
-              <div className="w-1/3 border-r border-neutral-800 flex flex-col bg-neutral-950/50">
-                <div className="p-3 text-xs font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-800/50 bg-neutral-900/20">
+              <div className="w-1/3 border-r border-[var(--color-border)] flex flex-col bg-[var(--color-app-bg)]/50">
+                <div className="p-3 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider border-b border-[var(--color-border)]/50 bg-[var(--color-surface)]/20">
                   Explorer
                 </div>
                 <div className="flex-1 overflow-y-auto scrollbar-thin p-2">
@@ -313,7 +313,7 @@ export const AssetHierarchyModal = ({
                       />
                     ))
                   ) : (
-                    <div className="text-neutral-500 italic p-4 text-sm text-center">
+                    <div className="text-[var(--color-text-muted)] italic p-4 text-sm text-center">
                       Empty hierarchy
                     </div>
                   )}
@@ -321,11 +321,11 @@ export const AssetHierarchyModal = ({
               </div>
 
               {/* Right Panel: Properties */}
-              <div className="w-2/3 flex flex-col bg-neutral-900/10">
-                <div className="p-3 text-xs font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-800/50 bg-neutral-900/20 flex justify-between items-center">
+              <div className="w-2/3 flex flex-col bg-[var(--color-surface)]/10">
+                <div className="p-3 text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider border-b border-[var(--color-border)]/50 bg-[var(--color-surface)]/20 flex justify-between items-center">
                   <span>Properties</span>
                   {selectedInstance && (
-                    <span className="normal-case font-normal text-neutral-400 bg-neutral-800/50 px-2 py-0.5 rounded">
+                    <span className="normal-case font-normal text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)]/50 px-2 py-0.5 rounded">
                       {selectedInstance.class}
                     </span>
                   )}
@@ -333,20 +333,20 @@ export const AssetHierarchyModal = ({
                 <div className="flex-1 overflow-y-auto scrollbar-thin">
                   {selectedInstance ? (
                     <table className="w-full text-left border-collapse">
-                      <thead className="bg-neutral-900/30 text-[10px] text-neutral-500 font-medium uppercase sticky top-0 backdrop-blur-sm">
+                      <thead className="bg-[var(--color-surface)]/30 text-[10px] text-[var(--color-text-muted)] font-medium uppercase sticky top-0 backdrop-blur-sm">
                         <tr>
-                          <th className="px-4 py-2 w-1/3 border-b border-neutral-800/50">
+                          <th className="px-4 py-2 w-1/3 border-b border-[var(--color-border)]/50">
                             Property
                           </th>
-                          <th className="px-4 py-2 border-b border-neutral-800/50">Value</th>
+                          <th className="px-4 py-2 border-b border-[var(--color-border)]/50">Value</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-800/30">
                         {Object.entries(selectedInstance.properties)
                           .sort(([a], [b]) => a.localeCompare(b))
                           .map(([name, prop]) => (
-                            <tr key={name} className="hover:bg-white/5 group transition-colors">
-                              <td className="px-4 py-2 text-xs font-medium text-neutral-400 group-hover:text-neutral-200 align-top pt-3">
+                            <tr key={name} className="hover:bg-[var(--color-surface)]/5 group transition-colors">
+                              <td className="px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] align-top pt-3">
                                 {name}
                               </td>
                               <td className="px-4 py-2 text-xs align-top pt-3 pb-3 min-w-0">
@@ -360,7 +360,7 @@ export const AssetHierarchyModal = ({
                           <tr>
                             <td
                               colSpan={2}
-                              className="p-8 text-center text-neutral-600 italic text-sm"
+                              className="p-8 text-center text-[var(--color-text-muted)] italic text-sm"
                             >
                               No properties found
                             </td>
@@ -369,7 +369,7 @@ export const AssetHierarchyModal = ({
                       </tbody>
                     </table>
                   ) : (
-                    <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
+                    <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-sm">
                       Select an item to view properties
                     </div>
                   )}

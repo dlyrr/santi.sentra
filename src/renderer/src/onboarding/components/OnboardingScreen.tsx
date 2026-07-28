@@ -104,7 +104,7 @@ const OnboardingScreen: React.FC = () => {
                           ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/20 text-[var(--accent-color)]'
                           : isCompleted
                             ? 'border-emerald-500 bg-emerald-500/20 text-emerald-500'
-                            : 'border-neutral-700 bg-neutral-900 text-neutral-500'
+                            : 'border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
                       }`}
                       whileHover={{ scale: 1.1 }}
                     >
@@ -113,7 +113,7 @@ const OnboardingScreen: React.FC = () => {
                     {index < STEPS.length - 2 && (
                       <div
                         className={`w-8 h-0.5 transition-colors ${
-                          isCompleted ? 'bg-emerald-500' : 'bg-neutral-800'
+                          isCompleted ? 'bg-emerald-500' : 'bg-[var(--color-surface-hover)]'
                         }`}
                       />
                     )}
@@ -164,7 +164,7 @@ const OnboardingScreen: React.FC = () => {
 
               {/* App name */}
               <motion.h1
-                className="text-4xl font-black text-white mb-2"
+                className="text-4xl font-black text-[var(--color-text-primary)] mb-2"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
@@ -173,7 +173,7 @@ const OnboardingScreen: React.FC = () => {
               </motion.h1>
 
               <motion.p
-                className="text-neutral-500 text-lg mb-8"
+                className="text-[var(--color-text-muted)] text-lg mb-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
@@ -200,9 +200,9 @@ const OnboardingScreen: React.FC = () => {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.1 * index }}
-                          className="flex items-center gap-3 text-neutral-400"
+                          className="flex items-center gap-3 text-[var(--color-text-secondary)]"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-neutral-900 border border-neutral-800 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
                             <item.icon size={16} className="text-[var(--accent-color)]" />
                           </div>
                           <span className="text-sm">{item.text}</span>
@@ -239,7 +239,7 @@ const OnboardingScreen: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-              className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-2xl w-full"
+              className="bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl p-6 shadow-2xl w-full"
             >
               <PinSetupStep onComplete={handleComplete} />
             </motion.div>
@@ -253,7 +253,7 @@ const OnboardingScreen: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-              className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-2xl w-full"
+              className="bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl p-6 shadow-2xl w-full"
             >
               <AddAccountStep
                 onAccountAdded={handleComplete}
@@ -270,7 +270,7 @@ const OnboardingScreen: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-              className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-2xl w-full"
+              className="bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl p-6 shadow-2xl w-full"
             >
               <InstallationStep
                 onComplete={handleComplete}
@@ -287,7 +287,7 @@ const OnboardingScreen: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-              className="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 shadow-2xl w-full"
+              className="bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl p-6 shadow-2xl w-full"
             >
               <NotificationsStep onComplete={completeOnboarding} />
             </motion.div>

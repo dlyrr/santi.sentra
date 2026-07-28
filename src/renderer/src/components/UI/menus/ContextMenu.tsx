@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Info, Edit3, RefreshCw, Trash2, Home, ExternalLink, Copy } from 'lucide-react'
+import { Info, Edit3, RefreshCw, Trash2, Home, ExternalLink, Copy, Receipt } from 'lucide-react'
 import { Account } from '@renderer/types'
 import GenericContextMenu, { ContextMenuSection } from './GenericContextMenu'
 
@@ -13,6 +13,15 @@ interface ContextMenuProps {
   onOpenBrowserCustom: (id: string) => void
   onGetCookie?: (id: string) => void
   onRemove: (id: string) => void
+  selectedIds?: Set<string>
+  onBulkOpenBrowsers?: () => void
+  onBulkCopyCookies?: () => void
+  onBulkRemove?: () => void
+  onBulkOpenBrowserCustom?: () => void
+  onBulkEditNote?: () => void
+  onBulkReauth?: () => void
+  onChangeDisplayName?: (id: string) => void
+  onBulkChangeDisplayName?: () => void
   onClose?: () => void
 }
 
@@ -26,6 +35,15 @@ const ContextMenu = ({
   onOpenBrowserCustom,
   onGetCookie,
   onRemove,
+  selectedIds,
+  onBulkOpenBrowsers,
+  onBulkCopyCookies,
+  onBulkRemove,
+  onBulkOpenBrowserCustom,
+  onBulkEditNote,
+  onBulkReauth,
+  onChangeDisplayName,
+  onBulkChangeDisplayName,
   onClose = () => {}
 }: ContextMenuProps) => {
 
@@ -33,6 +51,56 @@ const ContextMenu = ({
     if (!activeMenu) return []
 
     const account = accounts.find((a) => a.id === activeMenu.id)
+
+    // If the right-clicked account is part of a multiple selection, show Bulk Actions
+    if (selectedIds && selectedIds.size > 1 && selectedIds.has(activeMenu.id)) {
+      return [
+        {
+          items: [
+            {
+              label: `Open Browsers (${selectedIds.size})`,
+              icon: <ExternalLink size={16} />,
+              onClick: () => onBulkOpenBrowsers?.()
+            },
+            {
+              label: `Open Custom Browsers (${selectedIds.size})`,
+              icon: <ExternalLink size={16} />,
+              onClick: () => onBulkOpenBrowserCustom?.()
+            },
+            {
+              label: `Copy Cookies (${selectedIds.size})`,
+              icon: <Copy size={16} />,
+              onClick: () => onBulkCopyCookies?.()
+            },
+            {
+              label: `Edit Notes (${selectedIds.size})`,
+              icon: <Edit3 size={16} />,
+              onClick: () => onBulkEditNote?.()
+            },
+            {
+              label: `Change Display Names (${selectedIds.size})`,
+              icon: <Edit3 size={16} />,
+              onClick: () => onBulkChangeDisplayName?.()
+            },
+            {
+              label: `Reauthenticate (${selectedIds.size})`,
+              icon: <RefreshCw size={16} />,
+              onClick: () => onBulkReauth?.()
+            }
+          ]
+        },
+        {
+          items: [
+            {
+              label: `Remove Selected (${selectedIds.size})`,
+              icon: <Trash2 size={16} />,
+              onClick: () => onBulkRemove?.(),
+              variant: 'danger' as const
+            }
+          ]
+        }
+      ]
+    }
 
     // Always show single-account options when right-clicking (independent of selection state)
     // This allows users to right-click any account to get its options without needing to select it
@@ -60,6 +128,11 @@ const ContextMenu = ({
             onClick: () => onGetCookie?.(activeMenu.id)
           },
           {
+            label: 'Change Display Name',
+            icon: <Edit3 size={16} />,
+            onClick: () => onChangeDisplayName?.(activeMenu.id)
+          },
+          {
             label: 'Edit Note',
             icon: <Edit3 size={16} />,
             onClick: () => onEditNote(activeMenu.id)
@@ -82,7 +155,13 @@ const ContextMenu = ({
         ]
       }
     ]
-  }, [activeMenu, accounts, onViewDetails, onEditNote, onReauth, onOpenBrowserHome, onOpenBrowserCustom, onGetCookie, onRemove])
+  }, [
+    activeMenu, accounts, onViewDetails, onEditNote, onReauth, 
+    onOpenBrowserHome, onOpenBrowserCustom, onGetCookie, onRemove,
+    selectedIds, onBulkOpenBrowsers, onBulkCopyCookies, onBulkRemove,
+    onBulkOpenBrowserCustom, onBulkEditNote, onBulkReauth,
+    onChangeDisplayName, onBulkChangeDisplayName, onClose
+  ])
   return (
     <GenericContextMenu
       position={activeMenu ? { x: activeMenu.x, y: activeMenu.y } : null}

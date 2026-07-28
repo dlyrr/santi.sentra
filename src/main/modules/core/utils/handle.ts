@@ -14,9 +14,15 @@ export function handle<T extends any[]>(
       // args comes in as an array, so we validate against a tuple schema
       const validated = schema.parse(args) as T
       return await handler(event, ...validated)
-    } catch (err) {
-      console.error(`IPC Validation Error on ${channel}:`, err)
-      throw err
+    } catch (err: any) {
+      console.error(`IPC Error on ${channel}:`, err?.message || err)
+      
+      // Create a clean, safely cloneable Error object so Electron IPC doesn't hang
+      const safeError = new Error(err?.message || 'Unknown error occurred')
+      safeError.name = err?.name || 'Error'
+      if (err?.statusCode) (safeError as any).statusCode = err.statusCode
+      
+      throw safeError
     }
   })
 }

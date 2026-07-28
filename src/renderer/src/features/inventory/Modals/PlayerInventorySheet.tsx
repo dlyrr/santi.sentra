@@ -100,7 +100,7 @@ const InventoryItemCard = ({
         >
           {thumbnailUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-neutral-700/30 animate-pulse" />}
+              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
               <img
                 src={thumbnailUrl}
                 alt={displayName}
@@ -112,7 +112,7 @@ const InventoryItemCard = ({
               />
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-700">
+            <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
               <Package size={32} />
             </div>
           )}
@@ -326,8 +326,8 @@ const PlayerInventorySheet = ({
 
         <SheetHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <User className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <User className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <SheetTitle>{`${username}'s Inventory`}</SheetTitle>
           </div>
@@ -336,7 +336,7 @@ const PlayerInventorySheet = ({
 
         <SheetBody className="flex-1 overflow-hidden flex flex-col">
           {/* Filters */}
-          <div className="shrink-0 border-b border-neutral-800 p-4 space-y-3">
+          <div className="shrink-0 border-b border-[var(--color-border)] p-4 space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
               {/* Asset Type Filter */}
               <CustomDropdown
@@ -365,17 +365,17 @@ const PlayerInventorySheet = ({
               />
 
               {/* View Mode Toggle */}
-              <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800">
+              <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
                   onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Default View"
                 >
                   <Grid2X2 size={18} />
                 </button>
                 <button
                   onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Compact View"
                 >
                   <Grid3X3 size={18} />
@@ -399,12 +399,12 @@ const PlayerInventorySheet = ({
                   {Array.from({ length: 20 }).map((_, i) => (
                     <div
                       key={i}
-                      className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden"
+                      className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden"
                     >
                       <SkeletonSquareCard showBorder={false} />
                       <div className="p-3 space-y-2">
-                        <div className="h-4 bg-neutral-800 rounded animate-pulse w-3/4" />
-                        <div className="h-3 bg-neutral-800 rounded animate-pulse w-1/2" />
+                        <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse w-3/4" />
+                        <div className="h-3 bg-[var(--color-surface-hover)] rounded animate-pulse w-1/2" />
                       </div>
                     </div>
                   ))}
@@ -461,7 +461,7 @@ const PlayerInventorySheet = ({
                       Footer: () =>
                         isFetchingNextPage ? (
                           <div className="h-20 flex items-center justify-center">
-                            <div className="flex items-center gap-2 text-neutral-500">
+                            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
                               <Loader2 size={20} className="animate-spin" />
                               <span>Loading more...</span>
                             </div>

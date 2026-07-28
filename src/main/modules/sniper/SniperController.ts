@@ -86,9 +86,9 @@ export function registerSniperHandlers(): void {
   // ========== USERNAME SNIPER HANDLERS ==========
   
   // Create session
-  ipcMain.handle('sniper:createSession', async (_event, usernames: string[], proxies: string[] = [], loopEnabled: boolean = false, loopCount: number = 1, checkInterval: number = 200) => {
+  ipcMain.handle('sniper:createSession', async (_event, usernames: string[], loopEnabled: boolean = false, loopCount: number = 1, checkInterval: number = 200) => {
     try {
-      const sessionId = await usernameSniperService.createSession(usernames, proxies, loopEnabled, loopCount, checkInterval)
+      const sessionId = await usernameSniperService.createSession(usernames, [], loopEnabled, loopCount, checkInterval)
       return { success: true, sessionId }
     } catch (error) {
       return { success: false, error: String(error) }

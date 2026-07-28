@@ -331,7 +331,7 @@ const SheetBody = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivE
           children
         ) : (
           <div className="flex items-center justify-center h-full">
-            <div className="w-6 h-6 border-2 border-neutral-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[var(--color-border-strong)] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>

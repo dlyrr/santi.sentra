@@ -28,7 +28,7 @@ const CustomCheckbox = ({
         ${
           checked || indeterminate
             ? 'bg-[var(--accent-color)] border-[var(--accent-color)] text-[var(--accent-color-foreground)]'
-            : 'bg-transparent border-neutral-600 hover:border-neutral-400'
+            : 'bg-transparent border-[var(--color-border-strong)] hover:border-[var(--color-border-strong)]'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
       `}

@@ -186,14 +186,14 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
           onKeyDown={(e) => handleKeyDown(index, e, target)}
           disabled={isSubmitting || success}
           tabIndex={0}
-          className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-neutral-900 text-white focus:outline-none transition-all ${
+          className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none transition-all ${
             isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
           } ${
             error
               ? 'border-red-500 bg-red-500/10'
               : digit
                 ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/5'
-                : 'border-neutral-700 focus:border-neutral-500'
+                : 'border-[var(--color-border-strong)] focus:border-[var(--accent-color)]'
           }`}
         />
       ))}
@@ -210,7 +210,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           disabled={isSubmitting || success}
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800 hover:border-neutral-700 text-lg font-medium transition-colors disabled:opacity-50"
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] text-lg font-medium transition-colors disabled:opacity-50"
         >
           {num}
         </motion.button>
@@ -221,7 +221,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         disabled={isSubmitting || success}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700 transition-colors flex items-center justify-center disabled:opacity-50"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors flex items-center justify-center disabled:opacity-50"
       >
         <X className="w-5 h-5" />
       </motion.button>
@@ -231,7 +231,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         disabled={isSubmitting || success}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800 hover:border-neutral-700 text-lg font-medium transition-colors disabled:opacity-50"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] text-lg font-medium transition-colors disabled:opacity-50"
       >
         0
       </motion.button>
@@ -241,7 +241,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         disabled={isSubmitting || success}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700 transition-colors flex items-center justify-center disabled:opacity-50"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors flex items-center justify-center disabled:opacity-50"
       >
         <Delete className="w-5 h-5" />
       </motion.button>
@@ -267,8 +267,8 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
             >
               <Check className="w-10 h-10 text-emerald-500" />
             </motion.div>
-            <h3 className="text-xl font-semibold text-white mb-2">PIN Set!</h3>
-            <p className="text-neutral-400 text-sm">Your app is now protected</p>
+            <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">PIN Set!</h3>
+            <p className="text-[var(--color-text-secondary)] text-sm">Your app is now protected</p>
           </motion.div>
         ) : (
           <motion.div
@@ -278,13 +278,13 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
             exit={{ opacity: 0 }}
           >
             <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto mb-4">
-                <Lock className="w-8 h-8 text-neutral-400" />
+              <div className="w-16 h-16 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-[var(--color-text-secondary)]" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-1">
+              <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
                 {step === 'enter' ? 'Create a PIN' : 'Confirm your PIN'}
               </h3>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-[var(--color-text-muted)]">
                 {step === 'enter'
                   ? 'Set a 6-digit PIN to protect your app'
                   : 'Re-enter your PIN to confirm'}
@@ -305,7 +305,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                     <button
                       type="button"
                       onClick={() => setShowPin(!showPin)}
-                      className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                     >
                       {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       {showPin ? 'Hide PIN' : 'Show PIN'}
@@ -334,7 +334,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                     <button
                       type="button"
                       onClick={() => setShowPin(!showPin)}
-                      className="flex items-center gap-2 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                     >
                       {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       {showPin ? 'Hide PIN' : 'Show PIN'}
@@ -346,7 +346,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                     <button
                       onClick={handleBack}
                       disabled={isSubmitting}
-                      className="flex-1 px-4 py-3 text-sm font-medium text-neutral-400 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors disabled:opacity-50"
+                      className="flex-1 px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors disabled:opacity-50"
                     >
                       Back
                     </button>

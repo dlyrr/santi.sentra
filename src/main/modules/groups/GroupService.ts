@@ -252,6 +252,19 @@ export class RobloxGroupService {
   }
 
   /**
+   * Join a group
+   */
+  static async joinGroup(cookie: string, groupId: number) {
+    const { requestWithCsrf } = await import('@main/lib/request')
+
+    return requestWithCsrf(z.object({ captchaChallengeId: z.string().optional(), success: z.boolean().optional() }).passthrough(), {
+      method: 'POST',
+      url: `https://groups.roblox.com/v1/groups/${groupId}/users`,
+      cookie
+    })
+  }
+
+  /**
    * Leave a group
    */
   static async leaveGroup(cookie: string, groupId: number, userId: number) {

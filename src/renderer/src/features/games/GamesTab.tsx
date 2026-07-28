@@ -211,12 +211,12 @@ const GameCard = ({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="group bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-neutral-600 hover:bg-neutral-900 hover:-translate-y-1 transition-all shadow-sm animate-in fade-in duration-150"
+      className="group bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)] hover:-translate-y-1 transition-all shadow-sm animate-in fade-in duration-150"
     >
       <div className="aspect-square w-full relative overflow-hidden bg-black transform-gpu backface-hidden">
         {isFavorite && (
           <div className="absolute top-3 left-3 z-10 pointer-events-none">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-500/90 to-amber-600/90 flex items-center justify-center text-white shadow-lg shadow-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 relative overflow-visible">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-500/90 to-amber-600/90 flex items-center justify-center text-[var(--color-text-primary)] shadow-lg shadow-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 relative overflow-visible">
               <Star size={16} className="fill-current" style={{ strokeWidth: 0 }} />
               <FavoriteParticles active={favoriteBurst} color={[251, 191, 36]} />
             </div>
@@ -258,16 +258,16 @@ const GameCard = ({
             ></div>
           </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-neutral-700">
+          <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
             <Users size={32} />
           </div>
         )}
         <div className="absolute bottom-3 left-3 right-3 z-20">
           <TruncatedTitle
             text={game.name}
-            className="font-bold text-white truncate text-shadow-sm"
+            className="font-bold text-[var(--color-text-primary)] truncate text-shadow-sm"
           />
-          <p className="text-xs text-neutral-300 truncate flex items-center gap-1">
+          <p className="text-xs text-[var(--color-text-secondary)] truncate flex items-center gap-1">
             <span>by</span>
             <span
               className={`truncate flex items-center gap-1 ${
@@ -282,10 +282,10 @@ const GameCard = ({
           </p>
         </div>
       </div>
-      <div className="p-3 flex items-center justify-between text-xs border-t border-neutral-800">
+      <div className="p-3 flex items-center justify-between text-xs border-t border-[var(--color-border)]">
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-1.5 text-neutral-400">
+            <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
               <Users size={14} />
               <span className="font-semibold">{formatPlayerCount(game.playing)}</span>
             </div>
@@ -293,7 +293,7 @@ const GameCard = ({
           <TooltipContent>
             <div className="text-center">
               <div className="font-semibold">{game.playing.toLocaleString()}</div>
-              <div className="text-xs text-neutral-400">playing now</div>
+              <div className="text-xs text-[var(--color-text-secondary)]">playing now</div>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -309,7 +309,7 @@ const GameCard = ({
                         ? (game.likes / (game.likes + game.dislikes)) * 100
                         : 0) >= 50
                     ? 'text-yellow-400'
-                    : 'text-neutral-400'
+                    : 'text-[var(--color-text-secondary)]'
               }`}
             >
               <ThumbsUp size={14} />
@@ -324,7 +324,7 @@ const GameCard = ({
           <TooltipContent>
             <div className="text-center">
               <div className="font-semibold">{game.likes.toLocaleString()} likes</div>
-              <div className="text-xs text-neutral-400">
+              <div className="text-xs text-[var(--color-text-secondary)]">
                 {game.dislikes.toLocaleString()} dislikes
               </div>
             </div>
@@ -336,14 +336,14 @@ const GameCard = ({
 }
 
 const GameCardSkeleton = () => (
-  <div className="w-[220px] shrink-0 rounded-xl border border-neutral-800 bg-neutral-950/60 overflow-hidden animate-pulse">
-    <div className="aspect-square w-full bg-neutral-900" />
-    <div className="p-3 border-t border-neutral-800 space-y-2">
-      <div className="h-4 w-3/4 bg-neutral-800 rounded" />
-      <div className="h-3 w-1/2 bg-neutral-800 rounded" />
+  <div className="w-[220px] shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-app-bg)]/60 overflow-hidden animate-pulse">
+    <div className="aspect-square w-full bg-[var(--color-surface)]" />
+    <div className="p-3 border-t border-[var(--color-border)] space-y-2">
+      <div className="h-4 w-3/4 bg-[var(--color-surface-hover)] rounded" />
+      <div className="h-3 w-1/2 bg-[var(--color-surface-hover)] rounded" />
       <div className="flex justify-between items-center pt-1">
-        <div className="h-3 w-16 bg-neutral-800 rounded" />
-        <div className="h-3 w-12 bg-neutral-800 rounded" />
+        <div className="h-3 w-16 bg-[var(--color-surface-hover)] rounded" />
+        <div className="h-3 w-12 bg-[var(--color-surface-hover)] rounded" />
       </div>
     </div>
   </div>
@@ -509,8 +509,8 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
       <div className="flex flex-col h-full bg-[var(--color-surface)]">
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-white">Games</h1>
-            <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-semibold tracking-tight text-neutral-400">
+            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Games</h1>
+            <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
               {isRecommendedLoading ? '...' : games.length.toLocaleString()}
             </span>
           </div>
@@ -560,8 +560,8 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
 
         {/* Active Filters */}
         {isSearchMode && (
-          <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-t border-neutral-800 bg-neutral-900/20">
-            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider mr-2">
+          <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-t border-[var(--color-border)] bg-[var(--color-surface)]/20">
+            <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mr-2">
               Active Filters:
             </span>
             <AnimatePresence>
@@ -603,7 +603,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                     <HorizontalCarousel
                       title="Favorites"
                       titleExtra={
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
                           {favoriteGames.length}
                         </span>
                       }
@@ -637,7 +637,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                     </HorizontalCarousel>
                   )}
                 </section>
-                <div className="h-px bg-neutral-800" />
+                <div className="h-px bg-[var(--color-surface-hover)]" />
               </>
             )}
 
@@ -655,7 +655,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                     <HorizontalCarousel
                       title="Recently Played"
                       titleExtra={
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
                           {recentlyPlayedGames.length}
                         </span>
                       }
@@ -689,18 +689,18 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                     </HorizontalCarousel>
                   )}
                 </section>
-                <div className="h-px bg-neutral-800" />
+                <div className="h-px bg-[var(--color-surface-hover)]" />
               </>
             )}
 
             <section>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold text-white">
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
                     {isSearchMode ? 'Results' : 'Recommended'}
                   </h2>
                   {!isRecommendedLoading && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-400">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
                       {games.length}
                     </span>
                   )}

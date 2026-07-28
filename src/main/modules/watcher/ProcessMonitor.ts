@@ -8,77 +8,24 @@ const execAsync = promisify(exec)
  * ProcessMonitor - Monitors process existence and status
  */
 export class ProcessMonitor {
-  /**
-   * Check if a process with the given PID is still running
-   */
   static async isProcessRunning(pid: number): Promise<boolean> {
     try {
-      if (process.platform === 'darwin') {
-        // macOS: use ps command
-        const { stdout } = await execAsync(`ps -p ${pid} 2>/dev/null`)
-        const result = stdout.trim().length > 0
-        if (!result) {
-          console.log(`[ProcessMonitor] macOS: Process ${pid} not running`)
-        }
-        return result
-      } else if (process.platform === 'win32') {
-        // Windows: use tasklist command
-        try {
-          const { stdout } = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`)
-          // Check if we got actual process data (not just headers)
-          const lines = stdout.trim().split('\n').filter(l => l.length > 0)
-          const hasProcess = lines.length > 0 && !lines[0].includes('No tasks')
-          if (!hasProcess) {
-            console.log(`[ProcessMonitor] Windows: Process ${pid} not running`)
-          }
-          return hasProcess
-        } catch (err) {
-          console.log(`[ProcessMonitor] Windows: Error checking process ${pid}:`, err)
-          return false
-        }
-      } else if (process.platform === 'linux') {
-        // Linux: use ps command
-        const { stdout } = await execAsync(`ps -p ${pid} 2>/dev/null`)
-        const result = stdout.trim().length > 0
-        if (!result) {
-          console.log(`[ProcessMonitor] Linux: Process ${pid} not running`)
-        }
-        return result
-      }
+      // process.kill(pid, 0) checks if the process exists without actually killing it.
+      // This is natively supported by Node.js on Windows, macOS, and Linux.
+      process.kill(pid, 0)
+      return true
     } catch {
-      // Process doesn't exist or command failed
-      console.log(`[ProcessMonitor] Process ${pid} not running (command error)`)
+      return false
     }
-    return false
   }
 
   /**
    * Check if Roblox is running (any process)
    */
   static async isRobloxRunning(): Promise<boolean> {
-    try {
-      if (process.platform === 'darwin') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true')
-        const lines = stdout
-          .trim()
-          .split('\n')
-          .filter((line) => line.length > 0 && /^\d+$/.test(line))
-        return lines.length > 0
-      } else if (process.platform === 'win32') {
-        const { stdout } = await execAsync(
-          'tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH'
-        )
-        return stdout.includes('RobloxPlayerBeta.exe')
-      } else if (process.platform === 'linux') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true')
-        return stdout.trim().length > 0
-      }
-    } catch {
-      // Roblox not found
-    }
-    return false
+    const pids = await this.getRobloxProcessPids()
+    return pids.length > 0
   }
-
   /**
    * Get all running Roblox process PIDs
    */
@@ -97,17 +44,16 @@ export class ProcessMonitor {
         }
         return pids
       } else if (process.platform === 'win32') {
-        const { stdout } = await execAsync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH')
-        const lines = stdout.split('\n')
-        const pids: number[] = []
-        for (const line of lines) {
-          const match = line.match(/"RobloxPlayerBeta\.exe","(\d+)"/)
-          if (match) {
-            pids.push(parseInt(match[1], 10))
-          }
-        }
+        // Use wmic which is significantly faster and less resource-intensive than tasklist
+        const { stdout } = await execAsync('wmic process where "name=\'RobloxPlayerBeta.exe\'" get ProcessId', { timeout: 3000 })
+        const pids = stdout
+          .split('\n')
+          .map((line) => parseInt(line.trim(), 10))
+          .filter((pid) => !isNaN(pid))
+        
         if (pids.length > 0) {
-          console.log(`[ProcessMonitor] Found ${pids.length} Roblox processes on Windows: ${pids.join(', ')}`)
+          // Limit logging to avoid spam
+          if (Math.random() < 0.1) console.log(`[ProcessMonitor] Found ${pids.length} Roblox processes on Windows`)
         }
         return pids
       } else if (process.platform === 'linux') {
@@ -142,8 +88,8 @@ export class ProcessMonitor {
         console.log(`[ProcessMonitor] Successfully killed process ${pid}`)
         return true
       } else if (process.platform === 'win32') {
-        // Windows: use taskkill command
-        await execAsync(`taskkill /PID ${pid} /F`)
+        // Windows: use taskkill command with child-process tree support
+        await execAsync(`taskkill /PID ${pid} /T /F`)
         console.log(`[ProcessMonitor] Successfully killed process ${pid}`)
         return true
       }
@@ -182,25 +128,26 @@ export class ProcessMonitor {
         console.log(`[ProcessMonitor] macOS: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`)
         return ramMB
       } else if (process.platform === 'win32') {
-        // Windows: use wmic command, get working set (in bytes) and convert to MB
-        const { stdout } = await execAsync(`wmic process where ProcessId=${pid} get WorkingSetSize /value`)
-        const match = stdout.match(/WorkingSetSize=(\d+)/)
-        if (match) {
-          const ramBytes = parseInt(match[1], 10)
-          
-          // Check for NaN
-          if (isNaN(ramBytes)) {
-            console.log(`[ProcessMonitor] Windows: Invalid RAM bytes for PID ${pid}: "${match[1]}"`)
-            return null
-          }
-          
-          const ramMB = Math.round(ramBytes / (1024 * 1024)) // Convert bytes to MB
-          console.log(`[ProcessMonitor] Windows: PID ${pid} WorkingSet=${ramBytes}B -> ${ramMB}MB`)
-          return ramMB
-        } else {
-          console.log(`[ProcessMonitor] Windows: Could not parse RAM output for PID ${pid}. Output: "${stdout.substring(0, 200)}"`)
+        // Windows: use PowerShell CIM if available, which is more reliable than WMIC
+        const { stdout } = await execAsync(
+          `powershell.exe -NoProfile -Command "$p = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' -ErrorAction SilentlyContinue; if ($p) { [int64]$p.WorkingSetSize } else { exit 1 }"`
+        )
+        const trimmed = stdout.trim()
+
+        if (!trimmed || trimmed.length === 0) {
+          console.log(`[ProcessMonitor] Windows: No RAM output for PID ${pid}`)
           return null
         }
+
+        const ramBytes = parseInt(trimmed, 10)
+        if (isNaN(ramBytes)) {
+          console.log(`[ProcessMonitor] Windows: Invalid RAM bytes for PID ${pid}: "${trimmed}"`)
+          return null
+        }
+
+        const ramMB = Math.round(ramBytes / (1024 * 1024))
+        console.log(`[ProcessMonitor] Windows: PID ${pid} WorkingSet=${ramBytes}B -> ${ramMB}MB`)
+        return ramMB
       } else if (process.platform === 'linux') {
         // Linux: use ps command, get RSS (in KB) and convert to MB
         const { stdout } = await execAsync(`ps -p ${pid} -o rss=`)

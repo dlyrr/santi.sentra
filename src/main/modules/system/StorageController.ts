@@ -54,11 +54,21 @@ export const registerStorageHandlers = (): void => {
 
   handle('save-accounts', z.tuple([z.array(accountSchema)]), async (_, accounts) => {
     console.log('[StorageController] save-accounts handler called with', accounts.length, 'accounts')
+    // Check PIN state before calling setAccounts
+    const pinHash = storageService.getPinHash()
+    const isPinVerified = storageService.isPinCurrentlyVerified()
+    console.log('[StorageController] save-accounts: PIN hash exists:', !!pinHash, 'PIN currently verified:', isPinVerified)
+    
     try {
-      storageService.setAccounts(accounts)
-      console.log('[StorageController] save-accounts handler: success')
+      const result = storageService.setAccounts(accounts)
+      console.log('[StorageController] setAccounts returned:', result)
+      if (!result) {
+        throw new Error('setAccounts returned false')
+      }
+      console.log('[StorageController] save-accounts handler: ✓ Successfully saved', accounts.length, 'accounts')
     } catch (error) {
-      console.error('[StorageController] save-accounts handler failed:', error)
+      console.error('[StorageController] save-accounts handler FAILED:', error instanceof Error ? error.message : String(error))
+      console.error('[StorageController] Full error:', error)
       throw error
     }
   })

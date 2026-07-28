@@ -1,30 +1,16 @@
-import React, { useMemo, useRef, useState } from 'react'
-import {
-  Menu,
-  ChevronLeft,
-  ArrowRightLeft,
-  LogOut,
-  ChevronUp,
-  Heart,
-  Ticket
-} from 'lucide-react'
+import React, { useMemo } from 'react'
+import { Menu, ChevronLeft, Search } from 'lucide-react'
 import { Account, TabId } from '@renderer/types'
 import SidebarItem from './SidebarItem'
 import { Button } from '../buttons/Button'
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '../display/Tooltip'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   useActiveTab,
   useSidebarCollapsed,
   useToggleSidebarCollapsed
 } from '../../../stores/useUIStore'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
-import { SlidingNumber } from '@renderer/components/UI/specialized/SlidingNumber'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { useClickOutside } from '../../../hooks/useClickOutside'
-import { useAccountsManager, useAccountStats } from '../../../features/auth/api/useAccounts'
-import CreditsDialog from '../dialogs/CreditsDialog'
-import RedeemCodeDialog from '../dialogs/RedeemCodeDialog'
+import { useCommandPaletteStore } from '../../../features/command-palette/stores/useCommandPaletteStore'
 import { useTabTransition } from '@renderer/hooks/useTabTransition'
 import { SentraLogo } from '@renderer/components/UI/icons/SentraLogo'
 import {
@@ -32,308 +18,16 @@ import {
   sanitizeSidebarHidden,
   sanitizeSidebarOrder
 } from '@shared/navigation'
-import { SIDEBAR_TAB_DEFINITION_MAP, SidebarTabDefinition } from '@renderer/constants/sidebarTabs'
-
-// Bottom Profile Card Component with dropdown menu
-interface ProfileCardProps {
-  account: Account
-  isCollapsed: boolean
-  privacyMode: boolean
-  onTransactionsClick: () => void
-}
-
-const ProfileCard = ({
-  account,
-  isCollapsed,
-  privacyMode,
-  onTransactionsClick
-}: ProfileCardProps) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isCreditsOpen, setIsCreditsOpen] = useState(false)
-  const [isRedeemOpen, setIsRedeemOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { removeAccount } = useAccountsManager()
-  const { data: accountStats } = useAccountStats(account.cookie)
-
-  // Use live robux balance if available, otherwise fall back to stored value
-  const robuxBalance = accountStats?.robuxBalance ?? account.robuxBalance
-
-  useClickOutside(containerRef, () => setIsDropdownOpen(false))
-
-  const handleCardClick = () => {
-    setIsDropdownOpen(!isDropdownOpen)
-  }
-
-  const handleSignOut = () => {
-    removeAccount(account.id)
-    setIsDropdownOpen(false)
-  }
-
-  const dropdownGroups = [
-    // Roblox Account Actions
-    [
-      {
-        icon: ArrowRightLeft,
-        label: 'Transactions',
-        onClick: () => {
-          onTransactionsClick()
-          setIsDropdownOpen(false)
-        }
-      },
-      {
-        icon: Ticket,
-        label: 'Redeem Code',
-        onClick: () => {
-          setIsRedeemOpen(true)
-          setIsDropdownOpen(false)
-        }
-      }
-    ],
-    // App Actions
-    [
-      {
-        icon: Heart,
-        label: 'Credits',
-        onClick: () => {
-          setIsCreditsOpen(true)
-          setIsDropdownOpen(false)
-        }
-      }
-    ],
-    // Session Actions
-    [
-      {
-        icon: LogOut,
-        label: 'Sign out',
-        onClick: handleSignOut,
-        danger: true
-      }
-    ]
-  ]
-
-  // Collapsed state - just show avatar with tooltip
-  if (isCollapsed) {
-    return (
-      <>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="px-3 py-3" ref={containerRef}>
-              <button
-                onClick={handleCardClick}
-                className="relative w-full flex justify-center group"
-              >
-                <img
-                  className={`h-10 w-10 rounded-full bg-[var(--color-surface)] object-cover border-2 transition-all duration-200 ${
-                    isDropdownOpen
-                      ? 'border-[var(--color-border-strong)] ring-2 ring-[var(--focus-ring)]'
-                      : 'border-[var(--color-border)] group-hover:border-[var(--color-border-strong)]'
-                  }`}
-                  src={account.avatarUrl}
-                  alt={privacyMode ? '' : account.displayName}
-                  style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                />
-              </button>
-
-              {/* Collapsed Dropdown */}
-              <AnimatePresence>
-                {isDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="absolute bottom-full left-3 mb-2 w-56 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl z-50 overflow-hidden"
-                  >
-                    {/* Mini profile header */}
-                    <div className="p-3 border-b border-[var(--color-border)]">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          className="h-8 w-8 rounded-full bg-[var(--color-surface)] object-cover border border-[var(--color-border)]"
-                          src={account.avatarUrl}
-                          alt={privacyMode ? '' : account.displayName}
-                          style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div 
-                            className="font-semibold text-sm text-[var(--color-text-primary)] truncate"
-                            style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                          >
-                            {account.displayName}
-                          </div>
-                          <div 
-                            className="text-[var(--color-text-muted)] text-xs truncate"
-                            style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                          >
-                            @{account.username}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex items-center gap-1.5 text-sm">
-                        <RobuxIcon className="w-3.5 h-3.5 text-emerald-400" />
-                        <SlidingNumber
-                          number={robuxBalance}
-                          formatter={formatNumber}
-                          className="font-semibold text-[var(--color-text-primary)]"
-                        />
-                      </div>
-                    </div>
-                    <div className="p-1.5">
-                      {dropdownGroups.map((group, groupIndex) => (
-                        <div
-                          key={groupIndex}
-                          className={
-                            groupIndex > 0 ? 'mt-1 pt-1 border-t border-[var(--color-border)]' : ''
-                          }
-                        >
-                          {group.map((item, index) => (
-                            <button
-                              key={index}
-                              onClick={item.onClick}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
-                                item.danger
-                                  ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
-                                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]'
-                              }`}
-                            >
-                              <item.icon size={16} />
-                              <span className="font-medium">{item.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {privacyMode ? 'Hidden' : account.displayName}
-          </TooltipContent>
-        </Tooltip>
-        <CreditsDialog isOpen={isCreditsOpen} onClose={() => setIsCreditsOpen(false)} />
-      </>
-    )
-  }
-
-  // Expanded state
-  return (
-    <div className="px-3 py-3 relative" ref={containerRef}>
-      <AnimatePresence>
-        {isDropdownOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute bottom-full left-3 right-3 mb-2 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl z-50 overflow-hidden"
-          >
-            <div className="p-1.5">
-              {dropdownGroups.map((group, groupIndex) => (
-                <div
-                  key={groupIndex}
-                  className={
-                    groupIndex > 0 ? 'mt-1 pt-1 border-t border-[var(--color-border)]' : ''
-                  }
-                >
-                  {group.map((item, index) => (
-                    <button
-                      key={index}
-                      onClick={item.onClick}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
-                        item.danger
-                          ? 'text-red-400 hover:bg-red-500/10 hover:text-red-300'
-                          : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]'
-                      }`}
-                    >
-                      <item.icon size={16} />
-                      <span className="font-medium">{item.label}</span>
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main Card */}
-      <button
-        onClick={handleCardClick}
-        className={`w-full rounded-xl border transition-all duration-200 text-left ${
-          isDropdownOpen
-            ? 'border-[var(--accent-color-border)] bg-[rgba(var(--accent-color-rgb),0.08)]'
-            : 'border-[var(--color-border)] bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
-        }`}
-      >
-        <div className="p-3">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <img
-                className={`h-10 w-10 rounded-full bg-[var(--color-surface)] object-cover border-2 transition-all duration-200 ${
-                  isDropdownOpen
-                    ? 'border-[var(--color-border-strong)]'
-                    : 'border-[var(--color-border)]'
-                }`}
-                src={account.avatarUrl}
-                alt={privacyMode ? '' : account.displayName}
-                style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-              />
-            </div>
-
-            {/* Name, username, and robux */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <div 
-                    className="font-semibold text-sm text-[var(--color-text-primary)] truncate"
-                    style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                  >
-                    {account.displayName}
-                  </div>
-                  <div 
-                    className="text-[var(--color-text-muted)] text-xs truncate"
-                    style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                  >
-                    @{account.username}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <RobuxIcon className="w-3.5 h-3.5 text-emerald-400" />
-                  <SlidingNumber
-                    number={robuxBalance}
-                    formatter={formatNumber}
-                    className="text-sm font-semibold text-[var(--color-text-primary)]"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Chevron indicator */}
-            <div
-              className={`flex-shrink-0 transition-transform duration-200 ${isDropdownOpen ? '' : 'rotate-180'}`}
-            >
-              <ChevronUp size={16} className="text-[var(--color-text-muted)]" />
-            </div>
-          </div>
-        </div>
-      </button>
-      <CreditsDialog isOpen={isCreditsOpen} onClose={() => setIsCreditsOpen(false)} />
-      <RedeemCodeDialog
-        isOpen={isRedeemOpen}
-        onClose={() => setIsRedeemOpen(false)}
-        account={account}
-      />
-    </div>
-  )
-}
+import { SidebarTabDefinition, SIDEBAR_TAB_DEFINITION_MAP } from '@renderer/constants/sidebarTabs'
+import { ProfileCard } from './ProfileCard'
 
 interface SidebarProps {
   sidebarWidth: number
   isResizing: boolean
   sidebarRef: React.RefObject<HTMLElement | null>
   onResizeStart: () => void
+  selectedAccounts?: Account[]
+  primaryAccount?: Account | null
   selectedAccount: Account | null
   showProfileCard: boolean
   privacyMode: boolean
@@ -348,6 +42,8 @@ const Sidebar = ({
   isResizing,
   sidebarRef,
   onResizeStart,
+  selectedAccounts = [],
+  primaryAccount,
   selectedAccount,
   showProfileCard,
   privacyMode,
@@ -359,6 +55,7 @@ const Sidebar = ({
   const setActiveTab = useTabTransition()
   const isSidebarCollapsed = useSidebarCollapsed()
   const toggleSidebarCollapsed = useToggleSidebarCollapsed()
+  const openCommandPalette = useCommandPaletteStore((s) => s.open)
 
   const normalizedOrder = useMemo(() => sanitizeSidebarOrder(tabOrder), [tabOrder])
   const normalizedHiddenTabs = useMemo(() => sanitizeSidebarHidden(hiddenTabs), [hiddenTabs])
@@ -373,23 +70,19 @@ const Sidebar = ({
         .filter(Boolean) as SidebarTabDefinition[],
     [visibleTabs]
   )
-  const sidebarTabsToRender = useMemo(
-    () => sidebarTabs,
-    [sidebarTabs]
-  )
 
   return (
     <TooltipProvider>
       <motion.aside
         ref={sidebarRef}
         style={{ width: isSidebarCollapsed ? '72px' : `${sidebarWidth}px` }}
-        className={`flex flex-col border-r border-[var(--color-border)] bg-[var(--color-surface-strong)] z-30 relative ${
+        className={`flex flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] z-30 relative ${
           isSidebarCollapsed ? 'min-w-[72px]' : ''
         } ${!isResizing ? 'transition-[width] duration-300 ease-in-out' : ''}`}
       >
         {/* Sidebar Header - extra top padding on macOS for traffic lights */}
         <div
-          className={`flex items-center shrink-0 bg-[var(--color-surface-strong)] transition-all duration-300 ${
+          className={`flex items-center shrink-0 bg-[var(--color-surface)] transition-all duration-300 ${
             isSidebarCollapsed ? 'justify-center px-0' : 'justify-between pl-6 pr-4'
           }`}
           style={{
@@ -417,11 +110,32 @@ const Sidebar = ({
           )}
         </div>
 
+        {/* Global Search Trigger */}
+        <div className="px-3 pb-2 pt-4">
+          <button
+            onClick={openCommandPalette}
+            className={`w-full flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-all px-3 py-1.5 ${
+              isSidebarCollapsed ? 'justify-center px-0 py-2' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Search size={16} />
+              {!isSidebarCollapsed && <span className="text-sm font-medium">Search</span>}
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex items-center gap-0.5 opacity-60">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-sans bg-[var(--color-surface)] border border-[var(--color-border)] rounded shadow-sm text-[var(--color-text-secondary)]">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-sans bg-[var(--color-surface)] border border-[var(--color-border)] rounded shadow-sm text-[var(--color-text-secondary)]">K</kbd>
+              </div>
+            )}
+          </button>
+        </div>
+
         {/* Nav Items */}
-        <div className="flex-1 py-2 overflow-y-auto scrollbar-hide">
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
           <nav>
-            {sidebarTabsToRender.map((tab, index) => {
-              const previous = sidebarTabsToRender[index - 1] as SidebarTabDefinition | undefined
+            {sidebarTabs.map((tab, index) => {
+              const previous = sidebarTabs[index - 1] as SidebarTabDefinition | undefined
               const showSeparator = previous && previous.section !== tab.section
 
               return (
@@ -444,10 +158,11 @@ const Sidebar = ({
         </div>
 
         {/* Bottom Profile Card */}
-        {selectedAccount && showProfileCard && (
-          <div className="border-t border-[var(--color-border)] shrink-0 bg-[var(--color-surface-strong)] relative">
+        {(selectedAccount || primaryAccount) && showProfileCard && (
+          <div className="border-t border-[var(--color-border)] shrink-0 bg-[var(--color-surface)] relative">
             <ProfileCard
-              account={selectedAccount}
+              account={selectedAccounts.length > 0 ? selectedAccounts[0] : (selectedAccount || primaryAccount!)}
+              selectedAccounts={selectedAccounts}
               isCollapsed={isSidebarCollapsed}
               privacyMode={privacyMode}
               onTransactionsClick={() => setActiveTab('Transactions')}

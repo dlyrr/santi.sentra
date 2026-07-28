@@ -55,21 +55,21 @@ const CollapsibleSection: React.FC<{
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
-    <div className="border border-neutral-800/50 rounded-xl overflow-hidden">
+    <div className="border border-[var(--color-border)]/50 rounded-xl overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-neutral-900/30 hover:bg-neutral-900/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-[var(--color-surface)]/30 hover:bg-[var(--color-surface)]/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           {icon}
-          <span className="text-sm font-medium text-white">{title}</span>
-          {count !== undefined && <span className="text-xs text-neutral-500">({count})</span>}
+          <span className="text-sm font-medium text-[var(--color-text-primary)]">{title}</span>
+          {count !== undefined && <span className="text-xs text-[var(--color-text-muted)]">({count})</span>}
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.2, ease: 'easeInOut' }}
         >
-          <ChevronDown size={16} className="text-neutral-500" />
+          <ChevronDown size={16} className="text-[var(--color-text-muted)]" />
         </motion.div>
       </button>
       <AnimatePresence initial={false}>
@@ -81,7 +81,7 @@ const CollapsibleSection: React.FC<{
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="p-4 pt-0 bg-neutral-900/20">{children}</div>
+            <div className="p-4 pt-0 bg-[var(--color-surface)]/20">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -118,8 +118,8 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
 
   const demandLabel = demand != null ? DEMAND_LABELS[demand] || 'Unknown' : '-'
   const trendLabel = trend != null ? TREND_LABELS[trend] || 'Unknown' : '-'
-  const demandColor = demand != null ? DEMAND_COLORS[demand] : 'text-neutral-500'
-  const trendColor = trend != null ? TREND_COLORS[trend] : 'text-neutral-500'
+  const demandColor = demand != null ? DEMAND_COLORS[demand] : 'text-[var(--color-text-muted)]'
+  const trendColor = trend != null ? TREND_COLORS[trend] : 'text-[var(--color-text-muted)]'
 
   const hasValueChart = rolimonsPageData?.valueChanges && rolimonsPageData.valueChanges.length > 0
   const hasPriceChart =
@@ -130,13 +130,13 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
       {/* Header with Loading */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-white">Market Data</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Market Data</h2>
           {rolimonsItem && (
             <a
               href={`https://www.rolimons.com/item/${rolimonsItem.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-neutral-500 hover:text-neutral-300 flex items-center gap-1 transition-colors"
+              className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] flex items-center gap-1 transition-colors"
             >
               Rolimons
               <ExternalLink size={10} />
@@ -163,7 +163,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
                   <RobuxIcon className="w-4 h-4" />
                 </div>
               ) : (
-                <div className="text-lg font-medium text-neutral-500">Not Assigned</div>
+                <div className="text-lg font-medium text-[var(--color-text-muted)]">Not Assigned</div>
               )}
             </div>
           </div>
@@ -187,14 +187,14 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
 
       {/* Market Indicators: Demand & Trend */}
       {(demand != null || trend != null) && (
-        <div className="flex items-center gap-4 p-3 bg-neutral-900/30 rounded-xl border border-neutral-800/50">
+        <div className="flex items-center gap-4 p-3 bg-[var(--color-surface)]/30 rounded-xl border border-[var(--color-border)]/50">
           {demand != null && (
             <div className="flex items-center gap-2 flex-1">
-              <Flame size={14} className="text-neutral-500" />
-              <span className="text-xs text-neutral-500">Demand</span>
+              <Flame size={14} className="text-[var(--color-text-muted)]" />
+              <span className="text-xs text-[var(--color-text-muted)]">Demand</span>
               <span className={cn('text-sm font-semibold', demandColor)}>{demandLabel}</span>
               {/* Mini progress indicator */}
-              <div className="flex-1 max-w-[60px] h-1 bg-neutral-800 rounded-full overflow-hidden ml-2">
+              <div className="flex-1 max-w-[60px] h-1 bg-[var(--color-surface-hover)] rounded-full overflow-hidden ml-2">
                 <div
                   className={cn(
                     'h-full rounded-full transition-all',
@@ -213,11 +213,11 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
               </div>
             </div>
           )}
-          {demand != null && trend != null && <div className="w-px h-6 bg-neutral-800" />}
+          {demand != null && trend != null && <div className="w-px h-6 bg-[var(--color-surface-hover)]" />}
           {trend != null && (
             <div className="flex items-center gap-2 flex-1">
               <TrendIcon size={14} className={trendColor} />
-              <span className="text-xs text-neutral-500">Trend</span>
+              <span className="text-xs text-[var(--color-text-muted)]">Trend</span>
               <span className={cn('text-sm font-semibold', trendColor)}>{trendLabel}</span>
             </div>
           )}
@@ -229,7 +229,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         <div className="space-y-3">
           {/* Chart Toggle */}
           {(hasValueChart || hasPriceChart) && (
-            <div className="flex gap-1 p-1 bg-neutral-900/50 rounded-lg w-fit">
+            <div className="flex gap-1 p-1 bg-[var(--color-surface)]/50 rounded-lg w-fit">
               {hasValueChart && (
                 <button
                   onClick={() => setActiveChart('value')}
@@ -237,7 +237,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
                     'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                     activeChart === 'value'
                       ? 'bg-purple-500/20 text-purple-400'
-                      : 'text-neutral-500 hover:text-neutral-300'
+                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   )}
                 >
                   Value History
@@ -250,7 +250,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
                     'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                     activeChart === 'price'
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'text-neutral-500 hover:text-neutral-300'
+                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   )}
                 >
                   RAP History
@@ -263,7 +263,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
                     'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                     activeChart === 'combined'
                       ? 'bg-cyan-500/20 text-cyan-400'
-                      : 'text-neutral-500 hover:text-neutral-300'
+                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                   )}
                 >
                   Combined
@@ -304,56 +304,56 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         {itemDetails && (itemDetails.owners || itemDetails.copies) && (
           <CollapsibleSection
             title="Ownership Stats"
-            icon={<Users size={14} className="text-neutral-400" />}
+            icon={<Users size={14} className="text-[var(--color-text-secondary)]" />}
             defaultOpen={false}
           >
             <div className="grid grid-cols-3 gap-3 pt-4">
               {itemDetails.owners != null && (
-                <div className="text-center p-3 bg-neutral-800/30 rounded-lg">
-                  <div className="text-xl font-bold text-white">
+                <div className="text-center p-3 bg-[var(--color-surface-hover)]/30 rounded-lg">
+                  <div className="text-xl font-bold text-[var(--color-text-primary)]">
                     {formatNumber(itemDetails.owners)}
                   </div>
-                  <div className="text-xs text-neutral-400">Available Copies</div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">Available Copies</div>
                 </div>
               )}
               {itemDetails.bc_owners != null && (
-                <div className="text-center p-3 bg-neutral-800/30 rounded-lg">
+                <div className="text-center p-3 bg-[var(--color-surface-hover)]/30 rounded-lg">
                   <div className="text-xl font-bold text-blue-400">
                     {formatNumber(itemDetails.bc_owners)}
                   </div>
-                  <div className="text-xs text-neutral-400">Premium Copies</div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">Premium Copies</div>
                 </div>
               )}
               {itemDetails.copies != null && (
-                <div className="text-center p-3 bg-neutral-800/30 rounded-lg">
-                  <div className="text-xl font-bold text-neutral-300">
+                <div className="text-center p-3 bg-[var(--color-surface-hover)]/30 rounded-lg">
+                  <div className="text-xl font-bold text-[var(--color-text-secondary)]">
                     {formatNumber(itemDetails.copies)}
                   </div>
-                  <div className="text-xs text-neutral-400">Total Copies</div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">Total Copies</div>
                 </div>
               )}
               {itemDetails.deleted_copies != null && itemDetails.deleted_copies > 0 && (
-                <div className="text-center p-3 bg-neutral-800/30 rounded-lg">
+                <div className="text-center p-3 bg-[var(--color-surface-hover)]/30 rounded-lg">
                   <div className="text-xl font-bold text-red-400">
                     {formatNumber(itemDetails.deleted_copies)}
                   </div>
-                  <div className="text-xs text-neutral-400">Deleted</div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">Deleted</div>
                 </div>
               )}
               {itemDetails.hoarded_copies != null && itemDetails.hoarded_copies > 0 && (
-                <div className="text-center p-3 bg-neutral-800/30 rounded-lg">
+                <div className="text-center p-3 bg-[var(--color-surface-hover)]/30 rounded-lg">
                   <div className="text-xl font-bold text-amber-400">
                     {formatNumber(itemDetails.hoarded_copies)}
                   </div>
-                  <div className="text-xs text-neutral-400">Hoarded</div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">Hoarded</div>
                 </div>
               )}
               {itemDetails.num_sellers != null && (
-                <div className="text-center p-3 bg-neutral-800/30 rounded-lg">
+                <div className="text-center p-3 bg-[var(--color-surface-hover)]/30 rounded-lg">
                   <div className="text-xl font-bold text-emerald-400">
                     {formatNumber(itemDetails.num_sellers)}
                   </div>
-                  <div className="text-xs text-neutral-400">Sellers</div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">Sellers</div>
                 </div>
               )}
             </div>
@@ -366,7 +366,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
           rolimonsPageData.hoardsData.owner_names.length > 0 && (
             <CollapsibleSection
               title="Top Hoarders"
-              icon={<Package size={14} className="text-neutral-400" />}
+              icon={<Package size={14} className="text-[var(--color-text-secondary)]" />}
               count={rolimonsPageData.hoardsData.owner_names.length}
               defaultOpen={false}
             >
@@ -383,7 +383,7 @@ export const AssetEconomyTab: React.FC<AssetEconomyTabProps> = ({
         {owners.length > 0 && (
           <CollapsibleSection
             title="Recent Owners"
-            icon={<Users size={14} className="text-neutral-400" />}
+            icon={<Users size={14} className="text-[var(--color-text-secondary)]" />}
             count={owners.length}
             defaultOpen={false}
           >

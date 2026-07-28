@@ -10,7 +10,10 @@ import { Logger, ConsoleLogHandler, LogLevel } from './shared/index';
 // import { ConfigManager } from './shared/index'; // Unused
 import { TradingAnalyzerFactory } from './trading';
 import { BrowserAutomationServiceFactory } from './browser';
-import { ProxyManagerFactory } from './proxy';
+
+const ProxyManagerFactory = {
+  create: (_config?: unknown) => null,
+};
 
 /**
  * Initialize all modules with default configuration
@@ -62,5 +65,4 @@ export function getModules() {
 // export * from './macro'; // Disabled
 export * from './trading';
 export * from './browser';
-export * from './proxy';
 export * from './shared';

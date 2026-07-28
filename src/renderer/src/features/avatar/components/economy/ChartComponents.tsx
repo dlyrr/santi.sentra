@@ -28,11 +28,11 @@ interface StatBadgeProps {
 export const StatBadge: React.FC<StatBadgeProps> = ({
   label,
   value,
-  color = 'text-neutral-300',
+  color = 'text-[var(--color-text-secondary)]',
   icon
 }) => (
-  <div className="flex flex-col items-center px-3 py-1.5 bg-neutral-800/30 rounded-lg">
-    <span className="text-[10px] text-neutral-500 uppercase tracking-wider">{label}</span>
+  <div className="flex flex-col items-center px-3 py-1.5 bg-[var(--color-surface-hover)]/30 rounded-lg">
+    <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">{label}</span>
     <span className={cn('text-sm font-semibold flex items-center gap-1', color)}>
       {icon}
       {value}
@@ -74,7 +74,7 @@ export const DateRangeButton: React.FC<DateRangeButtonProps> = ({
       onClick={() => onClick(range)}
       className={cn(
         'px-2 py-1 text-xs rounded transition-colors',
-        isActive ? 'border' : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800'
+        isActive ? 'border' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
       )}
       style={
         isActive
@@ -100,15 +100,15 @@ interface ChartSkeletonProps {
 }
 
 export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ height }) => (
-  <div className="w-full overflow-hidden bg-neutral-900/30 border border-neutral-800/50 rounded-xl p-4">
+  <div className="w-full overflow-hidden bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 rounded-xl p-4">
     <div className="mb-3 flex items-center justify-between">
-      <div className="h-5 w-32 bg-neutral-800 rounded animate-pulse" />
+      <div className="h-5 w-32 bg-[var(--color-surface-hover)] rounded animate-pulse" />
       <div className="flex items-center gap-2">
-        <div className="h-6 w-20 bg-neutral-800 rounded animate-pulse" />
-        <div className="h-6 w-32 bg-neutral-800 rounded animate-pulse" />
+        <div className="h-6 w-20 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+        <div className="h-6 w-32 bg-[var(--color-surface-hover)] rounded animate-pulse" />
       </div>
     </div>
-    <div className="w-full bg-neutral-800/30 rounded animate-pulse" style={{ height }} />
+    <div className="w-full bg-[var(--color-surface-hover)]/30 rounded animate-pulse" style={{ height }} />
   </div>
 )
 
@@ -148,7 +148,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
   onExportPNG,
   onExportCSV
 }) => (
-  <div className="flex items-center gap-1 border-r border-neutral-700 pr-2">
+  <div className="flex items-center gap-1 border-r border-[var(--color-border-strong)] pr-2">
     {/* Moving average toggle */}
     {showMovingAverage && (
       <button
@@ -157,7 +157,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
           'p-1.5 rounded transition-colors text-xs font-medium',
           showMA
             ? 'bg-amber-500/20 text-amber-400'
-            : 'text-neutral-500 hover:text-white hover:bg-neutral-800'
+            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
         )}
         title={`${movingAveragePeriod}-day Moving Average`}
       >
@@ -167,21 +167,21 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
 
     <button
       onClick={onZoomIn}
-      className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+      className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
       title="Zoom In (+)"
     >
       <ZoomIn size={14} />
     </button>
     <button
       onClick={onZoomOut}
-      className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+      className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
       title="Zoom Out (-)"
     >
       <ZoomOut size={14} />
     </button>
     <button
       onClick={onResetView}
-      className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+      className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
       title="Reset View (R)"
     >
       <RotateCcw size={14} />
@@ -191,21 +191,21 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
     {allowExport && (
       <div className="relative group">
         <button
-          className="p-1.5 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+          className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
           title="Export"
         >
           <Download size={14} />
         </button>
-        <div className="absolute right-0 top-full mt-1 py-1 bg-neutral-800 border border-neutral-700 rounded-[var(--menu-radius)] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[100px]">
+        <div className="absolute right-0 top-full mt-1 py-1 bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] rounded-[var(--menu-radius)] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[100px]">
           <button
             onClick={onExportPNG}
-            className="w-full px-3 py-1.5 text-xs text-left text-neutral-300 hover:bg-neutral-700 hover:text-white"
+            className="w-full px-3 py-1.5 text-xs text-left text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
           >
             Export PNG
           </button>
           <button
             onClick={onExportCSV}
-            className="w-full px-3 py-1.5 text-xs text-left text-neutral-300 hover:bg-neutral-700 hover:text-white"
+            className="w-full px-3 py-1.5 text-xs text-left text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
           >
             Export CSV
           </button>
@@ -230,7 +230,7 @@ interface StatisticsPanelProps {
 }
 
 export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ statistics }) => (
-  <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-neutral-800/50">
+  <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-[var(--color-border)]/50">
     <StatBadge label="Min" value={formatPrice(statistics.min)} />
     <StatBadge label="Max" value={formatPrice(statistics.max)} />
     <StatBadge label="Avg" value={formatPrice(statistics.avg)} />
@@ -251,7 +251,7 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ statistics }) 
     <StatBadge
       label="Volatility"
       value={`${statistics.volatility.toFixed(1)}%`}
-      color={statistics.volatility > 20 ? 'text-amber-400' : 'text-neutral-300'}
+      color={statistics.volatility > 20 ? 'text-amber-400' : 'text-[var(--color-text-secondary)]'}
     />
   </div>
 )
@@ -281,12 +281,12 @@ export const ChartLegend: React.FC<ChartLegendProps> = ({
     <div className="mt-2 flex items-center gap-4 text-xs">
       <div className="flex items-center gap-1.5">
         <div className="w-3 h-0.5 rounded" style={{ backgroundColor: color }} />
-        <span className="text-neutral-400">{title.replace(' History', '')}</span>
+        <span className="text-[var(--color-text-secondary)]">{title.replace(' History', '')}</span>
       </div>
       {showMA && maDataLength > 0 && (
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded bg-amber-500" style={{ borderStyle: 'dashed' }} />
-          <span className="text-neutral-400">{movingAveragePeriod}-day MA</span>
+          <span className="text-[var(--color-text-secondary)]">{movingAveragePeriod}-day MA</span>
         </div>
       )}
     </div>
@@ -324,7 +324,7 @@ export const ChartTooltip: React.FC<ChartTooltipProps> = ({
 
   return (
     <div
-      className="absolute z-50 pointer-events-none bg-neutral-900/95 border border-neutral-700 rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm"
+      className="absolute z-50 pointer-events-none bg-[var(--color-surface)]/95 border border-[var(--color-border-strong)] rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm"
       style={{
         left: Math.min(x + 12, containerWidth - 160),
         top: Math.max(y - 80, 60)
@@ -338,9 +338,9 @@ export const ChartTooltip: React.FC<ChartTooltipProps> = ({
         <div className="text-amber-400 text-xs mt-0.5">MA: {formatPrice(maValue)}</div>
       )}
       {volume !== undefined && (
-        <div className="text-neutral-400 text-xs mt-0.5">Vol: {volume.toLocaleString()}</div>
+        <div className="text-[var(--color-text-secondary)] text-xs mt-0.5">Vol: {volume.toLocaleString()}</div>
       )}
-      <div className="text-neutral-500 text-xs mt-1">{date}</div>
+      <div className="text-[var(--color-text-muted)] text-xs mt-1">{date}</div>
     </div>
   )
 }
@@ -359,7 +359,7 @@ export const StatsToggle: React.FC<StatsToggleProps> = ({ showStats, onToggle })
     onClick={onToggle}
     className={cn(
       'flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors',
-      showStats ? 'bg-neutral-700 text-white' : 'text-neutral-500 hover:text-neutral-300'
+      showStats ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
     )}
   >
     <BarChart3 size={12} />

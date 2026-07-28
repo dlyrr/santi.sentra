@@ -20,9 +20,9 @@ const sizeStyles: Record<SpinnerSize, string> = {
 }
 
 const variantStyles: Record<SpinnerVariant, string> = {
-  default: 'border-neutral-500 border-t-transparent',
+  default: 'border-[var(--color-border-strong)] border-t-transparent',
   emerald: 'border-emerald-500 border-t-transparent',
-  accent: 'border-[var(--accent-color)] border-t-transparent',
+  accent: 'border-[var(--accent-color)] border-t-transparent shadow-[0_0_12px_var(--accent-color-glow)]',
   white: 'border-white border-t-transparent'
 }
 
@@ -34,8 +34,8 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => {
   return (
     <div className={cn('flex flex-col items-center gap-3', className)}>
-      <div className={cn('rounded-full animate-spin', sizeStyles[size], variantStyles[variant])} />
-      {label && <span className="text-sm text-neutral-500">{label}</span>}
+      <div className={cn('rounded-full animate-spin', sizeStyles[size], variantStyles[variant], variant === 'accent' && 'animate-glow-pulse')} />
+      {label && <span className="text-sm text-[var(--color-text-muted)]">{label}</span>}
     </div>
   )
 }

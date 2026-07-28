@@ -31,7 +31,7 @@ export const OwnersList: React.FC<OwnersListProps> = ({
     return (
       <div className="px-4">
         <div className="flex items-center justify-center py-8">
-          <Loader2 size={20} className="animate-spin text-neutral-500" />
+          <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
         </div>
       </div>
     )
@@ -40,7 +40,7 @@ export const OwnersList: React.FC<OwnersListProps> = ({
   if (owners.length === 0) {
     return (
       <div className="px-4">
-        <div className="text-center py-6 text-neutral-500 text-sm">No owners found</div>
+        <div className="text-center py-6 text-[var(--color-text-muted)] text-sm">No owners found</div>
       </div>
     )
   }
@@ -101,9 +101,9 @@ export const ResellersList: React.FC<ResellersListProps> = ({
 }) => {
   if (resellersLoading) {
     return (
-      <div className="pt-6 border-t border-neutral-800">
+      <div className="pt-6 border-t border-[var(--color-border)]">
         <div className="flex items-center justify-center py-8">
-          <Loader2 size={20} className="animate-spin text-neutral-500" />
+          <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
         </div>
       </div>
     )
@@ -111,15 +111,15 @@ export const ResellersList: React.FC<ResellersListProps> = ({
 
   if (resellers.length === 0) {
     return (
-      <div className="pt-6 border-t border-neutral-800">
-        <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-4">Resellers</h3>
-        <div className="text-center py-6 text-neutral-500 text-sm">No resellers available</div>
+      <div className="pt-6 border-t border-[var(--color-border)]">
+        <h3 className="text-sm font-medium text-[var(--color-text-primary)] flex items-center gap-2 mb-4">Resellers</h3>
+        <div className="text-center py-6 text-[var(--color-text-muted)] text-sm">No resellers available</div>
       </div>
     )
   }
 
   return (
-    <div className="pt-6 border-t border-neutral-800">
+    <div className="pt-6 border-t border-[var(--color-border)]">
       <HorizontalCarousel title="Resellers" onNearEnd={onLoadMore}>
         {resellers.map((reseller) => (
           <UserCard
@@ -182,7 +182,7 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
     <div
       className={cn(
         'flex items-center justify-between p-2.5 rounded-lg transition-colors',
-        'bg-neutral-800/30 hover:bg-neutral-800/50',
+        'bg-[var(--color-surface-hover)]/30 hover:bg-[var(--color-surface-hover)]/50',
         onOwnerClick && hoarder.id ? 'cursor-pointer' : ''
       )}
       onClick={
@@ -190,9 +190,9 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
       }
     >
       <div className="flex items-center gap-3">
-        <span className="text-neutral-500 text-xs font-medium pl-3">#{globalIndex + 1}</span>
+        <span className="text-[var(--color-text-muted)] text-xs font-medium pl-3">#{globalIndex + 1}</span>
         {onOwnerClick && hoarder.id ? (
-          <span className="text-sm text-white hover:text-emerald-400 transition-colors">
+          <span className="text-sm text-[var(--color-text-primary)] hover:text-emerald-400 transition-colors">
             {hoarder.name}
           </span>
         ) : (
@@ -200,7 +200,7 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
             href={`https://www.roblox.com/users/${hoarder.id}/profile`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-white hover:text-emerald-400 transition-colors"
+            className="text-sm text-[var(--color-text-primary)] hover:text-emerald-400 transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             {hoarder.name}
@@ -209,7 +209,7 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
       </div>
       <div className="flex items-center gap-2">
         <span className="text-amber-400 font-semibold">{hoarder.quantity}</span>
-        <span className="text-neutral-500 text-xs">copies</span>
+        <span className="text-[var(--color-text-muted)] text-xs">copies</span>
       </div>
     </div>
   )

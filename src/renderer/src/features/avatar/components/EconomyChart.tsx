@@ -397,7 +397,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     return (
       <motion.div
         className={cn(
-          'w-full bg-neutral-900/30 border border-neutral-800/50 rounded-xl px-4 py-4',
+          'w-full bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 rounded-xl px-4 py-4',
           className
         )}
         initial={{ opacity: 0, y: 8 }}
@@ -405,7 +405,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-medium text-white">{title}</h3>
+          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">{title}</h3>
           <div className="flex items-center gap-1">
             {dateRanges.map((range) => (
               <DateRangeButton
@@ -418,7 +418,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
             ))}
           </div>
         </div>
-        <div className="p-8 text-center text-neutral-500 text-sm">
+        <div className="p-8 text-center text-[var(--color-text-muted)] text-sm">
           Not enough data for selected range
         </div>
       </motion.div>
@@ -428,7 +428,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
   return (
     <motion.div
       className={cn(
-        'w-full bg-neutral-900/30 border border-neutral-800/50 rounded-xl px-4 py-4 relative',
+        'w-full bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 rounded-xl px-4 py-4 relative',
         className
       )}
       initial={{ opacity: 0, y: 8 }}
@@ -438,7 +438,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
       {/* Header */}
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-medium text-white">{title}</h3>
+          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">{title}</h3>
           {showStatistics && statistics && (
             <StatsToggle showStats={showStats} onToggle={() => setShowStats(!showStats)} />
           )}
@@ -490,7 +490,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
       {/* Chart */}
       <div
         ref={chartContainerRef}
-        className="w-full relative outline-none focus:ring-1 focus:ring-neutral-600 rounded"
+        className="w-full relative outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] rounded"
         style={{ height }}
       />
 
@@ -781,7 +781,7 @@ export const CombinedChart: React.FC<CombinedChartProps> = ({
   return (
     <motion.div
       className={cn(
-        'w-full bg-neutral-900/30 border border-neutral-800/50 rounded-xl px-4 py-4 relative',
+        'w-full bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 rounded-xl px-4 py-4 relative',
         className
       )}
       initial={{ opacity: 0, y: 8 }}
@@ -789,7 +789,7 @@ export const CombinedChart: React.FC<CombinedChartProps> = ({
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-sm font-medium text-white">Value vs RAP</h3>
+        <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Value vs RAP</h3>
         <div className="flex items-center gap-1">
           {['30d', '90d', '180d', '1y', 'all'].map((range) => (
             <DateRangeButton
@@ -805,7 +805,7 @@ export const CombinedChart: React.FC<CombinedChartProps> = ({
 
       <div
         ref={chartContainerRef}
-        className="w-full relative outline-none focus:ring-1 focus:ring-neutral-600 rounded"
+        className="w-full relative outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] rounded"
         style={{ height: 240 }}
       />
 
@@ -813,13 +813,13 @@ export const CombinedChart: React.FC<CombinedChartProps> = ({
         {valueData.length > 0 && (
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-0.5 rounded bg-purple-500" />
-            <span className="text-neutral-400">Value</span>
+            <span className="text-[var(--color-text-secondary)]">Value</span>
           </div>
         )}
         {rapData.length > 0 && (
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-0.5 rounded bg-emerald-500" />
-            <span className="text-neutral-400">RAP</span>
+            <span className="text-[var(--color-text-secondary)]">RAP</span>
           </div>
         )}
       </div>

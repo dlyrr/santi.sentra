@@ -189,6 +189,7 @@ export const catalogApi = {
     limit?: number
     cursor?: string
     includeNotForSale?: boolean
+    cookie?: string
   }) => invoke('search-catalog-items', S.catalogItemsSearchResponseSchema, params),
   getCatalogSearchSuggestions: (prefix: string, limit?: number) =>
     invoke('get-catalog-search-suggestions', z.array(z.string()), prefix, limit),

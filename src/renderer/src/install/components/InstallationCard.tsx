@@ -47,7 +47,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-white truncate">{install.name}</h3>
+                <h3 className="font-semibold text-[var(--color-text-primary)] truncate">{install.name}</h3>
                 {install.isSystem && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -60,7 +60,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
                   </Tooltip>
                 )}
               </div>
-              <p className="text-xs text-neutral-500 mt-0.5">
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                 {isStudio ? 'Studio' : 'Player'} • {install.channel}
               </p>
             </div>
@@ -96,7 +96,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
           </span>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="text-xs font-mono text-neutral-600 truncate max-w-[140px]">
+              <span className="text-xs font-mono text-[var(--color-text-muted)] truncate max-w-[140px]">
                 {install.version}
               </span>
             </TooltipTrigger>
@@ -107,11 +107,11 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
         {/* Verify Progress */}
         {isVerifying && (
           <div className="mt-3">
-            <div className="flex justify-between text-[10px] text-neutral-500 mb-1">
+            <div className="flex justify-between text-[10px] text-[var(--color-text-muted)] mb-1">
               <span>{installProgress.status}</span>
               <span>{installProgress.percent}%</span>
             </div>
-            <div className="w-full h-1 bg-neutral-800 rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-[var(--color-surface-hover)] rounded-full overflow-hidden">
               <div
                 className="h-full bg-emerald-500 transition-all duration-300"
                 style={{ width: `${installProgress.percent}%` }}

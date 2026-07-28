@@ -29,6 +29,8 @@ interface AvatarAsset {
 
 interface UseAvatarActionsOptions {
   account: Account | null
+  accounts?: Account[]
+  isBulkMode?: boolean
   mainCategory: MainCategory
   subCategory: string
   inventoryItems: InventoryItem[]
@@ -41,6 +43,8 @@ interface UseAvatarActionsOptions {
 
 export const useAvatarActions = ({
   account,
+  accounts = [],
+  isBulkMode = false,
   mainCategory,
   subCategory,
   inventoryItems,
@@ -124,22 +128,33 @@ export const useAvatarActions = ({
     ]
   )
 
-  const toggleEquip = useCallback(
+    const toggleEquip = useCallback(
     async (itemId: number) => {
-      if (!account?.cookie || isUpdatingAvatar) return
+      const targetAccounts = isBulkMode ? accounts : (account ? [account] : [])
+      if (targetAccounts.length === 0 || isUpdatingAvatar) return
+
+      const isRemoving = equippedIds.has(itemId)
+
+      if (isBulkMode && !isRemoving) {
+        const wantsToEquip = window.confirm(
+          `Do you want to equip this item for all ${targetAccounts.length} selected accounts? (It will be purchased if they don't own it and it's free)`
+        )
+        if (!wantsToEquip) return
+      }
 
       if (mainCategory === 'Characters') {
         setIsUpdatingAvatar(true)
         setLoadingItemId(itemId)
         try {
-          const result = await wearOutfitMutation.mutateAsync(itemId)
-          if (result.success) {
-            showNotification('Outfit worn successfully', 'success')
-            await renderAvatar(account.userId)
-            await refetchCurrentAvatar()
-          } else {
-            showNotification('Failed to wear outfit', 'error')
+          // Wear outfit sequentially
+          for (const target of targetAccounts) {
+             if (target.cookie) {
+               await window.api.wearOutfit(target.cookie, itemId)
+               if (target.userId) await renderAvatar(target.userId)
+             }
           }
+          showNotification(`Outfit ${isRemoving ? 'removed' : 'worn'} successfully`, 'success')
+          await refetchCurrentAvatar()
         } catch (error) {
           console.error('Error wearing outfit:', error)
           showNotification('Error wearing outfit', 'error')
@@ -152,61 +167,73 @@ export const useAvatarActions = ({
 
       setIsUpdatingAvatar(true)
       setLoadingItemId(itemId)
-      const isRemoving = equippedIds.has(itemId)
-
+      
       try {
-        let newAssets: AvatarAsset[]
+        const item = inventoryItems.find((i) => i.id === itemId)
+        const itemName = item?.name || 'Unknown Item'
 
-        if (isRemoving) {
-          newAssets = currentAvatarAssets.filter((a) => a.id !== itemId)
-        } else {
-          const item = inventoryItems.find((i) => i.id === itemId)
-          const itemName = item?.name || 'Unknown Item'
+        let assetTypeId = SUB_CATEGORY_IDS[subCategory]
+        let assetTypeName = subCategory
 
-          let assetTypeId = SUB_CATEGORY_IDS[subCategory]
-          let assetTypeName = subCategory
+        if (!isRemoving && (mainCategory === 'Favorites' || mainCategory === 'Currently Wearing')) {
+          const typeName = item?.type || ''
+          const foundTypeId = Object.entries(SUB_CATEGORY_IDS).find(
+            ([name]) => name.toLowerCase() === typeName.toLowerCase()
+          )
+          if (foundTypeId) {
+            assetTypeId = foundTypeId[1]
+            assetTypeName = foundTypeId[0]
+          } else {
+            try {
+              const firstTarget = targetAccounts[0]
+              const details = await (window as any).api.getAssetDetails(firstTarget.cookie, itemId)
+              assetTypeId = details.AssetTypeId || details.assetType || 8
+              assetTypeName = typeName || 'Hat'
+            } catch (e) {
+              console.warn('Could not fetch asset details, using default type', e)
+              assetTypeId = 8
+            }
+          }
+        }
 
-          if (mainCategory === 'Favorites' || mainCategory === 'Currently Wearing') {
-            const typeName = item?.type || ''
-            const foundTypeId = Object.entries(SUB_CATEGORY_IDS).find(
-              ([name]) => name.toLowerCase() === typeName.toLowerCase()
-            )
-            if (foundTypeId) {
-              assetTypeId = foundTypeId[1]
-              assetTypeName = foundTypeId[0]
+        const newAsset: AvatarAsset = {
+          id: itemId,
+          name: itemName,
+          assetType: {
+            id: assetTypeId,
+            name: assetTypeName
+          }
+        }
+
+        // Apply changes to all target accounts sequentially with a 3s delay
+        for (let i = 0; i < targetAccounts.length; i++) {
+          const targetAcc = targetAccounts[i]
+          if (!targetAcc.cookie || !targetAcc.userId) continue
+          
+          try {
+            // First get their current avatar
+            const avatarData = await window.api.getCurrentAvatar(targetAcc.cookie, parseInt(targetAcc.userId))
+            
+            let newAssets: any[]
+            if (isRemoving) {
+              newAssets = avatarData.assets.filter((a: any) => a.id !== itemId)
             } else {
-              try {
-                const details = await (window as any).api.getAssetDetails(account.cookie, itemId)
-                assetTypeId = details.AssetTypeId || details.assetType || 8
-                assetTypeName = typeName || 'Hat'
-              } catch (e) {
-                console.warn('Could not fetch asset details, using default type', e)
-                assetTypeId = 8
-              }
+              newAssets = [...avatarData.assets, newAsset]
             }
+            
+            await window.api.setWearingAssets(targetAcc.cookie, newAssets)
+            await renderAvatar(targetAcc.userId)
+          } catch (e) {
+            console.error(`Failed to update avatar for ${targetAcc.username}`, e)
           }
 
-          const newAsset: AvatarAsset = {
-            id: itemId,
-            name: itemName,
-            assetType: {
-              id: assetTypeId,
-              name: assetTypeName
-            }
+          // 3 second delay between accounts (skip after the last one)
+          if (i < targetAccounts.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000))
           }
-
-          newAssets = [...currentAvatarAssets, newAsset]
         }
 
-        const result = await setWearingAssetsMutation.mutateAsync(newAssets)
-
-        if (!result.success) {
-          console.error('Failed to equip assets', result)
-          await refetchCurrentAvatar()
-        } else {
-          await renderAvatar(account.userId)
-          await refetchCurrentAvatar()
-        }
+        await refetchCurrentAvatar()
       } catch (error) {
         console.error('Error setting wearing assets:', error)
         await refetchCurrentAvatar()
@@ -217,6 +244,8 @@ export const useAvatarActions = ({
     },
     [
       account,
+      accounts,
+      isBulkMode,
       mainCategory,
       subCategory,
       inventoryItems,

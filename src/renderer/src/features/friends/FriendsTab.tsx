@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQueries } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -46,6 +46,9 @@ import {
   useToggleFavoriteFriend
 } from '@renderer/stores/useFriendsStore'
 import { useSetSelectedGame } from '@renderer/stores/useUIStore'
+import { useSelectedIds } from '@renderer/stores/useSelectionStore'
+import { useAccountsManager } from '@renderer/hooks/queries'
+import { mapPresenceToStatus } from '@renderer/utils/statusUtils'
 
 interface FriendsTabProps {
   selectedAccount: Account | null
@@ -84,14 +87,51 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
   } | null>(null)
   const friendsListRef = useRef<HTMLDivElement>(null)
 
-  // TanStack Query hooks
-  const {
-    data: friends = [],
-    isLoading,
-    error,
-    refetch: refetchFriends,
-    isFetching
-  } = useFriends(selectedAccount)
+  const selectedIds = useSelectedIds()
+  const { accounts } = useAccountsManager()
+
+  const targetAccounts = useMemo(() => {
+    if (selectedIds.size > 0) {
+      return accounts.filter((a) => selectedIds.has(a.id) && a.cookie)
+    }
+    return selectedAccount && selectedAccount.cookie ? [selectedAccount] : []
+  }, [selectedAccount, selectedIds, accounts])
+
+  const friendsQueries = useQueries({
+    queries: targetAccounts.map((acc) => ({
+      queryKey: queryKeys.friends.list(acc.id),
+      queryFn: async (): Promise<Friend[]> => {
+        if (!acc.cookie) return []
+        const fetchedFriends = await window.api.getFriends(acc.cookie, acc.userId ? parseInt(acc.userId) : undefined)
+        return fetchedFriends.map((f: any) => ({
+          id: f.id,
+          accountId: acc.id,
+          displayName: f.displayName || f.username || `User ${f.userId || f.id}`,
+          username: f.username || f.displayName || `user_${f.userId || f.id}`,
+          userId: f.userId,
+          avatarUrl: f.avatarUrl,
+          status: mapPresenceToStatus(f.userPresenceType),
+          description: f.description,
+          gameActivity: f.placeId
+            ? { name: f.lastLocation || 'Unknown Game', placeId: f.placeId.toString(), jobId: f.gameId }
+            : undefined
+        }))
+      },
+      staleTime: 60 * 1000,
+      refetchInterval: 60 * 1000
+    }))
+  })
+
+  const isLoading = friendsQueries.some((q) => q.isLoading)
+  const isFetching = friendsQueries.some((q) => q.isFetching)
+  
+  const friends = useMemo(() => {
+    const allFriends = friendsQueries.flatMap((q) => q.data || [])
+    // Deduplicate by userId
+    const unique = new Map<string, Friend>()
+    allFriends.forEach((f) => unique.set(String(f.userId), f))
+    return Array.from(unique.values())
+  }, [friendsQueries])
 
   const { data: friendRequests = [] } = useFriendRequests(selectedAccount)
   const friendRequestCount = friendRequests.length
@@ -107,8 +147,8 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
   // No need for custom interval here to avoid duplicate polling and memory leaks
 
   useEffect(() => {
-    if (!selectedAccount) onFriendsCountChange?.(0)
-  }, [selectedAccount, onFriendsCountChange])
+    if (targetAccounts.length === 0) onFriendsCountChange?.(0)
+  }, [targetAccounts.length, onFriendsCountChange])
 
   useEffect(() => {
     if (friendsListRef.current && scrollPosition > 0 && !isLoading) {
@@ -118,7 +158,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
 
   // Filtering & Sorting
   const filteredFriends = useMemo(() => {
-    if (!selectedAccount) return []
+    if (targetAccounts.length === 0) return []
 
     let filtered = friends.filter((f) => {
       const displayName = f.displayName || ''
@@ -131,7 +171,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
 
     // Apply Active Filter
     if (activeFilter === 'Favorites') {
-      filtered = filtered.filter((f) => favorites.includes(f.userId))
+      filtered = filtered.filter((f) => favorites.includes(String(f.userId)))
     } else if (activeFilter === 'Online') {
       filtered = filtered.filter(
         (f) =>
@@ -147,8 +187,8 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
 
     return filtered.sort((a, b) => {
       // Favorites first
-      const isAFav = favorites.includes(a.userId)
-      const isBFav = favorites.includes(b.userId)
+      const isAFav = favorites.includes(String(a.userId))
+      const isBFav = favorites.includes(String(b.userId))
       if (isAFav && !isBFav) return -1
       if (!isAFav && isBFav) return 1
 
@@ -168,13 +208,13 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
       // Then name
       return a.displayName.localeCompare(b.displayName)
     })
-  }, [selectedAccount, friendSearchQuery, friends, activeFilter, favorites])
+  }, [targetAccounts.length, friendSearchQuery, friends, activeFilter, favorites])
 
   type SectionKey = 'Favorites' | AccountStatus | 'InGameNoJoin'
 
   const getSectionKey = useCallback(
     (friend: Friend): SectionKey => {
-      if (favorites.includes(friend.userId)) return 'Favorites'
+      if (favorites.includes(String(friend.userId))) return 'Favorites'
       if (friend.status === AccountStatus.InGame && !friend.gameActivity?.placeId) {
         return 'InGameNoJoin'
       }
@@ -239,49 +279,46 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
     },
     { key: AccountStatus.InStudio, label: 'In Studio', icon: Wrench, color: 'text-orange-500' },
     { key: AccountStatus.Online, label: 'Online', icon: Wifi, color: 'text-blue-500' },
-    { key: AccountStatus.Offline, label: 'Offline', icon: WifiOff, color: 'text-neutral-500' },
+    { key: AccountStatus.Offline, label: 'Offline', icon: WifiOff, color: 'text-[var(--color-text-muted)]' },
     { key: AccountStatus.Banned, label: 'Banned', icon: User, color: 'text-red-500' }
   ]
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full bg-neutral-950">
+      <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
         {/* Toolbar */}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
           <div className="flex items-center gap-4 shrink-0">
-            <h1 className="text-xl font-bold text-white">Friends</h1>
-            <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-semibold tracking-tight text-neutral-400">
+            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Friends</h1>
+            <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
               {filteredFriends.length}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => setIsFriendRequestsModalOpen(true)}
-              disabled={!selectedAccount}
-              className="gap-2 relative"
-            >
-              <Users size={16} />
-              <span className="hidden lg:inline font-semibold tracking-tight">Requests</span>
-              {friendRequestCount > 0 && (
-                <span className="absolute -top-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--accent-color)] px-1 text-[11px] font-semibold text-[var(--accent-color-foreground)] shadow-[0_0_10px_rgba(0,0,0,0.4)]">
-                  {friendRequestCount}
-                </span>
+              {targetAccounts.length > 1 && (
+                <Button variant="default" onClick={() => setIsAddFriendModalOpen(true)} className="gap-2 shrink-0 bg-blue-600 hover:bg-blue-700">
+                  <UserPlus size={16} />
+                  <span>Bulk Add Friend</span>
+                </Button>
               )}
-            </Button>
-
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsAddFriendModalOpen(true)}
-              disabled={!selectedAccount}
-              className="gap-2"
-            >
-              <UserPlus size={16} />
-              <span className="hidden lg:inline">Add Friend</span>
-            </Button>
+              {targetAccounts.length === 1 && (
+                <Button variant="default" onClick={() => setIsAddFriendModalOpen(true)} className="gap-2 shrink-0 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover-2)] text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                  <UserPlus size={16} />
+                  <span>Add Friend</span>
+                </Button>
+              )}
+              {targetAccounts.length === 1 && (
+                <Button variant="secondary" onClick={() => setIsFriendRequestsModalOpen(true)} className="gap-2 shrink-0 relative bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover-2)] text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                  <Users size={16} />
+                  <span>Requests</span>
+                  {friendRequestCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-[var(--color-text-primary)] ring-2 ring-[var(--color-surface-strong)]">
+                      {friendRequestCount > 99 ? '99+' : friendRequestCount}
+                    </span>
+                  )}
+                </Button>
+              )}
 
             <CustomDropdown
               options={[
@@ -309,7 +346,7 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
 
             <div className="relative w-48 lg:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-neutral-500" />
+                <Search size={16} className="text-[var(--color-text-muted)]" />
               </div>
               <Input
                 type="text"
@@ -326,12 +363,9 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
                   variant="outline"
                   size="icon"
                   onClick={() => {
-                    queryClient.invalidateQueries({
-                      queryKey: queryKeys.friends.list(selectedAccount?.id || '')
-                    })
-                    refetchFriends()
+                    friendsQueries.forEach(q => q.refetch())
                   }}
-                  disabled={isLoading || isFetching || !selectedAccount}
+                  disabled={isLoading || isFetching || targetAccounts.length === 0}
                 >
                   <RefreshCw size={18} className={isLoading || isFetching ? 'animate-spin' : ''} />
                 </Button>
@@ -342,25 +376,19 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
         </div>
 
         {/* Content */}
-        <div
-          ref={friendsListRef}
-          className="flex-1 overflow-y-auto p-6 scrollbar-thin"
-          onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
-        >
-          {!selectedAccount ? (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[var(--color-app-bg)] relative" ref={friendsListRef}>
+          {targetAccounts.length === 0 ? (
             <EmptyState
               icon={User}
-              title="Select an account to view friends"
-              description="Choose an account from the Accounts tab to load its friends list."
-              className="h-full"
+              title="No Accounts Selected"
+              description="Select one or more accounts to view friends."
             />
           ) : isLoading ? (
             <SkeletonFriendGrid count={12} />
-          ) : error ? (
+          ) : friendsQueries.some(q => q.error) ? (
             <ErrorMessage
-              message="Failed to load friends list."
-              onRetry={() => refetchFriends()}
-              className="h-full"
+              message="There was a problem communicating with Roblox."
+              onRetry={() => friendsQueries.forEach(q => q.refetch())}
             />
           ) : filteredFriends.length === 0 ? (
             <EmptyState
@@ -400,23 +428,21 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
                   <div key={key} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     <button
                       onClick={() => toggleSection(key)}
-                      className="w-full flex items-center gap-2 py-2 group select-none outline-none"
+                      className="w-full flex items-center gap-3 py-3 group select-none outline-none"
                     >
-                      {isCollapsed ? (
-                        <ChevronRight size={14} className="text-neutral-500" />
-                      ) : (
-                        <ChevronDown size={14} className="text-neutral-500" />
-                      )}
-                      <div
-                        className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${color}`}
-                      >
-                        {Icon && <Icon size={16} />}
+                      <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] ${color}`}>
+                        {Icon && <Icon size={14} />}
                         {label}
                       </div>
-                      <span className="text-xs font-medium text-neutral-600 group-hover:text-neutral-500 ml-auto">
+                      <span className="text-xs font-bold text-[var(--color-text-muted)] bg-[var(--color-surface-hover)]/60 px-2 py-0.5 rounded-full">
                         {friendsInGroup.length}
                       </span>
-                      <div className="flex-1 h-px bg-neutral-900 ml-4 group-hover:bg-neutral-800 transition-colors" />
+                      <div className="flex-1 h-px bg-white/5 ml-2" />
+                      {isCollapsed ? (
+                        <ChevronRight size={14} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors" />
+                      ) : (
+                        <ChevronDown size={14} className="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)] transition-colors" />
+                      )}
                     </button>
 
                     {!isCollapsed && (
@@ -430,9 +456,9 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
                           return (
                             <motion.div
                               key={friend.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ duration: 0.3 }}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.25 }}
                             >
                               <Card
                                 onClick={() => {
@@ -448,49 +474,47 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
                                     y: e.clientY
                                   })
                                 }}
-                                className="flex items-center p-4 bg-neutral-900/40 border-neutral-800 hover:border-neutral-700 transition-all group relative cursor-pointer hover:-translate-y-0.5 h-[88px]"
+                                className="relative flex items-center p-4 bg-[var(--color-surface)]/60 border-white/5 hover:border-white/10 hover:bg-[var(--color-surface-hover)]/60 hover:shadow-lg hover:shadow-black/30 transition-all duration-200 group cursor-pointer hover:-translate-y-0.5 h-[88px] overflow-hidden"
                               >
+                                {/* Avatar glow derived from status */}
+                                {(friend.status === AccountStatus.InGame || friend.status === AccountStatus.Online) && (
+                                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent pointer-events-none" />
+                                )}
+
                                 <div className="relative mr-4 shrink-0">
-                                  <Avatar className="w-14 h-14 border border-neutral-800">
+                                  <Avatar className="w-14 h-14 ring-2 ring-white/5 group-hover:ring-white/10 transition-all">
                                     <AvatarImage src={friend.avatarUrl} alt={friend.displayName} />
                                     <AvatarFallback>
                                       {friend.displayName.slice(0, 2).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div
-                                    className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full flex items-center justify-center ${getStatusRingColor(friend.status)}`}
-                                  >
-                                    <div
-                                      className={`w-2.5 h-2.5 rounded-full ${getStatusColor(friend.status)}`}
-                                    />
-                                  </div>
+                                    className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[var(--color-border)] ${getStatusColor(friend.status)} ${friend.status === AccountStatus.Online || friend.status === AccountStatus.InGame || friend.status === AccountStatus.InStudio ? 'status-dot-pulse' : ''}`}
+                                  />
 
                                   {isFavorite && (
-                                    <div className="absolute -top-1 -right-1 bg-neutral-950 rounded-full p-0.5 border border-neutral-800 z-10">
-                                      <Star size={12} className="fill-yellow-500 text-yellow-500" />
+                                    <div className="absolute -top-1.5 -right-1.5 bg-yellow-500 rounded-full p-1 z-10 shadow-md shadow-yellow-900/30">
+                                      <Star size={9} className="fill-black text-black" />
                                     </div>
                                   )}
                                 </div>
 
-                                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="font-bold text-white truncate text-base leading-none">
-                                      {friend.displayName}
-                                    </h3>
-                                  </div>
-                                  <span className="text-xs text-neutral-500 truncate leading-none">
+                                 <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                                  <h3 className="font-bold text-[var(--color-text-primary)] truncate text-sm leading-none group-hover:text-[var(--color-text-primary)] transition-colors">
+                                    {friend.displayName}
+                                  </h3>
+                                  <span className="text-xs text-[var(--color-text-muted)] truncate leading-none">
                                     @{friend.username}
                                   </span>
-
                                   {friend.gameActivity && (
-                                    <div className="flex items-center gap-1  min-w-0">
+                                    <div className="flex items-center gap-1.5 mt-0.5">
                                       {friend.status === AccountStatus.InStudio ? (
-                                        <Wrench size={16} className="text-orange-400 shrink-0" />
+                                        <Wrench size={12} className="text-orange-400 shrink-0" />
                                       ) : (
-                                        <Gamepad2 size={16} className="text-emerald-400 shrink-0" />
+                                        <Gamepad2 size={12} className="text-emerald-400 shrink-0" />
                                       )}
                                       <span
-                                        className={`text-sm font-medium truncate hover:underline cursor-pointer ${friend.status === AccountStatus.InStudio ? 'text-orange-400' : 'text-emerald-400'}`}
+                                        className={`text-xs font-medium truncate hover:underline cursor-pointer ${friend.status === AccountStatus.InStudio ? 'text-orange-400' : 'text-emerald-400'}`}
                                         onClick={(e) => {
                                           e.stopPropagation()
                                           if (friend.gameActivity?.placeId)
@@ -503,26 +527,25 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
                                   )}
                                 </div>
 
-                                <div className="flex flex-col items-end gap-2 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {shouldShowJoinButton && (
-                                    <Button
-                                      variant="default"
-                                      size="icon"
-                                      className="h-9 w-9 shrink-0 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-900/20"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        friend.gameActivity &&
-                                          onFriendJoin(
-                                            friend.gameActivity.placeId,
-                                            friend.gameActivity.jobId,
-                                            friend.userId
-                                          )
-                                      }}
-                                    >
-                                      <Play size={16} fill="currentColor" />
-                                    </Button>
-                                  )}
-                                </div>
+
+                                {shouldShowJoinButton && (
+                                  <Button
+                                    variant="default"
+                                    size="icon"
+                                    className="h-8 w-8 shrink-0 rounded-full bg-emerald-500 hover:bg-emerald-400 text-[var(--color-text-primary)] shadow-lg shadow-emerald-900/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      friend.gameActivity &&
+                                        onFriendJoin(
+                                          friend.gameActivity.placeId,
+                                          friend.gameActivity.jobId,
+                                          friend.userId
+                                        )
+                                    }}
+                                  >
+                                    <Play size={14} fill="currentColor" />
+                                  </Button>
+                                )}
                               </Card>
                             </motion.div>
                           )
@@ -552,19 +575,21 @@ const FriendsTab = ({ selectedAccount, onFriendJoin, onFriendsCountChange }: Fri
           }}
         />
 
+        {targetAccounts.length === 1 && (
         <FriendRequestsModal
           isOpen={isFriendRequestsModalOpen}
           onClose={() => setIsFriendRequestsModalOpen(false)}
-          selectedAccount={selectedAccount}
-          onFriendAdded={() => refetchFriends()}
+          selectedAccount={targetAccounts[0]}
+          onFriendAdded={() => friendsQueries.forEach(q => q.refetch())}
           onRequestCountChange={handleRequestCountChange}
         />
+      )}
 
         <AddFriendModal
           isOpen={isAddFriendModalOpen}
           onClose={() => setIsAddFriendModalOpen(false)}
-          selectedAccount={selectedAccount}
-          onFriendRequestSent={() => refetchFriends()}
+          selectedAccount={targetAccounts[0] || null}
+          onFriendRequestSent={() => friendsQueries.forEach(q => q.refetch())}
         />
 
         <FriendContextMenu

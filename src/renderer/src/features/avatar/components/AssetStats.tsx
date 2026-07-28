@@ -71,7 +71,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-white">Statistics</h3>
+      <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Statistics</h3>
 
       {/* Primary Stats */}
       <div className={cn('grid gap-3', primaryStats.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
@@ -91,20 +91,20 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
 
       {/* Metadata Stats */}
       <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
-          <Tag size={12} className="text-neutral-500" />
-          <span className="text-xs text-neutral-500">Type</span>
-          <span className="text-sm font-medium text-neutral-200">
+        <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50">
+          <Tag size={12} className="text-[var(--color-text-muted)]" />
+          <span className="text-xs text-[var(--color-text-muted)]">Type</span>
+          <span className="text-sm font-medium text-[var(--color-text-primary)]">
             {assetTypeName || details.itemType || 'Asset'}
           </span>
         </div>
 
         {/* Non-limited remaining */}
         {!isLimited && details.remaining !== undefined && details.remaining > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50">
-            <Tag size={12} className="text-neutral-500" />
-            <span className="text-xs text-neutral-500">Remaining</span>
-            <span className="text-sm font-medium text-neutral-200">
+          <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50">
+            <Tag size={12} className="text-[var(--color-text-muted)]" />
+            <span className="text-xs text-[var(--color-text-muted)]">Remaining</span>
+            <span className="text-sm font-medium text-[var(--color-text-primary)]">
               {details.remaining.toLocaleString()}
             </span>
           </div>
@@ -113,10 +113,10 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
         {/* Date stats */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50 cursor-default">
-              <Calendar size={12} className="text-neutral-500" />
-              <span className="text-xs text-neutral-500">Created</span>
-              <span className="text-sm font-medium text-neutral-200">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50 cursor-default">
+              <Calendar size={12} className="text-[var(--color-text-muted)]" />
+              <span className="text-xs text-[var(--color-text-muted)]">Created</span>
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 {formatDate(details.created)}
               </span>
             </div>
@@ -126,10 +126,10 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 px-3 py-2 bg-neutral-900/50 rounded-lg border border-neutral-800/50 cursor-default">
-              <Clock size={12} className="text-neutral-500" />
-              <span className="text-xs text-neutral-500">Updated</span>
-              <span className="text-sm font-medium text-neutral-200">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50 cursor-default">
+              <Clock size={12} className="text-[var(--color-text-muted)]" />
+              <span className="text-xs text-[var(--color-text-muted)]">Updated</span>
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 {formatDate(details.updated)}
               </span>
             </div>

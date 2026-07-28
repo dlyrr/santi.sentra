@@ -136,7 +136,7 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
         <DialogHeader>
           <div className="flex flex-col items-start text-left">
             <DialogTitle className="pl-0">Customize Installation</DialogTitle>
-            {install && <p className="text-xs text-neutral-500 mt-0.5">{install.name}</p>}
+            {install && <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{install.name}</p>}
           </div>
           <DialogClose />
         </DialogHeader>
@@ -159,7 +159,7 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
             <div className="p-6 space-y-6">
               {/* Presets */}
               <div className="space-y-4">
-                <h3 className="text-sm font-medium text-white">Presets</h3>
+                <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Presets</h3>
                 <div className="grid gap-2">
                   {Object.entries(FFLAG_PRESETS).map(([category, flags]) => (
                     <CustomDropdown
@@ -179,37 +179,37 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
                 </div>
               </div>
 
-              <div className="h-px bg-neutral-800" />
+              <div className="h-px bg-[var(--color-surface-hover)]" />
 
               {/* Existing Flags */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-white">Configured Flags</h3>
-                  <span className="text-xs text-neutral-500">
+                  <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Configured Flags</h3>
+                  <span className="text-xs text-[var(--color-text-muted)]">
                     {Object.keys(fflags).length} flags
                   </span>
                 </div>
-                <div className="space-y-2 max-h-[250px] overflow-y-auto scrollbar-thin pr-2 bg-neutral-900/50 p-2 rounded-lg border border-neutral-800/50">
+                <div className="space-y-2 max-h-[250px] overflow-y-auto scrollbar-thin pr-2 bg-[var(--color-surface)]/50 p-2 rounded-lg border border-[var(--color-border)]/50">
                   {Object.keys(fflags).length === 0 && (
-                    <div className="text-neutral-500 text-sm text-center py-6">
+                    <div className="text-[var(--color-text-muted)] text-sm text-center py-6">
                       No flags configured
                     </div>
                   )}
                   {Object.entries(fflags).map(([key, val]) => (
                     <div
                       key={key}
-                      className="flex items-center gap-2 bg-neutral-950 p-3 rounded-lg border border-neutral-800 group"
+                      className="flex items-center gap-2 bg-[var(--color-surface)] p-3 rounded-lg border border-[var(--color-border)] group"
                     >
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="flex-1 font-mono text-xs text-neutral-300 truncate cursor-help">
+                          <span className="flex-1 font-mono text-xs text-[var(--color-text-secondary)] truncate cursor-help">
                             {key}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>{key}</TooltipContent>
                       </Tooltip>
                       <input
-                        className="w-24 bg-neutral-900 border border-neutral-800 rounded px-2 py-0.5 text-xs text-emerald-400 font-mono focus:border-emerald-500/50 focus:outline-none"
+                        className="w-24 bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-2 py-0.5 text-xs text-emerald-400 font-mono focus:border-emerald-500/50 focus:outline-none"
                         value={String(val)}
                         onChange={(e) => {
                           const v = e.target.value
@@ -218,7 +218,7 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
                       />
                       <button
                         onClick={() => removeFlag(key)}
-                        className="pressable opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 transition-all p-1"
+                        className="pressable opacity-0 group-hover:opacity-100 text-[var(--color-text-muted)] hover:text-red-400 transition-all p-1"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -229,16 +229,16 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
 
               {/* Add New Flag */}
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-white">Add Custom Flag</h3>
+                <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Add Custom Flag</h3>
                 <div className="flex gap-2">
                   <input
-                    className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] font-mono placeholder:font-sans"
+                    className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] font-mono placeholder:font-sans"
                     placeholder="Flag Name"
                     value={newFlagKey}
                     onChange={(e) => setNewFlagKey(e.target.value)}
                   />
                   <input
-                    className="w-28 bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] font-mono placeholder:font-sans"
+                    className="w-28 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] font-mono placeholder:font-sans"
                     placeholder="Value"
                     value={newFlagValue}
                     onChange={(e) => setNewFlagValue(e.target.value)}
@@ -247,7 +247,7 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
                   <button
                     onClick={addFlag}
                     disabled={!newFlagKey}
-                    className="pressable px-3 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="pressable px-3 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg text-[var(--color-text-primary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus size={16} />
                   </button>
@@ -266,17 +266,17 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
           {customizeTab === 'font' && (
             <div className="p-6 space-y-6">
               <div className="text-center space-y-4 py-8">
-                <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto text-neutral-400">
+                <div className="w-16 h-16 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center mx-auto text-[var(--color-text-secondary)]">
                   <Type size={32} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-white">Custom Font</h3>
-                  <p className="text-sm text-neutral-500 mt-1 max-w-xs mx-auto">
+                  <h3 className="text-lg font-medium text-[var(--color-text-primary)]">Custom Font</h3>
+                  <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-xs mx-auto">
                     Upload a .ttf or .otf file to replace the default Roblox fonts.
                   </p>
                 </div>
                 <div className="flex justify-center">
-                  <label className="pressable inline-flex items-center gap-2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg cursor-pointer transition-colors font-medium text-sm border border-neutral-700">
+                  <label className="pressable inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] rounded-lg cursor-pointer transition-colors font-medium text-sm border border-[var(--color-border-strong)]">
                     <Download size={16} />
                     Select Font File
                     <input
@@ -294,17 +294,17 @@ export const CustomizeInstallationModal: React.FC<CustomizeInstallationModalProp
           {customizeTab === 'cursor' && (
             <div className="p-6 space-y-6">
               <div className="text-center space-y-4 py-8">
-                <div className="w-16 h-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto text-neutral-400">
+                <div className="w-16 h-16 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center mx-auto text-[var(--color-text-secondary)]">
                   <MousePointer2 size={32} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium text-white">Custom Cursor</h3>
-                  <p className="text-sm text-neutral-500 mt-1 max-w-xs mx-auto">
+                  <h3 className="text-lg font-medium text-[var(--color-text-primary)]">Custom Cursor</h3>
+                  <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-xs mx-auto">
                     Upload a .png image to replace the default Roblox cursor.
                   </p>
                 </div>
                 <div className="flex justify-center">
-                  <label className="pressable inline-flex items-center gap-2 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg cursor-pointer transition-colors font-medium text-sm border border-neutral-700">
+                  <label className="pressable inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] rounded-lg cursor-pointer transition-colors font-medium text-sm border border-[var(--color-border-strong)]">
                     <Download size={16} />
                     Select Cursor Image
                     <input

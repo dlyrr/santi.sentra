@@ -22,24 +22,43 @@ export class RateLimitError extends Error {
 
 export class TransactionService {
   /**
+   * Helper to execute requests with auto-retries for rate limits
+   */
+  private static async withRetry<T>(operation: () => Promise<T>, maxRetries = 2): Promise<T> {
+    let lastError: any
+    
+    for (let i = 0; i <= maxRetries; i++) {
+      try {
+        return await operation()
+      } catch (error) {
+        if (error instanceof RequestError && error.statusCode === 429) {
+          if (i === maxRetries) {
+            const resetHeader = error.headers?.['retry-after'] || error.headers?.['x-ratelimit-reset']
+            const resetSeconds = resetHeader
+              ? parseInt(Array.isArray(resetHeader) ? resetHeader[0] : resetHeader, 10)
+              : 60
+            throw new RateLimitError(resetSeconds)
+          }
+          // Sleep before retry (exponential backoff: 2s, 4s, etc. but bounded)
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, i + 1) * 1000))
+          continue
+        }
+        throw error
+      }
+    }
+    throw lastError
+  }
+
+  /**
    * Get available transaction types for a user
    */
   static async getTransactionTypes(cookie: string, userId: number): Promise<TransactionTypes> {
-    try {
+    return this.withRetry(async () => {
       return await request(transactionTypesSchema, {
         url: `https://apis.roblox.com/transaction-records/v1/users/${userId}/transaction-types`,
         cookie
       })
-    } catch (error) {
-      if (error instanceof RequestError && error.statusCode === 429) {
-        const resetHeader = error.headers?.['retry-after'] || error.headers?.['x-ratelimit-reset']
-        const resetSeconds = resetHeader
-          ? parseInt(Array.isArray(resetHeader) ? resetHeader[0] : resetHeader, 10)
-          : 60
-        throw new RateLimitError(resetSeconds)
-      }
-      throw error
-    }
+    })
   }
 
   /**
@@ -62,21 +81,12 @@ export class TransactionService {
       params.set('cursor', cursor)
     }
 
-    try {
+    return this.withRetry(async () => {
       return await request(transactionsResponseSchema, {
         url: `https://apis.roblox.com/transaction-records/v1/users/${userId}/transactions?${params.toString()}`,
         cookie
       })
-    } catch (error) {
-      if (error instanceof RequestError && error.statusCode === 429) {
-        const resetHeader = error.headers?.['retry-after'] || error.headers?.['x-ratelimit-reset']
-        const resetSeconds = resetHeader
-          ? parseInt(Array.isArray(resetHeader) ? resetHeader[0] : resetHeader, 10)
-          : 60
-        throw new RateLimitError(resetSeconds)
-      }
-      throw error
-    }
+    })
   }
 
   /**
@@ -92,20 +102,11 @@ export class TransactionService {
     // The API uses this to filter which types to include in the summary
     const usedTypes = 6735032 // This value includes all common transaction types
 
-    try {
+    return this.withRetry(async () => {
       return await request(transactionTotalsSchema, {
         url: `https://apis.roblox.com/transaction-records/v1/users/${userId}/transaction-totals?usedTypes=${usedTypes}&timeFrame=${timeFrame}&transactionType=summary`,
         cookie
       })
-    } catch (error) {
-      if (error instanceof RequestError && error.statusCode === 429) {
-        const resetHeader = error.headers?.['retry-after'] || error.headers?.['x-ratelimit-reset']
-        const resetSeconds = resetHeader
-          ? parseInt(Array.isArray(resetHeader) ? resetHeader[0] : resetHeader, 10)
-          : 60
-        throw new RateLimitError(resetSeconds)
-      }
-      throw error
-    }
+    })
   }
 }

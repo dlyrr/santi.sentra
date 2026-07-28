@@ -71,7 +71,7 @@ export class WatcherService {
    */
   stopWatching(): void {
     if (this.monitoringLoop) {
-      clearInterval(this.monitoringLoop)
+      clearTimeout(this.monitoringLoop)
       this.monitoringLoop = null
     }
 
@@ -154,7 +154,7 @@ export class WatcherService {
   /**
    * Stop watching a specific session
    */
-  stopSession(sessionId: string): void {
+  stopSession(sessionId: string, killProcess?: boolean): void {
     const session = this.sessionManager.getSessionById(sessionId)
     if (session) {
       // Cancel any pending restart
@@ -165,6 +165,21 @@ export class WatcherService {
       }
 
       console.log(`[Watcher] Session stopped for ${session.username}`)
+      
+      if (killProcess && session.pid) {
+        try {
+          process.kill(session.pid, 'SIGKILL')
+          console.log(`[Watcher] Killed process ${session.pid} for ${session.username}`)
+        } catch (err: any) {
+          console.error(`[Watcher] Failed to kill process ${session.pid}:`, err)
+        }
+      }
+
+      // Clean up the log file cache for this session to prevent memory leak
+      if (session.logFile) {
+        logMonitor.clearCache(session.logFile)
+      }
+
       this.sessionManager.removeSession(sessionId)
     }
   }
@@ -217,12 +232,21 @@ export class WatcherService {
    */
   private startMonitoringLoop(): void {
     if (this.monitoringLoop) {
-      clearInterval(this.monitoringLoop)
+      clearTimeout(this.monitoringLoop)
     }
 
-    this.monitoringLoop = setInterval(() => {
-      this.checkAllSessions()
-    }, this.config.checkIntervalMs)
+    // Use recursive setTimeout instead of setInterval to prevent overlapping async calls.
+    // If checkAllSessions takes longer than checkIntervalMs, setInterval would queue up
+    // multiple concurrent runs, causing race conditions on session state.
+    const scheduleNext = () => {
+      if (!this.config.enabled) return
+      this.monitoringLoop = setTimeout(async () => {
+        await this.checkAllSessions()
+        scheduleNext()
+      }, this.config.checkIntervalMs)
+    }
+
+    scheduleNext()
   }
 
   /**
@@ -290,22 +314,13 @@ export class WatcherService {
         }
 
         // Check client timeout restart if enabled
-        if (this.config.enableClientTimeout && this.config.clientTimeoutSeconds && this.config.clientTimeoutSeconds > 0) {
+        const robloxSettings = storageService.getRobloxSettings()
+        if (robloxSettings.timeoutRelaunchEnabled && robloxSettings.timeoutRelaunchSeconds && robloxSettings.timeoutRelaunchSeconds > 0) {
           if (session.lastStartTime) {
             const secondsRunning = (Date.now() - session.lastStartTime) / 1000
-            if (secondsRunning > this.config.clientTimeoutSeconds) {
-              console.log(
-                `[Watcher] Client timeout exceeded for ${session.username} (${Math.round(secondsRunning)}s > ${this.config.clientTimeoutSeconds}s) - restarting`
-              )
-              this.logEvent({
-                type: 'session-crashed',
-                sessionId: session.id,
-                username: session.username,
-                message: `Client timeout exceeded (${Math.round(secondsRunning)}s > ${this.config.clientTimeoutSeconds}s) - restarting automatically`,
-                details: { reason: 'CLIENT_TIMEOUT' }
-              })
-              await this.onSessionCrashed(session, `Client timeout exceeded (${Math.round(secondsRunning)}s)`)
-              continue
+            if (secondsRunning > robloxSettings.timeoutRelaunchSeconds) {
+              // Mark session as timed out - handled in batch below
+              ;(session as any).__pendingTimeoutRestart = true
             }
           }
         }
@@ -386,6 +401,59 @@ export class WatcherService {
           console.error(`[Watcher] Error checking logs for ${session.username}:`, logError)
         }
       }
+
+      // ── Staggered timeout restarts ────────────────────────────────────────
+      // Collect all sessions marked for timeout restart in this check cycle
+      const timedOutSessions = sessions.filter((s) => (s as any).__pendingTimeoutRestart)
+      if (timedOutSessions.length > 0) {
+        console.log(`[Watcher] ${timedOutSessions.length} session(s) hit timeout — staggering restarts 10s apart`)
+        // Clear the pending flag and schedule each one with an increasing offset
+        const STAGGER_INTERVAL_MS = 10_000 // 10s between each restart
+        for (let i = 0; i < timedOutSessions.length; i++) {
+          const session = timedOutSessions[i]
+          delete (session as any).__pendingTimeoutRestart
+
+          const staggerMs = i * STAGGER_INTERVAL_MS
+          const secondsRunning = session.lastStartTime
+            ? Math.round((Date.now() - session.lastStartTime) / 1000)
+            : 0
+
+          this.logEvent({
+            type: 'session-crashed',
+            sessionId: session.id,
+            username: session.username,
+            message: `Timeout exceeded (${secondsRunning}s) — restarting in ${Math.round(staggerMs / 1000)}s (slot ${i + 1}/${timedOutSessions.length})`,
+            details: { reason: 'CLIENT_TIMEOUT' }
+          })
+
+          // Mark as crashed immediately so the UI reflects it
+          this.sessionManager.updateSessionStatus(session.id, 'crashed')
+          this.sessionManager.updateLastCrashReason(session.id, `Client timeout exceeded (${secondsRunning}s)`)
+
+          // Kill process now, but delay the relaunch
+          // Fix: capture primitive values by value, not the mutable session object.
+          // The session may be removed/modified between the setTimeout scheduling and firing.
+          const capturedId = session.id
+          const capturedPid = session.pid
+          const capturedUsername = session.username
+          setTimeout(async () => {
+            try {
+              await ProcessMonitor.killProcess(capturedPid)
+            } catch {}
+            console.log(`[Watcher] Executing staggered restart for ${capturedUsername} (slot ${i + 1})`)
+            const liveSession = this.sessionManager.getSessionById(capturedId)
+            if (liveSession) {
+              await this.restartSession(liveSession)
+            }
+          }, staggerMs)
+        }
+
+        // Notify renderer of updated states
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send('watcher:sessions-updated', this.sessionManager.getAllSessions())
+        }
+      }
+
     } catch (error) {
       console.error('[WatcherService] Error in monitoring loop:', error)
       this.logEvent({
@@ -667,7 +735,7 @@ export class WatcherService {
       console.log(`[Watcher] Grace period started for ${session.username} (45s)`)
 
       // Notify renderer
-      if (this.mainWindow) {
+      if (this.mainWindow && !this.mainWindow.isDestroyed()) {
         this.mainWindow.webContents.send('watcher:sessions-updated', this.sessionManager.getAllSessions())
       }
     } catch (error) {

@@ -23,6 +23,7 @@ import {
   useCatalogThumbnails as useFetchCatalogThumbnails,
   useCatalogSearchSuggestions
 } from '@renderer/hooks/queries'
+import { useSelectedIds } from '@renderer/stores/useSelectionStore'
 import { useClickOutside } from '@renderer/hooks/useClickOutside'
 import type { CatalogItemsSearchParams, CatalogItemsSearchResponse } from '@renderer/ipc/windowApi'
 import {
@@ -142,12 +143,12 @@ const CatalogSearchBar = forwardRef<CatalogSearchBarRef, CatalogSearchBarProps>(
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-neutral-900 border border-neutral-800 rounded-[var(--menu-radius)] shadow-2xl z-[80] overflow-hidden max-h-60 overflow-y-auto ring-1 ring-[var(--accent-color-ring)]"
+              className="absolute top-full left-0 right-0 mt-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl z-[80] overflow-hidden max-h-60 overflow-y-auto ring-1 ring-[var(--accent-color-ring)]"
             >
               {suggestions.map((suggestion, index) => (
                 <button
                   key={index}
-                  className="w-full text-left px-4 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors truncate"
+                  className="w-full text-left px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-colors truncate"
                   onClick={() => {
                     setQuery(suggestion)
                     onSearch(suggestion)
@@ -173,9 +174,11 @@ interface CatalogTabProps {
 }
 
 const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) => {
-  // View Mode (persisted via Zustand)
   const viewMode = useCatalogViewMode()
   const setViewMode = useSetCatalogViewMode()
+  
+  const selectedIds = useSelectedIds()
+  const isBulkMode = selectedIds.size >= 2
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -231,7 +234,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     const params: CatalogItemsSearchParams = {
       limit: 120,
       sortType: parseInt(sortType, 10),
-      includeNotForSale: unavailableItems === 'show'
+      includeNotForSale: isBulkMode ? false : (unavailableItems === 'show')
     }
 
     // Only include salesTypeFilter if it's not '1' (All)
@@ -251,14 +254,18 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
       params.taxonomy = selectedCategory.taxonomy
     }
 
+    // In bulk mode, default to Roblox creator if none is selected
+    if (isBulkMode && !appliedCreatorName) {
+      params.creatorName = 'Roblox'
+    } else if (appliedCreatorName) {
+      params.creatorName = appliedCreatorName
+    }
+
     if (appliedMinPrice !== undefined) {
       params.minPrice = appliedMinPrice
     }
     if (appliedMaxPrice !== undefined) {
       params.maxPrice = appliedMaxPrice
-    }
-    if (appliedCreatorName) {
-      params.creatorName = appliedCreatorName
     }
 
     // Include cookie for authenticated requests (higher rate limits)
@@ -277,7 +284,8 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
     appliedMinPrice,
     appliedMaxPrice,
     appliedCreatorName,
-    cookie
+    cookie,
+    isBulkMode
   ])
 
   // Fetch catalog items
@@ -423,7 +431,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
 
   return (
     <TooltipProvider>
-      <div className="flex h-full bg-neutral-950">
+      <div className="flex h-full bg-[var(--color-app-bg)]">
         {/* Left Sidebar Filter */}
         <CatalogFilterSidebar
           categories={categories}
@@ -451,7 +459,14 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
           {/* Toolbar */}
           <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
             <div className="flex items-center gap-4 flex-1">
-              <h1 className="text-xl font-bold text-white">Catalog</h1>
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+                Catalog
+                {isBulkMode && (
+                  <span className="bg-blue-600/20 text-blue-400 text-xs px-2 py-1 rounded-md border border-blue-500/30 font-medium">
+                    Bulk Mode
+                  </span>
+                )}
+              </h1>
 
               {/* Sort */}
               <CustomDropdown
@@ -466,20 +481,20 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
             <div className="flex items-center gap-3">
               <CatalogSearchBar ref={searchBarRef} onSearch={setAppliedSearchQuery} />
 
-              <div className="h-6 w-[1px] bg-neutral-800 mx-1" />
+              <div className="h-6 w-[1px] bg-[var(--color-surface-hover)] mx-1" />
 
               {/* View Mode Toggle */}
-              <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800">
+              <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
                   onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Default View"
                 >
                   <Grid2X2 size={18} />
                 </button>
                 <button
                   onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Compact View"
                 >
                   <Grid3X3 size={18} />
@@ -516,7 +531,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
           />
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin bg-neutral-950">
+          <div className="flex-1 overflow-y-auto scrollbar-thin bg-[var(--color-app-bg)]">
             <AnimatePresence mode="wait">
               {isLoading && items.length === 0 ? (
                 <motion.div
@@ -530,12 +545,12 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
                   {Array.from({ length: 20 }).map((_, i) => (
                     <div
                       key={i}
-                      className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden"
+                      className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden"
                     >
                       <SkeletonSquareCard showBorder={false} />
                       <div className="p-3 space-y-2">
-                        <div className="h-4 bg-neutral-800 rounded animate-pulse w-3/4" />
-                        <div className="h-3 bg-neutral-800 rounded animate-pulse w-1/2" />
+                        <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse w-3/4" />
+                        <div className="h-3 bg-[var(--color-surface-hover)] rounded animate-pulse w-1/2" />
                       </div>
                     </div>
                   ))}
@@ -596,7 +611,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
                       Footer: () =>
                         isFetchingNextPage ? (
                           <div className="h-20 flex items-center justify-center">
-                            <div className="flex items-center gap-2 text-neutral-500">
+                            <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
                               <Loader2 size={20} className="animate-spin" />
                               <span>Loading more...</span>
                             </div>

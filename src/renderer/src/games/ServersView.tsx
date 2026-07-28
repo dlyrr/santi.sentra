@@ -309,9 +309,9 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
   }, [handleLoadMore, hasNextPage, isFetchingNextPage])
 
   return (
-    <div className="flex flex-col h-full bg-neutral-950/50 rounded-lg border border-neutral-800/50 overflow-hidden">
-      <div className="shrink-0 h-12 bg-neutral-900/50 border-b border-neutral-800/50 flex items-center justify-between px-4 z-20">
-        <div className="text-sm font-medium text-neutral-400">
+    <div className="flex flex-col h-full bg-[var(--color-app-bg)]/50 rounded-lg border border-[var(--color-border)]/50 overflow-hidden">
+      <div className="shrink-0 h-12 bg-[var(--color-surface)]/50 border-b border-[var(--color-border)]/50 flex items-center justify-between px-4 z-20">
+        <div className="text-sm font-medium text-[var(--color-text-secondary)]">
           {sortedServers.length > 0 ? `${sortedServers.length} Servers` : 'Server List'}
         </div>
 
@@ -324,7 +324,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                   onChange={() => setExcludeFullGames(!excludeFullGames)}
                 />
                 <span
-                  className="text-xs text-neutral-400 select-none cursor-pointer hover:text-neutral-300 transition-colors"
+                  className="text-xs text-[var(--color-text-secondary)] select-none cursor-pointer hover:text-[var(--color-text-secondary)] transition-colors"
                   onClick={() => setExcludeFullGames(!excludeFullGames)}
                 >
                   Exclude Full
@@ -355,15 +355,15 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
           ) : (
             <div className="h-full w-full overflow-auto scrollbar-thin">
               <table className="min-w-full table-fixed divide-y divide-neutral-800/50 text-sm">
-                <thead className="bg-neutral-900/50 sticky top-0 z-10 backdrop-blur-sm">
+                <thead className="bg-[var(--color-surface)]/50 sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-neutral-400 text-xs uppercase tracking-wider w-[30%]">
+                    <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[30%]">
                       Job ID
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-neutral-400 text-xs uppercase tracking-wider w-[25%]">
+                    <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[25%]">
                       <div
                         onClick={() => handleSort('region')}
-                        className="flex items-center gap-2 cursor-pointer select-none text-neutral-400 hover:text-white transition-colors"
+                        className="flex items-center gap-2 cursor-pointer select-none text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                       >
                         Region
                         {sortKey === 'region' &&
@@ -374,10 +374,10 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                           ))}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-neutral-400 text-xs uppercase tracking-wider w-[15%]">
+                    <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[15%]">
                       <div
                         onClick={() => handleSort('playing')}
-                        className="flex items-center gap-2 cursor-pointer select-none text-neutral-400 hover:text-white transition-colors"
+                        className="flex items-center gap-2 cursor-pointer select-none text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                       >
                         Players
                         {sortKey === 'playing' &&
@@ -388,10 +388,10 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                           ))}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-left font-semibold text-neutral-400 text-xs uppercase tracking-wider w-[15%]">
+                    <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[15%]">
                       <div
                         onClick={() => handleSort('ping')}
-                        className="flex items-center gap-2 cursor-pointer select-none text-neutral-400 hover:text-white transition-colors"
+                        className="flex items-center gap-2 cursor-pointer select-none text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                       >
                         Ping
                         {sortKey === 'ping' &&
@@ -408,20 +408,20 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                   {sortedServers.map((server) => (
                     <tr
                       key={server.id}
-                      className="group hover:bg-neutral-800/30 transition-colors cursor-pointer"
+                      className="group hover:bg-[var(--color-surface-hover)]/30 transition-colors cursor-pointer"
                       onClick={() => setSelectedServerId(server.id)}
                     >
                       <td className="px-4 py-3 align-middle">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="font-mono text-xs text-neutral-500 truncate select-all">
+                            <div className="font-mono text-xs text-[var(--color-text-muted)] truncate select-all">
                               {server.id}
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>{server.id}</TooltipContent>
                         </Tooltip>
                       </td>
-                      <td className="px-4 py-3 text-neutral-300">
+                      <td className="px-4 py-3 text-[var(--color-text-secondary)]">
                         <div className="flex items-center gap-2">
                           {server.region === 'Unknown' ? (
                             <>
@@ -432,7 +432,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                                     checkRobloxStatus(server)
                                   }}
                                   disabled={checkingRegions[server.id]}
-                                  className="pressable px-2 py-1 bg-neutral-800 hover:bg-neutral-700 rounded text-xs text-neutral-400 transition-colors disabled:opacity-50 flex items-center gap-1"
+                                  className="pressable px-2 py-1 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded text-xs text-[var(--color-text-secondary)] transition-colors disabled:opacity-50 flex items-center gap-1"
                                 >
                                   {checkingRegions[server.id] ? (
                                     <Loader2 size={10} className="animate-spin" />
@@ -441,7 +441,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                                   )}
                                 </button>
                               ) : (
-                                <span className="text-neutral-500 text-xs flex items-center gap-1">
+                                <span className="text-[var(--color-text-muted)] text-xs flex items-center gap-1">
                                   {checkingRegions[server.id] ? (
                                     <Loader2 size={10} className="animate-spin" />
                                   ) : (
@@ -455,9 +455,9 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-neutral-300">
+                      <td className="px-4 py-3 text-[var(--color-text-secondary)]">
                         {server.playing}{' '}
-                        <span className="text-neutral-600 text-xs">/ {server.maxPlayers}</span>
+                        <span className="text-[var(--color-text-muted)] text-xs">/ {server.maxPlayers}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -473,14 +473,14 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                     <tr ref={observerRef}>
                       <td colSpan={4} className="px-6 py-4 text-center">
                         {isFetchingNextPage ? (
-                          <div className="flex items-center justify-center gap-2 text-neutral-500 text-sm">
+                          <div className="flex items-center justify-center gap-2 text-[var(--color-text-muted)] text-sm">
                             <Loader2 className="animate-spin" size={14} />
                             <span>Loading more servers...</span>
                           </div>
                         ) : (
                           <button
                             onClick={handleLoadMore}
-                            className="pressable flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors opacity-70 hover:opacity-100 mx-auto"
+                            className="pressable flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors opacity-70 hover:opacity-100 mx-auto"
                           >
                             <ArrowRight size={14} />
                             Load More

@@ -71,7 +71,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
         <DialogBody>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-300 pb-1 block">Name</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Name</label>
               <input
                 type="text"
                 required
@@ -83,7 +83,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-300 pb-1 block">Type</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Type</label>
               <div className="grid grid-cols-2 gap-3">
                 {binaryTypeOptions.map((type) => {
                   const isStudio =
@@ -100,7 +100,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                       className={`pressable flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         isSelected
                           ? selectedClasses
-                          : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:bg-neutral-800'
+                          : 'bg-[var(--color-app-bg)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
                       }`}
                     >
                       {isStudio ? <Box size={20} /> : <Laptop size={20} />}
@@ -113,7 +113,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-300 pb-1 block">Version</label>
+                <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Version</label>
                 <CustomDropdown
                   options={
                     availableVersions.length > 0
@@ -131,7 +131,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-neutral-300 pb-1 block">Channel</label>
+                <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Channel</label>
                 <input
                   type="text"
                   value={newChannel}
@@ -143,22 +143,22 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
             </div>
 
             {/* Installation Path Selection */}
-            <div className="space-y-2 pt-2 border-t border-neutral-800">
-              <label className="text-sm font-medium text-neutral-300 pb-1 block">Import Accounts</label>
-              <p className="text-xs text-neutral-500 mb-2">Optionally import accounts from a backup file during installation</p>
+            <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Import Accounts</label>
+              <p className="text-xs text-[var(--color-text-muted)] mb-2">Optionally import accounts from a backup file during installation</p>
               
               {!customPath ? (
                 <button
                   type="button"
                   onClick={handleChoosePath}
-                  className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors text-sm text-neutral-300 hover:text-white flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center justify-center gap-2"
                 >
                   <FolderOpen size={14} />
                   Import accounts from backup
                 </button>
               ) : (
-                <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-neutral-800/50 flex items-center justify-between">
-                  <div className="flex-1 text-sm truncate text-neutral-300 flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)]/50 flex items-center justify-between">
+                  <div className="flex-1 text-sm truncate text-[var(--color-text-secondary)] flex items-center gap-2">
                     <FolderOpen size={14} className="text-[var(--accent-color)] flex-shrink-0" />
                     <span className="truncate">{customPath}</span>
                   </div>

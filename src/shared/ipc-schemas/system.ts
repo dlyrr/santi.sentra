@@ -93,7 +93,15 @@ export const settingsSchema = z.object({
   pinCode: pinCodeSchema,
   browserWindowWidth: z.number().nullable().optional(),
   browserWindowHeight: z.number().nullable().optional(),
-  showReturnPageButton: z.boolean().optional()
+  showReturnPageButton: z.boolean().optional(),
+  
+  // Performance & Utility Settings
+  antiAfkEnabled: z.boolean().optional(),
+  renameWindowsEnabled: z.boolean().optional(),
+  framerateCapEnabled: z.boolean().optional(),
+  framerateCapValue: z.number().optional(),
+  optimizeRamEnabled: z.boolean().optional(),
+  ramOptimizeLimit: z.number().optional()
 })
 
 export const settingsPatchSchema = z.object({
@@ -112,7 +120,13 @@ export const settingsPatchSchema = z.object({
   pinCode: pinCodeSchema.optional(),
   browserWindowWidth: z.number().nullable().optional(),
   browserWindowHeight: z.number().nullable().optional(),
-  showReturnPageButton: z.boolean().optional()
+  showReturnPageButton: z.boolean().optional(),
+  antiAfkEnabled: z.boolean().optional(),
+  renameWindowsEnabled: z.boolean().optional(),
+  framerateCapEnabled: z.boolean().optional(),
+  framerateCapValue: z.number().optional(),
+  optimizeRamEnabled: z.boolean().optional(),
+  ramOptimizeLimit: z.number().optional()
 })
 
 export type SettingsSnapshot = z.infer<typeof settingsSchema>

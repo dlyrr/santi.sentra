@@ -165,17 +165,17 @@ const UserListModal: React.FC<UserListModalProps> = ({
 
   return createPortal(
     <Dialog isOpen={isOpen} onClose={onClose} overlayClassName="z-[10000] p-4 backdrop-blur-sm">
-      <DialogContent className="relative w-full max-w-2xl h-[85vh] bg-neutral-950 border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 flex flex-col">
+      <DialogContent className="relative w-full max-w-2xl h-[85vh] bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 flex flex-col">
         {/* Header */}
-        <div className="flex flex-col gap-4 p-6 border-b border-neutral-800 bg-neutral-900/50 backdrop-blur-md z-10">
+        <div className="flex flex-col gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 backdrop-blur-md z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-strong)]">
-                <User className="text-white" size={20} />
+                <User className="text-[var(--color-text-primary)]" size={20} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white tracking-tight">{title}</h3>
-                <p className="text-sm text-neutral-400 font-medium">
+                <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">{title}</h3>
+                <p className="text-sm text-[var(--color-text-secondary)] font-medium">
                   {users.length > 0 ? `${users.length} loaded` : 'Loading...'}
                 </p>
               </div>
@@ -186,7 +186,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
           {/* Search Bar */}
           <div className="relative group">
             <Search
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 group-focus-within:text-white transition-colors"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-text-primary)] transition-colors"
               size={18}
             />
             <input
@@ -194,13 +194,13 @@ const UserListModal: React.FC<UserListModalProps> = ({
               placeholder={`Search ${title.toLowerCase()}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-color-ring)] focus:border-[var(--color-border-strong)] transition-all"
+              className="w-full bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color-ring)] focus:border-[var(--color-border-strong)] transition-all"
             />
           </div>
         </div>
 
         {/* List Content */}
-        <div className="flex-1 overflow-hidden bg-neutral-950/50 pt-2">
+        <div className="flex-1 overflow-hidden bg-[var(--color-app-bg)]/50 pt-2">
           {users.length > 0 ? (
             <Virtuoso
               data={filteredUsers}
@@ -221,7 +221,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                 return (
                   <div className="px-4 py-2">
                     <div
-                      className="group relative flex items-center gap-4 p-3 rounded-xl bg-neutral-900/30 border border-neutral-800/50 hover:bg-neutral-800/50 hover:border-neutral-700 transition-all duration-200 cursor-pointer"
+                      className="group relative flex items-center gap-4 p-3 rounded-xl bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]/50 hover:border-[var(--color-border-strong)] transition-all duration-200 cursor-pointer"
                       onClick={() =>
                         onSelectUser(typeof user.id === 'string' ? parseInt(user.id) : user.id)
                       }
@@ -245,13 +245,13 @@ const UserListModal: React.FC<UserListModalProps> = ({
                       {/* Info */}
                       <div className="flex-1 min-w-0 py-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-base font-bold text-white truncate transition-colors">
+                          <span className="text-base font-bold text-[var(--color-text-primary)] truncate transition-colors">
                             {user.displayName}
                           </span>
                           {user.hasVerifiedBadge && (
                             <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
                               <svg
-                                className="w-2.5 h-2.5 text-white"
+                                className="w-2.5 h-2.5 text-[var(--color-text-primary)]"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -267,7 +267,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-neutral-400">
+                        <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                           <span className="truncate font-medium">
                             @{user.username || user.name}
                           </span>
@@ -275,7 +275,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
 
                         {/* Status Text */}
                         {isOnline && (
-                          <div className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-neutral-400">
+                          <div className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[var(--color-text-secondary)]">
                             {getStatusIcon(status)}
                             <span className="truncate max-w-[200px]">
                               {getStatusText(status, user.lastLocation)}
@@ -286,7 +286,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
 
                       {/* Action Button */}
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity px-2">
-                        <div className="p-2 bg-white/5 rounded-lg text-neutral-300 hover:text-white hover:bg-white/10 transition-colors">
+                        <div className="p-2 bg-white/5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/10 transition-colors">
                           <ExternalLink size={18} />
                         </div>
                       </div>

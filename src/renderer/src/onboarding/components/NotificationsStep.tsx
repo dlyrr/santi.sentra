@@ -59,11 +59,11 @@ const NotificationsStep: React.FC<NotificationsStepProps> = ({ onComplete }) => 
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <div className="w-16 h-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mx-auto mb-4">
-          <Bell className="w-8 h-8 text-neutral-400" />
+        <div className="w-16 h-16 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
+          <Bell className="w-8 h-8 text-[var(--color-text-secondary)]" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-1">Notifications</h3>
-        <p className="text-sm text-neutral-500">
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Notifications</h3>
+        <p className="text-sm text-[var(--color-text-muted)]">
           Choose which notifications you&apos;d like to receive
         </p>
       </div>
@@ -75,17 +75,17 @@ const NotificationsStep: React.FC<NotificationsStepProps> = ({ onComplete }) => 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="flex items-start space-x-3 p-4 bg-neutral-900/50 rounded-lg border border-neutral-800 hover:border-neutral-700 transition-colors cursor-pointer"
+            className="flex items-start space-x-3 p-4 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors cursor-pointer"
             onClick={notification.onChange}
           >
             <div className="mt-0.5">
               <CustomCheckbox checked={notification.checked} onChange={notification.onChange} />
             </div>
             <div className="flex-1">
-              <label className="text-sm font-medium text-neutral-300 block mb-0.5 cursor-pointer">
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-0.5 cursor-pointer">
                 {notification.label}
               </label>
-              <p className="text-xs text-neutral-500 leading-relaxed">{notification.description}</p>
+              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{notification.description}</p>
             </div>
           </motion.div>
         ))}

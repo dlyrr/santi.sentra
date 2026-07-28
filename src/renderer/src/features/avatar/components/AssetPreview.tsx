@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { Image as ImageIcon, Box, Eye, Undo2, Loader2 } from 'lucide-react'
 import { cn } from '@renderer/lib/utils'
-import Avatar3DThumbnail from '@renderer/components/Avatar/Avatar3DThumbnail'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
+
+const Avatar3DThumbnail = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail'))
 
 interface AssetPreviewProps {
   viewMode: '2d' | '3d'
@@ -60,7 +61,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
   }
 
   return (
-    <div className="w-full lg:w-1/2 relative flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-800 bg-neutral-950 overflow-hidden group">
+    <div className="w-full lg:w-1/2 relative flex flex-col border-b lg:border-b-0 lg:border-r border-[var(--color-border)] bg-[var(--color-app-bg)] overflow-hidden group">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800 via-neutral-900 to-neutral-950" />
       <div
@@ -78,18 +79,20 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
         onContextMenu={onContextMenu}
       >
         {shouldShowTryOnModel ? (
-          <Avatar3DThumbnail
-            manifestUrl={tryOnManifestUrl || tryOn3DFallback || undefined}
-            type="avatar"
-            cookie={cookie}
-            className="w-full h-full"
-            autoRotateSpeed={0.005}
-            cameraDistanceFactor={2}
-            manualRotationEnabled={true}
-            manualZoomEnabled={true}
-            manualPanEnabled={false}
-            onError={on3DError}
-          />
+          <Suspense fallback={null}>
+            <Avatar3DThumbnail
+              manifestUrl={tryOnManifestUrl || tryOn3DFallback || undefined}
+              type="avatar"
+              cookie={cookie}
+              className="w-full h-full"
+              autoRotateSpeed={0.005}
+              cameraDistanceFactor={2}
+              manualRotationEnabled={true}
+              manualZoomEnabled={true}
+              manualPanEnabled={false}
+              onError={on3DError}
+            />
+          </Suspense>
         ) : shouldShowTryOnImage ? (
           // Show 2D rendered preview when the render API returns a PNG image
           <div className="w-full h-full flex items-center justify-center p-8">
@@ -113,22 +116,24 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
             />
           </div>
         ) : (
-          <Avatar3DThumbnail
-            assetId={currentAssetId}
-            assetTypeId={assetTypeId}
-            cookie={cookie}
-            className="w-full h-full"
-            autoRotateSpeed={0.005}
-            cameraDistanceFactor={2.5}
-            manualRotationEnabled={true}
-            manualZoomEnabled={true}
-            onError={on3DError}
-          />
+          <Suspense fallback={null}>
+            <Avatar3DThumbnail
+              assetId={currentAssetId}
+              assetTypeId={assetTypeId}
+              cookie={cookie}
+              className="w-full h-full"
+              autoRotateSpeed={0.005}
+              cameraDistanceFactor={2.5}
+              manualRotationEnabled={true}
+              manualZoomEnabled={true}
+              onError={on3DError}
+            />
+          </Suspense>
         )}
 
         {/* Try-on indicator */}
         {isTryingOn && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-emerald-500/90 backdrop-blur text-white text-xs font-medium rounded-full flex items-center gap-2 shadow-lg z-20">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-emerald-500/90 backdrop-blur text-[var(--color-text-primary)] text-xs font-medium rounded-full flex items-center gap-2 shadow-lg z-20">
             <Eye size={14} />
             Trying On
           </div>
@@ -137,14 +142,14 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
         {/* View Toggle & Try On Controls */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
           {!isTryingOn && has3DView && (
-            <div className="flex items-center p-1 bg-neutral-950/80 backdrop-blur border border-neutral-800 rounded-lg shadow-xl">
+            <div className="flex items-center p-1 bg-[var(--color-app-bg)]/80 backdrop-blur border border-[var(--color-border)] rounded-lg shadow-xl">
               <button
                 onClick={() => onViewModeChange('2d')}
                 className={cn(
                   'p-2 rounded transition-colors',
                   viewMode === '2d'
-                    ? 'bg-neutral-800 text-white shadow-sm'
-                    : 'text-neutral-500 hover:text-neutral-300'
+                    ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 )}
               >
                 <ImageIcon size={18} />
@@ -154,8 +159,8 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
                 className={cn(
                   'p-2 rounded transition-colors',
                   viewMode === '3d'
-                    ? 'bg-neutral-800 text-white shadow-sm'
-                    : 'text-neutral-500 hover:text-neutral-300'
+                    ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
                 )}
               >
                 <Box size={18} />
@@ -173,8 +178,8 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
                   className={cn(
                     'p-2.5 rounded-lg backdrop-blur border shadow-xl transition-all flex items-center gap-2',
                     isTryingOn
-                      ? 'bg-amber-500/90 hover:bg-amber-400/90 border-amber-400/50 text-white'
-                      : 'bg-neutral-950/80 hover:bg-neutral-900/80 border-neutral-800 text-neutral-300 hover:text-white',
+                      ? 'bg-amber-500/90 hover:bg-amber-400/90 border-amber-400/50 text-[var(--color-text-primary)]'
+                      : 'bg-[var(--color-app-bg)]/80 hover:bg-[var(--color-surface)]/80 border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                     tryOnLoading && 'opacity-70 cursor-wait'
                   )}
                 >

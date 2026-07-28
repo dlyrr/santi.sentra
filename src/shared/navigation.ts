@@ -6,7 +6,6 @@ export const SIDEBAR_TAB_IDS = [
   'Friends',
   'Groups',
   'Avatar',
-  'News',
   'Games',
   'Catalog',
   'Inventory',
@@ -17,7 +16,6 @@ export const SIDEBAR_TAB_IDS = [
   'Macro',
   'Sniper',
   'Generator',
-  'Proxy',
   'Logs',
   'Settings',
   'AccountSettings'
@@ -29,7 +27,6 @@ export const DEFAULT_SIDEBAR_TAB_ORDER: TabId[] = [
   'Friends',
   'Groups',
   'Avatar',
-  'News',
   'Games',
   'Catalog',
   'Inventory',
@@ -40,7 +37,6 @@ export const DEFAULT_SIDEBAR_TAB_ORDER: TabId[] = [
   'Macro',
   'Sniper',
   'Generator',
-  'Proxy',
   'Logs',
   'Settings',
   'AccountSettings'

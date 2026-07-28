@@ -18,8 +18,9 @@ export function useAccounts() {
       // Ensure result is always an array
       return Array.isArray(result) ? result : []
     },
-    staleTime: Infinity, // Accounts are managed locally, don't refetch
-    initialData: [] // Default to empty array
+    staleTime: Infinity, // Accounts are managed locally, don't auto-refetch
+    refetchOnMount: false, // Don't re-fetch on component remount (we use setQueryData)
+    refetchOnWindowFocus: false // Accounts don't change externally
   })
 }
 
@@ -44,8 +45,23 @@ export function useSaveAccounts() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (accounts: Account[]) => window.api.saveAccounts(accounts),
+    mutationFn: (accounts: Account[]) => {
+      console.log('[useSaveAccounts] Calling window.api.saveAccounts with', accounts.length, 'accounts')
+      return window.api.saveAccounts(accounts).then((result) => {
+        console.log('[useSaveAccounts] ✓ saveAccounts completed successfully, result:', result)
+        return result
+      }).catch((err) => {
+        console.error('[useSaveAccounts] ✗ saveAccounts failed with error:', err)
+        console.error('[useSaveAccounts] Error details:', {
+          message: err?.message,
+          stack: err?.stack,
+          toString: String(err)
+        })
+        throw err
+      })
+    },
     onMutate: async (newAccounts) => {
+      console.log('[useSaveAccounts] onMutate: optimistically updating cache with', newAccounts.length, 'accounts')
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.list() })
 
@@ -57,9 +73,14 @@ export function useSaveAccounts() {
 
       return { previousAccounts }
     },
-    onError: (_err, _newAccounts, context) => {
+    onSuccess: (result, newAccounts) => {
+      console.log('[useSaveAccounts] onSuccess: mutation completed, saved', newAccounts.length, 'accounts')
+    },
+    onError: (err, _newAccounts, context) => {
+      console.error('[useSaveAccounts] onError: mutation failed, rolling back. Error:', err instanceof Error ? err.message : String(err))
       // Rollback on error
       if (context?.previousAccounts) {
+        console.log('[useSaveAccounts] onError: rolling back to', context.previousAccounts.length, 'previous accounts')
         queryClient.setQueryData(queryKeys.accounts.list(), context.previousAccounts)
       }
       // Removed notification

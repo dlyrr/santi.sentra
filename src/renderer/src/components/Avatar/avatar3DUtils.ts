@@ -39,6 +39,8 @@ const buildMaterialMap = async (mtlText: string) => {
 
   const texturePromises: Promise<void>[] = []
   const textureCache: Record<string, THREE.Texture> = {}
+  // Do not store blobUrls here to immediately revoke; they must live until disposal
+  // so three.js can lazily upload them to the GPU on the first render frame.
 
   for (const line of lines) {
     const trimmedLine = line.trim()
@@ -63,12 +65,34 @@ const buildMaterialMap = async (mtlText: string) => {
           return
         }
 
-        const textureUrl = `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`
-        textureLoader.load(
-          textureUrl,
-          (tex) => {
+        const textureUrl = textureHash.startsWith('http://') || textureHash.startsWith('https://') 
+          ? textureHash 
+          : `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`
+
+        let currentBlobUrl: string | null = null
+
+        // Use fetch() + Blob URL to bypass Electron CORS/tainted-canvas restrictions.
+        // THREE.TextureLoader uses <img crossOrigin="anonymous"> which requires
+        // the CDN to return CORS headers — fetching as a blob avoids this entirely.
+        fetch(textureUrl)
+          .then((res) => {
+            if (!res.ok) throw new Error(`Texture fetch failed: ${res.status}`)
+            return res.blob()
+          })
+          .then(
+            (blob) =>
+              new Promise<THREE.Texture>((resolveTex, rejectTex) => {
+                currentBlobUrl = URL.createObjectURL(blob)
+                textureLoader.load(currentBlobUrl, resolveTex, undefined, rejectTex)
+              })
+          )
+          .then((tex) => {
             tex.flipY = true
             tex.colorSpace = THREE.SRGBColorSpace
+            // Store the blob URL on the texture so it can be revoked upon disposal
+            if (currentBlobUrl) {
+              tex.userData = { blobUrl: currentBlobUrl }
+            }
             textureCache[textureHash] = tex
             materialMap[matName] = new THREE.MeshStandardMaterial({
               map: tex,
@@ -77,10 +101,12 @@ const buildMaterialMap = async (mtlText: string) => {
               alphaTest: 0.5
             })
             resolve()
-          },
-          undefined,
-          () => resolve()
-        )
+          })
+          .catch((err) => {
+            console.error('Failed to load texture for material', matName, err)
+            // Texture failed — material stays without a map, resolve so rendering isn't blocked
+            resolve()
+          })
       })
 
       texturePromises.push(promise)
@@ -88,8 +114,10 @@ const buildMaterialMap = async (mtlText: string) => {
   }
 
   await Promise.all(texturePromises)
+
   return materialMap
 }
+
 
 export const dispose3DObject = (obj: THREE.Object3D | null) => {
   if (!obj) return
@@ -103,6 +131,9 @@ export const dispose3DObject = (obj: THREE.Object3D | null) => {
           : []
       materials.forEach((material: any) => {
         if (material.map) {
+          if (material.map.userData?.blobUrl) {
+            URL.revokeObjectURL(material.map.userData.blobUrl)
+          }
           material.map.dispose()
         }
         material.dispose?.()

@@ -167,8 +167,8 @@ const Section: React.FC<{
 }> = ({ title, description, children }) => (
   <div className="space-y-4">
     <div>
-      <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
-      {description && <p className="text-sm text-neutral-400">{description}</p>}
+      <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">{title}</h3>
+      {description && <p className="text-sm text-[var(--color-text-secondary)]">{description}</p>}
     </div>
     <div className="space-y-4">{children}</div>
   </div>
@@ -181,7 +181,7 @@ const SettingsCard: React.FC<{
   actions?: React.ReactNode
   children: React.ReactNode
 }> = ({ title, description, icon, actions, children }) => (
-  <div className="p-4 bg-[var(--color-surface-strong)] rounded-[var(--radius-xl)] border border-neutral-800/50 hover:border-neutral-700/50 transition-colors space-y-3 [--card-radius:var(--radius-xl)] [--card-gap:0.5rem] [--control-radius:calc(var(--card-radius)_-_var(--card-gap))]">
+  <div className="p-4 bg-[var(--color-surface-strong)] rounded-[var(--radius-xl)] border border-[var(--color-border)]/50 hover:border-[var(--color-border-strong)]/50 transition-colors space-y-3 [--card-radius:var(--radius-xl)] [--card-gap:0.5rem] [--control-radius:calc(var(--card-radius)_-_var(--card-gap))]">
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-3">
         {icon && (
@@ -190,8 +190,8 @@ const SettingsCard: React.FC<{
           </div>
         )}
         <div>
-          <h4 className="text-sm font-medium text-white">{title}</h4>
-          {description && <p className="text-xs text-neutral-500 mt-0.5">{description}</p>}
+          <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{title}</h4>
+          {description && <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{description}</p>}
         </div>
       </div>
       {actions}
@@ -209,16 +209,16 @@ const ToggleRow: React.FC<{
   icon?: React.ReactNode
   hint?: React.ReactNode
 }> = ({ title, description, checked, onChange, disabled, icon, hint }) => (
-  <div className="flex items-start gap-3 p-4 bg-[var(--color-surface-muted)] rounded-[var(--control-radius)] border border-neutral-800/50 hover:border-neutral-700/50 transition-colors">
+  <div className="flex items-start gap-3 p-4 bg-[var(--color-surface-muted)] rounded-[var(--control-radius)] border border-[var(--color-border)]/50 hover:border-[var(--color-border-strong)]/50 transition-colors">
     <div className="mt-1">
       <CustomCheckbox checked={checked} onChange={onChange} disabled={disabled} />
     </div>
     <div className="space-y-1">
-      <div className="flex items-center gap-2 text-sm font-medium text-neutral-300">
+      <div className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-secondary)]">
         {icon}
         <span>{title}</span>
       </div>
-      <p className="text-xs text-neutral-500 leading-relaxed">{description}</p>
+      <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{description}</p>
       {hint}
     </div>
   </div>
@@ -787,7 +787,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           aria-label={`PIN digit ${index + 1}`}
           tabIndex={0}
           style={{ pointerEvents: 'auto' }}
-          className="w-10 h-12 text-center text-xl font-mono rounded-lg border-2 bg-neutral-900 text-white focus:outline-none transition-all border-neutral-700 focus:border-neutral-500"
+          className="w-10 h-12 text-center text-xl font-mono rounded-lg border-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none transition-all border-[var(--color-border-strong)] focus:border-[var(--accent-color)]"
         />
       ))}
     </div>
@@ -1162,8 +1162,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           {activeTab === 'general' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">General Settings</h3>
-                <p className="text-sm text-neutral-400">
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">General Settings</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Manage your account and application preferences.
                 </p>
               </div>
@@ -1244,7 +1244,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     <button
                       type="button"
                       onClick={handleResetNavigation}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700 hover:bg-neutral-800/40 transition-colors"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)]/40 transition-colors"
                     >
                       <RotateCcw size={14} />
                       Reset
@@ -1259,7 +1259,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                       return (
                         <div
                           key={tab.id}
-                          className="flex items-center justify-between gap-3 px-3 py-2 rounded-[var(--control-radius)] border border-neutral-800 bg-[var(--color-surface-muted)]"
+                          className="flex items-center justify-between gap-3 px-3 py-2 rounded-[var(--control-radius)] border border-[var(--color-border)] bg-[var(--color-surface-muted)]"
                         >
                           <div className="flex items-center gap-3 min-w-0">
                             <CustomCheckbox
@@ -1267,10 +1267,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                               disabled={isLocked}
                               onChange={() => handleToggleTabVisibility(tab.id)}
                             />
-                            <tab.icon size={16} className="text-neutral-400 flex-shrink-0" />
+                            <tab.icon size={16} className="text-[var(--color-text-secondary)] flex-shrink-0" />
                             <div className="min-w-0">
-                              <div className="text-sm font-medium text-white">{tab.label}</div>
-                              <div className="flex items-center gap-1 text-xs text-neutral-500">
+                              <div className="text-sm font-medium text-[var(--color-text-primary)]">{tab.label}</div>
+                              <div className="flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
                                 {isLocked ? (
                                   <span className="text-[var(--accent-color)] font-medium">
                                     Always visible
@@ -1295,7 +1295,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                               type="button"
                               onClick={() => handleMoveTab(tab.id, -1)}
                               disabled={index === 0}
-                              className="p-2 rounded-[var(--control-radius)] border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700 hover:bg-neutral-800/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                              className="p-2 rounded-[var(--control-radius)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)]/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                               aria-label={`Move ${tab.label} up`}
                             >
                               <ChevronUp size={14} />
@@ -1304,7 +1304,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                               type="button"
                               onClick={() => handleMoveTab(tab.id, 1)}
                               disabled={index === sidebarTabs.length - 1}
-                              className="p-2 rounded-[var(--control-radius)] border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700 hover:bg-neutral-800/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                              className="p-2 rounded-[var(--control-radius)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)]/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                               aria-label={`Move ${tab.label} down`}
                             >
                               <ChevronDown size={14} />
@@ -1351,7 +1351,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col">
-                      <label className="text-xs text-neutral-400">Width (px)</label>
+                      <label className="text-xs text-[var(--color-text-secondary)]">Width (px)</label>
                       <input
                         type="number"
                         min={200}
@@ -1360,12 +1360,12 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         onChange={(e) =>
                           onUpdateSettings({ browserWindowWidth: e.target.value === '' ? null : Number(e.target.value) })
                         }
-                        className="w-32 p-2 rounded-md bg-neutral-900 border border-neutral-800 text-white"
+                        className="w-32 p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)]"
                       />
                     </div>
 
                     <div className="flex flex-col">
-                      <label className="text-xs text-neutral-400">Height (px)</label>
+                      <label className="text-xs text-[var(--color-text-secondary)]">Height (px)</label>
                       <input
                         type="number"
                         min={200}
@@ -1374,7 +1374,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         onChange={(e) =>
                           onUpdateSettings({ browserWindowHeight: e.target.value === '' ? null : Number(e.target.value) })
                         }
-                        className="w-32 p-2 rounded-md bg-neutral-900 border border-neutral-800 text-white"
+                        className="w-32 p-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)]"
                       />
                     </div>
                   </div>
@@ -1389,8 +1389,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           {activeTab === 'appearance' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Appearance</h3>
-                <p className="text-sm text-neutral-400">
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Appearance</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Customize fonts and visual styles across the app.
                 </p>
               </div>
@@ -1439,14 +1439,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     <button
                       type="button"
                       onClick={() => setIsColorPickerOpen(true)}
-                      className="h-12 w-12 rounded-[var(--control-radius)] border border-neutral-800 bg-transparent cursor-pointer hover:border-neutral-700 transition-colors flex-shrink-0"
+                      className="h-12 w-12 rounded-[var(--control-radius)] border border-[var(--color-border)] bg-transparent cursor-pointer hover:border-[var(--color-border-strong)] transition-colors flex-shrink-0"
                       style={{ backgroundColor: settings.accentColor }}
                       aria-label="Select accent color"
                     />
                     <div className="flex-1 flex flex-col justify-center gap-2">
                       <label
                         htmlFor="accent-color-hex"
-                        className="text-xs text-neutral-500 uppercase tracking-wide"
+                        className="text-xs text-[var(--color-text-muted)] uppercase tracking-wide"
                       >
                         Hex value
                       </label>
@@ -1457,18 +1457,18 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         readOnly
                         placeholder="#ffffff"
                         spellCheck={false}
-                        className="mt-1 w-full bg-[var(--color-surface-muted)] border border-neutral-800 rounded-[var(--radius-md)] px-3 py-2 text-sm text-white focus:border-[var(--accent-color)] focus:outline-none cursor-pointer"
+                        className="mt-1 w-full bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-[var(--radius-md)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--accent-color)] focus:outline-none cursor-pointer"
                         onClick={() => setIsColorPickerOpen(true)}
                       />
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={handleResetAccent}
-                          className="px-3 py-2 text-xs font-medium rounded-[var(--control-radius)] border border-neutral-800 text-neutral-200 hover:border-neutral-700 hover:text-white transition-colors"
+                          className="px-3 py-2 text-xs font-medium rounded-[var(--control-radius)] border border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] transition-colors"
                         >
                           Reset to default
                         </button>
-                        <span className="text-xs text-neutral-500 self-center">
+                        <span className="text-xs text-[var(--color-text-muted)] self-center">
                           Default: {DEFAULT_ACCENT_COLOR}
                         </span>
                       </div>
@@ -1488,7 +1488,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     placeholder="Select custom theme"
                   />
                   {displayedCustomTheme !== 'default' && (
-                    <p className="text-xs text-neutral-500 mt-3">
+                    <p className="text-xs text-[var(--color-text-muted)] mt-3">
                       Active custom theme with auto-applied colors. Switch to "Default" to restore previous colors.
                     </p>
                   )}
@@ -1518,7 +1518,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         }
                       }}
                       placeholder="Enter Google Font name (e.g., Roboto)"
-                      className="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:border-[var(--accent-color)] focus:outline-none"
+                      className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--accent-color)] focus:outline-none"
                     />
                     <button
                       onClick={handleAddFont}
@@ -1536,7 +1536,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
 
                   {fontError && <p className="text-xs text-red-400">{fontError}</p>}
 
-                  <p className="text-xs text-neutral-600">
+                  <p className="text-xs text-[var(--color-text-muted)]">
                     Browse available fonts at{' '}
                     <a
                       href="https://fonts.google.com"
@@ -1561,12 +1561,12 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         'w-full flex items-center justify-between p-3 rounded-lg border transition-colors text-left',
                         activeFont === null
                           ? 'border-[var(--accent-color)] bg-[var(--accent-color-faint)]'
-                          : 'border-neutral-800 bg-neutral-900/30 hover:border-neutral-700'
+                          : 'border-[var(--color-border)] bg-[var(--color-surface)]/30 hover:border-[var(--color-border-strong)]'
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <span
-                          className="text-sm text-white"
+                          className="text-sm text-[var(--color-text-primary)]"
                           style={{ fontFamily: "'Inter', sans-serif" }}
                         >
                           Inter (Default)
@@ -1584,7 +1584,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                           'w-full flex items-center justify-between p-3 rounded-lg border transition-colors',
                           activeFont === font.family
                             ? 'border-[var(--accent-color)] bg-[var(--accent-color-faint)]'
-                            : 'border-neutral-800 bg-neutral-900/30 hover:border-neutral-700'
+                            : 'border-[var(--color-border)] bg-[var(--color-surface)]/30 hover:border-[var(--color-border-strong)]'
                         )}
                       >
                         <button
@@ -1592,7 +1592,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                           className="flex-1 flex items-center gap-3 text-left"
                         >
                           <span
-                            className="text-sm text-white"
+                            className="text-sm text-[var(--color-text-primary)]"
                             style={{ fontFamily: `'${font.family}', sans-serif` }}
                           >
                             {font.family}
@@ -1604,7 +1604,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                           )}
                           <button
                             onClick={() => removeFontMutation.mutate(font.family)}
-                            className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                            className="p-1.5 text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                             title="Remove font"
                           >
                             <Trash2 size={14} />
@@ -1614,7 +1614,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     ))}
 
                     {customFonts.length === 0 && (
-                      <p className="text-sm text-neutral-600 py-4 text-center">
+                      <p className="text-sm text-[var(--color-text-muted)] py-4 text-center">
                         No custom fonts added yet. Add a font from Google Fonts above.
                       </p>
                     )}
@@ -1628,8 +1628,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           {activeTab === 'notifications' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Notifications</h3>
-                <p className="text-sm text-neutral-400">
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Notifications</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Configure how and when you want to be notified.
                 </p>
               </div>
@@ -1689,8 +1689,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           {activeTab === 'security' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Security</h3>
-                <p className="text-sm text-neutral-400">
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Security</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Manage security settings and access controls.
                 </p>
               </div>
@@ -1706,12 +1706,12 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                       onClick={() => setIsPinDialogOpen(true)}
                       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${settings.pinCode
                         ? 'text-green-400 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
-                        : 'text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700'
+                        : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)]'
                         }`}
                     >
                       {settings.pinCode ? 'PIN Enabled - Click to Manage' : 'Set Up PIN'}
                     </button>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-[var(--color-text-muted)]">
                       Require the PIN at startup to keep your launcher locked down.
                     </p>
                   </div>
@@ -1732,11 +1732,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         setBackupPin(Array(6).fill(''))
                         setBackupPinConfirm(Array(6).fill(''))
                       }}
-                      className="px-4 py-2 text-sm font-medium rounded-lg text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition-colors"
+                      className="px-4 py-2 text-sm font-medium rounded-lg text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] transition-colors"
                     >
                       Create Backup
                     </button>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-[var(--color-text-muted)]">
                       Backup all accounts to a secure file.
                     </p>
                   </div>
@@ -1756,11 +1756,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         setRestoreBackupPin(Array(6).fill(''))
                         setSelectedBackupFile(null)
                       }}
-                      className="px-4 py-2 text-sm font-medium rounded-lg text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition-colors"
+                      className="px-4 py-2 text-sm font-medium rounded-lg text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] transition-colors"
                     >
                       Load Backup
                     </button>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-[var(--color-text-muted)]">
                       Restore accounts from a backup file.
                     </p>
                   </div>
@@ -1799,26 +1799,26 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                           }
                         }}
                         disabled={isLoadingUserAgent}
-                        className="px-4 py-2 text-sm font-medium rounded-lg text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-2 text-sm font-medium rounded-lg text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         <RotateCcw size={14} />
                         Swap User Agent
                       </button>
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-[var(--color-text-muted)]">
                         Current: #{userAgentIndex + 1} of {allUserAgents.length}
                       </p>
                     </div>
 
-                    <div className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-700/50">
-                      <p className="text-xs text-neutral-500 mb-2">Current user agent:</p>
-                      <p className="text-xs text-neutral-300 break-words font-mono">{currentUserAgent || 'Loading...'}</p>
+                    <div className="bg-[var(--color-surface-hover)]/50 p-3 rounded-lg border border-[var(--color-border-strong)]/50">
+                      <p className="text-xs text-[var(--color-text-muted)] mb-2">Current user agent:</p>
+                      <p className="text-xs text-[var(--color-text-secondary)] break-words font-mono">{currentUserAgent || 'Loading...'}</p>
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+                    <div className="flex items-center gap-3 p-3 bg-[var(--color-surface-hover)]/50 rounded-lg border border-[var(--color-border-strong)]/50">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm font-medium text-white">Auto-swap User Agents</label>
-                          <span className="text-xs text-neutral-500">{autoSwapInterval} minutes</span>
+                          <label className="text-sm font-medium text-[var(--color-text-primary)]">Auto-swap User Agents</label>
+                          <span className="text-xs text-[var(--color-text-muted)]">{autoSwapInterval} minutes</span>
                         </div>
                         <input
                           type="range"
@@ -1828,7 +1828,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                           value={autoSwapInterval}
                           onChange={(e) => setAutoSwapInterval(Number(e.target.value))}
                           disabled={isLoadingUserAgent}
-                          className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                          className="w-full h-2 bg-[var(--color-surface-hover)] rounded-lg appearance-none cursor-pointer disabled:opacity-50"
                         />
                       </div>
                       <button
@@ -1859,7 +1859,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                         className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                           isAutoSwapEnabled
                             ? 'text-green-400 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
-                            : 'text-neutral-400 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600'
+                            : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-border-strong)] border border-[var(--color-border-strong)]'
                         }`}
                       >
                         <Zap size={14} />
@@ -1899,8 +1899,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           {activeTab === 'about' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">About</h3>
-                <p className="text-sm text-neutral-400">Application information and updates.</p>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">About</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">Application information and updates.</p>
               </div>
 
               <Section title="Updates" description="Check for and install application updates.">
@@ -1940,7 +1940,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                 >
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+                    className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-[var(--color-text-primary)] text-sm font-medium transition-colors"
                   >
                     Clear Data
                   </button>
@@ -1953,8 +1953,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
           {activeTab === 'admin' && isAdmin && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Admin Panel</h3>
-                <p className="text-sm text-neutral-400">Manage announcements and administrative features.</p>
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Admin Panel</h3>
+                <p className="text-sm text-[var(--color-text-secondary)]">Manage announcements and administrative features.</p>
               </div>
 
               <Section title="News Generator" description="Write announcements and copy the GitHub snippet below.">
@@ -1990,10 +1990,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             >
               <div className="flex flex-col gap-4">
                 <div className="flex gap-3 items-stretch">
-                  <div className="flex-1 h-64 rounded-lg overflow-hidden border border-neutral-800">
+                  <div className="flex-1 h-64 rounded-lg overflow-hidden border border-[var(--color-border)]">
                     <ColorPickerSelection className="h-full" />
                   </div>
-                  <div className="w-8 h-64 rounded-lg border border-neutral-800 bg-neutral-900 p-1 flex items-center justify-center">
+                  <div className="w-8 h-64 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 flex items-center justify-center">
                     <ColorPickerHue orientation="vertical" className="h-full w-full rounded-full" />
                   </div>
                 </div>
@@ -2044,7 +2044,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             {backupStep === 'pin' ? (
               <>
                 <div className="space-y-2">
-                  <p className="text-sm text-neutral-400">
+                  <p className="text-sm text-[var(--color-text-secondary)]">
                     Enter your PIN to proceed with account backup.
                   </p>
                   {renderPinInputs(backupPin, setBackupPin, backupPinRefs)}
@@ -2053,13 +2053,13 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             ) : backupStep === 'backuppin' ? (
               <>
                 <div className="space-y-2">
-                  <label className="text-sm text-neutral-400">
+                  <label className="text-sm text-[var(--color-text-secondary)]">
                     Create a PIN to encrypt your backup file. You'll need this PIN to restore.
                   </label>
                   {renderPinInputs(backupPin, setBackupPin, backupPinRefs)}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-neutral-400">
+                  <label className="text-sm text-[var(--color-text-secondary)]">
                     Confirm PIN
                   </label>
                   {renderPinInputs(backupPinConfirm, setBackupPinConfirm, backupPinConfirmRefs)}
@@ -2067,11 +2067,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
               </>
             ) : (
               <>
-                <p className="text-sm text-neutral-400 mb-4">
+                <p className="text-sm text-[var(--color-text-secondary)] mb-4">
                   Where would you like to save your backup file?
                 </p>
                 <div className="space-y-3">
-                  <label className="flex items-center gap-3 p-3 border border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-800 transition-colors" onClick={() => setBackupLocationMode('auto')}>
+                  <label className="flex items-center gap-3 p-3 border border-[var(--color-border-strong)] rounded-lg cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" onClick={() => setBackupLocationMode('auto')}>
                     <input
                       type="radio"
                       checked={backupLocationMode === 'auto'}
@@ -2079,11 +2079,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                       className="w-4 h-4"
                     />
                     <div>
-                      <p className="text-sm font-medium text-neutral-200">Default Location</p>
-                      <p className="text-xs text-neutral-500 mt-1">Backed up automatically in the app's backup folder</p>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">Default Location</p>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-1">Backed up automatically in the app's backup folder</p>
                     </div>
                   </label>
-                  <label className="flex items-center gap-3 p-3 border border-neutral-700 rounded-lg cursor-pointer hover:bg-neutral-800 transition-colors" onClick={() => setBackupLocationMode('custom')}>
+                  <label className="flex items-center gap-3 p-3 border border-[var(--color-border-strong)] rounded-lg cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" onClick={() => setBackupLocationMode('custom')}>
                     <input
                       type="radio"
                       checked={backupLocationMode === 'custom'}
@@ -2091,8 +2091,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                       className="w-4 h-4"
                     />
                     <div>
-                      <p className="text-sm font-medium text-neutral-200">Custom Location</p>
-                      <p className="text-xs text-neutral-500 mt-1">Choose exactly where to save your backup file</p>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">Custom Location</p>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-1">Choose exactly where to save your backup file</p>
                     </div>
                   </label>
                 </div>
@@ -2108,7 +2108,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
                     setIsBackupDialogOpen(false)
                   }
                 }}
-                className="flex-1 px-4 py-2 text-sm rounded-lg border border-neutral-700 text-neutral-300 hover:bg-neutral-800 transition-colors"
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 {backupStep === 'location' ? 'Back' : 'Cancel'}
               </button>
@@ -2145,7 +2145,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             {restoreStep === 'pin' ? (
               <>
                 <div className="space-y-2">
-                  <p className="text-sm text-neutral-400">
+                  <p className="text-sm text-[var(--color-text-secondary)]">
                     Enter your PIN to proceed with account restoration.
                   </p>
                   {renderPinInputs(restorePin, setRestorePin, restorePinRefs)}
@@ -2153,11 +2153,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
               </>
             ) : restoreStep === 'file' ? (
               <>
-                <p className="text-sm text-neutral-400">
+                <p className="text-sm text-[var(--color-text-secondary)]">
                   Click the button below to select your backup file.
                 </p>
                 {selectedBackupFile && (
-                  <p className="text-xs text-neutral-300 bg-neutral-800 p-2 rounded-lg break-all">
+                  <p className="text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] p-2 rounded-lg break-all">
                     Selected: {selectedBackupFile.split('\\').pop()}
                   </p>
                 )}
@@ -2165,7 +2165,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             ) : (
               <>
                 <div className="space-y-2">
-                  <label className="text-sm text-neutral-400">
+                  <label className="text-sm text-[var(--color-text-secondary)]">
                     Enter the PIN that was used to create the backup file.
                   </label>
                   {renderPinInputs(restoreBackupPin, setRestoreBackupPin, restoreBackupPinRefs)}
@@ -2175,7 +2175,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ accounts, settings, onUpdateS
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setIsRestoreDialogOpen(false)}
-                className="flex-1 px-4 py-2 text-sm rounded-lg border border-neutral-700 text-neutral-300 hover:bg-neutral-800 transition-colors"
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
               >
                 Cancel
               </button>

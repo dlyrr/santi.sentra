@@ -19,6 +19,7 @@ export interface WatcherSession {
   restartAttempts: number
   lastCrashTime?: number
   lastCrashReason?: string
+  lastStartTime?: number
   launchConfig?: {
     cookie: string
     placeId: number | string
@@ -68,6 +69,14 @@ export function useWatcher() {
   const [currentStatus, setCurrentStatus] = useState<string>('loading')
   const cleanupListenersRef = useRef<Array<() => void>>([])
 
+  const normalizeSessions = useCallback((sessionList: WatcherSession[]) => {
+    const sessionsById = new Map<string, WatcherSession>()
+    for (const session of sessionList) {
+      sessionsById.set(session.id, session)
+    }
+    return Array.from(sessionsById.values())
+  }, [])
+
   // Initialize watcher on mount
   useEffect(() => {
     const initializeWatcher = async () => {
@@ -80,7 +89,7 @@ export function useWatcher() {
         ])
 
         console.log('[useWatcher] Initialized with sessions:', initialSessions.length)
-        setSessions(initialSessions)
+        setSessions(normalizeSessions(initialSessions))
         setConfig(initialConfig)
         setEvents(initialEvents)
         setIsWatching(initialConfig.enabled)
@@ -99,7 +108,7 @@ export function useWatcher() {
     })
 
     const unlistenSessionsUpdated = window.api.onSessionsUpdated((updatedSessions: WatcherSession[]) => {
-      setSessions(updatedSessions)
+      setSessions(normalizeSessions(updatedSessions))
     })
 
     const unlistenCrashed = window.api.onSessionCrashed(
@@ -161,17 +170,17 @@ export function useWatcher() {
         sessionData.placeId,
         sessionData.logFile
       )
-      setSessions((prev) => [...prev, newSession])
+      setSessions((prev) => normalizeSessions([...prev, newSession]))
       return newSession
     } catch (error) {
       console.error('[Watcher] Error adding session:', error)
       throw error
     }
-  }, [])
+  }, [normalizeSessions])
 
-  const removeSession = useCallback(async (sessionId: string) => {
+  const removeSession = useCallback(async (sessionId: string, killProcess?: boolean) => {
     try {
-      await window.api.removeSession(sessionId)
+      await window.api.removeSession(sessionId, killProcess)
       setSessions((prev) => prev.filter((s) => s.id !== sessionId))
     } catch (error) {
       console.error('[Watcher] Error removing session:', error)

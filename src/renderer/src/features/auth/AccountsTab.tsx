@@ -1,5 +1,5 @@
 import React, { useState, useMemo, memo, useCallback } from 'react'
-import { Monitor } from 'lucide-react'
+import { UserPlus, X, MoreHorizontal, MousePointerClick } from 'lucide-react'
 import { Account, AccountStatus } from '@renderer/types'
 import AccountsToolbar from './AccountsToolbar'
 import AccountListView from './AccountListView'
@@ -9,7 +9,11 @@ import { useSetActiveMenu, useSetInfoAccount, useOpenModal } from '../../stores/
 import { useVoiceSettingsForAccounts } from './api/useVoiceSettings'
 import { VoiceSettings } from '@shared/ipc-schemas'
 import { useNotification } from '../system/stores/useSnackbarStore'
-import AlertDialog from '../../components/UI/dialogs/AlertDialog'
+import { EmptyState } from '../../components/UI/feedback/EmptyState'
+import { Button } from '../../components/UI/buttons/Button'
+import { BulkRobloxSettingsModal } from './Modals/BulkRobloxSettingsModal'
+import { ChangeDisplayNameModal } from './Modals/ChangeDisplayNameModal'
+import { bulkOperationLimiter, executeWithRetry, isRateLimitError } from '@renderer/lib/rateLimiter'
 
 type ViewMode = 'list' | 'grid'
 
@@ -73,6 +77,9 @@ const AccountsTab = memo(
     const openModal = useOpenModal()
     const { showNotification } = useNotification()
 
+    const [isBulkSettingsOpen, setIsBulkSettingsOpen] = useState(false)
+    const [isValidating, setIsValidating] = useState(false)
+
     const { statusByAccountId } = useVoiceSettingsForAccounts(accounts)
     const notifiedVoiceBansRef = React.useRef<Set<string>>(new Set())
 
@@ -108,7 +115,6 @@ const AccountsTab = memo(
     const [searchQuery, setSearchQuery] = useState('')
     const [viewMode, setViewMode] = useState<ViewMode>('grid')
     const [statusFilter, setStatusFilter] = useState<AccountStatus | 'All'>('All')
-    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
     React.useEffect(() => {
       const loadViewMode = async () => {
@@ -133,9 +139,9 @@ const AccountsTab = memo(
     const filteredAccounts = useMemo(() => {
       return accounts.filter((acc) => {
         const matchesSearch =
-          acc.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          acc.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          acc.notes.toLowerCase().includes(searchQuery.toLowerCase())
+          (acc.displayName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (acc.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (acc.notes || '').toLowerCase().includes(searchQuery.toLowerCase())
 
         const matchesStatus = statusFilter === 'All' || acc.status === statusFilter
 
@@ -147,14 +153,13 @@ const AccountsTab = memo(
     const isIndeterminate = selectedIds.size > 0 && selectedIds.size < filteredAccounts.length
 
     const toggleSelectAll = useCallback(() => {
-      if (!allowMultipleInstances) return
 
       if (allSelected) {
         setSelectedIds(new Set())
       } else {
         setSelectedIds(new Set(filteredAccounts.map((a) => a.id)))
       }
-    }, [allSelected, allowMultipleInstances, filteredAccounts, setSelectedIds])
+    }, [allSelected, filteredAccounts, setSelectedIds])
 
     const toggleSelect = useCallback((id: string) => {
       toggleSelection(id)
@@ -192,22 +197,88 @@ const AccountsTab = memo(
       onAccountsChange(newAccounts)
     }
 
+    const totalRobux = useMemo(() => {
+      if (selectedIds.size > 0) {
+        return accounts
+          .filter((a) => selectedIds.has(a.id))
+          .reduce((sum, acc) => sum + (acc.robuxBalance || 0), 0)
+      }
+      return accounts.reduce((sum, acc) => sum + (acc.robuxBalance || 0), 0)
+    }, [accounts, selectedIds])
+
+    const [validationProgress, setValidationProgress] = useState<{ current: number, total: number } | null>(null)
+    const [validationStatus, setValidationStatus] = useState<'validating' | 'ratelimited' | null>(null)
+
+    const handleValidateAccounts = async () => {
+      setIsValidating(true)
+      
+      const accountsToValidate = accounts.filter(acc => selectedIds.has(acc.id))
+      setValidationProgress({ current: 0, total: accountsToValidate.length })
+      setValidationStatus('validating')
+      
+      const newAccounts = [...accounts]
+      let validCount = 0
+      let invalidCount = 0
+      
+      let processed = 0
+      for (const acc of newAccounts) {
+        if (!selectedIds.has(acc.id)) continue
+        if (!acc.cookie) {
+          acc.cookieInvalid = true
+          invalidCount++
+          processed++
+          setValidationProgress({ current: processed, total: accountsToValidate.length })
+          continue
+        }
+
+        try {
+          const data = await executeWithRetry(
+            bulkOperationLimiter,
+            () => window.api.validateCookie(acc.cookie!),
+            {
+              retryCondition: isRateLimitError
+            }
+          )
+          acc.cookieInvalid = false
+          if (data.created) {
+            acc.joinDate = data.created
+          }
+          if (data.age !== undefined) {
+            acc.age = data.age
+          }
+
+          try {
+            const details = await window.api.getExtendedUserDetails(acc.cookie!, Number(acc.userId))
+            acc.isPremium = details?.isPremium ?? false
+          } catch (error) {
+            console.warn('Failed to refresh premium status during validation:', error)
+          }
+          validCount++
+        } catch (error: any) {
+          acc.cookieInvalid = true
+          invalidCount++
+          if (isRateLimitError(error)) {
+            setValidationStatus('ratelimited')
+          }
+        }
+
+        processed++
+        setValidationStatus('validating')
+        setValidationProgress({ current: processed, total: accountsToValidate.length })
+      }
+      
+      onAccountsChange(newAccounts)
+      window.api.saveAccounts(newAccounts).catch((error) => {
+        console.error('Failed to persist updated accounts after validation:', error)
+      })
+      setIsValidating(false)
+      setValidationProgress(null)
+      setValidationStatus(null)
+      showNotification(`Validation complete. ${validCount} valid, ${invalidCount} invalid.`, invalidCount > 0 ? 'error' : 'success')
+    }
+
     return (
       <>
-        <AlertDialog
-          isOpen={deleteConfirmOpen}
-          onClose={() => setDeleteConfirmOpen(false)}
-          title="Remove Accounts"
-          message={`Are you sure you want to remove ${selectedIds.size} account${selectedIds.size === 1 ? '' : 's'}? This action cannot be undone.`}
-          type="confirm"
-          confirmText="Remove"
-          cancelText="Cancel"
-          onConfirm={() => {
-            onAccountsChange(accounts.filter((acc) => !selectedIds.has(acc.id)))
-            setSelectedIds(new Set())
-          }}
-          isDangerous
-        />
         <AccountsToolbar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -221,25 +292,74 @@ const AccountsTab = memo(
           onToggleSelectAll={toggleSelectAll}
           allSelected={allSelected}
           isIndeterminate={isIndeterminate}
+          totalRobux={totalRobux}
+          onBulkSettingsClick={() => setIsBulkSettingsOpen(true)}
+          onValidateAccountsClick={handleValidateAccounts}
+          isValidating={isValidating}
+          validationProgress={validationProgress}
+          validationStatus={validationStatus}
         />
 
-        <div className="flex-1 overflow-hidden relative bg-neutral-950">
+
+        <BulkRobloxSettingsModal
+          isOpen={isBulkSettingsOpen}
+          onClose={() => setIsBulkSettingsOpen(false)}
+          selectedAccounts={accounts.filter(a => selectedIds.has(a.id))}
+          onSuccess={() => {
+            // we could refresh accounts here or just let the user see it 
+            // since they will likely see the result in the modal itself
+          }}
+        />
+
+        <ChangeDisplayNameModal
+          accounts={accounts}
+          selectedIds={selectedIds}
+          onAccountsChange={onAccountsChange}
+        />
+
+        <div className="flex-1 overflow-hidden relative bg-[var(--color-surface)]">
           {filteredAccounts.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center gap-4 text-neutral-600">
-              <div className="p-8 bg-neutral-900/50 rounded-full border border-neutral-800">
-                <Monitor size={40} className="text-neutral-500" />
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-medium text-neutral-400">No accounts found</p>
-                <p className="text-base mt-1">Try adjusting your filters or search query</p>
-              </div>
-              {statusFilter !== 'All' && (
-                <button
-                  onClick={() => setStatusFilter('All')}
-                  className="pressable text-base text-neutral-400 hover:text-white underline"
-                >
-                  Clear filters
-                </button>
+            <div className="h-full flex items-center justify-center p-8">
+              {accounts.length === 0 ? (
+                /* Massive Glowing Dropzone Empty State */
+                <div className="flex flex-col items-center justify-center max-w-md w-full animate-in zoom-in-95 fade-in duration-500">
+                  <div className="relative group cursor-pointer w-full" onClick={() => openModal('addAccount')}>
+                    {/* Glowing background */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-[var(--accent-color)] to-[var(--accent-color-ring)] rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                    
+                    <div className="relative flex flex-col items-center gap-6 p-12 bg-[var(--color-surface-strong)]/80 backdrop-blur-xl border-2 border-dashed border-white/10 group-hover:border-[var(--accent-color)]/50 rounded-3xl transition-all duration-300 hover:shadow-[0_0_40px_var(--accent-color-faint)]">
+                      <div className="p-4 bg-[var(--accent-color-faint)] rounded-2xl text-[var(--accent-color)] group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                        <MousePointerClick size={40} strokeWidth={1.5} />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">Drop a Cookie Here</h3>
+                        <p className="text-sm text-[var(--color-text-secondary)] max-w-[250px] mx-auto leading-relaxed">
+                          Paste your Roblox `.ROBLOSECURITY` cookie anywhere, or click here to sign in via browser.
+                        </p>
+                      </div>
+                      <Button variant="default" size="lg" className="w-full font-bold shadow-[0_0_20px_var(--accent-color-faint)] mt-2">
+                        <UserPlus size={18} className="mr-2" /> Add First Account
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Filter/search returning nothing */
+                <EmptyState
+                  title="No accounts match"
+                  description="Try adjusting your search or clearing the filter."
+                  action={
+                    statusFilter !== 'All' ? (
+                      <button
+                        onClick={() => setStatusFilter('All')}
+                        className="pressable text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] underline mt-1 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    ) : undefined
+                  }
+                  className="animate-in fade-in slide-in-from-bottom-4 duration-300"
+                />
               )}
             </div>
           ) : viewMode === 'list' ? (

@@ -19,7 +19,7 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSi
   if (!account) {
     return (
       <div
-        className="flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-500"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm text-[var(--color-text-muted)]"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
       >
         <User size={16} />
@@ -44,14 +44,14 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSi
           <AvatarFallback>{account.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
         </Avatar>
         <div className="flex flex-col items-start">
-          <span className="text-sm font-medium text-neutral-200 leading-tight">
+          <span className="text-sm font-medium text-[var(--color-text-primary)] leading-tight">
             {account.displayName}
           </span>
-          <span className="text-xs text-neutral-500 leading-tight">@{account.username}</span>
+          <span className="text-xs text-[var(--color-text-muted)] leading-tight">@{account.username}</span>
         </div>
         <ChevronDown
           size={14}
-          className={`text-neutral-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-[var(--color-text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -77,7 +77,7 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSi
                 setIsOpen(false)
                 onSignOut()
               }}
-              className="pressable w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-red-400 hover:bg-neutral-800 hover:text-red-300 transition-colors"
+              className="pressable w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-red-400 hover:bg-[var(--color-surface-hover)] hover:text-red-300 transition-colors"
             >
               <LogOut size={14} />
               <span>Sign Out</span>

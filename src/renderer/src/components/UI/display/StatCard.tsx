@@ -15,9 +15,9 @@ interface StatCardProps {
 
 const variantStyles: Record<StatCardVariant, { container: string; icon: string; value: string }> = {
   default: {
-    container: 'bg-neutral-900/30 border-neutral-800/50',
-    icon: 'text-neutral-500',
-    value: 'text-white'
+    container: 'bg-[var(--color-surface-muted)] border-[var(--color-border)]',
+    icon: 'text-[var(--color-text-muted)]',
+    value: 'text-[var(--color-text-primary)]'
   },
   emerald: {
     container: 'bg-emerald-500/10 border-emerald-500/20',

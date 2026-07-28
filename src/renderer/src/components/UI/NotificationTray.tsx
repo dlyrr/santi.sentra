@@ -55,9 +55,9 @@ const getNotificationStyle = (type: NotificationType) => {
     case 'friend_offline':
       return {
         icon: LogOut,
-        color: 'text-neutral-400',
-        bg: 'bg-neutral-500/10',
-        border: 'border-neutral-500/20'
+        color: 'text-[var(--color-text-secondary)]',
+        bg: 'bg-[var(--color-surface-muted)]',
+        border: 'border-[var(--color-border)]'
       }
     case 'friend_ingame':
       return {
@@ -118,13 +118,13 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
   const getTitleColor = () => {
     switch (notification.type) {
       case 'friend_online':
-        return 'text-neutral-200'
+        return 'text-[var(--color-text-primary)]'
       case 'friend_ingame':
-        return 'text-neutral-200'
+        return 'text-[var(--color-text-primary)]'
       case 'friend_removed':
         return 'text-red-400'
       default:
-        return 'text-neutral-200'
+        return 'text-[var(--color-text-primary)]'
     }
   }
 
@@ -136,7 +136,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
       transition={{ duration: 0.2 }}
       className={`
         relative p-3 rounded-lg border transition-all group
-        ${notification.read ? 'bg-neutral-900/30 border-neutral-800/30 opacity-60' : 'bg-neutral-800/50 border-neutral-700/50'}
+        ${notification.read ? 'bg-[var(--color-surface)]/30 border-[var(--color-border)]/30 opacity-60' : 'bg-[var(--color-surface-hover)]/50 border-[var(--color-border-strong)]/50'}
       `}
     >
       <div className="flex gap-3">
@@ -149,7 +149,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-neutral-800">
+          <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[var(--color-surface-hover)]">
             <Icon className={`h-5 w-5 ${style.color}`} />
           </div>
         )}
@@ -162,7 +162,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
             </p>
             <div className="relative shrink-0 h-5">
               {/* Timestamp */}
-              <span className="text-xs text-neutral-500 h-5 flex items-center transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none whitespace-nowrap">
+              <span className="text-xs text-[var(--color-text-muted)] h-5 flex items-center transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none whitespace-nowrap">
                 {formatRelativeTime(notification.timestamp)}
               </span>
               {/* Dismiss button */}
@@ -171,14 +171,14 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
                   e.stopPropagation()
                   onRemove(notification.id)
                 }}
-                className="absolute right-0 top-0 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto p-1 rounded hover:bg-neutral-700/50 text-neutral-500 hover:text-neutral-300 transition-all duration-200 flex items-center justify-center"
+                className="absolute right-0 top-0 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto p-1 rounded hover:bg-[var(--color-surface-hover)]/50 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-all duration-200 flex items-center justify-center"
                 title="Dismiss"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5 line-clamp-2">{notification.message}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{notification.message}</p>
           {notification.gameInfo && (
             <div className="flex items-center gap-1.5 mt-1.5">
               <Gamepad2 className="h-3 w-3 text-emerald-400" />
@@ -244,7 +244,7 @@ const NotificationTray: React.FC = () => {
         }}
         className={`
           relative p-2 rounded-[var(--control-radius)] transition-all
-          ${isOpen ? 'bg-neutral-700/50 text-neutral-200' : 'hover:bg-neutral-800/50 text-neutral-400 hover:text-neutral-200'}
+          ${isOpen ? 'bg-[var(--color-surface-hover)]/50 text-[var(--color-text-primary)]' : 'hover:bg-[var(--color-surface-hover)]/50 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}
         `}
         title="Notifications"
       >
@@ -273,22 +273,22 @@ const NotificationTray: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-96 max-h-[500px] bg-neutral-900 border border-neutral-800 rounded-[var(--menu-radius)] shadow-2xl overflow-hidden z-[100]"
+            className="absolute right-0 top-full mt-2 w-96 max-h-[500px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl overflow-hidden z-[100]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm sticky top-0 z-10">
               <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-neutral-400" />
-                <h3 className="text-sm font-semibold text-neutral-200">Notifications</h3>
+                <Bell className="h-4 w-4 text-[var(--color-text-secondary)]" />
+                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Notifications</h3>
                 {unreadCount > 0 && (
-                  <span className="text-xs text-neutral-500">({unreadCount} unread)</span>
+                  <span className="text-xs text-[var(--color-text-muted)]">({unreadCount} unread)</span>
                 )}
               </div>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="p-1.5 rounded hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 transition-colors"
+                    className="p-1.5 rounded hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                     title="Mark all as read"
                   >
                     <CheckCheck className="h-4 w-4" />
@@ -297,7 +297,7 @@ const NotificationTray: React.FC = () => {
                 {notifications.length > 0 && (
                   <button
                     onClick={clearAll}
-                    className="p-1.5 rounded hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors"
+                    className="p-1.5 rounded hover:bg-red-500/20 text-[var(--color-text-secondary)] hover:text-red-400 transition-colors"
                     title="Clear all"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -323,7 +323,7 @@ const NotificationTray: React.FC = () => {
                   )}
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-neutral-500">
+                <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-muted)]">
                   <Bell className="h-10 w-10 mb-3 opacity-30" />
                   <p className="text-sm">No notifications</p>
                   <p className="text-xs mt-1 opacity-60">You&apos;re all caught up!</p>

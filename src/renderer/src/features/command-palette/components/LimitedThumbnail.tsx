@@ -83,7 +83,7 @@ export const LimitedThumbnail: React.FC<LimitedThumbnailProps> = memo(
         <div
           ref={containerRef}
           className={cn(
-            'flex items-center justify-center bg-neutral-800 text-neutral-500',
+            'flex items-center justify-center bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]',
             className
           )}
         >
@@ -96,7 +96,7 @@ export const LimitedThumbnail: React.FC<LimitedThumbnailProps> = memo(
       return (
         <div
           ref={containerRef}
-          className={cn('bg-neutral-800', hasTriggered && 'animate-pulse', className)}
+          className={cn('bg-[var(--color-surface-hover)]', hasTriggered && 'animate-pulse', className)}
         />
       )
     }
@@ -106,7 +106,7 @@ export const LimitedThumbnail: React.FC<LimitedThumbnailProps> = memo(
         ref={containerRef as React.RefObject<HTMLImageElement>}
         src={imageUrl}
         alt={name}
-        className={cn('object-cover bg-neutral-800', className)}
+        className={cn('object-cover bg-[var(--color-surface-hover)]', className)}
       />
     )
   }

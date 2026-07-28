@@ -30,26 +30,28 @@ export const StatRow: React.FC<StatRowProps> = ({
 
   const content = (
     <div
-      className={`flex items-center justify-between py-2 -mx-4 px-4 ${
+      className={`group flex items-center justify-between py-2.5 px-3 -mx-3 rounded-xl transition-colors duration-200 ${
         isInteractive
-          ? 'cursor-pointer hover:bg-[var(--color-surface-hover)] focus-visible:ring-1 focus-visible:ring-[var(--focus-ring)] focus-visible:bg-[var(--color-surface-muted)] outline-none'
-          : 'hover:bg-[var(--color-surface-muted)]'
+          ? 'cursor-pointer hover:bg-white/5 active:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/20 outline-none'
+          : 'hover:bg-white/5'
       }`}
       onClick={onClick}
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       onKeyDown={handleKeyDown}
-      aria-label={
-        isInteractive
-          ? ariaLabel || `${label}: ${typeof value === 'string' ? value : 'click to view'}`
-          : undefined
-      }
+      aria-label={ariaLabel || (typeof value === 'string' ? `${label}: ${value}` : label)}
     >
-      <div className="flex items-center gap-2.5 text-[var(--color-text-muted)]">
-        <Icon size={15} />
-        <span className="text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-3">
+        <div className="p-1.5 rounded-lg bg-white/5 text-[var(--color-text-primary)]/50 group-hover:text-[var(--color-text-primary)] group-hover:bg-white/10 transition-colors duration-200">
+          <Icon size={14} className="opacity-80" />
+        </div>
+        <span className="text-sm font-medium text-[var(--color-text-primary)]/60 group-hover:text-[var(--color-text-primary)]/90 transition-colors duration-200">
+          {label}
+        </span>
       </div>
-      <div className="text-xs text-[var(--color-text-primary)] font-semibold">{value}</div>
+      <div className="text-sm font-bold text-[var(--color-text-primary)] tracking-wide">
+        {value}
+      </div>
     </div>
   )
 

@@ -48,7 +48,7 @@ export const PriceInput = ({ value, onChange, placeholder, label, className }: P
 
   return (
     <div className={cn('relative flex-1', className)}>
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-[10px] font-medium uppercase tracking-wider pointer-events-none z-10">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-[10px] font-medium uppercase tracking-wider pointer-events-none z-10">
         {label}
       </span>
       <input

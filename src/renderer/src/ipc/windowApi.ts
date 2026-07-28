@@ -76,6 +76,8 @@ export interface UsersApi {
   getPlayerBadges: (cookie: string, userId: number) => Promise<any>
   getPastUsernames: (cookie: string, userId: number) => Promise<UsernameHistory>
   getUserProfile: (cookie: string, userId: number) => Promise<UserProfileResponse>
+  getBatchJoinDates: (userIds: number[]) => Promise<Record<string, string | null>>
+  setRobloxDisplayName: (cookie: string, newDisplayName: string) => Promise<{ success: boolean; data?: any; error?: string }>
 }
 
 export interface AccountApi {
@@ -202,6 +204,43 @@ export interface SettingsApi {
     autoSwapIntervalMinutes: number
     totalUserAgents: number
   }>
+  // Roblox Advanced Settings
+  getRobloxSettings: () => Promise<{
+    allowMultipleLaunches: boolean
+    defaultPhysicsEngine: 'Terrain' | 'Legacy'
+    enableOptimizations: boolean
+    memoryLimit: number
+    useDirectX12: boolean
+    lowEndGraphics: boolean
+    disableDualChannelAudio: boolean
+    antiAfkEnabled: boolean
+    renameWindowsEnabled: boolean
+    framerateCapEnabled: boolean
+    framerateCapValue: number
+    optimizeRamEnabled: boolean
+    ramOptimizeLimit: number
+    headlessModeEnabled: boolean
+    timeoutRelaunchEnabled: boolean
+    timeoutRelaunchSeconds: number
+  }>
+  setRobloxSettings: (settings: {
+    allowMultipleLaunches?: boolean
+    defaultPhysicsEngine?: 'Terrain' | 'Legacy'
+    enableOptimizations?: boolean
+    memoryLimit?: number
+    useDirectX12?: boolean
+    lowEndGraphics?: boolean
+    disableDualChannelAudio?: boolean
+    antiAfkEnabled?: boolean
+    renameWindowsEnabled?: boolean
+    framerateCapEnabled?: boolean
+    framerateCapValue?: number
+    optimizeRamEnabled?: boolean
+    ramOptimizeLimit?: number
+    headlessModeEnabled?: boolean
+    timeoutRelaunchEnabled?: boolean
+    timeoutRelaunchSeconds?: number
+  }) => Promise<void>
 }
 
 export interface SocialApi {
@@ -710,6 +749,7 @@ export interface GroupsApi {
   getGroupSocialLinks: (cookie: string, groupId: number) => Promise<GroupSocialLink[]>
   getGroupThumbnails: (groupIds: number[]) => Promise<Record<number, string>>
   cancelPendingGroupRequest: (cookie: string, groupId: number) => Promise<SuccessResponse>
+  joinGroup: (cookie: string, groupId: number) => Promise<CaptchaResponse & { success?: boolean }>
   leaveGroup: (cookie: string, groupId: number) => Promise<SuccessResponse>
   searchGroupStore: (
     groupId: number,
@@ -833,6 +873,7 @@ export interface AccountSettingsApi {
   getUserSettingsAndOptions: (cookie: string) => Promise<UserSettingsAndOptions>
   getCombinedAccountSettings: (cookie: string) => Promise<CombinedAccountSettings>
   getThemeTypes: (cookie: string) => Promise<string[]>
+  updateDisplayName: (cookie: string, userId: number, newDisplayName: string) => Promise<{ success: boolean; error?: string }>
   // UPDATE methods
   updateInventoryPrivacy: (
     cookie: string,
@@ -977,7 +1018,7 @@ export interface WatcherApi {
     jobId?: string,
     friendId?: string
   ) => Promise<WatcherSession>
-  removeSession: (sessionId: string) => Promise<{ success: boolean }>
+  removeSession: (sessionId: string, killProcess?: boolean) => Promise<{ success: boolean }>
   getConfig: () => Promise<WatcherConfig>
   setConfig: (config: Partial<WatcherConfig>) => Promise<WatcherConfig>
   getEvents: () => Promise<WatcherEvent[]>
@@ -1239,8 +1280,11 @@ export type WindowApi = AccountApi &
     trading: TradingApi
     browser: BrowserAutomationApi
     proxyMgmt: ProxyMgmtApi
-    user: UsersApi
+    user: UsersApi & {
+      setRobloxDisplayName: (cookie: string, newDisplayName: string) => Promise<{ success: boolean; data?: any; error?: string }>
+    }
     watcher: WatcherApi
+    account: AccountApi
   }
   // DISABLED: License API removed - licensing system disabled
   // & {

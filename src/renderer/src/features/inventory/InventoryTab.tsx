@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Loader2, Grid2X2, Grid3X3, User } from 'lucide-react'
+import { Package, Loader2, Grid2X2, Grid3X3, User, Users } from 'lucide-react'
 import { VirtuosoGrid } from 'react-virtuoso'
 import { SearchInput } from '@renderer/components/UI/inputs/SearchInput'
 import { TooltipProvider } from '@renderer/components/UI/display/Tooltip'
 import { SkeletonSquareCard } from '@renderer/components/UI/display/SkeletonCard'
 import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { useInventoryV2, useInventoryThumbnails } from '@renderer/hooks/queries'
+import { useInventoryV2, useInventoryThumbnails, useAccountsManager } from '@renderer/hooks/queries'
 import { Account } from '@renderer/types'
 import PlayerInventorySheet from './Modals/PlayerInventorySheet'
 import InventoryItemContextMenu from './InventoryItemContextMenu'
@@ -28,6 +28,8 @@ import {
   useInventoryViewMode,
   useSetInventoryViewMode
 } from '@renderer/stores/useViewPreferencesStore'
+import { useSelectedIds } from '@renderer/stores/useSelectionStore'
+import { useBulkInventory, BulkInventoryItem } from '@renderer/features/avatar/hooks/useBulkInventory'
 
 interface InventoryItemCardProps {
   item: {
@@ -84,7 +86,7 @@ const InventoryItemCard = ({
         >
           {thumbnailUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-neutral-700/30 animate-pulse" />}
+              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
               <img
                 src={thumbnailUrl}
                 alt={displayName}
@@ -96,7 +98,7 @@ const InventoryItemCard = ({
               />
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-700">
+            <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
               <Package size={32} />
             </div>
           )}
@@ -125,6 +127,14 @@ interface InventoryTabProps {
 }
 
 const InventoryTab = ({ account }: InventoryTabProps) => {
+  // Bulk mode: detect if multiple accounts are selected
+  const selectedIds = useSelectedIds()
+  const { accounts = [] } = useAccountsManager()
+  const selectedAccounts = useMemo(
+    () => accounts.filter((a) => selectedIds.has(a.id)),
+    [accounts, selectedIds]
+  )
+  const isBulkMode = selectedIds.size >= 2
   // View Mode (persisted via Zustand)
   const viewMode = useInventoryViewMode()
   const setViewMode = useSetInventoryViewMode()
@@ -172,67 +182,129 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
 
   // Determine asset types to fetch based on selected category/subcategory
   const assetTypes = useMemo(() => {
-    // If a subcategory is selected, use its asset types
-    if (selectedSubcategory) {
-      return selectedSubcategory.assetTypes
-    }
-    // If a category is selected, use its asset types
-    if (selectedCategory) {
-      return selectedCategory.assetTypes
-    }
-    // Default to "All Items" category asset types
+    if (selectedSubcategory) return selectedSubcategory.assetTypes
+    if (selectedCategory) return selectedCategory.assetTypes
     const allCategory = INVENTORY_CATEGORIES.find((c) => c.category === 'All')
-    return (
-      allCategory?.assetTypes || [
-        'Hat',
-        'Shirt',
-        'Pants',
-        'TShirt',
-        'HairAccessory',
-        'FaceAccessory',
-        'Gear'
-      ]
-    )
+    return allCategory?.assetTypes || ['Hat', 'Shirt', 'Pants', 'TShirt', 'HairAccessory', 'FaceAccessory', 'Gear']
   }, [selectedCategory, selectedSubcategory])
+
+  // Map string asset type names to numeric IDs for useBulkInventory
+  const ASSET_TYPE_NAME_TO_ID: Record<string, number> = {
+    TShirt: 2, Hat: 8, Shirt: 11, Pants: 12, Head: 17, Face: 18, Gear: 19,
+    HairAccessory: 41, FaceAccessory: 42, NeckAccessory: 43, ShoulderAccessory: 44,
+    FrontAccessory: 45, BackAccessory: 46, WaistAccessory: 47, EmoteAnimation: 61,
+    TShirtAccessory: 64, ShirtAccessory: 65, PantsAccessory: 66, JacketAccessory: 67,
+    SweaterAccessory: 68, ShortsAccessory: 69, DressSkirtAccessory: 72
+  }
+  const assetTypeIds = useMemo(
+    () => assetTypes.map((t) => ASSET_TYPE_NAME_TO_ID[t]).filter(Boolean),
+    [assetTypes]
+  )
+
+  // Detect special categories
+  const isGamePassCategory = assetTypes.includes('GamePass')
+  const isBadgeCategory = assetTypes.includes('Badge')
+  const isSpecialCategory = isGamePassCategory || isBadgeCategory
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return selectedCategory !== null || sortOrder !== 'Desc'
   }, [selectedCategory, sortOrder])
 
-  // Fetch inventory
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInventoryV2({
+  // Single account inventory (regular items only)
+  const { data, isLoading: isSingleLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInventoryV2({
     cookie,
     userId,
     assetTypes,
     sortOrder,
     limit: 100,
-    enabled: !!cookie && !!userId && assetTypes.length > 0
+    enabled: !isBulkMode && !isSpecialCategory && !!cookie && !!userId && assetTypes.length > 0
   })
 
-  // Flatten pages into single array
-  const items = useMemo(() => {
-    const allItems = data?.pages.flatMap((page) => page.data) || []
+  // Bulk inventory (regular items only)
+  const { data: bulkData = [], isLoading: isBulkLoading } = useBulkInventory(
+    selectedAccounts,
+    assetTypeIds,
+    { enabled: isBulkMode && !isSpecialCategory && assetTypeIds.length > 0 }
+  )
 
-    // Filter by search query
+  // Gamepasses - use V1 inventory (itemType 1)
+  const [gamePasses, setGamePasses] = useState<Array<{id: number; name: string; type: string; imageUrl: string}>>([]) 
+  const [isLoadingGamePasses, setIsLoadingGamePasses] = useState(false)
+  useEffect(() => {
+    if (!isGamePassCategory || !cookie || !userId) { setGamePasses([]); return }
+    setIsLoadingGamePasses(true)
+    window.api.getInventory(cookie, userId, 34)
+      .then(res => {
+        const items = (res.data || []).map((item: any) => ({
+          id: item.assetId,
+          name: item.name || item.assetName || 'Unknown',
+          type: 'GamePass',
+          imageUrl: ''
+        }))
+        setGamePasses(items)
+      })
+      .catch(() => setGamePasses([]))
+      .finally(() => setIsLoadingGamePasses(false))
+  }, [isGamePassCategory, cookie, userId])
+
+  // Badges - use player badges endpoint
+  const [badges, setBadges] = useState<Array<{id: number; name: string; type: string; imageUrl: string}>>([]) 
+  const [isLoadingBadges, setIsLoadingBadges] = useState(false)
+  useEffect(() => {
+    if (!isBadgeCategory || !cookie || !userId) { setBadges([]); return }
+    setIsLoadingBadges(true)
+    window.api.getPlayerBadges(cookie, userId)
+      .then((res: any) => {
+        const items = (res.data || []).map((badge: any) => ({
+          id: badge.id,
+          name: badge.name || 'Unknown Badge',
+          type: 'Badge',
+          imageUrl: badge.displayIconImageId ? `https://www.roblox.com/asset-thumbnail/image?assetId=${badge.displayIconImageId}&width=150&height=150&format=png` : ''
+        }))
+        setBadges(items)
+      })
+      .catch(() => setBadges([]))
+      .finally(() => setIsLoadingBadges(false))
+  }, [isBadgeCategory, cookie, userId])
+
+  // Final item list and loading state for single mode
+  const specialItems = isGamePassCategory ? gamePasses : isBadgeCategory ? badges : []
+  const isSpecialLoading = isGamePassCategory ? isLoadingGamePasses : isBadgeCategory ? isLoadingBadges : false
+
+  const isLoading = isBulkMode ? isBulkLoading : isSpecialCategory ? isSpecialLoading : isSingleLoading
+
+  // Flatten pages into single array (single-account mode)
+  const singleItems = useMemo(() => {
+    if (isSpecialCategory) {
+      const items = specialItems
+      if (!debouncedSearchQuery.trim()) return items.map((i) => ({ assetId: i.id, name: i.name, assetType: i.type, created: '' }))
+      const q = debouncedSearchQuery.toLowerCase()
+      return items.filter(i => i.name.toLowerCase().includes(q)).map(i => ({ assetId: i.id, name: i.name, assetType: i.type, created: '' }))
+    }
+    const allItems = data?.pages.flatMap((page) => page.data) || []
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase()
-      return allItems.filter((item) => {
-        const name = (item.name || item.assetName || '').toLowerCase()
-        return name.includes(query)
-      })
+      return allItems.filter((item) => (item.name || item.assetName || '').toLowerCase().includes(query))
     }
-
     return allItems
-  }, [data, debouncedSearchQuery])
+  }, [data, debouncedSearchQuery, isSpecialCategory, specialItems])
 
-  // Get unique asset IDs for thumbnail fetching
+  // Bulk items filtered by search
+  const filteredBulkItems = useMemo(() => {
+    if (!debouncedSearchQuery.trim()) return bulkData
+    const query = debouncedSearchQuery.toLowerCase()
+    return bulkData.filter((item) => item.name.toLowerCase().includes(query))
+  }, [bulkData, debouncedSearchQuery])
+
+  // Get unique asset IDs for thumbnail fetching (single mode)
   const assetIds = useMemo(() => {
-    return items.map((item) => item.assetId).filter((id, index, self) => self.indexOf(id) === index)
-  }, [items])
+    if (isBulkMode) return filteredBulkItems.map((i) => i.id)
+    return singleItems.map((item) => item.assetId).filter((id, index, self) => self.indexOf(id) === index)
+  }, [isBulkMode, singleItems, filteredBulkItems])
 
   // Fetch thumbnails using react-query + zustand
-  const { thumbnails } = useInventoryThumbnails(assetIds, items.length > 0)
+  const { thumbnails } = useInventoryThumbnails(assetIds, assetIds.length > 0)
 
   // Infinite scroll observer
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -263,7 +335,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
 
   // Handle item click
   const handleItemClick = useCallback(
-    (item: (typeof items)[0]) => {
+    (item: { assetId: number; name?: string; assetName?: string }) => {
       setSelectedAccessory({
         id: item.assetId,
         name: item.name || item.assetName || 'Unknown Item',
@@ -337,11 +409,11 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
     [cookie]
   )
 
-  if (!account || !cookie || !userId) {
+  if (!isBulkMode && (!account || !cookie || !userId)) {
     return (
-      <div className="flex items-center justify-center h-full text-neutral-500">
+      <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
         <div className="text-center">
-          <User size={48} className="mx-auto mb-4 text-neutral-600" />
+          <User size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
           <p>Select an account to view inventory</p>
         </div>
       </div>
@@ -350,7 +422,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
 
   return (
     <TooltipProvider>
-      <div className="flex h-full bg-neutral-950">
+      <div className="flex h-full bg-[var(--color-app-bg)]">
         {/* Left Sidebar Filter */}
         <InventoryFilterSidebar
           categories={INVENTORY_CATEGORIES}
@@ -368,10 +440,16 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           {/* Toolbar */}
           <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
             <div className="flex items-center gap-4 flex-1">
-              <h1 className="text-xl font-bold text-white">Inventory</h1>
-              <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-neutral-900 border border-neutral-800 text-xs font-semibold tracking-tight text-neutral-400">
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Inventory</h1>
+              <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
                 {selectedSubcategory?.name || selectedCategory?.name || 'All Items'}
               </span>
+              {isBulkMode && (
+                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-semibold text-blue-400">
+                  <Users size={12} />
+                  {selectedAccounts.length} accounts
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -383,20 +461,20 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                 containerClassName="w-64"
               />
 
-              <div className="h-6 w-[1px] bg-neutral-800 mx-1" />
+              <div className="h-6 w-[1px] bg-[var(--color-surface-hover)] mx-1" />
 
               {/* View Mode Toggle */}
-              <div className="flex bg-neutral-900 rounded-lg p-1 border border-neutral-800">
+              <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
                   onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Default View"
                 >
                   <Grid2X2 size={18} />
                 </button>
                 <button
                   onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-neutral-800 text-white shadow-sm' : 'text-neutral-500 hover:text-neutral-300'}`}
+                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
                   title="Compact View"
                 >
                   <Grid3X3 size={18} />
@@ -406,9 +484,9 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin bg-neutral-950">
+          <div className="flex-1 overflow-y-auto scrollbar-thin bg-[var(--color-app-bg)]">
             <AnimatePresence mode="wait">
-              {isLoading && items.length === 0 ? (
+              {isLoading && (isBulkMode ? filteredBulkItems.length === 0 : singleItems.length === 0) ? (
                 <motion.div
                   key="loading"
                   initial={{ opacity: 0 }}
@@ -418,49 +496,65 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                   style={gridStyle}
                 >
                   {Array.from({ length: 20 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden"
-                    >
+                    <div key={i} className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden">
                       <SkeletonSquareCard showBorder={false} />
                       <div className="p-3 space-y-2">
-                        <div className="h-4 bg-neutral-800 rounded animate-pulse w-3/4" />
-                        <div className="h-3 bg-neutral-800 rounded animate-pulse w-1/2" />
+                        <div className="h-4 bg-[var(--color-surface-hover)] rounded animate-pulse w-3/4" />
+                        <div className="h-3 bg-[var(--color-surface-hover)] rounded animate-pulse w-1/2" />
                       </div>
                     </div>
                   ))}
                 </motion.div>
-              ) : items.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex items-center justify-center h-full"
-                >
-                  <EmptyState
-                    icon={Package}
-                    title="No items found"
-                    description={
-                      searchQuery ? 'Try adjusting your search' : 'No items in this category'
-                    }
-                    variant="minimal"
-                  />
+              ) : isBulkMode ? (
+                filteredBulkItems.length === 0 ? (
+                  <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="flex items-center justify-center h-full">
+                    <EmptyState icon={Package} title="No items found" description={searchQuery ? 'Try adjusting your search' : 'No items in this category'} variant="minimal" />
+                  </motion.div>
+                ) : (
+                  <motion.div key="bulk-items" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="h-full">
+                    <VirtuosoGrid
+                      totalCount={filteredBulkItems.length}
+                      overscan={200}
+                      listClassName={`grid gap-4 px-6 pb-6 ${viewMode === 'compact' ? 'grid-cols-[repeat(auto-fill,minmax(140px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(200px,1fr))]'}`}
+                      itemContent={(index) => {
+                        const item = filteredBulkItems[index]
+                        return (
+                          <div key={item.id} className="relative bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden hover:border-[var(--color-border-strong)] transition-colors">
+                            <div className="aspect-square bg-[var(--color-surface)] flex items-center justify-center">
+                              {thumbnails[item.id] ? (
+                                <img src={thumbnails[item.id]} alt={item.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Package size={32} className="text-[var(--color-text-muted)]" />
+                              )}
+                            </div>
+                            <div className="p-3">
+                              <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{item.name}</p>
+                              <p className="text-xs text-[var(--color-text-muted)] truncate">{item.type}</p>
+                            </div>
+                            {/* Ownership badge */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-blue-300 border border-blue-500/30">
+                              <Users size={9} />
+                              {item.ownershipCount}/{selectedAccounts.length}
+                            </div>
+                          </div>
+                        )
+                      }}
+                      components={{ Header: () => <div className="h-8" /> }}
+                    />
+                  </motion.div>
+                )
+              ) : singleItems.length === 0 ? (
+                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="flex items-center justify-center h-full">
+                  <EmptyState icon={Package} title="No items found" description={searchQuery ? 'Try adjusting your search' : 'No items in this category'} variant="minimal" />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="items"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="h-full"
-                >
+                <motion.div key="items" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="h-full">
                   <VirtuosoGrid
-                    totalCount={items.length}
+                    totalCount={singleItems.length}
                     overscan={200}
                     listClassName={`grid gap-4 px-6 pb-6 ${viewMode === 'compact' ? 'grid-cols-[repeat(auto-fill,minmax(140px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(200px,1fr))]'}`}
                     itemContent={(index) => {
-                      const item = items[index]
+                      const item = singleItems[index]
                       return (
                         <InventoryItemCard
                           key={`${item.assetId}-${index}`}
@@ -473,22 +567,17 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                         />
                       )
                     }}
-                    endReached={() => {
-                      if (hasNextPage && !isFetchingNextPage) {
-                        fetchNextPage()
-                      }
-                    }}
+                    endReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
                     components={{
                       Header: () => <div className="h-8" />,
-                      Footer: () =>
-                        isFetchingNextPage ? (
-                          <div className="h-20 flex items-center justify-center">
-                            <div className="flex items-center gap-2 text-neutral-500">
-                              <Loader2 size={20} className="animate-spin" />
-                              <span>Loading more...</span>
-                            </div>
+                      Footer: () => isFetchingNextPage ? (
+                        <div className="h-20 flex items-center justify-center">
+                          <div className="flex items-center gap-2 text-[var(--color-text-muted)]">
+                            <Loader2 size={20} className="animate-spin" />
+                            <span>Loading more...</span>
                           </div>
-                        ) : null
+                        </div>
+                      ) : null
                     }}
                   />
                 </motion.div>

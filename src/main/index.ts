@@ -130,8 +130,7 @@ app.whenReady().then(async () => {
     import('./modules/system/StorageService'),
     import('./modules/system/PinService'),
     import('./modules/updater/UpdaterController'),
-    import('./modules/system/LogsController'),
-    import('./modules/news/NewsController')
+    import('./modules/system/LogsController')
   ])
 
   const criticalLoaded = {
@@ -140,8 +139,7 @@ app.whenReady().then(async () => {
     storageService: criticalModules[2].storageService,
     pinService: criticalModules[3].pinService,
     registerUpdaterHandlers: criticalModules[4].registerUpdaterHandlers,
-    registerLogsHandlers: criticalModules[5].registerLogsHandlers,
-    registerNewsHandlers: criticalModules[6].registerNewsHandlers
+    registerLogsHandlers: criticalModules[5].registerLogsHandlers
   }
 
   // Update global reference
@@ -153,7 +151,6 @@ app.whenReady().then(async () => {
   criticalLoaded.registerRobloxHandlers()
   criticalLoaded.registerStorageHandlers()
   criticalLoaded.registerLogsHandlers()
-  criticalLoaded.registerNewsHandlers()
   criticalLoaded.pinService.initialize()
   logPerf('critical-handlers-registered')
 
@@ -194,7 +191,7 @@ app.whenReady().then(async () => {
       import('./modules/macro/MacroController'),
       import('./modules/sniper/SniperController'),
       import('./modules/generator/GeneratorController'),
-      import('./modules/proxy/ProxyController')
+      import('./modules/system/PerformanceService')
     ])
 
     const nonCriticalLoaded = {
@@ -203,7 +200,7 @@ app.whenReady().then(async () => {
       registerMacroHandlers: nonCriticalModules[2].registerMacroHandlers,
       registerSniperHandlers: nonCriticalModules[3].registerSniperHandlers,
       registerGeneratorHandlers: nonCriticalModules[4].registerGeneratorHandlers,
-      registerProxyHandlers: nonCriticalModules[5].registerProxyHandlers
+      performanceService: nonCriticalModules[5].PerformanceService
     }
 
     logPerf('non-critical-modules-loaded')
@@ -215,7 +212,7 @@ app.whenReady().then(async () => {
     nonCriticalLoaded.registerMacroHandlers()
     nonCriticalLoaded.registerSniperHandlers()
     nonCriticalLoaded.registerGeneratorHandlers()
-    nonCriticalLoaded.registerProxyHandlers()
+    nonCriticalLoaded.performanceService.init()
 
     logPerf('non-critical-handlers-registered')
     console.log('[perf:main] App fully loaded and ready!')
@@ -231,11 +228,29 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('has-config', () => {
     try {
-      const configPath = getDataFile('config.json')
-      if (!existsSync(configPath)) return false
-      const configData = JSON.parse(readFileSync(configPath, 'utf-8'))
-      // Check if config exists and has PIN hash (onboarding completed)
-      return !!(configData.settings && configData.settings.pinCodeHash)
+      const configCandidates = [
+        getDataFile('config.json'),
+        join(app.getPath('userData'), 'config.json'),
+        join(app.getPath('userData'), 'Sentra', 'config.json'),
+        join(app.getPath('documents'), 'Sentra', 'config.json')
+      ]
+
+      for (const candidate of configCandidates) {
+        if (!existsSync(candidate)) continue
+
+        try {
+          const content = readFileSync(candidate, 'utf-8').trim()
+          if (!content) continue
+          const parsed = JSON.parse(content)
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+            return true
+          }
+        } catch {
+          return true
+        }
+      }
+
+      return false
     } catch (error) {
       console.error('Failed to check config existence:', error)
       return false

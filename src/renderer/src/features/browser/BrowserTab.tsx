@@ -59,7 +59,7 @@ export const BrowserTab: React.FC = () => {
             <span className="text-lg font-bold">Open Browser</span>
           </Button>
         </div>
-        <p className="text-neutral-500 text-sm font-medium tracking-wide">
+        <p className="text-[var(--color-text-muted)] text-sm font-medium tracking-wide">
           Right-click for more options
         </p>
       </motion.div>
@@ -82,16 +82,16 @@ export const BrowserTab: React.FC = () => {
           >
             <button
               onClick={handleOpenHome}
-              className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#333] flex items-center gap-3 transition-colors"
+              className="w-full px-4 py-3 text-left text-sm text-[var(--color-text-primary)] hover:bg-[#333] flex items-center gap-3 transition-colors"
             >
-              <Home size={16} className="text-neutral-400" />
+              <Home size={16} className="text-[var(--color-text-secondary)]" />
               Open Home
             </button>
             <button
               onClick={() => { setShowLinkDialog(true); closeMenu(); }}
-              className="w-full px-4 py-3 text-left text-sm text-white hover:bg-[#333] flex items-center gap-3 transition-colors border-t border-[#262626]"
+              className="w-full px-4 py-3 text-left text-sm text-[var(--color-text-primary)] hover:bg-[#333] flex items-center gap-3 transition-colors border-t border-[#262626]"
             >
-              <ExternalLink size={16} className="text-neutral-400" />
+              <ExternalLink size={16} className="text-[var(--color-text-secondary)]" />
               Enter URL...
             </button>
           </motion.div>
@@ -116,8 +116,8 @@ export const BrowserTab: React.FC = () => {
               className="relative bg-[#111] border border-[#333] rounded-2xl p-8 w-full max-w-md shadow-[0_0_50px_rgba(0,0,0,0.5)]"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-2xl font-bold text-white mb-2">Navigate</h2>
-              <p className="text-neutral-400 mb-6">Type a URL to open in your browser.</p>
+              <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Navigate</h2>
+              <p className="text-[var(--color-text-secondary)] mb-6">Type a URL to open in your browser.</p>
               
               <input
                 autoFocus
@@ -126,20 +126,20 @@ export const BrowserTab: React.FC = () => {
                 onChange={(e) => setLinkInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleOpenCustomLink()}
                 placeholder="roblox.com"
-                className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#444] rounded-xl text-white placeholder-neutral-600 focus:outline-none focus:border-[#666] mb-6 transition-all"
+                className="w-full px-4 py-4 bg-[#1a1a1a] border border-[#444] rounded-xl text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[#666] mb-6 transition-all"
               />
               
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowLinkDialog(false)}
-                  className="px-6 py-2 text-neutral-400 hover:text-white transition-colors"
+                  className="px-6 py-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
                 <Button
                   onClick={handleOpenCustomLink}
                   disabled={!linkInput.trim()}
-                  className="px-8 bg-white text-black hover:bg-neutral-200"
+                  className="px-8 bg-white text-black hover:bg-[var(--color-surface-hover)]"
                 >
                   Go
                 </Button>

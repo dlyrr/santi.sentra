@@ -147,7 +147,7 @@ const Slider = ({
       </div>
       <div
         className={cn(
-          'absolute h-5 w-5 rounded-full border-2 border-white bg-neutral-950 shadow transition-transform focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+          'absolute h-5 w-5 rounded-full border-2 border-white bg-[var(--color-app-bg)] shadow transition-transform focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
           isVertical
             ? 'left-1/2 -translate-x-1/2 -translate-y-1/2'
             : 'top-1/2 -translate-y-1/2 -translate-x-1/2',
@@ -678,7 +678,7 @@ export const ColorPickerFormat = ({
     return (
       <div className={cn('flex w-full items-center', className)} {...props}>
         <Input
-          className="h-10 rounded-md bg-neutral-900 px-3 text-xs shadow-none font-mono"
+          className="h-10 rounded-md bg-[var(--color-surface)] px-3 text-xs shadow-none font-mono"
           type="text"
           value={hexValue}
           onChange={(e) => handleHexChange(e.target.value)}
@@ -701,17 +701,17 @@ export const ColorPickerFormat = ({
     return (
       <div className={cn('flex items-center w-full', className)} {...props}>
         <Input
-          className="h-10 rounded-r-none rounded-l-md bg-neutral-900 px-1 text-xs text-center shadow-none border-r-0"
+          className="h-10 rounded-r-none rounded-l-md bg-[var(--color-surface)] px-1 text-xs text-center shadow-none border-r-0"
           value={rgb[0]}
           onChange={(e) => handleRgbChange(0, e.target.value)}
         />
         <Input
-          className="h-10 rounded-none bg-neutral-900 px-1 text-xs text-center shadow-none border-r-0 border-l-0"
+          className="h-10 rounded-none bg-[var(--color-surface)] px-1 text-xs text-center shadow-none border-r-0 border-l-0"
           value={rgb[1]}
           onChange={(e) => handleRgbChange(1, e.target.value)}
         />
         <Input
-          className="h-10 rounded-none rounded-r-md bg-neutral-900 px-1 text-xs text-center shadow-none border-l-0"
+          className="h-10 rounded-none rounded-r-md bg-[var(--color-surface)] px-1 text-xs text-center shadow-none border-l-0"
           value={rgb[2]}
           onChange={(e) => handleRgbChange(2, e.target.value)}
         />
@@ -723,7 +723,7 @@ export const ColorPickerFormat = ({
     return (
       <div className={cn('w-full', className)} {...props}>
         <Input
-          className="h-10 bg-neutral-900 px-3 text-xs shadow-none font-mono"
+          className="h-10 bg-[var(--color-surface)] px-3 text-xs shadow-none font-mono"
           value={cssValue}
           onChange={(e) => handleCssChange(e.target.value)}
           onBlur={handleCssBlur}
@@ -745,17 +745,17 @@ export const ColorPickerFormat = ({
     return (
       <div className={cn('flex items-center w-full', className)} {...props}>
         <Input
-          className="h-10 rounded-r-none rounded-l-md bg-neutral-900 px-1 text-xs text-center shadow-none border-r-0"
+          className="h-10 rounded-r-none rounded-l-md bg-[var(--color-surface)] px-1 text-xs text-center shadow-none border-r-0"
           value={hsl[0]}
           onChange={(e) => handleHslChange(0, e.target.value)}
         />
         <Input
-          className="h-10 rounded-none bg-neutral-900 px-1 text-xs text-center shadow-none border-r-0 border-l-0"
+          className="h-10 rounded-none bg-[var(--color-surface)] px-1 text-xs text-center shadow-none border-r-0 border-l-0"
           value={hsl[1]}
           onChange={(e) => handleHslChange(1, e.target.value)}
         />
         <Input
-          className="h-10 rounded-none rounded-r-md bg-neutral-900 px-1 text-xs text-center shadow-none border-l-0"
+          className="h-10 rounded-none rounded-r-md bg-[var(--color-surface)] px-1 text-xs text-center shadow-none border-l-0"
           value={hsl[2]}
           onChange={(e) => handleHslChange(2, e.target.value)}
         />

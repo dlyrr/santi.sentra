@@ -1,10 +1,7 @@
 import { EventEmitter } from 'events'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { ProcessMonitor } from '../watcher/ProcessMonitor'
 import { RobloxGameService } from './GameService'
 import { storageService } from '../system/StorageService'
-
-const execAsync = promisify(exec)
 
 const POLL_INTERVAL = 1000
 const POLL_START_DELAY = 15000
@@ -78,22 +75,8 @@ class GameSessionService extends EventEmitter {
 
   private async getRobloxProcessCount(): Promise<number> {
     try {
-      if (process.platform === 'darwin') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true')
-        return stdout
-          .trim()
-          .split('\n')
-          .filter((line) => line.length > 0 && /^\d+$/.test(line)).length
-      } else {
-        const { stdout } = await execAsync(
-          'tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH'
-        )
-        if (stdout.includes('No tasks')) return 0
-        return stdout
-          .trim()
-          .split('\n')
-          .filter((line) => line.includes('RobloxPlayerBeta.exe')).length
-      }
+      const pids = await ProcessMonitor.getRobloxProcessPids()
+      return pids.length
     } catch {
       return 0
     }
@@ -105,17 +88,25 @@ class GameSessionService extends EventEmitter {
     this.pollingTimeout = setTimeout(() => {
       if (!this.currentSession) return
 
-      this.pollingInterval = setInterval(async () => {
-        if (!this.currentSession) {
-          this.stopPolling()
-          return
+      const pollLoop = async () => {
+        if (!this.currentSession) return
+
+        try {
+          const count = await this.getRobloxProcessCount()
+          if (count === 0) {
+            this.endSession()
+            return
+          }
+        } catch (error) {
+          console.error('[GameSession] Polling error:', error)
         }
 
-        const count = await this.getRobloxProcessCount()
-        if (count === 0) {
-          this.endSession()
+        if (this.currentSession) {
+          this.pollingTimeout = setTimeout(pollLoop, POLL_INTERVAL)
         }
-      }, POLL_INTERVAL)
+      }
+
+      pollLoop()
     }, POLL_START_DELAY)
   }
 

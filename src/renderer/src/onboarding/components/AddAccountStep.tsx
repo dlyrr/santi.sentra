@@ -133,8 +133,8 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
         >
           <Check className="w-10 h-10 text-emerald-500" />
         </motion.div>
-        <h3 className="text-xl font-semibold text-white mb-2">Account Added!</h3>
-        <p className="text-neutral-400 text-sm">Continuing to next step...</p>
+        <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Account Added!</h3>
+        <p className="text-[var(--color-text-secondary)] text-sm">Continuing to next step...</p>
       </motion.div>
     )
   }
@@ -174,13 +174,13 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="cookieInput" className="text-sm font-medium text-neutral-400">
+                  <label htmlFor="cookieInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
                     .ROBLOSECURITY Cookie
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsCookieBlurred((prev) => !prev)}
-                    className="pressable text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="pressable text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                   >
                     {isCookieBlurred ? 'Show' : 'Hide'}
                   </button>
@@ -191,7 +191,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
                   onChange={(e) => setCookie(e.target.value)}
                   disabled={isLoading}
                   placeholder="_|WARNING:-DO-NOT-SHARE-THIS..."
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all min-h-[100px] resize-none font-mono disabled:opacity-50"
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all min-h-[100px] resize-none font-mono disabled:opacity-50"
                   style={
                     isCookieBlurred
                       ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties)
@@ -229,8 +229,8 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
               </p>
             </div>
 
-            <div className="space-y-2 text-sm text-neutral-400">
-              <p className="text-neutral-300 font-medium">How it works</p>
+            <div className="space-y-2 text-sm text-[var(--color-text-secondary)]">
+              <p className="text-[var(--color-text-secondary)] font-medium">How it works</p>
               <ul className="list-decimal list-inside space-y-1">
                 <li>Click &quot;Open Roblox Login&quot; to launch the official page.</li>
                 <li>Sign in inside the new window.</li>
@@ -257,10 +257,10 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
         )}
       </AnimatePresence>
 
-      <div className="pt-4 border-t border-neutral-800">
+      <div className="pt-4 border-t border-[var(--color-border)]">
         <button
           onClick={onSkip}
-          className="w-full text-center text-sm text-neutral-500 hover:text-neutral-300 transition-colors py-2"
+          className="w-full text-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors py-2"
         >
           Skip for now
         </button>

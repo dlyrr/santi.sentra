@@ -23,14 +23,12 @@ import {
   rolimonsApi,
   transactionsApi,
   updaterApi,
-  newsApi,
   accountSettingsApi,
   discordRPCApi,
   watcherApi,
   macroApi,
   sniperApi,
-  generatorApi,
-  proxyApi
+  generatorApi
 } from './api'
 
 // Platform info
@@ -63,16 +61,13 @@ const api = {
   ...netlogApi,
   ...transactionsApi,
   ...updaterApi,
-  ...newsApi,
   ...accountSettingsApi,
   ...discordRPCApi,
   ...watcherApi,
   ...macroApi,
   ...sniperApi,
   ...generatorApi,
-  ...proxyApi,
   // Namespace properties for organized access
-  news: newsApi,
   account: accountApi,
   user: usersApi,
   friends: friendsApi,
@@ -89,8 +84,7 @@ const api = {
   watcher: watcherApi,
   macro: macroApi,
   sniper: sniperApi,
-  generator: generatorApi,
-  proxy: proxyApi
+  generator: generatorApi
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

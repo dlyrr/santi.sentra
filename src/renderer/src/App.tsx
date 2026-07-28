@@ -11,6 +11,7 @@ import JoinModal from './components/Modals/JoinModal'
 import EditNoteModal from './features/auth/Modals/EditNoteModal'
 import AddAccountModal from './features/auth/Modals/AddAccountModal'
 import Sidebar from './components/UI/navigation/Sidebar'
+import TopNav from './components/UI/navigation/TopNav'
 import NotificationTray from './components/UI/feedback/NotificationTray'
 import SnackbarContainer from './features/system/components/SnackbarContainer'
 
@@ -33,6 +34,7 @@ import {
 } from './hooks/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../../shared/queryKeys'
+import { bulkOperationLimiter, executeWithRetry, isRateLimitError, sleep } from './lib/rateLimiter'
 import {
   getVisibleSidebarTabs,
   sanitizeSidebarHidden,
@@ -70,10 +72,20 @@ import {
   useAvailableInstallations,
   useSetAvailableInstallations,
   useAppUnlocked,
-  useSetAppUnlocked
+  useSetAppUnlocked,
+  useNavLayout
 } from './stores/useUIStore'
 
 import { useSelectedIds, useSetSelectedIds } from './stores/useSelectionStore'
+import {
+  useContentRadius,
+  useNavBorderStyle,
+  useUIDensity,
+  useBlurIntensity,
+  useIconWeight,
+  useMotionSpeed,
+  useFontWeight
+} from './stores/useViewPreferencesStore'
 
 const ProfileTab = lazy(() => import('./features/profile/index'))
 const FriendsTab = lazy(() => import('./features/friends/index'))
@@ -91,13 +103,13 @@ const WatcherTab = lazy(() => import('./features/watcher/index'))
 const MacroTab = lazy(() => import('./features/macro/index'))
 const SniperTab = lazy(() => import('./features/sniper/index'))
 const GeneratorTab = lazy(() => import('./features/generator/index'))
-const ProxyTab = lazy(() => import('./features/proxy/index'))
-const NewsTab = lazy(() => import('./features/news/index'))
 const AccountSettingsTab = lazy(() => import('./features/accountSettings/index'))
 const GameDetailsModal = lazy(() => import('./features/games/Modals/GameDetailsModal'))
 const AccessoryDetailsModal = lazy(() => import('./features/avatar/Modals/AccessoryDetailsModal'))
 const UniversalProfileModal = lazy(() => import('./components/Modals/UniversalProfileModal'))
 const CommandPalette = lazy(() => import('./features/command-palette/index'))
+import BulkActionModal from './features/auth/BulkActionModal'
+import BulkTransactionsModal from './features/auth/BulkTransactionsModal'
 
 interface JoinConfig {
   method: JoinMethod
@@ -131,7 +143,8 @@ const App: React.FC = () => {
 
   const handlePinUnlock = useCallback(() => {
     setAppUnlocked(true)
-    // Don't invalidate queries - the accounts were already set in PinLockScreen's cache update
+    // PinLockScreen fetches accounts and sets them in the query cache before calling onUnlock,
+    // so the main app renders with accounts already available.
   }, [setAppUnlocked])
 
   const refreshRecentlyPlayed = useCallback(() => {
@@ -171,6 +184,14 @@ const App: React.FC = () => {
 
   const selectedIds = useSelectedIds()
   const setSelectedIds = useSetSelectedIds()
+  const navLayout = useNavLayout()
+  const contentRadius = useContentRadius()
+  const navBorderStyle = useNavBorderStyle()
+  const uiDensity = useUIDensity()
+  const blurIntensity = useBlurIntensity()
+  const iconWeight = useIconWeight()
+  const motionSpeed = useMotionSpeed()
+  const fontWeight = useFontWeight()
 
   const { accounts, isLoading: isLoadingAccounts, setAccounts, addAccount } = useAccountsManager()
 
@@ -182,12 +203,16 @@ const App: React.FC = () => {
   const [removeMultipleCount, setRemoveMultipleCount] = useState(0)
 
   // Note editing state
-  const [editingNoteAccount, setEditingNoteAccount] = useState<Account | null>(null)
+  const [editingNoteAccounts, setEditingNoteAccounts] = useState<Account[] | null>(null)
+  const [bulkActionOpen, setBulkActionOpen] = useState(false)
+  const [bulkActionType, setBulkActionType] = useState<'addFriend' | 'joinGroup' | null>(null)
+  const [isBulkActionProcessing, setIsBulkActionProcessing] = useState(false)
+  const [bulkTransactionsOpen, setBulkTransactionsOpen] = useState(false)
 
   // Browser custom URL dialog state
   const [showBrowserCustomDialog, setShowBrowserCustomDialog] = useState(false)
   const [browserCustomUrl, setBrowserCustomUrl] = useState('')
-  const [browserCustomAccountId, setBrowserCustomAccountId] = useState<string | null>(null)
+  const [browserCustomAccountIds, setBrowserCustomAccountIds] = useState<Set<string> | null>(null)
 
   const refreshAccountAvatarUrls = useCallback(
     async (options?: { force?: boolean }) => {
@@ -259,6 +284,63 @@ const App: React.FC = () => {
       window.clearInterval(intervalId)
     }
   }, [isLoadingAccounts, refreshAccountAvatarUrls])
+
+  // One-time backfill: fetch joinDate for accounts that are missing it
+  const joinDateBackfillRef = useRef(false)
+  const premiumBackfillRef = useRef(false)
+  useEffect(() => {
+    if (isLoadingAccounts || joinDateBackfillRef.current) return
+    const missing = accounts.filter((a) => !a.joinDate && a.userId)
+    if (missing.length === 0) return
+    joinDateBackfillRef.current = true
+    const userIds = missing.map((a) => Number(a.userId)).filter((id) => Number.isFinite(id))
+    if (userIds.length === 0) return
+    window.api.getBatchJoinDates(userIds)
+      .then((dateMap) => {
+        setAccounts((prev) =>
+          prev.map((acc) => {
+            if (acc.joinDate) return acc
+            const uid = Number(acc.userId)
+            const created = Number.isFinite(uid) ? dateMap[uid] : undefined
+            if (created) return { ...acc, joinDate: created }
+            return acc
+          })
+        )
+      })
+      .catch((err) => console.warn('[joinDate backfill] failed:', err))
+  }, [isLoadingAccounts, accounts, setAccounts])
+
+  useEffect(() => {
+    if (isLoadingAccounts || premiumBackfillRef.current) return
+
+    const missingPremium = accounts.filter((a) => a.cookie && a.userId && a.isPremium === undefined)
+    if (missingPremium.length === 0) return
+
+    premiumBackfillRef.current = true
+
+    Promise.all(
+      missingPremium.map(async (account) => {
+        const userId = Number(account.userId)
+        if (!Number.isFinite(userId)) return { id: account.id, isPremium: false }
+
+        try {
+          const details = await window.api.getExtendedUserDetails(account.cookie!, userId)
+          return { id: account.id, isPremium: details?.isPremium ?? false }
+        } catch {
+          return { id: account.id, isPremium: false }
+        }
+      })
+    )
+      .then((updates) => {
+        setAccounts((prev) =>
+          prev.map((acc) => {
+            const update = updates.find((u) => u.id === acc.id)
+            return update ? { ...acc, isPremium: update.isPremium } : acc
+          })
+        )
+      })
+      .catch((err) => console.warn('[premium backfill] failed:', err))
+  }, [isLoadingAccounts, accounts, setAccounts])
 
   const sidebarTabOrder = useMemo(
     () => sanitizeSidebarOrder(settings.sidebarTabOrder),
@@ -491,12 +573,23 @@ const App: React.FC = () => {
         return
       }
 
-      showNotification(`Launching ${accountsToLaunch.length} accounts...`, 'info')
+      showNotification(`Launching ${accountsToLaunch.length} account${accountsToLaunch.length === 1 ? '' : 's'}...`, 'info')
+
+      const accountsWithCookie = accountsToLaunch.filter((acc) => acc.cookie)
+      if (accountsWithCookie.length === 0) {
+        showNotification('No accounts with valid cookies selected', 'warning')
+        return
+      }
 
       let launchedAny = false
+      let launchIndex = 0
 
-      for (const account of accountsToLaunch) {
-        if (!account.cookie) continue
+      const launchOneAccount = async (account: typeof accountsToLaunch[0]) => {
+        const staggerDelay = launchIndex * 1500 // 1.5s stagger between launches
+        launchIndex++
+        if (staggerDelay > 0) {
+          await new Promise((r) => setTimeout(r, staggerDelay))
+        }
 
         try {
           const logsBeforeLaunch = notifyServerLocation ? await window.api.getLogs() : []
@@ -504,7 +597,7 @@ const App: React.FC = () => {
             logsBeforeLaunch.length > 0 ? logsBeforeLaunch[0].lastModified : 0
 
           await window.api.launchGame(
-            account.cookie,
+            account.cookie!,
             launchPlaceId,
             launchJobId,
             launchFriendId,
@@ -570,15 +663,18 @@ const App: React.FC = () => {
               console.warn('Timed out waiting for server location from logs')
             }
 
+            // Fire-and-forget server location polling (non-blocking)
             pollForServerLocation()
           }
-
-          await new Promise((r) => setTimeout(r, 3000))
         } catch (e: any) {
           console.error(`Failed to launch for ${account.displayName}`, e instanceof Error ? e.message : String(e))
           showNotification(`Failed to launch for ${account.displayName}: ${e.message}`, 'error')
         }
       }
+
+      // Launch all accounts concurrently with stagger
+      await Promise.all(accountsWithCookie.map(launchOneAccount))
+      launchedAny = accountsWithCookie.length > 0
 
       if (launchedAny) {
         window.setTimeout(() => {
@@ -665,6 +761,133 @@ const App: React.FC = () => {
     handleLaunch(config)
   }
 
+  const handleBulkOpenBrowsers = useCallback(() => {
+    if (selectedIds.size === 0) return
+
+    const selectedAccounts = accounts.filter((account) => selectedIds.has(account.id))
+    const accountsWithCookies = selectedAccounts.filter((account) => account.cookie)
+    const missingCookies = selectedAccounts.filter((account) => !account.cookie)
+    if (missingCookies.length > 0) {
+      showNotification(`Skipping ${missingCookies.length} account${missingCookies.length === 1 ? '' : 's'} without a valid cookie`, 'warning')
+    }
+
+    if (accountsWithCookies.length === 0) return
+
+    void (async () => {
+      // Open browsers concurrently with a small stagger to avoid overwhelming the system
+      await Promise.all(
+        accountsWithCookies.map(async (account, index) => {
+          if (index > 0) await new Promise((resolve) => setTimeout(resolve, index * 200))
+          try {
+            await window.api.openBrowserWithAccount(account.id, 'https://www.roblox.com/home')
+          } catch (error) {
+            console.error('Failed to open browser for', account.username, error)
+          }
+        })
+      )
+
+      showNotification(`Opened ${accountsWithCookies.length} browser window${accountsWithCookies.length === 1 ? '' : 's'}`, 'success')
+    })()
+  }, [accounts, selectedIds, showNotification])
+
+  const handleBulkCopyCookies = useCallback(() => {
+    if (selectedIds.size === 0) return
+
+    const selectedAccounts = accounts.filter((account) => selectedIds.has(account.id))
+    const cookies = selectedAccounts.filter((account) => account.cookie).map((account) => account.cookie)
+    if (cookies.length === 0) {
+      showNotification('No valid cookies found in selected accounts', 'warning')
+      return
+    }
+
+    void navigator.clipboard.writeText(cookies.join('\n')).then(() => {
+      showNotification(`Copied ${cookies.length} cookie${cookies.length === 1 ? '' : 's'} to clipboard`, 'success')
+    }).catch((error) => {
+      console.error('Failed to copy cookies', error)
+      showNotification('Failed to copy cookies to clipboard', 'error')
+    })
+  }, [accounts, selectedIds, showNotification])
+
+  const handleBulkRemove = useCallback(() => {
+    if (selectedIds.size === 0) return
+    setRemoveMultipleCount(selectedIds.size)
+    setRemoveAccountId(null)
+    setRemoveAccountOpen(true)
+  }, [selectedIds.size])
+
+  const handleBulkAddFriend = useCallback(() => {
+    if (selectedIds.size === 0) return
+    setBulkActionType('addFriend')
+    setBulkActionOpen(true)
+  }, [selectedIds.size])
+
+  const handleBulkJoinGroup = useCallback(() => {
+    if (selectedIds.size === 0) return
+    setBulkActionType('joinGroup')
+    setBulkActionOpen(true)
+  }, [selectedIds.size])
+
+  const handleChangeDisplayName = useCallback((id: string) => {
+    setSelectedIds(new Set([id]))
+    openModal('changeDisplayName')
+    setActiveMenu(null)
+  }, [openModal, setSelectedIds, setActiveMenu])
+
+  const handleBulkChangeDisplayName = useCallback(() => {
+    if (selectedIds.size === 0) return
+    openModal('changeDisplayName')
+    setActiveMenu(null)
+  }, [openModal, selectedIds, setActiveMenu])
+
+  const handleBulkActionSubmit = async (targetId: number) => {
+    if (selectedIds.size === 0 || !bulkActionType) return
+    setIsBulkActionProcessing(true)
+
+    const selectedAccounts = accounts.filter((account) => selectedIds.has(account.id))
+    const missingCookies = selectedAccounts.filter((account) => !account.cookie)
+    if (missingCookies.length > 0) {
+      showNotification(`Skipping ${missingCookies.length} account${missingCookies.length === 1 ? '' : 's'} without a valid cookie`, 'warning')
+    }
+
+    let successCount = 0
+    let failCount = 0
+
+    for (const account of selectedAccounts) {
+      if (!account.cookie) continue
+      try {
+        if (bulkActionType === 'addFriend') {
+          await executeWithRetry(
+            bulkOperationLimiter,
+            () => window.api.sendFriendRequest(account.cookie!, targetId),
+            { retryCondition: isRateLimitError }
+          )
+        } else if (bulkActionType === 'joinGroup') {
+          await executeWithRetry(
+            bulkOperationLimiter,
+            () => window.api.joinGroup(account.cookie!, targetId),
+            { retryCondition: isRateLimitError }
+          )
+        }
+        successCount++
+        await sleep(1000)
+      } catch (error) {
+        console.error(`Failed bulk ${bulkActionType} for`, account.username, error)
+        failCount++
+      }
+    }
+
+    setIsBulkActionProcessing(false)
+    setBulkActionOpen(false)
+    setBulkActionType(null)
+
+    const actionName = bulkActionType === 'addFriend' ? 'Friend requests sent' : 'Group join requests sent'
+    if (failCount === 0) {
+      showNotification(`Success: ${actionName} from ${successCount} account${successCount === 1 ? '' : 's'}`, 'success')
+    } else {
+      showNotification(`Completed: ${actionName} from ${successCount} account${successCount === 1 ? '' : 's'}. Failed: ${failCount}`, 'warning')
+    }
+  }
+
   const handleIndividualRemove = (id: string) => {
     setRemoveAccountId(id)
     setRemoveAccountOpen(true)
@@ -674,23 +897,123 @@ const App: React.FC = () => {
   const handleEditNote = useCallback((id: string) => {
     const account = accounts.find((a) => a.id === id)
     if (account) {
-      setEditingNoteAccount(account)
+      setEditingNoteAccounts([account])
     }
     setActiveMenu(null)
   }, [accounts])
 
-  const handleSaveNote = useCallback((accountId: string, newNote: string) => {
+  const handleBulkEditNote = useCallback(() => {
+    const selected = accounts.filter(a => selectedIds.has(a.id))
+    if (selected.length > 0) {
+      setEditingNoteAccounts(selected)
+    }
+    setActiveMenu(null)
+  }, [accounts, selectedIds])
+
+  const handleSaveNote = useCallback((accountIds: string[], newNote: string) => {
+    const idsSet = new Set(accountIds)
     setAccounts((prev) =>
       prev.map((acc) =>
-        acc.id === accountId ? { ...acc, notes: newNote } : acc
+        idsSet.has(acc.id) ? { ...acc, notes: newNote } : acc
       )
     )
-    setEditingNoteAccount(null)
+    setEditingNoteAccounts(null)
   }, [setAccounts])
 
-  const handleReauth = (id: string) => {
-    showNotification(`Re-authenticating account ${id}... (Mock Action)`, 'info')
+  const handleReauth = async (id: string) => {
     setActiveMenu(null)
+    const account = accounts.find((a) => a.id === id)
+    if (!account) return
+
+    showNotification(`Please log into ${account.username}...`, 'info')
+    
+    try {
+      const cookie = await window.api.openRobloxLoginWindow()
+      if (!cookie) {
+        showNotification('Login cancelled', 'warning')
+        return
+      }
+      
+      const data = await window.api.validateCookie(cookie)
+      if (data.id.toString() !== id) {
+        showNotification(`You logged into a different account (${data.name}). Re-authentication failed.`, 'error')
+        return
+      }
+
+      let isPremium = false
+      try {
+        const details = await window.api.getExtendedUserDetails(cookie, Number(data.id))
+        isPremium = details?.isPremium ?? false
+      } catch (e) {
+        console.warn('Failed to refresh premium status during re-auth:', e instanceof Error ? e.message : String(e))
+      }
+      
+      setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, cookie, age: data.age, isPremium } : acc))
+      showNotification(`Successfully re-authenticated ${account.displayName}!`, 'success')
+    } catch (e) {
+      if (e instanceof Error && e.message === 'LOGIN_WINDOW_CLOSED') {
+        showNotification('Login window closed', 'warning')
+        return
+      }
+      showNotification('Failed to re-authenticate: ' + (e instanceof Error ? e.message : String(e)), 'error')
+    }
+  }
+
+  const handleBulkReauth = async () => {
+    setActiveMenu(null)
+    const idsToReauth = Array.from(selectedIds)
+    if (idsToReauth.length === 0) return
+
+    showNotification(`Re-authenticating ${idsToReauth.length} accounts...`, 'info')
+
+    let successCount = 0
+    let failCount = 0
+
+    for (const id of idsToReauth) {
+      const account = accounts.find((a) => a.id === id)
+      if (!account) continue
+
+      showNotification(`Please log into ${account.username}...`, 'info')
+
+      try {
+        const cookie = await window.api.openRobloxLoginWindow()
+        if (!cookie) {
+          failCount++
+          continue
+        }
+
+        const data = await window.api.validateCookie(cookie)
+        if (data.id.toString() !== id) {
+          showNotification(`Expected ${account.username}, but logged into ${data.name}. Skipping...`, 'error')
+          failCount++
+          continue
+        }
+
+        let isPremium = false
+        try {
+          const details = await window.api.getExtendedUserDetails(cookie, Number(data.id))
+          isPremium = details?.isPremium ?? false
+        } catch (e) {
+          console.warn('Failed to refresh premium status during bulk re-auth:', e instanceof Error ? e.message : String(e))
+        }
+
+        setAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, cookie, age: data.age, isPremium } : acc))
+        successCount++
+      } catch (e) {
+        if (e instanceof Error && e.message === 'LOGIN_WINDOW_CLOSED') {
+           showNotification('Login window closed. Stopping bulk re-auth.', 'warning')
+           break
+        }
+        failCount++
+      }
+    }
+
+    if (successCount > 0) {
+      showNotification(`Successfully re-authenticated ${successCount} accounts.`, 'success')
+    }
+    if (failCount > 0) {
+      showNotification(`Failed to re-authenticate ${failCount} accounts.`, 'error')
+    }
   }
 
   const handleOpenBrowserHome = async (id: string) => {
@@ -712,77 +1035,83 @@ const App: React.FC = () => {
     setActiveMenu(null)
   }
 
-  const handleOpenBrowserCustom = async (id: string) => {
-    const account = accounts.find((a) => a.id === id)
-    if (!account) {
-      showNotification('Account not found', 'error')
-      setActiveMenu(null)
-      return
-    }
+  const handleOpenBrowserCustom = (id: string) => {
+    setBrowserCustomAccountIds(new Set([id]))
+    setShowBrowserCustomDialog(true)
+    setActiveMenu(null)
+  }
 
-    // Open dialog for custom URL input
-    setBrowserCustomAccountId(id)
-    setBrowserCustomUrl('')
+  const handleBulkOpenBrowserCustom = () => {
+    if (selectedIds.size === 0) return
+    setBrowserCustomAccountIds(new Set(selectedIds))
     setShowBrowserCustomDialog(true)
     setActiveMenu(null)
   }
 
   const handleBrowserCustomUrlSubmit = async () => {
-    if (!browserCustomUrl.trim() || !browserCustomAccountId) return
+    if (!browserCustomUrl.trim() || !browserCustomAccountIds || browserCustomAccountIds.size === 0) return
 
-    const account = accounts.find((a) => a.id === browserCustomAccountId)
-    if (!account) {
-      showNotification('Account not found', 'error')
+    let finalUrl = browserCustomUrl.trim()
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://' + finalUrl
+    }
+
+    const selectedAccounts = accounts.filter((a) => browserCustomAccountIds.has(a.id) && a.cookie)
+
+    if (selectedAccounts.length === 0) {
+      showNotification('No valid accounts found to open', 'error')
       return
     }
 
-    try {
-      let finalUrl = browserCustomUrl.trim()
-      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-        finalUrl = 'https://' + finalUrl
-      }
-      await window.api.openBrowserWithAccount(browserCustomAccountId, finalUrl)
-      showNotification(`Opening ${finalUrl} for ${account.displayName || account.username}...`, 'info')
-    } catch (error) {
-      console.error('Failed to open browser:', error)
-      showNotification('Failed to open browser with account', 'error')
+    // Open browsers concurrently with stagger
+    const results = await Promise.allSettled(
+      selectedAccounts.map(async (acc, index) => {
+        if (index > 0) await new Promise((r) => setTimeout(r, index * 200))
+        await window.api.openBrowserWithAccount(acc.id, finalUrl)
+      })
+    )
+
+    const successCount = results.filter((r) => r.status === 'fulfilled').length
+    if (successCount > 0) {
+      showNotification(`Opened ${finalUrl} for ${successCount} account${successCount === 1 ? '' : 's'}`, 'success')
+    } else {
+      showNotification('Failed to open browsers', 'error')
     }
+
     setShowBrowserCustomDialog(false)
     setBrowserCustomUrl('')
-    setBrowserCustomAccountId(null)
+    setBrowserCustomAccountIds(null)
   }
 
   const handleOpenBrowsers = async () => {
-    const accountsToOpen = accounts.filter((acc) => selectedIds.has(acc.id))
+    const accountsToOpen = accounts.filter((acc) => selectedIds.has(acc.id) && acc.cookie)
     if (accountsToOpen.length === 0) {
-      showNotification('No accounts selected', 'warning')
+      const totalSelected = accounts.filter((acc) => selectedIds.has(acc.id)).length
+      if (totalSelected === 0) {
+        showNotification('No accounts selected', 'warning')
+      } else {
+        showNotification('None of the selected accounts have a valid cookie', 'warning')
+      }
       return
     }
 
-    let openedCount = 0
-    for (const account of accountsToOpen) {
-      if (!account.cookie) {
-        showNotification(`Skipping ${account.displayName || account.username}: No valid cookie`, 'warning')
-        continue
-      }
+    // Open browsers concurrently with a small stagger
+    await Promise.all(
+      accountsToOpen.map(async (account, index) => {
+        if (index > 0) await new Promise((resolve) => setTimeout(resolve, index * 200))
+        try {
+          await window.api.openBrowserWithAccount(account.id, 'https://www.roblox.com/home')
+        } catch (error) {
+          console.error(`Failed to open browser for ${account.displayName}:`, error instanceof Error ? error.message : String(error))
+          showNotification(
+            `Failed to open browser for ${account.displayName || account.username}`,
+            'error'
+          )
+        }
+      })
+    )
 
-      try {
-        await window.api.openBrowserWithAccount(account.id, 'https://www.roblox.com/home')
-        openedCount++
-        // Add small delay between opening browsers to prevent overwhelming the system
-        await new Promise(resolve => setTimeout(resolve, 100))
-      } catch (error) {
-        console.error(`Failed to open browser for ${account.displayName}:`, error instanceof Error ? error.message : String(error))
-        showNotification(
-          `Failed to open browser for ${account.displayName || account.username}`,
-          'error'
-        )
-      }
-    }
-
-    if (openedCount > 0) {
-      showNotification(`Opened ${openedCount} browser window${openedCount !== 1 ? 's' : ''}`, 'success')
-    }
+    showNotification(`Opened ${accountsToOpen.length} browser window${accountsToOpen.length !== 1 ? 's' : ''}`, 'success')
   }
 
   const handleGetCookie = async (id: string) => {
@@ -846,7 +1175,7 @@ const App: React.FC = () => {
       let actualCookieValue = cookieValue
       const match = cookieValue.match(/\.ROBLOSECURITY=([^;]+)/)
       if (match) {
-        actualCookieValue = match[1]
+        actualCookieValue = match[1].trim()
       }
 
       if (!actualCookieValue.startsWith(expectedStart)) {
@@ -857,7 +1186,8 @@ const App: React.FC = () => {
         return
       }
 
-      const data = await window.api.validateCookie(cookie)
+      // Use actualCookieValue (without "ROBLOSECURITY=" prefix) for all API calls
+      const data = await window.api.validateCookie(actualCookieValue)
 
       if (accounts.some((acc) => acc.id === data.id.toString())) {
         showNotification('Account already added!', 'warning')
@@ -865,6 +1195,14 @@ const App: React.FC = () => {
       }
 
       const avatarUrl = await window.api.getAvatarUrl(data.id.toString())
+
+      let premiumStatus = false
+      try {
+        const details = await window.api.getExtendedUserDetails(actualCookieValue, Number(data.id))
+        premiumStatus = details?.isPremium ?? false
+      } catch (e) {
+        console.warn('Failed to fetch premium status:', e instanceof Error ? e.message : String(e))
+      }
 
       let status = AccountStatus.Offline
       try {
@@ -885,12 +1223,15 @@ const App: React.FC = () => {
         status: status,
         importedVia: importedVia || 'cookie',
         avatarUrl: avatarUrl,
+        isPremium: premiumStatus,
         lastActive: isActiveStatus(status) ? new Date().toISOString() : '',
         robuxBalance: 0,
         friendCount: 0,
         followerCount: 0,
         followingCount: 0,
-        notes: ''
+        notes: '',
+        joinDate: data.created,
+        age: data.age
       }
 
       const isFirstAccount = accounts.length === 0
@@ -902,8 +1243,8 @@ const App: React.FC = () => {
 
       closeModal('addAccount')
       showNotification(`Successfully added account: ${newAccount.displayName}`, 'success')
-      } catch (error) {
-        console.error('Failed to add account:', error instanceof Error ? error.message : String(error))
+    } catch (error) {
+      console.error('Failed to add account:', error instanceof Error ? error.message : String(error))
       showNotification('Failed to add account. Please check the cookie and try again.', 'error')
     }
   }
@@ -919,195 +1260,216 @@ const App: React.FC = () => {
   return (
     <div
       id="app-container"
-      className={`flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans overflow-hidden overflow-x-hidden selection:bg-[var(--accent-color-soft)] selection:text-[var(--color-text-primary)] ${settings.privacyMode ? 'privacy-mode' : ''}`}
+      data-radius={contentRadius}
+      data-nav-border={navBorderStyle}
+      data-density={uiDensity}
+      data-blur={blurIntensity}
+      data-icon-weight={iconWeight}
+      data-motion={motionSpeed}
+      data-font-weight={fontWeight}
+      className={`flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans overflow-hidden overflow-x-hidden selection:bg-[var(--accent-color-soft)] selection:text-[var(--color-text-primary)] ${settings.privacyMode ? 'privacy-mode' : ''} ${navLayout === 'topbar' ? 'flex-col' : 'flex-row'}`}
     >
-        {/* Sidebar */}
-      <Sidebar
-        sidebarWidth={sidebarWidth}
-        isResizing={isResizing}
-        sidebarRef={sidebarRef}
-        onResizeStart={() => setIsResizing(true)}
-        selectedAccount={selectedAccount}
-        showProfileCard={settings.showSidebarProfileCard}
-        privacyMode={settings.privacyMode}
-        tabOrder={sidebarTabOrder}
-        hiddenTabs={sidebarHiddenTabs}
-      />
+      {/* Navigation Layer */}
+      {navLayout === 'sidebar' ? (
+        <Sidebar
+          sidebarWidth={sidebarWidth}
+          isResizing={isResizing}
+          sidebarRef={sidebarRef}
+          onResizeStart={() => setIsResizing(true)}
+          selectedAccounts={accounts.filter(a => selectedIds.has(a.id))}
+          primaryAccount={accounts.find((a) => a.id === settings.primaryAccountId) || accounts[0] || null}
+          selectedAccount={selectedAccount}
+          showProfileCard={settings.showSidebarProfileCard}
+          privacyMode={settings.privacyMode}
+          tabOrder={sidebarTabOrder}
+          hiddenTabs={sidebarHiddenTabs}
+        />
+      ) : (
+        <TopNav
+          selectedAccounts={accounts.filter(a => selectedIds.has(a.id))}
+          primaryAccount={accounts.find((a) => a.id === settings.primaryAccountId) || accounts[0] || null}
+          selectedAccount={selectedAccount}
+          showProfileCard={settings.showSidebarProfileCard}
+          privacyMode={settings.privacyMode}
+          tabOrder={sidebarTabOrder}
+          hiddenTabs={sidebarHiddenTabs}
+          onOpenCommandPalette={openCommandPalette}
+          onOpenTransactions={() => setActiveTabState('Transactions')}
+          onOpenUserProfile={handleCommandPaletteViewProfile}
+        />
+      )}
 
       {/* Main Content Wrapper */}
       <main className="flex-1 flex flex-col min-w-0 bg-[var(--color-surface)] h-full relative overflow-hidden text-[var(--color-text-secondary)]" style={{ zIndex: 3 }}>
-        {/* Title Bar spacer */}
-        <div
-          className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
-          style={
-            {
-              WebkitAppRegion: 'drag',
-              paddingRight: isMac ? '16px' : '138px'
-            } as React.CSSProperties
-          }
-        >
-          {/* Search and Notification Bell */}
+        {/* Title Bar spacer (only show if sidebar mode) */}
+        {navLayout === 'sidebar' && (
           <div
-            className="flex items-center mr-2 gap-2"
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+            className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
+            style={
+              {
+                WebkitAppRegion: 'drag',
+                paddingRight: isMac ? '16px' : '138px'
+              } as React.CSSProperties
+            }
           >
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                openCommandPalette()
-              }}
-              className="relative p-2 rounded-md transition-all hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-              title="Search (Ctrl+K)"
+            {/* Search and Notification Bell */}
+            <div
+              className="flex items-center mr-2 gap-2"
+              style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
-              <Search className="h-4 w-4" />
-            </button>
-            <NotificationTray onOpenUserProfile={handleCommandPaletteViewProfile} />
-            {!isMac && <div className="w-px h-5 bg-[var(--color-border)] mx-2" />}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  openCommandPalette()
+                }}
+                className="relative p-2 rounded-md transition-all hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                title="Search (Ctrl+K)"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+              <NotificationTray onOpenUserProfile={handleCommandPaletteViewProfile} />
+              {!isMac && <div className="w-px h-5 bg-[var(--color-border)] mx-2" />}
+            </div>
           </div>
-        </div>
+        )}
         {/* Tab panels - conditional rendering for performance */}
         <div className="flex-1 flex flex-col h-full min-h-0 w-full relative tab-transition-surface">
-          {activeTab === 'Accounts' && (
-            <AccountsTab
-              accounts={accounts}
-              onAccountsChange={setAccounts}
-              allowMultipleInstances={multiInstanceAllowed}
-              privacyMode={settings.privacyMode}
-            />
-          )}
-
-          {activeTab === 'Profile' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              {selectedAccount ? (
-                <ProfileTab
-                  account={selectedAccount}
-                  privacyMode={settings.privacyMode}
-                  onJoinGame={handleFriendJoin}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
-                  <p>Select an account to view profile</p>
-                </div>
-              )}
-            </Suspense>
-          )}
-
-          {activeTab === 'News' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <NewsTab />
-            </Suspense>
-          )}
-
-          {activeTab === 'Friends' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <FriendsTab selectedAccount={selectedAccount} onFriendJoin={handleFriendJoin} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Groups' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <GroupsTab selectedAccount={selectedAccount} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Games' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <GamesTab onGameSelect={setSelectedGame} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Catalog' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <CatalogTab
-                onItemSelect={handleCommandPaletteViewAccessory}
-                onCreatorSelect={(creatorId) => setQuickProfileUserId(String(creatorId))}
-                cookie={accounts.find((a) => a.cookie)?.cookie}
-              />
-            </Suspense>
-          )}
-
-          {activeTab === 'Inventory' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <InventoryTab account={selectedAccount} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Transactions' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <TransactionsTab account={selectedAccount} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Logs' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <LogsTab privacyMode={settings.privacyMode} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Avatar' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <AvatarTab account={selectedAccount} />
-            </Suspense>
-          )}
-
-          {activeTab === 'Install' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <InstallTab />
-            </Suspense>
-          )}
-
-          {activeTab === 'Executor' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <ExecutorTab />
-            </Suspense>
-          )}
-
-          {activeTab === 'Watcher' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <WatcherTab />
-            </Suspense>
-          )}
-
-          {/* Macro page disabled for now */}
-          {/* {activeTab === 'Macro' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <MacroTab />
-            </Suspense>
-          )} */}
-
-          {activeTab === 'Sniper' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <SniperTab />
-            </Suspense>
-          )}
-
-          {activeTab === 'Generator' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <GeneratorTab />
-            </Suspense>
-          )}
-
-          {activeTab === 'Proxy' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <ProxyTab />
-            </Suspense>
-          )}
-
-          {activeTab === 'Settings' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <SettingsTab
-                accounts={accounts}
-                settings={settings}
-                onUpdateSettings={updateSettings}
-              />
-            </Suspense>
-          )}
-
-          {activeTab === 'AccountSettings' && (
-            <Suspense fallback={<LoadingSpinnerFullPage />}>
-              <AccountSettingsTab account={selectedAccount} privacyMode={settings.privacyMode} />
-            </Suspense>
-          )}
+          {/* Global Dynamic Background */}
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+            <div className="absolute -left-[10%] -top-[10%] h-[600px] w-[600px] rounded-full bg-[var(--accent-color-faint)] blur-[120px] transition-all duration-1000" />
+            <div className="absolute -right-[10%] top-[40%] h-[500px] w-[500px] rounded-full bg-[var(--accent-color-faint)] blur-[100px] transition-all duration-1000" />
+          </div>
+          <div className="flex-1 overflow-hidden h-full flex flex-col">
+              {(() => {
+                switch (activeTab) {
+                  case 'Accounts':
+                    return (
+                      <AccountsTab
+                        accounts={accounts}
+                        onAccountsChange={setAccounts}
+                        allowMultipleInstances={multiInstanceAllowed}
+                        privacyMode={settings.privacyMode}
+                      />
+                    )
+                  case 'Profile':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        {selectedAccount ? (
+                          <ProfileTab
+                            account={selectedAccount}
+                            privacyMode={settings.privacyMode}
+                            onJoinGame={handleFriendJoin}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full text-[var(--color-text-muted)]">
+                            <p>Select an account to view profile</p>
+                          </div>
+                        )}
+                      </Suspense>
+                    )
+                  case 'Friends':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <FriendsTab selectedAccount={selectedAccount} onFriendJoin={handleFriendJoin} />
+                      </Suspense>
+                    )
+                  case 'Groups':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <GroupsTab selectedAccount={selectedAccount} />
+                      </Suspense>
+                    )
+                  case 'Games':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <GamesTab onGameSelect={setSelectedGame} />
+                      </Suspense>
+                    )
+                  case 'Catalog':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <CatalogTab
+                          onItemSelect={handleCommandPaletteViewAccessory}
+                          onCreatorSelect={(creatorId) => setQuickProfileUserId(String(creatorId))}
+                          cookie={accounts.find((a) => a.cookie)?.cookie}
+                        />
+                      </Suspense>
+                    )
+                  case 'Inventory':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <InventoryTab account={selectedAccount} />
+                      </Suspense>
+                    )
+                  case 'Transactions':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <TransactionsTab accounts={accounts.filter((a) => selectedIds.has(a.id))} />
+                      </Suspense>
+                    )
+                  case 'Logs':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <LogsTab privacyMode={settings.privacyMode} />
+                      </Suspense>
+                    )
+                  case 'Avatar':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <AvatarTab account={selectedAccount} />
+                      </Suspense>
+                    )
+                  case 'Install':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <InstallTab />
+                      </Suspense>
+                    )
+                  case 'Executor':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <ExecutorTab />
+                      </Suspense>
+                    )
+                  case 'Watcher':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <WatcherTab privacyMode={settings.privacyMode} />
+                      </Suspense>
+                    )
+                  case 'Sniper':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <SniperTab />
+                      </Suspense>
+                    )
+                  case 'Generator':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <GeneratorTab />
+                      </Suspense>
+                    )
+                  case 'Settings':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <SettingsTab
+                          accounts={accounts}
+                          settings={settings}
+                          onUpdateSettings={updateSettings}
+                        />
+                      </Suspense>
+                    )
+                  case 'AccountSettings':
+                    return (
+                      <Suspense fallback={<LoadingSpinnerFullPage />}>
+                        <AccountSettingsTab account={selectedAccount} privacyMode={settings.privacyMode} />
+                      </Suspense>
+                    )
+                  default:
+                    return null
+                }
+              })()}
+          </div>
         </div>
       </main>
 
@@ -1126,10 +1488,10 @@ const App: React.FC = () => {
       />
 
       <EditNoteModal
-        isOpen={!!editingNoteAccount}
-        onClose={() => setEditingNoteAccount(null)}
+        isOpen={!!editingNoteAccounts}
+        onClose={() => setEditingNoteAccounts(null)}
         onSave={handleSaveNote}
-        account={editingNoteAccount}
+        accounts={editingNoteAccounts}
         privacyMode={settings.privacyMode}
       />
 
@@ -1195,7 +1557,7 @@ const App: React.FC = () => {
                   onClick={() => {
                     setShowBrowserCustomDialog(false)
                     setBrowserCustomUrl('')
-                    setBrowserCustomAccountId(null)
+                    setBrowserCustomAccountIds(null)
                   }}
                   className="px-4 py-2 rounded-md border border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors"
                 >
@@ -1271,6 +1633,7 @@ const App: React.FC = () => {
       <ContextMenu
         activeMenu={activeMenu}
         accounts={accounts}
+        selectedIds={selectedIds}
         onViewDetails={setInfoAccount}
         onEditNote={handleEditNote}
         onReauth={handleReauth}
@@ -1278,6 +1641,14 @@ const App: React.FC = () => {
         onOpenBrowserCustom={handleOpenBrowserCustom}
         onGetCookie={handleGetCookie}
         onRemove={handleIndividualRemove}
+        onBulkOpenBrowsers={handleBulkOpenBrowsers}
+        onBulkCopyCookies={handleBulkCopyCookies}
+        onBulkRemove={handleBulkRemove}
+        onBulkOpenBrowserCustom={handleBulkOpenBrowserCustom}
+        onBulkEditNote={handleBulkEditNote}
+        onBulkReauth={handleBulkReauth}
+        onChangeDisplayName={handleChangeDisplayName}
+        onBulkChangeDisplayName={handleBulkChangeDisplayName}
         onClose={() => setActiveMenu(null)}
       />
 
@@ -1317,6 +1688,18 @@ const App: React.FC = () => {
         isDangerous
       />
 
+      {/* Bulk Action Modal (Add Friend / Join Group) */}
+      {bulkActionType && (
+        <BulkActionModal
+          isOpen={bulkActionOpen}
+          onClose={() => { setBulkActionOpen(false); setBulkActionType(null) }}
+          actionType={bulkActionType}
+          onSubmit={handleBulkActionSubmit}
+          isProcessing={isBulkActionProcessing}
+          selectedCount={selectedIds.size}
+        />
+      )}
+
       {/* Snackbar Notifications (replaces NotificationProvider) */}
       <SnackbarContainer />
 
@@ -1327,6 +1710,9 @@ const App: React.FC = () => {
 
       {/* Onboarding Screen Overlay */}
       <AnimatePresence>{!hasCompletedOnboarding && <OnboardingScreen />}</AnimatePresence>
+
+      {/* Background Gradient Effect */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] bg-[radial-gradient(ellipse_at_top_right,_var(--accent-color-faint),_transparent_50%)]" />
 
       {/* Theme Effects - Particle engine for visual effects */}
       <ThemeEffects />

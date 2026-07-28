@@ -20,7 +20,7 @@ const AssetMetadata: React.FC<{
   onCreatorClick?: () => void
 }> = ({ details, creatorAvatarUrl, onCreatorClick }) => (
   <div>
-    <div className="flex items-center gap-2 text-neutral-400 min-w-0">
+    <div className="flex items-center gap-2 text-[var(--color-text-secondary)] min-w-0">
       {creatorAvatarUrl ? (
         <img
           src={creatorAvatarUrl}
@@ -40,7 +40,7 @@ const AssetMetadata: React.FC<{
         <span
           className={cn(
             'inline-flex items-center gap-1 font-semibold',
-            details.creatorHasVerifiedBadge ? 'text-[#3385ff]' : 'text-white',
+            details.creatorHasVerifiedBadge ? 'text-[#3385ff]' : 'text-[var(--color-text-primary)]',
             details.creatorType === 'User' && 'hover:underline cursor-pointer'
           )}
           onClick={onCreatorClick}
@@ -52,7 +52,7 @@ const AssetMetadata: React.FC<{
         </span>
       </span>
       {details.creatorType === 'Group' && (
-        <span className="px-1.5 py-0.5 text-[10px] bg-neutral-800 rounded text-neutral-400 shrink-0">
+        <span className="px-1.5 py-0.5 text-[10px] bg-[var(--color-surface-hover)] rounded text-[var(--color-text-secondary)] shrink-0">
           GROUP
         </span>
       )}
@@ -65,8 +65,8 @@ const AssetDescription: React.FC<{ description: string | null | undefined }> = (
   description
 }) => (
   <div className="space-y-2">
-    <h3 className="text-sm font-medium text-white">Description</h3>
-    <div className="p-4 bg-neutral-900/30 border border-neutral-800/50 rounded-xl text-sm text-neutral-400 whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto scrollbar-thin">
+    <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Description</h3>
+    <div className="p-4 bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 rounded-xl text-sm text-[var(--color-text-secondary)] whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto scrollbar-thin">
       {description ? linkify(description) : 'No description available.'}
     </div>
   </div>
@@ -121,7 +121,7 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
       <div className="flex flex-col gap-2">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-white">{details.name}</h1>
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">{details.name}</h1>
             <div className="flex flex-wrap gap-2 items-center">
               {details.isLimited && !details.isLimitedUnique && (
                 <span className="px-2 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded text-xs font-medium flex items-center gap-1">

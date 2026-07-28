@@ -394,7 +394,7 @@ const LogsTab: React.FC = () => {
                 className={`pressable flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-xs font-medium border ${
                   autoRefreshEnabled
                     ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
-                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:border-neutral-700'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
                 }`}
               >
                 <RefreshCw size={14} className={autoRefreshEnabled ? 'animate-spin' : ''} />
@@ -416,7 +416,7 @@ const LogsTab: React.FC = () => {
         <div className="w-80 bg-[var(--color-surface-strong)] border-r border-[var(--color-border)] flex flex-col shrink-0">
           <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6">
             {isLoading ? (
-              <div className="text-center py-10 text-neutral-500 text-sm">Loading logs...</div>
+              <div className="text-center py-10 text-[var(--color-text-muted)] text-sm">Loading logs...</div>
             ) : groupedLogs.length > 0 ? (
               groupedLogs.map((group) => (
                 <div key={group.label}>
@@ -476,7 +476,7 @@ const LogsTab: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-10 text-neutral-500 text-sm">No logs found.</div>
+              <div className="text-center py-10 text-[var(--color-text-muted)] text-sm">No logs found.</div>
             )}
           </div>
         </div>
@@ -484,112 +484,112 @@ const LogsTab: React.FC = () => {
         <div className="flex-1 flex flex-col bg-[var(--color-app-bg)] min-w-0">
           {selectedLog ? (
             <>
-              <div className="shrink-0 grid grid-cols-2 xl:grid-cols-3 gap-4 p-6 border-b border-neutral-800 bg-neutral-900/20">
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-start gap-3 group hover:border-neutral-700 transition-colors">
-                  <div className="p-2 rounded-md bg-neutral-800 text-neutral-400 group-hover:text-white transition-colors">
+              <div className="shrink-0 grid grid-cols-2 xl:grid-cols-3 gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/20">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 flex items-start gap-3 group hover:border-[var(--color-border-strong)] transition-colors">
+                  <div className="p-2 rounded-md bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                     <Server size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">
                       Server IP
                     </div>
                     <TruncationTooltipValue
                       value={selectedLog.serverIp}
-                      className="text-sm font-mono text-white truncate"
+                      className="text-sm font-mono text-[var(--color-text-primary)] truncate"
                     />
                   </div>
                 </div>
 
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-start gap-3 group hover:border-neutral-700 transition-colors">
-                  <div className="p-2 rounded-md bg-neutral-800 text-neutral-400 group-hover:text-white transition-colors">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 flex items-start gap-3 group hover:border-[var(--color-border-strong)] transition-colors">
+                  <div className="p-2 rounded-md bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                     <Briefcase size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">
                       Job ID
                     </div>
                     <TruncationTooltipValue
                       value={selectedLog.jobId}
-                      className="text-sm font-mono text-white truncate"
+                      className="text-sm font-mono text-[var(--color-text-primary)] truncate"
                     />
                   </div>
                 </div>
 
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-start gap-3 group hover:border-neutral-700 transition-colors">
-                  <div className="p-2 rounded-md bg-neutral-800 text-neutral-400 group-hover:text-white transition-colors">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 flex items-start gap-3 group hover:border-[var(--color-border-strong)] transition-colors">
+                  <div className="p-2 rounded-md bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                     <Globe size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">
                       Game
                     </div>
                     <TruncationTooltipValue
                       value={gameName || selectedLog.universeId}
-                      className="text-sm font-mono text-white truncate"
+                      className="text-sm font-mono text-[var(--color-text-primary)] truncate"
                     />
                   </div>
                 </div>
 
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-start gap-3 group hover:border-neutral-700 transition-colors">
-                  <div className="p-2 rounded-md bg-neutral-800 text-neutral-400 group-hover:text-white transition-colors">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 flex items-start gap-3 group hover:border-[var(--color-border-strong)] transition-colors">
+                  <div className="p-2 rounded-md bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                     <Radio size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">
                       Channel
                     </div>
                     <TruncationTooltipValue
                       value={selectedLog.channel}
-                      className="text-sm font-mono text-white truncate"
+                      className="text-sm font-mono text-[var(--color-text-primary)] truncate"
                     />
                   </div>
                 </div>
 
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-start gap-3 group hover:border-neutral-700 transition-colors">
-                  <div className="p-2 rounded-md bg-neutral-800 text-neutral-400 group-hover:text-white transition-colors">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 flex items-start gap-3 group hover:border-[var(--color-border-strong)] transition-colors">
+                  <div className="p-2 rounded-md bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                     <Cpu size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">
                       Version
                     </div>
                     <TruncationTooltipValue
                       value={selectedLog.version}
-                      className="text-sm font-mono text-white truncate"
+                      className="text-sm font-mono text-[var(--color-text-primary)] truncate"
                     />
                   </div>
                 </div>
 
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 flex items-start gap-3 group hover:border-neutral-700 transition-colors">
-                  <div className="p-2 rounded-md bg-neutral-800 text-neutral-400 group-hover:text-white transition-colors">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 flex items-start gap-3 group hover:border-[var(--color-border-strong)] transition-colors">
+                  <div className="p-2 rounded-md bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
                     <MapPin size={18} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-0.5">
+                    <div className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">
                       Place ID
                     </div>
                     <TruncationTooltipValue
                       value={selectedLog.placeId}
-                      className="text-sm font-mono text-white truncate"
+                      className="text-sm font-mono text-[var(--color-text-primary)] truncate"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Log Toolbar */}
-              <div className="shrink-0 h-10 border-b border-neutral-800 flex items-center justify-between px-4 bg-neutral-900/50 text-xs">
+              <div className="shrink-0 h-10 border-b border-[var(--color-border)] flex items-center justify-between px-4 bg-[var(--color-surface)]/50 text-xs">
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <span className="font-mono text-neutral-400">{selectedLog.filename}</span>
-                  <span className="text-neutral-600">|</span>
-                  <span className="text-neutral-400">{selectedLog.date}</span>
-                  <span className="text-neutral-600">|</span>
-                  <span className="text-neutral-400 flex items-center gap-1">
+                  <span className="font-mono text-[var(--color-text-secondary)]">{selectedLog.filename}</span>
+                  <span className="text-[var(--color-text-muted)]">|</span>
+                  <span className="text-[var(--color-text-secondary)]">{selectedLog.date}</span>
+                  <span className="text-[var(--color-text-muted)]">|</span>
+                  <span className="text-[var(--color-text-secondary)] flex items-center gap-1">
                     <FileText size={10} />
                     {selectedLog.totalLines ? selectedLog.totalLines.toLocaleString() : 0} lines
                   </span>
                   {selectedLog.isTruncated && (
                     <>
-                      <span className="text-neutral-600">|</span>
+                      <span className="text-[var(--color-text-muted)]">|</span>
                       <span className="text-yellow-500 flex items-center gap-1">
                         <AlertTriangle size={10} />
                         Truncated
@@ -602,7 +602,7 @@ const LogsTab: React.FC = () => {
 
               <div className="flex-1 overflow-hidden font-mono text-sm bg-[#0d0d0d]">
                 {selectedLog.isLoadingContent ? (
-                  <div className="flex items-center justify-center h-full text-neutral-500">
+                  <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
                     Loading content...
                   </div>
                 ) : (
@@ -616,9 +616,9 @@ const LogsTab: React.FC = () => {
                     itemContent={(idx, entry) => (
                       <div
                         key={idx}
-                        className="flex items-start gap-1.5 py-1 hover:bg-neutral-900 rounded transition-colors group/line"
+                        className="flex items-start gap-1.5 py-1 hover:bg-[var(--color-surface)] rounded transition-colors group/line"
                       >
-                        <span className="text-neutral-600 shrink-0 select-none w-[5px] text-right">
+                        <span className="text-[var(--color-text-muted)] shrink-0 select-none w-[5px] text-right">
                           {entry.timestamp}
                         </span>
                         {entry.level !== 'INFO' && (
@@ -628,7 +628,7 @@ const LogsTab: React.FC = () => {
                                 ? 'bg-yellow-500/10 text-yellow-400'
                                 : entry.level === 'ERROR'
                                   ? 'bg-red-500/10 text-red-400'
-                                  : 'bg-neutral-500/10 text-neutral-400'
+                                  : 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
                             }`}
                           >
                             {entry.level === 'ERROR' && <Bug size={10} />}
@@ -639,14 +639,14 @@ const LogsTab: React.FC = () => {
                         <span className="text-purple-400/60 shrink-0 select-none w-auto max-w-[120px] truncate text-xs mt-0.5 ml-1">
                           [{entry.source}]
                         </span>
-                        <span className="text-neutral-300 break-all whitespace-pre-wrap flex-1 ml-1">
+                        <span className="text-[var(--color-text-secondary)] break-all whitespace-pre-wrap flex-1 ml-1">
                           {entry.message}
                         </span>
                       </div>
                     )}
                     components={{
                       Footer: () => (
-                        <div className="mt-8 pt-4 border-t border-neutral-800/50 text-center text-xs text-neutral-700 italic select-none flex items-center justify-center gap-2 pb-4">
+                        <div className="mt-8 pt-4 border-t border-[var(--color-border)]/50 text-center text-xs text-[var(--color-text-muted)] italic select-none flex items-center justify-center gap-2 pb-4">
                           <CheckCircle2 size={12} /> End of log file
                         </div>
                       )
@@ -656,12 +656,12 @@ const LogsTab: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-neutral-500">
-              <div className="w-20 h-20 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center mb-6 shadow-2xl">
+            <div className="flex-1 flex flex-col items-center justify-center text-[var(--color-text-muted)]">
+              <div className="w-20 h-20 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mb-6 shadow-2xl">
                 <FileClock size={40} className="opacity-50" />
               </div>
-              <p className="text-xl font-bold text-white">No Log Selected</p>
-              <p className="text-sm mt-2 max-w-xs text-center text-neutral-400">
+              <p className="text-xl font-bold text-[var(--color-text-primary)]">No Log Selected</p>
+              <p className="text-sm mt-2 max-w-xs text-center text-[var(--color-text-secondary)]">
                 Select a log file from the sidebar to view detailed session information.
               </p>
             </div>
@@ -674,7 +674,7 @@ const LogsTab: React.FC = () => {
         createPortal(
           <div
             ref={contextMenuRef}
-            className="fixed z-50 w-48 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl py-1"
+            className="fixed z-50 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl py-1"
             style={{
               top: Math.min(contextMenu.y, window.innerHeight - 100),
               left: Math.min(contextMenu.x, window.innerWidth - 200)
@@ -682,19 +682,19 @@ const LogsTab: React.FC = () => {
           >
             <button
               onClick={() => handleOpenInNotepad(contextMenu.logId)}
-              className="pressable w-full text-left px-4 py-2.5 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white flex items-center gap-2"
+              className="pressable w-full text-left px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] flex items-center gap-2"
             >
               <ExternalLink size={16} />
               <span>Open in Notepad</span>
             </button>
             <button
               onClick={() => handleRefreshLog(contextMenu.logId)}
-              className="pressable w-full text-left px-4 py-2.5 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white flex items-center gap-2"
+              className="pressable w-full text-left px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] flex items-center gap-2"
             >
               <RefreshCw size={16} />
               <span>Refresh Log</span>
             </button>
-            <div className="h-px bg-neutral-800 my-1"></div>
+            <div className="h-px bg-[var(--color-surface-hover)] my-1"></div>
             <button
               onClick={() => handleDeleteLog(contextMenu.logId)}
               className="pressable w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"

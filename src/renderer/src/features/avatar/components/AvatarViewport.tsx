@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import { AvatarControls } from './AvatarControls'
 import { AvatarTypeSwitch } from './AvatarTypeSwitch'
-import { Model3DViewer } from '@renderer/components/Avatar/Avatar3DThumbnail'
 import { Account } from '@renderer/types'
+
+const Model3DViewer = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail').then((mod) => ({ default: mod.Model3DViewer })))
 
 interface AvatarViewportProps {
   userId?: string
@@ -43,7 +44,7 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-neutral-900 border-b lg:border-b-0 lg:border-r border-neutral-800 relative flex flex-col shrink-0"
+      className="w-full h-full bg-[var(--color-surface)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] relative flex flex-col shrink-0"
       style={{
         height: isLargeScreen ? '100%' : '40vh'
       }}
@@ -69,19 +70,21 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
           }}
         />
         {/* Universal 3D Model Viewer */}
-        <Model3DViewer
-          userId={userId}
-          type="avatar"
-          cookie={cookie}
-          enableRotate={true}
-          enableZoom={true}
-          enablePan={true}
-          autoRotateSpeed={0}
-          resetSignal={resetSignal}
-          onLoadStart={onRenderStart}
-          onLoad={onRenderComplete}
-          onError={onRenderError}
-        />
+        <Suspense fallback={null}>
+          <Model3DViewer
+            userId={userId}
+            type="avatar"
+            cookie={cookie}
+            enableRotate={true}
+            enableZoom={true}
+            enablePan={true}
+            autoRotateSpeed={0}
+            resetSignal={resetSignal}
+            onLoadStart={onRenderStart}
+            onLoad={onRenderComplete}
+            onError={onRenderError}
+          />
+        </Suspense>
       </div>
 
       {/* Resize Handle - Disabled for fixed 50/50 split */}

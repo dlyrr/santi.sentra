@@ -77,9 +77,9 @@ const GroupItem = ({ group, role, thumbnail, isSelected, isPending, onClick }: G
         {isSelected && (
           <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-[var(--accent-color)]" />
         )}
-        <Avatar className="w-10 h-10 rounded-lg border border-neutral-700 shrink-0">
+        <Avatar className="w-10 h-10 rounded-lg border border-[var(--color-border-strong)] shrink-0">
           <AvatarImage src={thumbnail} alt={group.name} />
-          <AvatarFallback className="rounded-lg bg-neutral-800 text-neutral-400">
+          <AvatarFallback className="rounded-lg bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]">
             {group.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -88,14 +88,14 @@ const GroupItem = ({ group, role, thumbnail, isSelected, isPending, onClick }: G
           <div className="flex items-center gap-1.5">
             <span
               className={`font-medium truncate text-sm ${
-                isSelected ? 'text-[var(--color-text-primary)]' : 'text-neutral-200'
+                isSelected ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-primary)]'
               }`}
             >
               {group.name}
             </span>
             {group.hasVerifiedBadge && <VerifiedIcon width={14} height={14} className="shrink-0" />}
           </div>
-          <div className="flex items-center gap-2 text-xs text-neutral-500">
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
             {role && !isPending && <span className="truncate">{role.name}</span>}
             {isPending && (
               <span className="text-yellow-500 flex items-center gap-1">
@@ -117,7 +117,7 @@ const GroupItem = ({ group, role, thumbnail, isSelected, isPending, onClick }: G
           className={`shrink-0 transition-colors ${
             isSelected
               ? 'text-[var(--color-text-muted)]'
-              : 'text-neutral-600 group-hover:text-neutral-400'
+              : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]'
           }`}
         />
       </button>
@@ -281,11 +281,11 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full bg-neutral-950">
+      <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
         {/* Toolbar */}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-white">Groups</h1>
+            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Groups</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
             {/* Sidebar */}
             <div
               ref={sidebarRef}
-              className={`relative border-r border-neutral-800 flex flex-col shrink-0 bg-neutral-900/30 ${!isResizing ? 'transition-[width] duration-150 ease-in-out' : ''}`}
+              className={`relative border-r border-[var(--color-border)] flex flex-col shrink-0 bg-[var(--color-surface)]/30 ${!isResizing ? 'transition-[width] duration-150 ease-in-out' : ''}`}
               style={{ width: `${sidebarWidth}px` }}
             >
               {/* Sidebar Tabs */}
@@ -342,10 +342,10 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
               />
 
               {/* Search */}
-              <div className="p-3 border-b border-neutral-800">
+              <div className="p-3 border-b border-[var(--color-border)]">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={14} className="text-neutral-500" />
+                    <Search size={14} className="text-[var(--color-text-muted)]" />
                   </div>
                   <Input
                     type="text"
@@ -364,10 +364,10 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                     <div className="space-y-2 p-2">
                       {[1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="flex items-center gap-3 p-2.5">
-                          <div className="w-10 h-10 rounded-lg bg-neutral-800 animate-pulse" />
+                          <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-hover)] animate-pulse" />
                           <div className="flex-1 space-y-2">
-                            <div className="h-4 w-24 bg-neutral-800 rounded animate-pulse" />
-                            <div className="h-3 w-16 bg-neutral-800 rounded animate-pulse" />
+                            <div className="h-4 w-24 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+                            <div className="h-3 w-16 bg-[var(--color-surface-hover)] rounded animate-pulse" />
                           </div>
                         </div>
                       ))}
@@ -382,8 +382,8 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                       animate={{ opacity: 1 }}
                       className="flex flex-col items-center justify-center h-full text-center p-4"
                     >
-                      <Users size={32} className="text-neutral-600 mb-2" />
-                      <p className="text-sm text-neutral-500">
+                      <Users size={32} className="text-[var(--color-text-muted)] mb-2" />
+                      <p className="text-sm text-[var(--color-text-muted)]">
                         {searchQuery
                           ? 'No groups match your search'
                           : activeTab === 'joined'
@@ -442,7 +442,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                   setIsResizing(true)
                 }}
               >
-                <div className="absolute inset-0 hover:bg-neutral-600/50 transition-colors" />
+                <div className="absolute inset-0 hover:bg-[var(--color-surface-hover)] transition-colors" />
               </div>
             </div>
 

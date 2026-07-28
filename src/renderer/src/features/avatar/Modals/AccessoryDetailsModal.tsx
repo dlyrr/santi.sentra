@@ -252,22 +252,33 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
   }
 
   const handleRecommendationClick = (item: RecommendationItem) => {
-    if (!item.id || !account?.cookie) return
+    if (!item.id) return
 
     // Reset state for new item
-    getSalesData(item.id).then(setSalesData)
+    if (account?.cookie) {
+      getSalesData(item.id)
+        .then(setSalesData)
+        .catch(() => setSalesData(null))
+    } else {
+      setSalesData(null)
+    }
     setActiveTab('info')
+    setPurchaseSuccess(null)
+    setPurchaseError(null)
     // Note: resaleData is managed by TanStack Query and will refetch automatically
     setHas3DView(true)
     setViewMode('3d')
     setCurrentAssetId(item.id)
 
     // Fetch thumbnail for the new item
-    ;(window as any).api.getBatchThumbnails([item.id]).then((res: any) => {
-      if (res.data && res.data.length > 0) {
-        setCurrentImageUrl(res.data[0].imageUrl)
-      }
-    })
+    ;(window as any).api
+      .getBatchThumbnails([item.id])
+      .then((res: any) => {
+        if (res.data && res.data.length > 0) {
+          setCurrentImageUrl(res.data[0].imageUrl)
+        }
+      })
+      .catch(() => setCurrentImageUrl(null))
 
     // TanStack Query handles fetching automatically when currentAssetId changes
   }
@@ -306,8 +317,8 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
 
         <SheetHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <Sparkles className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <Sparkles className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <SheetTitle>Accessory Details</SheetTitle>
           </div>
@@ -319,7 +330,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
             <div className="p-8 flex items-center justify-center h-full">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-neutral-500">Loading details...</p>
+                <p className="text-[var(--color-text-muted)]">Loading details...</p>
               </div>
             </div>
           ) : error ? (
@@ -327,8 +338,8 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
               <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4">
                 <Info size={24} />
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">Error Loading Asset</h3>
-              <p className="text-neutral-400 mb-4">{error}</p>
+              <h3 className="text-lg font-medium text-[var(--color-text-primary)] mb-2">Error Loading Asset</h3>
+              <p className="text-[var(--color-text-secondary)] mb-4">{error}</p>
               <Button onClick={fetchDetails} variant="outline">
                 Try Again
               </Button>
@@ -360,7 +371,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
                 />
 
                 {/* RIGHT SIDE: Info */}
-                <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-neutral-950">
+                <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-[var(--color-app-bg)]">
                   <Tabs
                     tabs={[
                       { id: 'info', label: 'Info', icon: Info },
@@ -377,7 +388,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
                     actions={
                       <button
                         onClick={() => setShowHierarchy(true)}
-                        className="px-4 py-3 text-sm font-medium text-neutral-500 hover:text-neutral-300 hover:bg-neutral-900/50 active:bg-neutral-900 transition-colors flex items-center gap-2"
+                        className="px-4 py-3 text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface)]/50 active:bg-[var(--color-surface)] transition-colors flex items-center gap-2"
                         title="View XML Hierarchy"
                       >
                         <FileCode size={16} />
@@ -435,10 +446,10 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
               <div className="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center justify-center mb-4">
                 <Info size={24} />
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">No Details Available</h3>
-              <p className="text-neutral-400 mb-4">
-                Unable to fetch asset details. You may need to be logged in
-                or have a valid Roblox cookie to view purchase information.
+              <h3 className="text-lg font-medium text-[var(--color-text-primary)] mb-2">No Details Available</h3>
+              <p className="text-[var(--color-text-secondary)] mb-4">
+                Unable to fetch asset details. You may need to be logged in or have a valid Roblox
+                cookie to view purchase information.
               </p>
             </div>
           )}

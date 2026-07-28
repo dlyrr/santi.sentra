@@ -423,7 +423,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                         <div className="relative px-2 py-2">
                           <TruncatedTextWithTooltip
                             text={item.name}
-                            className="text-xs font-medium text-neutral-200 line-clamp-1 group-hover:text-white transition-colors"
+                            className="text-xs font-medium text-[var(--color-text-primary)] line-clamp-1 group-hover:text-[var(--color-text-primary)] transition-colors"
                           />
                         </div>
                       </div>
@@ -528,7 +528,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                             className="w-full h-full object-contain drop-shadow-md transform group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
-                          <div className="flex flex-col items-center gap-2 text-neutral-600">
+                          <div className="flex flex-col items-center gap-2 text-[var(--color-text-muted)]">
                             <Package size={28} />
                             <span className="text-xs">No preview</span>
                           </div>
@@ -546,7 +546,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                         <div className="relative px-2 py-2">
                           <TruncatedTextWithTooltip
                             text={outfit.name}
-                            className="text-xs font-medium text-neutral-200 line-clamp-1 group-hover:text-white transition-colors"
+                            className="text-xs font-medium text-[var(--color-text-primary)] line-clamp-1 group-hover:text-[var(--color-text-primary)] transition-colors"
                           />
                         </div>
                       </div>
@@ -644,7 +644,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                         <div className="relative px-2 py-2">
                           <TruncatedTextWithTooltip
                             text={item.name}
-                            className="text-xs font-medium text-neutral-200 line-clamp-1 group-hover:text-white transition-colors"
+                            className="text-xs font-medium text-[var(--color-text-primary)] line-clamp-1 group-hover:text-[var(--color-text-primary)] transition-colors"
                           />
                         </div>
                       </div>

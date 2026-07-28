@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
-import Avatar3DThumbnail from '@renderer/components/Avatar/Avatar3DThumbnail'
 import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/UI/display/Avatar'
+
+const Avatar3DThumbnail = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail'))
 import { ProfileData } from '../hooks/useProfileData'
 
 interface ExpandedAvatarModalProps {
@@ -98,7 +99,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
               e.stopPropagation()
               onClose()
             }}
-            className="absolute top-10 right-6 z-10 p-3 bg-neutral-900/80 hover:bg-neutral-800 text-white rounded-full transition-colors backdrop-blur-md border border-neutral-700/50 cursor-pointer"
+            className="absolute top-10 right-6 z-10 p-3 bg-[var(--color-surface)]/80 hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] rounded-full transition-colors backdrop-blur-md border border-[var(--color-border-strong)]/50 cursor-pointer"
           >
             <X size={24} />
           </motion.button>
@@ -109,17 +110,17 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ delay: 0.15 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 pl-4 pr-6 py-3 bg-neutral-900/80 backdrop-blur-md rounded-2xl border border-neutral-700/50"
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 pl-4 pr-6 py-3 bg-[var(--color-surface)]/80 backdrop-blur-md rounded-2xl border border-[var(--color-border-strong)]/50"
           >
             <Avatar className="w-12 h-12 shadow-lg">
               <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
-              <AvatarFallback className="text-sm font-bold text-white bg-neutral-800">
+              <AvatarFallback className="text-sm font-bold text-[var(--color-text-primary)] bg-[var(--color-surface-hover)]">
                 {profile.displayName?.slice(0, 2)?.toUpperCase() || 'RB'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="text-lg font-bold text-white">{profile.displayName}</div>
-              <div className="text-sm text-neutral-400">@{profile.username}</div>
+              <div className="text-lg font-bold text-[var(--color-text-primary)]">{profile.displayName}</div>
+              <div className="text-sm text-[var(--color-text-secondary)]">@{profile.username}</div>
             </div>
           </motion.div>
 
@@ -129,7 +130,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ delay: 0.2 }}
-            className="absolute top-8 left-1/2 -translate-x-1/2 z-10 text-neutral-500 text-sm font-medium"
+            className="absolute top-8 left-1/2 -translate-x-1/2 z-10 text-[var(--color-text-muted)] text-sm font-medium"
           >
             Drag to rotate • Scroll to zoom • ESC or click anywhere to close
           </motion.div>
@@ -145,19 +146,21 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             onContextMenu={(e) => e.preventDefault()}
           >
             {shouldMount3D && (
-              <Avatar3DThumbnail
-                userId={userId.toString()}
-                cookie={cookie}
-                className="w-full h-full drop-shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
-                autoRotateSpeed={0.002}
-                cameraDistanceFactor={1.6}
-                manualRotationEnabled={true}
-                manualZoomEnabled={true}
-                manualPanEnabled={true}
-                manualZoomLimits={{ min: 4, max: 30 }}
-                manualRotationSensitivity={0.006}
-                verticalOffset={0.5}
-              />
+              <Suspense fallback={null}>
+                <Avatar3DThumbnail
+                  userId={userId.toString()}
+                  cookie={cookie}
+                  className="w-full h-full drop-shadow-[0_40px_100px_rgba(0,0,0,0.8)]"
+                  autoRotateSpeed={0.002}
+                  cameraDistanceFactor={1.6}
+                  manualRotationEnabled={true}
+                  manualZoomEnabled={true}
+                  manualPanEnabled={true}
+                  manualZoomLimits={{ min: 4, max: 30 }}
+                  manualRotationSensitivity={0.006}
+                  verticalOffset={0.5}
+                />
+              </Suspense>
             )}
           </motion.div>
         </motion.div>

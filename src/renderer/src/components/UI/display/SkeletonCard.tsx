@@ -35,7 +35,7 @@ export const SkeletonUserCard: React.FC<
     <div
       className={cn(
         'flex items-center gap-3 p-2 rounded-lg',
-        showBorder && 'p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl',
+        showBorder && 'p-4 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl',
         className
       )}
     >
@@ -54,7 +54,7 @@ export const SkeletonUserCard: React.FC<
 export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({ className }) => (
   <div
     className={cn(
-      'flex items-center p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl',
+      'flex items-center p-4 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl',
       className
     )}
   >
@@ -72,18 +72,18 @@ export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({ className }) =
 export const SkeletonGameCard: React.FC<SkeletonCardProps> = ({ className }) => (
   <div
     className={cn(
-      'bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden',
+      'bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden',
       className
     )}
   >
-    <div className="aspect-square w-full relative bg-neutral-800">
+    <div className="aspect-square w-full relative bg-[var(--color-surface-hover)]">
       <Skeleton className="w-full h-full opacity-20" />
       <div className="absolute bottom-3 left-3 right-3 space-y-2">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-3 w-1/2" />
       </div>
     </div>
-    <div className="p-3 flex items-center justify-between border-t border-neutral-800">
+    <div className="p-3 flex items-center justify-between border-t border-[var(--color-border)]">
       <Skeleton className="h-4 w-12" />
       <Skeleton className="h-4 w-12" />
     </div>
@@ -100,8 +100,8 @@ export const SkeletonSquareCard: React.FC<
 > = ({ className, showBorder = true }) => (
   <div
     className={cn(
-      'aspect-square bg-neutral-900 rounded-xl overflow-hidden',
-      showBorder && 'border border-neutral-800',
+      'aspect-square bg-[var(--color-surface)] rounded-xl overflow-hidden',
+      showBorder && 'border border-[var(--color-border)]',
       className
     )}
   >
@@ -128,7 +128,7 @@ export const SkeletonGroupCard: React.FC<SkeletonCardProps> = ({ className }) =>
 export const SkeletonInventoryCard: React.FC<SkeletonCardProps> = ({ className }) => (
   <div
     className={cn(
-      'aspect-square bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden',
+      'aspect-square bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden',
       className
     )}
   >

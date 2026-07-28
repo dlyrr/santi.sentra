@@ -6,44 +6,62 @@ import { Dialog, DialogContent, DialogClose } from '@renderer/components/UI/dial
 interface EditNoteModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (accountId: string, newNote: string) => void
-  account: Account | null
+  onSave: (accountIds: string[], newNote: string) => void
+  account?: Account | null
+  accounts?: Account[] | null
   privacyMode?: boolean
 }
 
-const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, account, privacyMode }) => {
+const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, account, accounts, privacyMode }) => {
   const [note, setNote] = useState('')
 
   useEffect(() => {
-    if (isOpen && account) {
-      setNote(account.notes)
+    if (isOpen) {
+      if (account) {
+        setNote(account.notes || '')
+      } else if (accounts && accounts.length > 0) {
+        // If bulk, only set if all have same note, else empty
+        const firstNote = accounts[0].notes || ''
+        const allSame = accounts.every((a) => (a.notes || '') === firstNote)
+        setNote(allSame ? firstNote : '')
+      }
     }
-  }, [isOpen, account])
+  }, [isOpen, account, accounts])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (account) {
-      onSave(account.id, note)
+      onSave([account.id], note)
+      onClose()
+    } else if (accounts) {
+      onSave(accounts.map((a) => a.id), note)
       onClose()
     }
   }
 
-  if (!isOpen || !account) return null
+  if (!isOpen || (!account && (!accounts || accounts.length === 0))) return null
+
+  const isBulk = !!accounts && accounts.length > 1
+  const subtitle = isBulk 
+    ? `For ${accounts.length} selected accounts`
+    : account 
+      ? `For @${account.username}` 
+      : ''
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-950">
+      <DialogContent className="w-full max-w-md bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <FileText className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <FileText className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-white">Edit Note</h3>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Edit Note{isBulk ? 's' : ''}</h3>
               <p 
-                className="text-sm text-neutral-500"
+                className="text-sm text-[var(--color-text-muted)]"
                 style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-              >For @{account.username}</p>
+              >{subtitle}</p>
             </div>
           </div>
           <DialogClose />
@@ -51,7 +69,7 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="noteInput" className="text-sm font-medium text-neutral-400">
+            <label htmlFor="noteInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
               Account Note
             </label>
             <textarea
@@ -59,7 +77,7 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="e.g. Main storage account"
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-base text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all min-h-[120px] resize-none"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-base text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all min-h-[120px] resize-none"
               autoFocus
             />
           </div>
@@ -68,7 +86,7 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
             <button
               type="button"
               onClick={onClose}
-              className="pressable flex-1 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium rounded-lg transition-colors"
+              className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>

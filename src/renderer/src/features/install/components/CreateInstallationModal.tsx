@@ -116,7 +116,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
         <DialogBody>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-300 pb-1 block">Name</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Name</label>
               <input
                 type="text"
                 required
@@ -128,7 +128,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral-300 pb-1 block">Type</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Type</label>
               <div className="grid grid-cols-2 gap-3">
                 {binaryTypeOptions.map((type) => {
                   const isStudio =
@@ -145,7 +145,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                       className={`pressable flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         isSelected
                           ? selectedClasses
-                          : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:bg-neutral-800'
+                          : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
                       }`}
                     >
                       {isStudio ? <Box size={20} /> : <Laptop size={20} />}
@@ -157,7 +157,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
             </div>
 
             {/* Installation Mode Tabs */}
-            <div className="pt-2 border-t border-neutral-800">
+            <div className="pt-2 border-t border-[var(--color-border)]">
               <div className="flex gap-2 mb-4">
                 <button
                   type="button"
@@ -165,7 +165,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === 'auto'
                         ? 'bg-[var(--accent-color)] text-[var(--accent-color-foreground)]'
-                        : 'bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-neutral-400 hover:text-neutral-200'
+                        : 'bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
                     Auto Install
@@ -176,7 +176,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === 'custom'
                         ? 'bg-[var(--accent-color)] text-[var(--accent-color-foreground)]'
-                        : 'bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-neutral-400 hover:text-neutral-200'
+                        : 'bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
                     Custom Path
@@ -187,14 +187,14 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               {activeTab === 'auto' && (
                 <div className="grid grid-cols-2 gap-4 space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-neutral-300 pb-1 block">Version</label>
+                    <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Version</label>
                     {!history || Object.keys(history).length === 0 ? (
-                      <div className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-neutral-500 text-sm flex items-center justify-center gap-2">
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm flex items-center justify-center gap-2">
                         <Loader2 size={14} className="animate-spin" />
                         <span>Loading versions...</span>
                       </div>
                     ) : availableVersions.length === 0 ? (
-                      <div className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-neutral-500 text-sm flex items-center justify-center">
+                      <div className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm flex items-center justify-center">
                         No versions available for this type
                       </div>
                     ) : (
@@ -212,7 +212,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-neutral-300 pb-1 block">Channel</label>
+                    <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Channel</label>
                     <input
                       type="text"
                       value={newChannel}
@@ -227,19 +227,19 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               {/* Custom Path Tab */}
               {activeTab === 'custom' && (
                 <div className="space-y-3">
-                  <p className="text-xs text-neutral-500">Select the path to your existing Roblox installation</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">Select the path to your existing Roblox installation</p>
                   {!customPath ? (
                     <button
                       type="button"
                       onClick={handleChoosePath}
-                      className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors text-sm text-neutral-300 hover:text-white flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] transition-colors text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] flex items-center justify-center gap-2"
                     >
                       <FolderOpen size={14} />
                       Choose Roblox Installation Folder
                     </button>
                   ) : (
-                    <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-neutral-800/50 flex items-center justify-between">
-                      <div className="flex-1 text-sm truncate text-neutral-300 flex items-center gap-2">
+                    <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)]/50 flex items-center justify-between">
+                      <div className="flex-1 text-sm truncate text-[var(--color-text-secondary)] flex items-center gap-2">
                         <FolderOpen size={14} className="text-[var(--accent-color)] flex-shrink-0" />
                         <span className="truncate">{customPath}</span>
                       </div>

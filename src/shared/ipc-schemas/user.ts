@@ -9,7 +9,9 @@ import { cursorResultSchema } from './common'
 export const userSummarySchema = z.object({
   id: z.number(),
   name: z.string(),
-  displayName: z.string()
+  displayName: z.string(),
+  created: z.string().optional(),
+  age: z.number().optional()
 })
 export type UserSummary = z.infer<typeof userSummarySchema>
 

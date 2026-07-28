@@ -104,16 +104,16 @@ const Dialog: React.FC<DialogProps> = ({ isOpen, onClose, children, overlayClass
         {isVisible && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: isOpen ? 1 : 0, backdropFilter: 'blur(10px)' }}
+            animate={{ opacity: isOpen ? 1 : 0, backdropFilter: 'blur(8px)' }}
             exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             // GPU acceleration for overlay
             style={{
               willChange: 'opacity, backdrop-filter',
               transform: 'translateZ(0)'
             }}
             className={cn(
-              'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 [perspective:800px] [transform-style:preserve-3d]',
+              'fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50',
               overlayClassName
             )}
             onClick={(e) => {
@@ -138,15 +138,14 @@ const DialogContent = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
     return (
       <motion.div
         ref={ref}
-        initial={{ opacity: 0, scale: 0.5, rotateX: 40, y: 40 }}
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{
           opacity: isOpen ? 1 : 0,
-          scale: isOpen ? 1 : 0.8,
-          rotateX: isOpen ? 0 : 10,
-          y: isOpen ? 0 : 20
+          scale: isOpen ? 1 : 0.96,
+          y: isOpen ? 0 : 16
         }}
-        exit={{ opacity: 0, scale: 0.8, rotateX: 10, y: 20 }}
-        transition={{ type: 'spring', stiffness: 180, damping: 20 }}
+        exit={{ opacity: 0, scale: 0.96, y: 16 }}
+        transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
         // GPU acceleration: force compositor layer for smoother animations
         style={{
           willChange: 'transform, opacity',
@@ -154,7 +153,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, HTMLMotionProps<'div'>>(
           backfaceVisibility: 'hidden'
         }}
         className={cn(
-          'w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)] text-[var(--color-text-secondary)]',
+          'w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border-subtle)] rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/5 text-[var(--color-text-primary)]',
           className
         )}
         onContextMenu={(e) => {

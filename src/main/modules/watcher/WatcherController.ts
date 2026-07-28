@@ -106,8 +106,8 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
   /**
    * Remove a session
    */
-  handle('watcher:remove-session', z.tuple([z.string()]), async (_, sessionId) => {
-    watcherService.stopSession(sessionId)
+  handle('watcher:remove-session', z.any(), async (_, sessionId: string, killProcess?: boolean) => {
+    watcherService.stopSession(sessionId, killProcess)
     return { success: true }
   })
 
@@ -131,7 +131,12 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
         checkIntervalMs: z.number().optional(),
         logCheckIntervalMs: z.number().optional(),
         enableRAMLimiter: z.boolean().optional(),
-        ramLimitMB: z.number().optional()
+        ramLimitMB: z.number().optional(),
+        enableRAMCleanupAttempts: z.boolean().optional(),
+        enableClientTimeout: z.boolean().optional(),
+        clientTimeoutSeconds: z.number().optional(),
+        enableCPULimiter: z.boolean().optional(),
+        cpuLimitPercent: z.number().optional()
       })
     ]),
     async (_, config) => {

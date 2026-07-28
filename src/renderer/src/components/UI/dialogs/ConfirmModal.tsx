@@ -37,8 +37,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <AlertTriangle className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <AlertTriangle className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <DialogTitle className="pl-0">{title}</DialogTitle>
           </div>
@@ -46,13 +46,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </DialogHeader>
 
         <DialogBody>
-          <p className="text-neutral-300 text-base leading-relaxed">{message}</p>
+          <p className="text-[var(--color-text-secondary)] text-base leading-relaxed">{message}</p>
 
           <DialogFooter>
             <Button
               variant="secondary"
               onClick={onClose}
-              className="flex-1 h-auto py-3 text-neutral-300"
+              className="flex-1 h-auto py-3 text-[var(--color-text-secondary)]"
             >
               {cancelText}
             </Button>

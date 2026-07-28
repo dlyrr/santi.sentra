@@ -335,8 +335,9 @@ class PinService {
   public createPinHash(pin: string): string | null {
     try {
       const salt = randomBytes(32)
+      const encryptionSalt = randomBytes(32)
       const hash = pbkdf2Sync(pin, salt, 350000, 64, 'sha512')
-      return `${salt.toString('hex')}:${hash.toString('hex')}`
+      return `${salt.toString('hex')}:${hash.toString('hex')}:${encryptionSalt.toString('hex')}`
     } catch (error) {
       console.error('Failed to create PIN hash:', error)
       return null
@@ -348,12 +349,40 @@ class PinService {
   // ===========================================================================
 
   public verifyPin(pin: string, storedHash: string): { success: boolean } {
+    if (!storedHash || typeof storedHash !== 'string') {
+      return { success: false }
+    }
+
+    const colonParts = storedHash.split(':')
+    const isHexFormat =
+      (colonParts.length === 2 || colonParts.length === 3) &&
+      colonParts.every((part) => /^[0-9a-f]+$/i.test(part) && part.length > 0)
+
+    if (!isHexFormat) {
+      try {
+        const result = this.verifyPinEncrypted(pin, storedHash)
+        return { success: result.success }
+      } catch (error) {
+        console.error('PIN verification error:', error)
+        return { success: false }
+      }
+    }
+
     try {
-      const [saltHex, hashHex] = storedHash.split(':')
+      const saltHex = colonParts[0]
+      const hashHex = colonParts[1]
+      const encryptionSaltHex = colonParts.length >= 3 ? colonParts[2] : saltHex
+
       const salt = Buffer.from(saltHex, 'hex')
       const storedHashBuffer = Buffer.from(hashHex, 'hex')
       const derived = pbkdf2Sync(pin, salt, 350000, 64, 'sha512')
-      return { success: timingSafeEqual(derived, storedHashBuffer) }
+      const success = timingSafeEqual(derived, storedHashBuffer)
+      if (success) {
+        const encryptionSalt = Buffer.from(encryptionSaltHex, 'hex')
+        this.#setDerivedKey(pin, encryptionSalt)
+        this.#isPinVerified = true
+      }
+      return { success }
     } catch (error) {
       console.error('PIN verification error:', error)
       return { success: false }

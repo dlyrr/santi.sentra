@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Search, Box, Check, Star, Loader2 } from 'lucide-react'
+import { Search, Box, Check, Star, Loader2, Users } from 'lucide-react'
 import { SkeletonInventoryCard } from '@renderer/components/UI/display/SkeletonCard'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
 import FavoriteParticles from '@renderer/components/UI/specialized/FavoriteParticles'
@@ -14,6 +14,7 @@ interface InventoryItem {
   name: string
   type: string
   imageUrl: string
+  ownershipCount?: number
 }
 
 interface TruncatedTextProps {
@@ -121,7 +122,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   return (
     <div
       ref={inventoryGridRef}
-      className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-neutral-950 relative"
+      className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-[var(--color-app-bg)] relative"
       onScroll={(e) => onScroll(e.currentTarget.scrollTop)}
     >
       {mainCategory === 'Body' && subCategory === 'Skin' ? (
@@ -168,10 +169,20 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                   >
                     {/* Loading Overlay */}
                     {isItemLoading && (
-                      <div className="absolute inset-0 z-30 bg-neutral-900/70 backdrop-blur-sm flex items-center justify-center">
+                      <div className="absolute inset-0 z-30 bg-[var(--color-surface)]/70 backdrop-blur-sm flex items-center justify-center">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 size={24} className="text-blue-400 animate-spin" />
                           <span className="text-xs text-blue-400 font-medium">Updating...</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ownership Count Overlay */}
+                    {item.ownershipCount !== undefined && (
+                      <div className="absolute top-2 left-2 z-20">
+                        <div className="px-2 py-0.5 rounded-full bg-[var(--color-surface)]/80 backdrop-blur-sm border border-[var(--color-border-strong)]/50 text-[10px] font-bold text-[var(--color-text-secondary)] shadow-sm flex items-center gap-1">
+                          <Users size={10} className="text-[var(--color-text-secondary)]" />
+                          {item.ownershipCount}x
                         </div>
                       </div>
                     )}
@@ -190,7 +201,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                           className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-300 drop-shadow-lg relative z-10"
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center text-neutral-600">
+                        <div className="w-12 h-12 bg-[var(--color-surface-hover)] rounded-full flex items-center justify-center text-[var(--color-text-muted)]">
                           <Box size={20} />
                         </div>
                       )}
@@ -198,7 +209,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
 
                     {/* Favorite Indicator */}
                     {isFavorite && (
-                      <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-neutral-900/80 flex items-center justify-center text-yellow-400 shadow-sm z-10 pointer-events-none relative overflow-visible">
+                      <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[var(--color-surface)]/80 flex items-center justify-center text-yellow-400 shadow-sm z-10 pointer-events-none relative overflow-visible">
                         <Star size={18} className="fill-current" style={{ strokeWidth: 0 }} />
                         <FavoriteParticles
                           active={!!favoriteBurstKeys[item.id]}
@@ -211,8 +222,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                     <div
                       className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
                         isEquipped
-                          ? 'bg-emerald-500 text-white scale-100'
-                          : 'bg-neutral-800 text-neutral-600 group-hover:bg-neutral-700 group-hover:text-neutral-300 scale-0 group-hover:scale-100'
+                          ? 'bg-emerald-500 text-[var(--color-text-primary)] scale-100'
+                          : 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] group-hover:bg-[var(--color-surface-hover)] group-hover:text-[var(--color-text-secondary)] scale-0 group-hover:scale-100'
                       }`}
                     >
                       <Check size={14} strokeWidth={3} />
@@ -230,7 +241,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                       <div className="relative p-3">
                         <TruncatedText
                           text={item.name}
-                          className="text-sm font-bold text-white drop-shadow-md line-clamp-2 whitespace-normal leading-tight"
+                          className="text-sm font-bold text-[var(--color-text-primary)] drop-shadow-md line-clamp-2 whitespace-normal leading-tight"
                         />
                       </div>
                     </div>
@@ -239,12 +250,12 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
               )
             })
           ) : (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-neutral-500">
-              <div className="w-16 h-16 bg-neutral-900 rounded-full flex items-center justify-center mb-4">
+            <div className="col-span-full flex flex-col items-center justify-center py-20 text-[var(--color-text-muted)]">
+              <div className="w-16 h-16 bg-[var(--color-surface)] rounded-full flex items-center justify-center mb-4">
                 <Search size={24} className="opacity-40" />
               </div>
-              <p className="text-sm font-medium text-neutral-400">No items found</p>
-              <p className="text-xs mt-1 text-neutral-600">
+              <p className="text-sm font-medium text-[var(--color-text-secondary)]">No items found</p>
+              <p className="text-xs mt-1 text-[var(--color-text-muted)]">
                 Try changing categories or search terms.
               </p>
             </div>

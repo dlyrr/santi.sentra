@@ -34,8 +34,8 @@ export const GroupDetailsModal = ({
 
         <SheetHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <Users className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <Users className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <SheetTitle>Group Details</SheetTitle>
           </div>

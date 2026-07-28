@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { storageService } from '../system/StorageService'
 import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxUserService } from '../users/UserService'
+import { AccountSettingsService } from '../accountSettings/AccountSettingsService'
 import { RobloxFriendService } from '../friends/FriendService'
 import { RobloxGameService } from '../games/GameService'
 import { RobloxLauncherService } from '../install/LauncherService'
@@ -88,7 +89,13 @@ export const registerRobloxHandlers = (): void => {
     RobloxAuthService.validateCookieFormat(cookie)
 
     const userData = await RobloxUserService.getAuthenticatedUser(cookie)
-    return userData
+    try {
+      const detailed = await RobloxUserService.getDetailedStats(cookie, userData.id)
+      return { ...userData, created: detailed.joinDate }
+    } catch (e) {
+      console.warn('Failed to fetch detailed stats during validation', e)
+      return userData
+    }
   })
 
   handle('get-avatar-url', z.tuple([z.string()]), async (_, userId) => {
@@ -409,6 +416,26 @@ export const registerRobloxHandlers = (): void => {
     return resultObj
   })
 
+  handle(
+    'set-roblox-display-name',
+    z.tuple([z.string(), z.string()]),
+    async (_, cookieRaw, newDisplayName) => {
+      try {
+        const cookie = RobloxAuthService.extractCookie(cookieRaw)
+
+        const authData = await RobloxUserService.getAuthenticatedUser(cookie)
+        if (!authData || !authData.id) {
+          throw new Error('Could not resolve authenticated user identity from cookie session.')
+        }
+
+        return await AccountSettingsService.updateDisplayName(cookie, authData.id, newDisplayName)
+      } catch (err: any) {
+        console.error('[RobloxController] Failed live platform synchronization:', err)
+        return { success: false, error: err?.message || 'Network request failed' }
+      }
+    }
+  )
+
   const assetObjectSchema = z.object({
     id: z.number(),
     name: z.string(),
@@ -568,11 +595,11 @@ export const registerRobloxHandlers = (): void => {
   handle(
     'purchase-limited-item',
     z.tuple([
-      z.string(), // cookie
-      z.string(), // collectibleItemInstanceId
-      z.number(), // expectedPrice
-      z.number(), // sellerId
-      z.string() // collectibleProductId
+      z.string(),
+      z.string(),
+      z.number(),
+      z.number(),
+      z.string()
     ]),
     async (
       _,
@@ -768,7 +795,6 @@ export const registerRobloxHandlers = (): void => {
         throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`)
       const manifest = await manifestResponse.json()
 
-      // Manifest formats can vary; accept hashes or full URLs
       const resolveField = (val: any): string | null => {
         if (!val) return null
         if (typeof val === 'string') return val

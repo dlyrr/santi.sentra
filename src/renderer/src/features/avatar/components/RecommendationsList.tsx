@@ -45,11 +45,11 @@ const RecommendationCard: React.FC<{
 
   return (
     <div
-      className="flex-shrink-0 w-[160px] bg-neutral-900/40 border border-neutral-800/50 rounded-xl overflow-hidden cursor-pointer hover:bg-neutral-800/60 hover:border-neutral-700 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+      className="flex-shrink-0 w-[160px] bg-[var(--color-surface)]/40 border border-[var(--color-border)]/50 rounded-xl overflow-hidden cursor-pointer hover:bg-[var(--color-surface-hover)]/60 hover:border-[var(--color-border-strong)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
       onClick={onClick}
     >
-      <div className="w-full aspect-square relative overflow-hidden bg-neutral-800/40 p-2">
-        <div className="w-full h-full relative overflow-hidden bg-neutral-800/30 rounded-lg">
+      <div className="w-full aspect-square relative overflow-hidden bg-[var(--color-surface-hover)]/40 p-2">
+        <div className="w-full h-full relative overflow-hidden bg-[var(--color-surface-hover)]/30 rounded-lg">
           <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10">
             {isLimitedUnique && (
               <Tooltip>
@@ -79,7 +79,7 @@ const RecommendationCard: React.FC<{
 
           {imageUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-neutral-700/30 animate-pulse" />}
+              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
               <img
                 src={imageUrl}
                 alt={item.name}
@@ -91,17 +91,17 @@ const RecommendationCard: React.FC<{
               />
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-700">
+            <div className="w-full h-full flex items-center justify-center text-[var(--color-text-muted)]">
               <Package size={28} />
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5 border-t border-neutral-800/50 bg-neutral-900/30 p-2.5">
+      <div className="flex flex-col gap-1.5 border-t border-[var(--color-border)]/50 bg-[var(--color-surface)]/30 p-2.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <h3 className="font-medium text-sm text-neutral-200 truncate">{item.name}</h3>
+            <h3 className="font-medium text-sm text-[var(--color-text-primary)] truncate">{item.name}</h3>
           </TooltipTrigger>
           <TooltipContent>{item.name}</TooltipContent>
         </Tooltip>
@@ -109,11 +109,11 @@ const RecommendationCard: React.FC<{
         <div className="flex items-center justify-between">
           <div
             className={`flex items-center gap-1 font-bold text-sm ${
-              isOffSale ? 'text-neutral-500' : 'text-white'
+              isOffSale ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text-primary)]'
             }`}
           >
             {!isOffSale && displayPrice !== 'Free' && (
-              <RobuxIcon className="w-3.5 h-3.5 text-white" />
+              <RobuxIcon className="w-3.5 h-3.5 text-[var(--color-text-primary)]" />
             )}
             <span className={displayPrice === 'Free' ? 'text-emerald-400' : ''}>
               {formattedPrice}
@@ -122,15 +122,15 @@ const RecommendationCard: React.FC<{
 
           {item.favoriteCount !== undefined && item.favoriteCount > 0 && (
             <div className="flex items-center gap-1 shrink-0">
-              <Star size={12} className="text-neutral-600" />
-              <span className="text-[10px] font-mono text-neutral-500">
+              <Star size={12} className="text-[var(--color-text-muted)]" />
+              <span className="text-[10px] font-mono text-[var(--color-text-muted)]">
                 {formatNumber(item.favoriteCount)}
               </span>
             </div>
           )}
         </div>
 
-        <div className="text-[11px] text-neutral-500 truncate">{item.creatorName}</div>
+        <div className="text-[11px] text-[var(--color-text-muted)] truncate">{item.creatorName}</div>
       </div>
     </div>
   )
@@ -158,9 +158,9 @@ export const RecommendationsList: React.FC<RecommendationsListProps> = ({
 
   return (
     <TooltipProvider>
-      <div className="pt-6 border-t border-neutral-800">
+      <div className="pt-6 border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-white">Recommended Items</h3>
+          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Recommended Items</h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => scrollCarousel('left')}
@@ -168,8 +168,8 @@ export const RecommendationsList: React.FC<RecommendationsListProps> = ({
               className={cn(
                 'p-1.5 rounded-lg transition-all',
                 canScrollLeft
-                  ? 'bg-neutral-800 hover:bg-neutral-700 text-white'
-                  : 'bg-neutral-900 text-neutral-600 cursor-not-allowed'
+                  ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
               )}
             >
               <ChevronLeft size={16} />
@@ -180,8 +180,8 @@ export const RecommendationsList: React.FC<RecommendationsListProps> = ({
               className={cn(
                 'p-1.5 rounded-lg transition-all',
                 canScrollRight
-                  ? 'bg-neutral-800 hover:bg-neutral-700 text-white'
-                  : 'bg-neutral-900 text-neutral-600 cursor-not-allowed'
+                  ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
               )}
             >
               <ChevronRight size={16} />

@@ -31,7 +31,7 @@ const getBadgeClasses = (variant: Tab['badgeVariant'] = 'default') => {
     case 'error':
       return 'bg-red-500/20 text-red-400 border-red-500/30'
     default:
-      return 'bg-neutral-800 text-neutral-400'
+      return 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]'
   }
 }
 
@@ -45,59 +45,52 @@ export const Tabs: React.FC<TabsProps> = ({
   actions
 }) => {
   const visibleTabs = tabs.filter((tab) => !tab.hidden)
-  const tabCount = visibleTabs.length
-  const tabWidth = 100 / tabCount
-  const activeIndex = visibleTabs.findIndex((tab) => tab.id === activeTab)
 
   return (
-    <div className={cn('flex border-b border-[var(--color-border)] shrink-0', className)}>
-      <div className="relative flex flex-1">
-        {/* Animated sliding indicator */}
-        <motion.div
-          className="absolute bottom-0 h-0.5 bg-[var(--accent-color)] z-20"
-          layoutId={layoutId}
-          initial={false}
-          animate={{
-            left: `${activeIndex * tabWidth}%`,
-            width: `${tabWidth}%`
-          }}
-          transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-        />
-        {visibleTabs.map((tab) => {
-          const Icon = tab.icon
-          const isActive = activeTab === tab.id
+    <div className={cn('flex items-center gap-1 p-1 bg-[var(--color-surface-strong)] rounded-lg shrink-0 overflow-x-auto scrollbar-hide', className)}>
+      {visibleTabs.map((tab) => {
+        const Icon = tab.icon
+        const isActive = activeTab === tab.id
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => onTabChange(tab.id)}
-              className={cn(
-                'flex-1 py-4 text-sm font-medium transition flex items-center justify-center gap-2 relative z-10',
-                isActive
-                  ? 'text-[var(--color-text-primary)] bg-[var(--accent-color-faint)] hover:brightness-95 active:brightness-90'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] active:bg-[var(--color-surface-muted)]',
-                tabClassName
-              )}
-            >
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onTabChange(tab.id)}
+            className={cn(
+              'relative px-3 py-1.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 rounded-md',
+              isActive
+                ? 'text-[var(--color-text-primary)]'
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+              tabClassName
+            )}
+          >
+            {isActive && (
+              <motion.div
+                layoutId={layoutId}
+                className="absolute inset-0 bg-[var(--color-surface)] rounded-md shadow-sm border border-[var(--color-border-subtle)]"
+                transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+              />
+            )}
+            <span className="relative z-10 flex items-center gap-2">
               {Icon && <Icon size={14} />}
               {tab.label}
               {tab.badge !== undefined && (
                 <span
                   className={cn(
-                    'text-xs px-1.5 py-0.5 rounded-full border',
+                    'text-[10px] px-1.5 py-0.5 rounded-full border',
                     getBadgeClasses(tab.badgeVariant)
                   )}
                 >
                   {tab.badge}
                 </span>
               )}
-            </button>
-          )
-        })}
-      </div>
+            </span>
+          </button>
+        )
+      })}
       {actions && (
-        <div className="flex items-center border-l border-neutral-800 shrink-0">{actions}</div>
+        <div className="flex items-center border-l border-[var(--color-border)] ml-1 pl-2 shrink-0">{actions}</div>
       )}
     </div>
   )

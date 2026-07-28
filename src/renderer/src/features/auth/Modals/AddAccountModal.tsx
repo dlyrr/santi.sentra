@@ -124,12 +124,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
     setBulkImportProgress({ current: 0, total: cookiesToImport.length, failed: [] })
 
     const failedCookies: string[] = []
+    let successCount = 0
     for (let i = 0; i < cookiesToImport.length; i++) {
       try {
         setBulkImportProgress((prev) =>
           prev ? { ...prev, current: i + 1 } : null
         )
         await onAdd(cookiesToImport[i], 'cookielist')
+        successCount++
       } catch (error) {
         failedCookies.push(`Cookie ${i + 1}`)
       }
@@ -137,10 +139,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
 
     setBulkImportProgress(null)
     setIsLoading(false)
-
-    if (failedCookies.length === 0) {
-      setBulkCookies('')
-      onClose()
+    setBulkCookies('')
+    onClose()
+    // Parent will show individual success/failure notifications per account
+    // Additional summary is shown here only if there were failures
+    if (failedCookies.length > 0 && successCount === 0) {
+      // If everything failed, the modal has already closed — parent handles error notifications
+      console.warn(`[BulkImport] All ${failedCookies.length} imports failed`)
     }
   }
 
@@ -179,21 +184,21 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-950">
+      <DialogContent className="w-full max-w-md bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
               {method === 'bulk' ? (
-                <Upload size={20} className="text-neutral-300" />
+                <Upload size={20} className="text-[var(--color-text-secondary)]" />
               ) : method === 'cookie' ? (
-                <Cookie size={20} className="text-neutral-300" />
+                <Cookie size={20} className="text-[var(--color-text-secondary)]" />
               ) : (
-                <LogIn size={20} className="text-neutral-300" />
+                <LogIn size={20} className="text-[var(--color-text-secondary)]" />
               )}
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-white">Add Account</h3>
-              <p className="text-sm text-neutral-500">
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Add Account</h3>
+              <p className="text-sm text-[var(--color-text-muted)]">
                 {method === 'bulk'
                   ? 'Bulk Import Cookies'
                   : method === 'cookie'
@@ -230,14 +235,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="cookieInput" className="text-sm font-medium text-neutral-400">
+                  <label htmlFor="cookieInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
                     .ROBLOSECURITY Cookie
                   </label>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => setIsCookieBlurred((prev) => !prev)}
-                      className="pressable text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                      className="pressable text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                     >
                       {isCookieBlurred ? 'Show' : 'Hide'}
                     </button>
@@ -245,7 +250,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                       type="button"
                       onClick={handleCopyCookie}
                       disabled={!cookie.trim()}
-                      className="pressable text-xs text-neutral-500 hover:text-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="pressable text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                     >
                       {copiedCookie ? (
                         <>
@@ -265,7 +270,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   onChange={(e) => setCookie(e.target.value)}
                   disabled={isLoading}
                   placeholder="_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-to-your-account-and-steal-your-ROBUX-and-items.|_..."
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all min-h-[120px] resize-none font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all min-h-[120px] resize-none font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                   style={
                     isCookieBlurred
                       ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties)
@@ -280,7 +285,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   type="button"
                   onClick={handleGetCookie}
                   disabled={isLoading}
-                  className="pressable flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   Get Cookie
                 </button>
@@ -305,13 +310,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="bulkInput" className="text-sm font-medium text-neutral-400">
+                  <label htmlFor="bulkInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
                     Cookies List
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsBulkCookiesBlurred((prev) => !prev)}
-                    className="pressable text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
+                    className="pressable text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                   >
                     {isBulkCookiesBlurred ? 'Show' : 'Hide'}
                   </button>
@@ -322,7 +327,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   onChange={(e) => setBulkCookies(e.target.value)}
                   disabled={isLoading}
                   placeholder="Paste cookies here (one per line)..."
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all min-h-[160px] resize-none font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all min-h-[160px] resize-none font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                   style={
                     isBulkCookiesBlurred
                       ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties)
@@ -333,11 +338,11 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               </div>
 
               {bulkImportProgress && (
-                <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 space-y-2">
-                  <p className="text-sm text-neutral-300 font-medium">
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 space-y-2">
+                  <p className="text-sm text-[var(--color-text-secondary)] font-medium">
                     Importing {bulkImportProgress.current} of {bulkImportProgress.total}
                   </p>
-                  <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-[var(--color-surface-hover)] rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-blue-500 h-full transition-all duration-300"
                       style={{
@@ -353,7 +358,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   type="button"
                   onClick={onClose}
                   disabled={isLoading}
-                  className="pressable flex-1 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -380,8 +385,8 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   .ROBLOSECURITY cookie will be captured directly from Roblox.
                 </p>
               </div>
-              <div className="space-y-2 text-sm text-neutral-400">
-                <p className="text-neutral-300 font-medium">How it works</p>
+              <div className="space-y-2 text-sm text-[var(--color-text-secondary)]">
+                <p className="text-[var(--color-text-secondary)] font-medium">How it works</p>
                 <ul className="list-decimal list-inside space-y-1">
                   <li>Click &ldquo;Open Roblox Login&rdquo; to launch the official page.</li>
                   <li>Sign in inside the new window.</li>
@@ -398,7 +403,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                   type="button"
                   onClick={onClose}
                   disabled={isLoading}
-                  className="pressable flex-1 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -413,11 +418,11 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
                 </button>
               </div>
               {browserLoginStatus === 'waiting' && (
-                <p className="text-sm text-neutral-400 text-center">
+                <p className="text-sm text-[var(--color-text-secondary)] text-center">
                   Login window is open. Complete the Roblox sign-in to continue.
                 </p>
               )}
-              <p className="text-xs text-neutral-500 text-center">
+              <p className="text-xs text-[var(--color-text-muted)] text-center">
                 The login session stays on your device and is cleared after the cookie is captured.
               </p>
             </div>

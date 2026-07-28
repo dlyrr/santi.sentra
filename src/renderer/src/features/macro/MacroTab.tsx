@@ -50,8 +50,8 @@ const MacroCard = React.memo(({ macro, isBuiltIn, onPlay, onDelete }: MacroCardP
   <div 
     className={`p-4 border rounded-lg transition-all hover:shadow-md ${
       isBuiltIn
-        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-700'
-        : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
+        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 '
+        : 'bg-[var(--color-surface)] dark:bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] dark:hover:bg-gray-800'
     }`}
   >
     <div className="flex items-start justify-between mb-3">
@@ -59,24 +59,24 @@ const MacroCard = React.memo(({ macro, isBuiltIn, onPlay, onDelete }: MacroCardP
         <div className="flex items-center gap-2 mb-1">
           <p className="font-semibold text-base">{macro.name}</p>
           {isBuiltIn && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-300 to-orange-300 dark:from-amber-600 dark:to-orange-600 text-amber-900 dark:text-amber-50 text-xs font-bold rounded-full shadow-sm">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-300 to-orange-300 dark:from-amber-600 dark:to-orange-600 text-amber-900  text-xs font-bold rounded-full shadow-sm">
               <Zap className="w-3 h-3" />
               Built-in
             </span>
           )}
         </div>
         {macro.description && (
-          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{macro.description}</p>
+          <p className="text-xs text-[var(--color-text-muted)] dark:text-[var(--color-text-muted)] leading-relaxed">{macro.description}</p>
         )}
-        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--color-border)] ">
+          <span className="text-xs font-medium text-[var(--color-text-muted)] dark:text-[var(--color-text-muted)]">
             {macro.timing.eventCount} events
           </span>
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          <span className="text-xs font-medium text-[var(--color-text-muted)] dark:text-[var(--color-text-muted)]">
             {(macro.timing.totalDuration / 1000).toFixed(2)}s
           </span>
           {isBuiltIn && (
-            <span className="text-xs font-medium px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
+            <span className="text-xs font-medium px-2 py-1 bg-blue-100 /30 text-blue-700  rounded">
               {MACRO_CATEGORIES[macro.name] || 'Other'}
             </span>
           )}
@@ -278,7 +278,7 @@ export const MacroTab = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <p className="text-gray-500">Loading macros...</p>
+        <p className="text-[var(--color-text-muted)]">Loading macros...</p>
       </div>
     )
   }
@@ -288,8 +288,8 @@ export const MacroTab = () => {
       <div className="space-y-6 max-w-full">
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-700">
-            <p className="text-sm font-medium text-red-900 dark:text-red-100">{error}</p>
+          <div className="bg-red-50 /20 p-4 rounded-lg border border-red-200 ">
+            <p className="text-sm font-medium text-red-900 ">{error}</p>
           </div>
         )}
 
@@ -322,9 +322,9 @@ export const MacroTab = () => {
           </div>
 
           {isRecording && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
-              <p className="text-sm font-medium mb-2 text-blue-900 dark:text-blue-100">Recording in Progress</p>
-              <p className="text-xs text-blue-600 dark:text-blue-300 font-mono">
+            <div className="bg-blue-50 /20 p-4 rounded-lg border border-blue-200 ">
+              <p className="text-sm font-medium mb-2 text-blue-900 ">Recording in Progress</p>
+              <p className="text-xs text-blue-600  font-mono">
                 {recordingProgress.eventCount} events • {(recordingProgress.duration / 1000).toFixed(1)}s
               </p>
             </div>
@@ -363,7 +363,7 @@ export const MacroTab = () => {
               onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
               className="w-full"
             />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+            <div className="flex justify-between text-xs text-[var(--color-text-muted)] dark:text-[var(--color-text-muted)] mt-2">
               <span>0.25x (Slow)</span>
               <span>1x (Normal)</span>
               <span>3x (Fast)</span>
@@ -382,7 +382,7 @@ export const MacroTab = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-xs text-[var(--color-text-muted)] dark:text-[var(--color-text-muted)] mb-4">
               Ready-to-use macros for common Roblox actions
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -410,7 +410,7 @@ export const MacroTab = () => {
         </CardHeader>
         <CardContent>
           {customMacros.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-[var(--color-text-muted)] dark:text-[var(--color-text-muted)]">
               No custom macros recorded yet. Use the Recording section to create one.
             </p>
           ) : (

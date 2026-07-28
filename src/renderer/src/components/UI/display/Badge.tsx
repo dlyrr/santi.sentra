@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../../lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors',
   {
     variants: {
       variant: {
@@ -17,7 +17,7 @@ const badgeVariants = cva(
         Online: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
         'In-Game': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
         'In Studio': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-        Offline: 'bg-neutral-500/10 text-neutral-400 border-neutral-500/20',
+        Offline: 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] border-[var(--color-border)]',
         Banned: 'bg-red-500/10 text-red-400 border-red-500/20'
       }
     },

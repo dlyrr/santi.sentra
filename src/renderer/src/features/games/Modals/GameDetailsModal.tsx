@@ -88,7 +88,7 @@ const getSocialIcon = (type: string) => {
     case 'discord':
       return <MessageCircle size={20} className="text-[#5865F2]" />
     default:
-      return <Globe size={20} className="text-neutral-400" />
+      return <Globe size={20} className="text-[var(--color-text-secondary)]" />
   }
 }
 
@@ -443,8 +443,8 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
         <SheetHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <Gamepad2 className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <Gamepad2 className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <SheetTitle>Game Details</SheetTitle>
           </div>
@@ -455,10 +455,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           <div className="flex flex-col h-full">
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
               {/* LEFT SIDE: Preview & Actions */}
-              <div className="w-full lg:w-1/2 flex flex-col bg-neutral-950 border-b lg:border-b-0 lg:border-r border-neutral-800 relative">
+              <div className="w-full lg:w-1/2 flex flex-col bg-[var(--color-app-bg)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] relative">
                 {/* Carousel */}
                 <div
-                  className="relative w-full aspect-video bg-neutral-900 overflow-hidden cursor-grab active:cursor-grabbing group"
+                  className="relative w-full aspect-video bg-[var(--color-surface)] overflow-hidden cursor-grab active:cursor-grabbing group"
                   onMouseDown={(e) => {
                     setIsDragging(true)
                     setDragStartX(e.clientX)
@@ -556,11 +556,11 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 <div className="p-6 flex flex-col gap-4">
                   <div>
                     <div className="flex items-center justify-between gap-4 mb-2">
-                      <h2 className="text-2xl font-bold text-white">{displayedGame.name}</h2>
+                      <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">{displayedGame.name}</h2>
                       {/* Favorite Button */}
                       <button
                         onClick={handleFavorite}
-                        className="relative w-10 h-10 shrink-0 rounded-full bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/50 flex items-center justify-center transition-all group"
+                        className="relative w-10 h-10 shrink-0 rounded-full bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)]/50 flex items-center justify-center transition-all group"
                         title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                       >
                         <Star
@@ -569,13 +569,13 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             'transition-all duration-300',
                             isFavorite
                               ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-neutral-400 group-hover:text-white'
+                              : 'text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]'
                           )}
                         />
                         <FavoriteParticles active={favoriteBurst} />
                       </button>
                     </div>
-                    <div className="flex items-center gap-1 text-neutral-400">
+                    <div className="flex items-center gap-1 text-[var(--color-text-secondary)]">
                       <User size={16} />
                       <span className="text-sm font-medium flex items-center gap-1">
                         by{' '}
@@ -585,7 +585,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             'hover:underline focus:outline-none',
                             displayedGame.creatorHasVerifiedBadge
                               ? 'text-[#3385ff] flex items-center gap-1'
-                              : 'text-white'
+                              : 'text-[var(--color-text-primary)]'
                           )}
                         >
                           {displayedGame.creatorName}
@@ -596,12 +596,12 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-3">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-900 text-xs text-neutral-200 border border-neutral-800">
-                        <Shield size={14} className="text-neutral-400" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                        <Shield size={14} className="text-[var(--color-text-secondary)]" />
                         Age: {ageRating}
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-900 text-xs text-neutral-200 border border-neutral-800">
-                        <MonitorSmartphone size={14} className="text-neutral-400" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                        <MonitorSmartphone size={14} className="text-[var(--color-text-secondary)]" />
                         {deviceNames}
                       </span>
                     </div>
@@ -623,10 +623,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     <button
                       onClick={handleJoinFriends}
                       className={cn(
-                        'w-full px-3 py-2 rounded-lg border border-neutral-800 bg-neutral-900 text-sm flex items-center justify-center gap-2 transition-colors',
+                        'w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm flex items-center justify-center gap-2 transition-colors',
                         hasFriendsPlaying
-                          ? 'hover:bg-neutral-800 text-white'
-                          : 'text-neutral-500 cursor-not-allowed'
+                          ? 'hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                          : 'text-[var(--color-text-muted)] cursor-not-allowed'
                       )}
                     >
                       <Users size={16} />
@@ -635,10 +635,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     <button
                       onClick={handleRejoinLastServer}
                       className={cn(
-                        'w-full px-3 py-2 rounded-lg border border-neutral-800 bg-neutral-900 text-sm flex items-center justify-center gap-2 transition-colors',
+                        'w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm flex items-center justify-center gap-2 transition-colors',
                         lastServerJobId
-                          ? 'hover:bg-neutral-800 text-white'
-                          : 'text-neutral-500 cursor-not-allowed'
+                          ? 'hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                          : 'text-[var(--color-text-muted)] cursor-not-allowed'
                       )}
                     >
                       <Clock size={16} />
@@ -646,7 +646,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     </button>
                     <button
                       onClick={handleCopyLink}
-                      className="w-full px-3 py-2 rounded-lg border border-neutral-800 bg-neutral-900 text-sm flex items-center justify-center gap-2 transition-colors hover:bg-neutral-800 text-white"
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm flex items-center justify-center gap-2 transition-colors hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
                     >
                       <Link2 size={16} />
                       <span>Copy link</span>
@@ -656,7 +656,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
               </div>
 
               {/* RIGHT SIDE: Info & Tabs */}
-              <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-neutral-950">
+              <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-[var(--color-app-bg)]">
                 <Tabs
                   tabs={[
                     { id: 'info', label: 'Info', icon: Info },
@@ -670,7 +670,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
                 <div
                   className={cn(
-                    'flex-1 bg-neutral-950',
+                    'flex-1 bg-[var(--color-app-bg)]',
                     activeTab === 'info'
                       ? 'overflow-y-auto scrollbar-thin'
                       : 'overflow-hidden flex flex-col'
@@ -680,26 +680,26 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     <div className="p-6 space-y-6">
                       {/* Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-neutral-900/50 p-4 rounded-lg border border-neutral-800/50">
-                          <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
+                        <div className="bg-[var(--color-surface)]/50 p-4 rounded-lg border border-[var(--color-border)]/50">
+                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
                             <Users size={16} />
                             <span>Playing</span>
                           </div>
                           <SlidingNumber
                             number={displayedGame.playing}
                             formatter={formatNumber}
-                            className="text-2xl font-bold text-white leading-none"
+                            className="text-2xl font-bold text-[var(--color-text-primary)] leading-none"
                           />
                         </div>
-                        <div className="bg-neutral-900/50 p-4 rounded-lg border border-neutral-800/50">
-                          <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
+                        <div className="bg-[var(--color-surface)]/50 p-4 rounded-lg border border-[var(--color-border)]/50">
+                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
                             <Globe size={16} />
                             <span>Visits</span>
                           </div>
                           <SlidingNumber
                             number={displayedGame.visits}
                             formatter={formatNumber}
-                            className="text-2xl font-bold text-white leading-none"
+                            className="text-2xl font-bold text-[var(--color-text-primary)] leading-none"
                           />
                         </div>
                       </div>
@@ -748,7 +748,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             />
                           </button>
                         </div>
-                        <div className="h-2 w-full bg-neutral-800 rounded-full overflow-hidden flex">
+                        <div className="h-2 w-full bg-[var(--color-surface-hover)] rounded-full overflow-hidden flex">
                           <div
                             className="h-full bg-emerald-500"
                             style={{ width: `${likePercentage}%` }}
@@ -759,27 +759,27 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
                       {/* Description */}
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-white">Description</h3>
+                        <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Description</h3>
                         <div className="flex gap-2 mb-2">
-                          <span className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 text-xs border border-neutral-700">
+                          <span className="px-2 py-0.5 rounded bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] text-xs border border-[var(--color-border-strong)]">
                             {displayedGame.genre}
                           </span>
                         </div>
-                        <p className="text-neutral-400 text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed whitespace-pre-wrap">
                           {linkify(displayedGame.description)}
                         </p>
                       </div>
 
                       {/* Detail Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-neutral-900/50 p-3 rounded-lg border border-neutral-800/50">
-                          <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
+                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
+                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
                             <Info size={14} />
                             <span>Place ID</span>
                           </div>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="text-lg font-bold text-white font-mono truncate">
+                              <div className="text-lg font-bold text-[var(--color-text-primary)] font-mono truncate">
                                 {displayedGame.placeId || displayedGame.id}
                               </div>
                             </TooltipTrigger>
@@ -788,32 +788,32 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                             </TooltipContent>
                           </Tooltip>
                         </div>
-                        <div className="bg-neutral-900/50 p-3 rounded-lg border border-neutral-800/50">
-                          <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
+                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
+                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
                             <Users size={14} />
                             <span>Max Players</span>
                           </div>
-                          <div className="text-lg font-bold text-white">
+                          <div className="text-lg font-bold text-[var(--color-text-primary)]">
                             {displayedGame.maxPlayers}
                           </div>
                         </div>
-                        <div className="bg-neutral-900/50 p-3 rounded-lg border border-neutral-800/50">
-                          <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
+                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
+                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
                             <Calendar size={14} />
                             <span>Created</span>
                           </div>
-                          <div className="text-lg font-bold text-white">
+                          <div className="text-lg font-bold text-[var(--color-text-primary)]">
                             {displayedGame.created
                               ? new Date(displayedGame.created).toLocaleDateString()
                               : '-'}
                           </div>
                         </div>
-                        <div className="bg-neutral-900/50 p-3 rounded-lg border border-neutral-800/50">
-                          <div className="flex items-center gap-2 text-neutral-400 mb-1 text-xs uppercase tracking-wide font-semibold">
+                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
+                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
                             <Clock size={14} />
                             <span>Updated</span>
                           </div>
-                          <div className="text-lg font-bold text-white">
+                          <div className="text-lg font-bold text-[var(--color-text-primary)]">
                             {displayedGame.updated
                               ? new Date(displayedGame.updated).toLocaleDateString()
                               : '-'}
@@ -823,8 +823,8 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
                       {/* Social Links */}
                       {socialLinks && socialLinks.length > 0 && (
-                        <div className="space-y-2 pt-4 border-t border-neutral-800">
-                          <h3 className="text-lg font-semibold text-white">Social Links</h3>
+                        <div className="space-y-2 pt-4 border-t border-[var(--color-border)]">
+                          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Social Links</h3>
                           <div className="flex flex-wrap gap-2">
                             {socialLinks.map((link: SocialLink) => (
                               <Tooltip key={link.id}>
@@ -833,7 +833,7 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                                     href={link.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg transition-colors text-sm font-medium text-neutral-300 hover:text-white"
+                                    className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg transition-colors text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                                   >
                                     {getSocialIcon(link.type)}
                                     <span>{link.title}</span>
@@ -1030,21 +1030,21 @@ const GamePassCard: React.FC<{
   }
 
   return (
-    <div className="bg-neutral-900/50 border border-neutral-800/50 rounded-lg p-3 flex gap-3 hover:bg-neutral-900 transition-colors">
-      <div className="w-16 h-16 rounded-lg bg-neutral-800 overflow-hidden flex-shrink-0">
+    <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)]/50 rounded-lg p-3 flex gap-3 hover:bg-[var(--color-surface)] transition-colors">
+      <div className="w-16 h-16 rounded-lg bg-[var(--color-surface-hover)] overflow-hidden flex-shrink-0">
         {imageUrl ? (
           <img src={imageUrl} alt={pass.displayName} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ShoppingBag size={24} className="text-neutral-600" />
+            <ShoppingBag size={24} className="text-[var(--color-text-muted)]" />
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4 className="text-sm font-semibold text-white truncate">{pass.displayName}</h4>
+        <h4 className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{pass.displayName}</h4>
         {pass.displayDescription && (
-          <p className="text-xs text-neutral-400 line-clamp-2 mt-0.5">{pass.displayDescription}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-0.5">{pass.displayDescription}</p>
         )}
       </div>
 
@@ -1064,7 +1064,7 @@ const GamePassCard: React.FC<{
             <span className="text-sm font-semibold">{pass.price.toLocaleString()}</span>
           </button>
         ) : (
-          <span className="text-xs text-neutral-500">Not for sale</span>
+          <span className="text-xs text-[var(--color-text-muted)]">Not for sale</span>
         )}
       </div>
 
@@ -1072,7 +1072,7 @@ const GamePassCard: React.FC<{
         <DialogContent className="max-w-sm">
           <DialogBody className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
@@ -1080,16 +1080,16 @@ const GamePassCard: React.FC<{
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <ShoppingBag size={24} className="text-neutral-600" />
+                  <ShoppingBag size={24} className="text-[var(--color-text-muted)]" />
                 )}
               </div>
               <div>
-                <p className="text-sm text-neutral-400">Confirm Purchase</p>
-                <p className="text-base font-semibold text-white truncate">{pass.displayName}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">Confirm Purchase</p>
+                <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">{pass.displayName}</p>
               </div>
             </div>
 
-            <div className="text-sm text-neutral-300">
+            <div className="text-sm text-[var(--color-text-secondary)]">
               Buy this game pass for{' '}
               <span className="inline-flex items-center gap-1 font-semibold text-emerald-400">
                 {pass.price?.toLocaleString()}

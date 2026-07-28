@@ -186,4 +186,12 @@ export const registerAccountSettingsHandlers = (): void => {
       return AccountSettingsService.updatePromotionChannels(cookie, channels)
     }
   )
+
+  handle(
+    'update-display-name',
+    z.tuple([z.string(), z.number(), z.string()]),
+    async (_, cookie, userId, newDisplayName) => {
+      return AccountSettingsService.updateDisplayName(cookie, userId, newDisplayName)
+    }
+  )
 }

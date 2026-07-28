@@ -25,9 +25,6 @@ export { transactionsApi } from './transactions'
 // Updater
 export { updaterApi } from './updater'
 
-// News
-export { newsApi } from './news'
-
 // Account Settings
 export { accountSettingsApi } from './accountSettings'
 
@@ -45,9 +42,6 @@ export { sniperApi } from './sniper'
 
 // Generator
 export { generatorApi } from './generator'
-
-// Proxy
-export { proxyApi } from './proxy'
 
 // ============================================================================
 // NEW PRODUCTION MODULES

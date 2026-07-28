@@ -26,6 +26,26 @@ export class RobloxUserService {
     })
   }
 
+  static async getBirthdate(cookie: string): Promise<{ birthMonth: number, birthDay: number, birthYear: number } | null> {
+    try {
+      const response = await request(z.any(), {
+        url: 'https://accountinformation.roblox.com/v1/birthdate',
+        cookie
+      })
+      if (response && response.birthYear) {
+        return {
+          birthMonth: response.birthMonth,
+          birthDay: response.birthDay,
+          birthYear: response.birthYear
+        }
+      }
+      return null
+    } catch (e) {
+      console.warn('[RobloxUserService] Failed to get birthdate:', e)
+      return null
+    }
+  }
+
   static async getAvatarUrl(userId: string | number): Promise<string> {
     const numeric = typeof userId === 'number' ? userId : Number(userId)
     if (!Number.isFinite(numeric)) {
@@ -331,18 +351,44 @@ export class RobloxUserService {
     return result.data
   }
 
-  static async getExtendedUserDetails(_cookie: string, userId: number) {
+  static async getExtendedUserDetails(cookie: string, userId: number) {
     const [premiumData, avatarThumbnail] = await Promise.all([
-      request(z.boolean(), {
-        url: `https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`
-      }).catch(() => false),
+      request(
+        z.union([
+          z.boolean(),
+          z.object({
+            isPremium: z.boolean().optional(),
+            isEligibleForPremiumFeatures: z.boolean().optional(),
+            premium: z.boolean().optional()
+          })
+        ]),
+        {
+          url: `https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`,
+          cookie
+        }
+      ).catch(() => false),
 
       request(z.object({ data: z.array(avatarHeadshotSchema) }), {
-        url: `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=720x720&format=Png&isCircular=false`
+        url: `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=720x720&format=Png&isCircular=false`,
+        cookie
       }).catch(() => ({ data: [] }))
     ])
 
-    const isPremium = premiumData === true
+    const isPremium = (() => {
+      if (typeof premiumData === 'boolean') {
+        return premiumData
+      }
+
+      if (premiumData && typeof premiumData === 'object') {
+        const payload = premiumData as Record<string, unknown>
+        if (typeof payload.isPremium === 'boolean') return payload.isPremium
+        if (typeof payload.isEligibleForPremiumFeatures === 'boolean') return payload.isEligibleForPremiumFeatures
+        if (typeof payload.premium === 'boolean') return payload.premium
+      }
+
+      return false
+    })()
+
     const avatarImageUrl =
       avatarThumbnail.data && avatarThumbnail.data[0] ? avatarThumbnail.data[0].imageUrl : null
 
@@ -406,7 +452,7 @@ export class RobloxUserService {
   }
 
   static async getPlayerBadges(
-    _cookie: string,
+    cookie: string,
     userId: number,
     limit: number = 10,
     cursor?: string
@@ -418,7 +464,8 @@ export class RobloxUserService {
         previousPageCursor: z.string().nullable()
       }),
       {
-        url: `https://badges.roblox.com/v1/users/${userId}/badges?limit=${limit}&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`
+        url: `https://badges.roblox.com/v1/users/${userId}/badges?limit=${limit}&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`,
+        cookie
       }
     )
   }
@@ -453,6 +500,63 @@ export class RobloxUserService {
    * @param userIds Array of user IDs to fetch details for
    * @returns Map of userId to user details (null if not found)
    */
+  /**
+   * Batch-fetch join dates for multiple users at once.
+   * Uses the public /v1/users POST endpoint which returns the `created` field.
+   * @param userIds Array of user IDs
+   * @returns Map of userId to ISO date string (null if not found)
+   */
+  static async getBatchJoinDates(
+    userIds: number[]
+  ): Promise<Map<number, string | null>> {
+    const resultMap = new Map<number, string | null>()
+    if (userIds.length === 0) return resultMap
+
+    const uniqueIds = Array.from(
+      new Set(userIds.filter((id) => typeof id === 'number' && Number.isFinite(id)))
+    )
+    if (uniqueIds.length === 0) return resultMap
+
+    const BATCH_LIMIT = 100
+    const chunks: number[][] = []
+    for (let i = 0; i < uniqueIds.length; i += BATCH_LIMIT) {
+      chunks.push(uniqueIds.slice(i, i + BATCH_LIMIT))
+    }
+
+    const batchSchema = z.object({
+      data: z.array(
+        z.object({
+          id: z.number(),
+          created: z.string().optional()
+        })
+      )
+    })
+
+    const fetchChunk = async (chunkIds: number[]): Promise<void> => {
+      try {
+        const response = await request(batchSchema, {
+          method: 'POST',
+          url: 'https://users.roblox.com/v1/users',
+          body: { userIds: chunkIds, excludeBannedUsers: false }
+        })
+        if (response.data) {
+          response.data.forEach((user) => {
+            resultMap.set(user.id, user.created ?? null)
+          })
+        }
+        chunkIds.forEach((id) => {
+          if (!resultMap.has(id)) resultMap.set(id, null)
+        })
+      } catch (error: any) {
+        console.error('[RobloxUserService] Failed to fetch batch join dates:', error)
+        chunkIds.forEach((id) => resultMap.set(id, null))
+      }
+    }
+
+    await Promise.all(chunks.map((chunk) => fetchChunk(chunk)))
+    return resultMap
+  }
+
   static async getBatchUserDetails(
     userIds: number[]
   ): Promise<Map<number, { id: number; name: string; displayName: string } | null>> {

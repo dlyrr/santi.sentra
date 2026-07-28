@@ -20,8 +20,8 @@ export default function WatcherControls({
         onClick={onToggle}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
           isWatching
-            ? 'bg-red-600 hover:bg-red-700 text-white'
-            : 'bg-green-600 hover:bg-green-700 text-white'
+            ? 'bg-red-600 hover:bg-red-700 text-[var(--color-text-primary)]'
+            : 'bg-green-600 hover:bg-green-700 text-[var(--color-text-primary)]'
         }`}
       >
         {isWatching ? (

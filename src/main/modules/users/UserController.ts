@@ -3,6 +3,7 @@ import { handle } from '../core/utils/handle'
 import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxUserService } from './UserService'
 import { cookieRefreshService } from '../auth/CookieRefreshService'
+import { AccountSettingsService } from '../accountSettings/AccountSettingsService'
 
 /**
  * Registers user-related IPC handlers
@@ -99,6 +100,25 @@ export const registerUserHandlers = (): void => {
     return RobloxUserService.getVoiceSettings(cookie)
   })
 
+  handle(
+    'set-roblox-display-name',
+    z.tuple([z.string(), z.string()]),
+    async (_, cookieRaw, newDisplayName) => {
+      try {
+        const cookie = RobloxAuthService.extractCookie(cookieRaw)
+        const authData = await RobloxUserService.getAuthenticatedUser(cookie)
+        if (!authData || !authData.id) {
+          throw new Error('Could not resolve authenticated user identity from cookie session.')
+        }
+
+        return await AccountSettingsService.updateDisplayName(cookie, authData.id, newDisplayName)
+      } catch (err: any) {
+        console.error('[UserController] Failed live platform synchronization:', err)
+        return { success: false, error: err?.message || 'Network request failed' }
+      }
+    }
+  )
+
   handle('get-batch-account-statuses', z.tuple([z.array(z.string())]), async (_, cookieRaws) => {
     // Extract cookies for the service, but keep original cookies for the result keys
     const cookieMap = new Map<string, string>()
@@ -175,6 +195,14 @@ export const registerUserHandlers = (): void => {
     return resultObj
   })
 
+  handle('get-batch-join-dates', z.tuple([z.array(z.number())]), async (_, userIds) => {
+    const resultMap = await RobloxUserService.getBatchJoinDates(userIds)
+    const resultObj: Record<number, string | null> = {}
+    for (const [userId, date] of resultMap.entries()) {
+      resultObj[userId] = date
+    }
+    return resultObj
+  })
   handle('get-detailed-stats', z.tuple([z.string(), z.number()]), async (_, cookieRaw, userId) => {
     const cookie = RobloxAuthService.extractCookie(cookieRaw)
     return RobloxUserService.getDetailedStats(cookie, userId)

@@ -60,9 +60,9 @@ const getNotificationStyle = (type: NotificationType) => {
     case 'friend_offline':
       return {
         icon: LogOut,
-        color: 'text-neutral-400',
-        bg: 'bg-neutral-500/10',
-        border: 'border-neutral-500/20'
+        color: 'text-[var(--color-text-secondary)]',
+        bg: 'bg-[var(--color-surface-muted)]',
+        border: 'border-[var(--color-border)]'
       }
     case 'friend_ingame':
       return {
@@ -138,13 +138,13 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   const getTitleColor = () => {
     switch (notification.type) {
       case 'friend_online':
-        return 'text-neutral-200'
+        return 'text-[var(--color-text-primary)]'
       case 'friend_ingame':
-        return 'text-neutral-200'
+        return 'text-[var(--color-text-primary)]'
       case 'friend_removed':
         return 'text-red-400'
       default:
-        return 'text-neutral-200'
+        return 'text-[var(--color-text-primary)]'
     }
   }
 
@@ -191,7 +191,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-neutral-800">
+          <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center bg-[var(--color-surface-hover)]">
             <Icon className={`h-5 w-5 ${style.color}`} />
           </div>
         )}
@@ -382,7 +382,7 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-12 text-neutral-500"
+                    className="flex flex-col items-center justify-center py-12 text-[var(--color-text-muted)]"
                   >
                     <Bell className="h-10 w-10 mb-3 opacity-30" />
                     <p className="text-sm">No notifications</p>

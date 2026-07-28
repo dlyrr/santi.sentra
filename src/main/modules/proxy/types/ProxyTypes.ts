@@ -1,72 +1,28 @@
-/**
- * Proxy system types.
- * Defines proxy data structures and contracts.
- */
-
-/**
- * Proxy definition.
- */
 export interface Proxy {
-  id: string;
-  host: string;
-  port: number;
-  username?: string;
-  password?: string;
-  protocol?: "http" | "https" | "socks5";
-  status: "active" | "inactive" | "failed";
-  latency?: number;
-  lastChecked?: number;
-  failureCount?: number;
-  metadata?: Record<string, unknown>;
+  id?: string
+  host?: string
+  port?: number
+  protocol?: string
+  username?: string
+  password?: string
 }
 
-/**
- * Proxy test result.
- */
 export interface ProxyTestResult {
-  proxyId: string;
-  success: boolean;
-  latency?: number;
-  statusCode?: number;
-  error?: string;
-  timestamp: number;
+  success: boolean
+  error?: string
 }
 
-/**
- * Proxy rotation strategy.
- */
-export type RotationStrategy = "round-robin" | "random" | "fastest" | "weighted";
-
-/**
- * Proxy pool configuration.
- */
 export interface ProxyPoolConfig {
-  rotationStrategy: RotationStrategy;
-  healthCheckInterval?: number;
-  maxFailures?: number;
-  testUrl?: string;
-  testTimeout?: number;
-  autoRemoveInactive?: boolean;
+  maxSize?: number
 }
 
-/**
- * Proxy pool state.
- */
-export interface ProxyPoolState {
-  totalProxies: number;
-  activeProxies: number;
-  inactiveProxies: number;
-  failedProxies: number;
-  lastUpdated: number;
-}
-
-/**
- * Proxy session assignment.
- */
 export interface ProxySession {
-  sessionId: string;
-  assignedProxy: Proxy;
-  startTime: number;
-  requestCount: number;
-  lastUsed: number;
+  id?: string
+  proxy?: Proxy
+}
+
+export type RotationStrategy = 'round-robin' | 'random'
+
+export interface ProxyPoolState {
+  size: number
 }

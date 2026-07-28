@@ -96,13 +96,13 @@ const SummaryTableRow = ({
   }
 
   const colorClass =
-    displayValue > 0 ? 'text-emerald-400' : displayValue < 0 ? 'text-red-400' : 'text-neutral-400'
+    displayValue > 0 ? 'text-emerald-400' : displayValue < 0 ? 'text-red-400' : 'text-[var(--color-text-secondary)]'
 
   return (
     <tr
-      className={`${isTotal ? 'border-t border-neutral-700 font-semibold' : ''} hover:bg-neutral-800/30 transition-colors`}
+      className={`${isTotal ? 'border-t border-[var(--color-border-strong)] font-semibold' : ''} hover:bg-[var(--color-surface-hover)]/30 transition-colors`}
     >
-      <td className={`py-2.5 px-4 text-sm ${isTotal ? 'text-white' : 'text-neutral-300'}`}>
+      <td className={`py-2.5 px-4 text-sm ${isTotal ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
         {label}
       </td>
       <td className={`py-2.5 px-4 text-sm text-right font-mono ${colorClass}`}>
@@ -127,8 +127,8 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
   const detailsName = transaction.details?.name || '—'
 
   return (
-    <tr className="hover:bg-neutral-800/30 transition-colors border-b border-neutral-800/50 last:border-0">
-      <td className="py-3 px-4 text-sm text-neutral-300">
+    <tr className="hover:bg-[var(--color-surface-hover)]/30 transition-colors border-b border-[var(--color-border)]/50 last:border-0">
+      <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
         <div className="flex items-center gap-2">
           {new Date(transaction.created).toLocaleDateString('en-US', {
             month: 'short',
@@ -145,8 +145,8 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
           )}
         </div>
       </td>
-      <td className="py-3 px-4 text-sm text-neutral-300">{transaction.transactionType}</td>
-      <td className="py-3 px-4 text-sm text-neutral-300 max-w-[140px] truncate">
+      <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">{transaction.transactionType}</td>
+      <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)] max-w-[140px] truncate">
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="cursor-default">{detailsName}</span>
@@ -157,12 +157,12 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
       <td className="py-3 px-4 text-sm">
         <button
           onClick={() => onAgentClick(transaction.agent)}
-          className="text-neutral-400 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+          className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline transition-colors flex items-center gap-1.5"
         >
           {transaction.agent.type === 'Group' ? (
-            <Users size={14} className="text-neutral-500" />
+            <Users size={14} className="text-[var(--color-text-muted)]" />
           ) : (
-            <User size={14} className="text-neutral-500" />
+            <User size={14} className="text-[var(--color-text-muted)]" />
           )}
           {transaction.agent.name}
         </button>
@@ -176,7 +176,7 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
             {formatNumber(transaction.currency.amount)}
           </span>
           {transaction.currency.type !== 'Robux' && !isTickets && (
-            <span className="text-neutral-500 text-xs ml-1">{transaction.currency.type}</span>
+            <span className="text-[var(--color-text-muted)] text-xs ml-1">{transaction.currency.type}</span>
           )}
         </div>
       </td>
@@ -214,14 +214,14 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
     <>
       {/* Group Header Row */}
       <tr
-        className="hover:bg-neutral-800/30 transition-colors border-b border-neutral-800/50 cursor-pointer"
+        className="hover:bg-[var(--color-surface-hover)]/30 transition-colors border-b border-[var(--color-border)]/50 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <td className="py-3 px-4 text-sm text-neutral-300">
+        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
           <div className="flex items-center gap-2">
             <ChevronRight
               size={14}
-              className={`text-neutral-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              className={`text-[var(--color-text-muted)] transition-transform ${isExpanded ? 'rotate-90' : ''}`}
             />
             {new Date(latestTransaction.created).toLocaleDateString('en-US', {
               month: 'short',
@@ -230,13 +230,13 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
             })}
           </div>
         </td>
-        <td className="py-3 px-4 text-sm text-neutral-300">{latestTransaction.transactionType}</td>
-        <td className="py-3 px-4 text-sm text-neutral-300 max-w-[140px] truncate">
+        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">{latestTransaction.transactionType}</td>
+        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)] max-w-[140px] truncate">
           <Tooltip>
             <TooltipTrigger asChild>
               <span className="cursor-default flex items-center gap-1.5">
                 {group.itemName}
-                <span className="text-xs text-neutral-500 bg-neutral-800 px-1.5 py-0.5 rounded">
+                <span className="text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-hover)] px-1.5 py-0.5 rounded">
                   ×{group.transactions.length}
                 </span>
               </span>
@@ -246,7 +246,7 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
             </TooltipContent>
           </Tooltip>
         </td>
-        <td className="py-3 px-4 text-sm text-neutral-400">Multiple</td>
+        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">Multiple</td>
         <td className={`py-3 px-4 text-sm text-right font-mono ${colorClass}`}>
           <div className="flex items-center justify-end gap-1.5">
             {group.currencyType === 'Robux' && <RobuxIcon className="w-3.5 h-3.5" />}
@@ -269,18 +269,18 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-neutral-900/30 border-b border-neutral-800/30 last:border-0"
+                className="bg-[var(--color-surface)]/30 border-b border-[var(--color-border)]/30 last:border-0"
               >
-                <td className="py-2.5 px-4 text-sm text-neutral-400">
+                <td className="py-2.5 px-4 text-sm text-[var(--color-text-secondary)]">
                   <div className="flex items-center gap-2">
                     {/* Vertical line and indent */}
                     <div className="relative flex items-center">
                       <div
-                        className={`absolute left-0 w-0.5 bg-neutral-700 ${
+                        className={`absolute left-0 w-0.5 bg-[var(--color-surface-hover)] ${
                           index === group.transactions.length - 1 ? 'h-1/2 top-0' : 'h-full'
                         }`}
                       />
-                      <div className="w-4 h-0.5 bg-neutral-700 ml-0.5" />
+                      <div className="w-4 h-0.5 bg-[var(--color-surface-hover)] ml-0.5" />
                     </div>
                     <span className="ml-2">
                       {new Date(transaction.created).toLocaleDateString('en-US', {
@@ -299,10 +299,10 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
                     )}
                   </div>
                 </td>
-                <td className="py-2.5 px-4 text-sm text-neutral-400">
+                <td className="py-2.5 px-4 text-sm text-[var(--color-text-secondary)]">
                   {transaction.transactionType}
                 </td>
-                <td className="py-2.5 px-4 text-sm text-neutral-400 max-w-[140px] truncate">
+                <td className="py-2.5 px-4 text-sm text-[var(--color-text-secondary)] max-w-[140px] truncate">
                   {transaction.details?.name || '—'}
                 </td>
                 <td className="py-2.5 px-4 text-sm">
@@ -311,12 +311,12 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
                       e.stopPropagation()
                       onAgentClick(transaction.agent)
                     }}
-                    className="text-neutral-500 hover:text-white hover:underline transition-colors flex items-center gap-1.5"
+                    className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:underline transition-colors flex items-center gap-1.5"
                   >
                     {transaction.agent.type === 'Group' ? (
-                      <Users size={12} className="text-neutral-600" />
+                      <Users size={12} className="text-[var(--color-text-muted)]" />
                     ) : (
-                      <User size={12} className="text-neutral-600" />
+                      <User size={12} className="text-[var(--color-text-muted)]" />
                     )}
                     {transaction.agent.name}
                   </button>
@@ -561,9 +561,9 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
 
   if (!account || !cookie) {
     return (
-      <div className="flex items-center justify-center h-full text-neutral-500">
+      <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
         <div className="text-center">
-          <User size={48} className="mx-auto mb-4 text-neutral-600" />
+          <User size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
           <p>Select an account to view transactions</p>
         </div>
       </div>
@@ -572,12 +572,12 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full bg-neutral-950">
+      <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
         {/* Toolbar */}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <ArrowRightLeft size={22} className="text-neutral-400" />
+            <h1 className="text-xl font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+              <ArrowRightLeft size={22} className="text-[var(--color-text-secondary)]" />
               Transactions
             </h1>
           </div>
@@ -591,15 +591,15 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                     setIsTimeFrameDropdownOpen(!isTimeFrameDropdownOpen)
                     setIsTypeDropdownOpen(false)
                   }}
-                  className="flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-[var(--control-radius)] text-sm text-neutral-300 hover:bg-neutral-800 hover:border-neutral-700 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors"
                 >
-                  <Calendar size={16} className="text-neutral-500" />
+                  <Calendar size={16} className="text-[var(--color-text-muted)]" />
                   <span>
                     {TIME_FRAME_OPTIONS.find((o) => o.value === timeFrame)?.label || 'This Month'}
                   </span>
                   <ChevronDown
                     size={14}
-                    className={`text-neutral-500 transition-transform ${isTimeFrameDropdownOpen ? 'rotate-180' : ''}`}
+                    className={`text-[var(--color-text-muted)] transition-transform ${isTimeFrameDropdownOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
 
@@ -609,7 +609,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-[var(--menu-radius)] shadow-xl z-50 overflow-hidden"
+                      className="absolute right-0 mt-2 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-xl z-50 overflow-hidden"
                     >
                       <div className="p-1">
                         {TIME_FRAME_OPTIONS.map((option) => (
@@ -621,8 +621,8 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                             }}
                             className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
                               timeFrame === option.value
-                                ? 'bg-neutral-800 text-white'
-                                : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
+                                ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
                             }`}
                           >
                             {option.label}
@@ -642,12 +642,12 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                   setIsTypeDropdownOpen(!isTypeDropdownOpen)
                   setIsTimeFrameDropdownOpen(false)
                 }}
-                className="flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-[var(--control-radius)] text-sm text-neutral-300 hover:bg-neutral-800 hover:border-neutral-700 transition-colors min-w-[180px]"
+                className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors min-w-[180px]"
               >
                 <span className="flex-1 text-left">{TRANSACTION_TYPE_LABELS[selectedType]}</span>
                 <ChevronDown
                   size={14}
-                  className={`text-neutral-500 transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`}
+                  className={`text-[var(--color-text-muted)] transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`}
                 />
               </button>
 
@@ -657,7 +657,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    className="absolute right-0 mt-2 w-64 bg-neutral-900 border border-neutral-800 rounded-[var(--menu-radius)] shadow-xl z-50 overflow-hidden max-h-[400px] overflow-y-auto scrollbar-thin"
+                    className="absolute right-0 mt-2 w-64 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-xl z-50 overflow-hidden max-h-[400px] overflow-y-auto scrollbar-thin"
                   >
                     <div className="p-1">
                       <button
@@ -667,14 +667,14 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                         }}
                         className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
                           selectedType === 'all'
-                            ? 'bg-neutral-800 text-white'
-                            : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
+                            ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
                         }`}
                       >
                         All Transactions (Summary)
                       </button>
 
-                      <div className="h-px bg-neutral-800 my-1" />
+                      <div className="h-px bg-[var(--color-surface-hover)] my-1" />
 
                       {availableTypes.map((type) => (
                         <button
@@ -685,8 +685,8 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                           }}
                           className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
                             selectedType === type
-                              ? 'bg-neutral-800 text-white'
-                              : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
+                              ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
+                              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
                           }`}
                         >
                           {TRANSACTION_TYPE_LABELS[type]}
@@ -698,13 +698,13 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               </AnimatePresence>
             </div>
 
-            <div className="h-6 w-[1px] bg-neutral-800" />
+            <div className="h-6 w-[1px] bg-[var(--color-surface-hover)]" />
 
             <Button
               variant="ghost"
               size="sm"
               onClick={handleRefresh}
-              className="text-neutral-400 hover:text-white"
+              className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
             >
               <RefreshCw size={16} />
             </Button>
@@ -736,20 +736,20 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
 
           {isLoadingTypes || isLoadingTotals ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 size={32} className="animate-spin text-neutral-500" />
+              <Loader2 size={32} className="animate-spin text-[var(--color-text-muted)]" />
             </div>
           ) : selectedType === 'all' ? (
             /* Summary View */
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5">
+                <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl p-5">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-500/10 rounded-lg">
                       <TrendingUp size={20} className="text-emerald-400" />
                     </div>
                     <div>
-                      <div className="text-sm text-neutral-400">Total Incoming</div>
+                      <div className="text-sm text-[var(--color-text-secondary)]">Total Incoming</div>
                       <div className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
                         <RobuxIcon className="w-5 h-5" />
                         {formatNumber(incomingTotal)}
@@ -758,13 +758,13 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                   </div>
                 </div>
 
-                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5">
+                <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl p-5">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-red-500/10 rounded-lg">
                       <TrendingDown size={20} className="text-red-400" />
                     </div>
                     <div>
-                      <div className="text-sm text-neutral-400">Total Outgoing</div>
+                      <div className="text-sm text-[var(--color-text-secondary)]">Total Outgoing</div>
                       <div className="text-2xl font-bold text-red-400 flex items-center gap-2">
                         <RobuxIcon className="w-5 h-5" />-{formatNumber(outgoingTotal)}
                       </div>
@@ -774,17 +774,17 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               </div>
 
               {/* Incoming Robux Table */}
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-neutral-800">
-                  <h2 className="text-lg font-semibold text-white">Incoming Robux</h2>
+              <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--color-border)]">
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Incoming Robux</h2>
                 </div>
                 <table className="w-full">
-                  <thead className="bg-neutral-900/50">
+                  <thead className="bg-[var(--color-surface)]/50">
                     <tr>
-                      <th className="py-2.5 px-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-4 text-left text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                         Source
                       </th>
-                      <th className="py-2.5 px-4 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-4 text-right text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                         Amount
                       </th>
                     </tr>
@@ -851,17 +851,17 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               </div>
 
               {/* Outgoing Robux Table */}
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-neutral-800">
-                  <h2 className="text-lg font-semibold text-white">Outgoing Robux</h2>
+              <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-[var(--color-border)]">
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Outgoing Robux</h2>
                 </div>
                 <table className="w-full">
-                  <thead className="bg-neutral-900/50">
+                  <thead className="bg-[var(--color-surface)]/50">
                     <tr>
-                      <th className="py-2.5 px-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-4 text-left text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                         Source
                       </th>
-                      <th className="py-2.5 px-4 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-4 text-right text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
                         Amount
                       </th>
                     </tr>
@@ -903,9 +903,9 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
               </div>
 
               {/* Net Summary */}
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-5">
+              <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold text-white">Net Total</span>
+                  <span className="text-lg font-semibold text-[var(--color-text-primary)]">Net Total</span>
                   <div
                     className={`text-2xl font-bold flex items-center gap-2 ${
                       incomingTotal - outgoingTotal >= 0 ? 'text-emerald-400' : 'text-red-400'
@@ -923,7 +923,7 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
             <div className="max-w-5xl mx-auto">
               {isLoadingTransactions && transactions.length === 0 ? (
                 <div className="flex items-center justify-center h-64">
-                  <Loader2 size={32} className="animate-spin text-neutral-500" />
+                  <Loader2 size={32} className="animate-spin text-[var(--color-text-muted)]" />
                 </div>
               ) : transactions.length === 0 ? (
                 <EmptyState
@@ -932,33 +932,33 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
                   description={`No ${TRANSACTION_TYPE_LABELS[selectedType].toLowerCase()} found for this account.`}
                 />
               ) : (
-                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl overflow-hidden">
+                <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden">
                   <table className="w-full">
-                    <thead className="bg-neutral-900/50 sticky top-0">
-                      <tr className="border-b border-neutral-800">
-                        <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-[140px]">
+                    <thead className="bg-[var(--color-surface)]/50 sticky top-0">
+                      <tr className="border-b border-[var(--color-border)]">
+                        <th className="py-3 px-4 text-left text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider w-[140px]">
                           <button
                             onClick={toggleSortOrder}
-                            className="flex items-center gap-1.5 hover:text-neutral-300 transition-colors"
+                            className="flex items-center gap-1.5 hover:text-[var(--color-text-secondary)] transition-colors"
                           >
                             Date
                             {sortOrder === 'newest' ? (
-                              <ArrowDown size={14} className="text-neutral-400" />
+                              <ArrowDown size={14} className="text-[var(--color-text-secondary)]" />
                             ) : (
-                              <ArrowUp size={14} className="text-neutral-400" />
+                              <ArrowUp size={14} className="text-[var(--color-text-secondary)]" />
                             )}
                           </button>
                         </th>
-                        <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-[150px]">
+                        <th className="py-3 px-4 text-left text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider w-[150px]">
                           Type
                         </th>
-                        <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-[140px]">
+                        <th className="py-3 px-4 text-left text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider w-[140px]">
                           Item
                         </th>
-                        <th className="py-3 px-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider w-[150px]">
+                        <th className="py-3 px-4 text-left text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider w-[150px]">
                           User
                         </th>
-                        <th className="py-3 px-4 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider w-[120px]">
+                        <th className="py-3 px-4 text-right text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider w-[120px]">
                           Amount
                         </th>
                       </tr>
@@ -976,12 +976,12 @@ const TransactionsTab = ({ account }: TransactionsTabProps) => {
 
                   {/* Pagination */}
                   {hasNextPage && (
-                    <div className="p-4 border-t border-neutral-800 flex justify-center">
+                    <div className="p-4 border-t border-[var(--color-border)] flex justify-center">
                       <Button
                         variant="ghost"
                         onClick={() => fetchNextPage()}
                         disabled={isFetchingNextPage}
-                        className="text-neutral-400 hover:text-white"
+                        className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                       >
                         {isFetchingNextPage ? (
                           <>

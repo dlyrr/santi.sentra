@@ -35,19 +35,19 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-md bg-neutral-950 border border-neutral-800 rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800 bg-neutral-950">
+      <DialogContent className="w-full max-w-md bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-neutral-900 rounded-lg">
-              <Shirt className="text-neutral-300" size={20} />
+            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+              <Shirt className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-white">Rename Outfit</h3>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Rename Outfit</h3>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="pressable p-1 text-neutral-500 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+            className="pressable p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
           >
             <X size={20} />
           </button>
@@ -55,7 +55,7 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="nameInput" className="text-sm font-medium text-neutral-400">
+            <label htmlFor="nameInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
               Outfit Name
             </label>
             <input
@@ -64,7 +64,7 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. My Cool Outfit"
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-base text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 transition-all"
+              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-base text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all"
               autoFocus
             />
           </div>
@@ -73,7 +73,7 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="pressable flex-1 px-4 py-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-medium rounded-lg transition-colors"
+              className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>

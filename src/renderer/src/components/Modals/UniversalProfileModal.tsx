@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { Account, AccountStatus } from '@renderer/types'
-import UserProfileView from '@renderer/features/profile/UserProfileView'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
+import type { Account, AccountStatus } from '@renderer/types'
 import { Sheet, SheetContent, SheetHandle, SheetBody } from '@renderer/components/UI/dialogs/Sheet'
+
+const UserProfileView = lazy(() => import('@renderer/features/profile/UserProfileView'))
 
 interface UniversalProfileModalProps {
   isOpen: boolean
@@ -62,36 +63,44 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
         <SheetBody>
           {activeUserId && selectedAccount?.cookie ? (
             <div key={activeUserId?.toString()} className="h-full w-full animate-profile-swap">
-              <UserProfileView
-                userId={activeUserId}
-                requestCookie={selectedAccount.cookie}
-                accountUserId={selectedAccount.userId}
-                isOwnAccount={String(activeUserId) === selectedAccount.userId}
-                privacyMode={!!privacyMode}
-                onClose={onClose}
-                showCloseButton={false}
-                onSelectProfile={(id) => setActiveUserId(id)}
-                onJoinGame={onJoinGame}
-                initialData={
-                  activeUserId === userId && initialData
-                    ? {
-                        displayName: initialData.displayName,
-                        username: initialData.name,
-                        avatarUrl: initialData.headshotUrl || undefined,
-                        status: initialData.status,
-                        joinDate: initialData.created,
-                        friendCount: initialData.friendCount,
-                        followerCount: initialData.followerCount,
-                        followingCount: initialData.followingCount,
-                        isPremium: initialData.isPremium,
-                        isAdmin: initialData.isAdmin
-                      }
-                    : undefined
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-[var(--color-text-muted)]">
+                    Loading profile...
+                  </div>
                 }
-              />
+              >
+                <UserProfileView
+                  userId={activeUserId}
+                  requestCookie={selectedAccount.cookie}
+                  accountUserId={selectedAccount.userId}
+                  isOwnAccount={String(activeUserId) === selectedAccount.userId}
+                  privacyMode={!!privacyMode}
+                  onClose={onClose}
+                  showCloseButton={false}
+                  onSelectProfile={(id) => setActiveUserId(id)}
+                  onJoinGame={onJoinGame}
+                  initialData={
+                    activeUserId === userId && initialData
+                      ? {
+                          displayName: initialData.displayName,
+                          username: initialData.name,
+                          avatarUrl: initialData.headshotUrl || undefined,
+                          status: initialData.status,
+                          joinDate: initialData.created,
+                          friendCount: initialData.friendCount,
+                          followerCount: initialData.followerCount,
+                          followingCount: initialData.followingCount,
+                          isPremium: initialData.isPremium,
+                          isAdmin: initialData.isAdmin
+                        }
+                      : undefined
+                  }
+                />
+              </Suspense>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-neutral-500">
+            <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
               {selectedAccount?.cookie
                 ? 'No User Selected'
                 : 'Please select an account to view profiles'}

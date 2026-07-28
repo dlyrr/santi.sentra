@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lock, X, Delete, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -7,6 +7,50 @@ import { queryKeys } from '@shared/queryKeys'
 interface PinLockScreenProps {
   onUnlock: () => void
 }
+
+// Memoized PIN input field to prevent unnecessary re-renders
+const PinInputField = memo(
+  React.forwardRef<
+    HTMLInputElement,
+    {
+      digit: string
+      index: number
+      disabled: boolean
+      error: boolean
+      isLocked: boolean
+      onChange: (index: number, value: string) => void
+      onKeyDown: (index: number, e: React.KeyboardEvent<HTMLInputElement>) => void
+    }
+  >(({ digit, index, disabled, error, isLocked, onChange, onKeyDown }, ref) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 + index * 0.05 }}
+    >
+      <input
+        ref={ref}
+        type="password"
+        inputMode="numeric"
+        maxLength={1}
+        value={digit}
+        onChange={(e) => onChange(index, e.target.value)}
+        onKeyDown={(e) => onKeyDown(index, e)}
+        disabled={disabled}
+        className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none transition-all ${
+          isLocked
+            ? 'border-red-800 bg-red-900/10 cursor-not-allowed opacity-50'
+            : error
+              ? 'border-red-500 bg-red-500/10'
+              : digit
+                ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/5'
+                : 'border-[var(--color-border-strong)] focus:border-[var(--accent-color)]'
+        }`}
+      />
+    </motion.div>
+  ))
+)
+
+PinInputField.displayName = 'PinInputField'
 
 const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
   const queryClient = useQueryClient()
@@ -50,22 +94,22 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
 
   // Countdown timer for lockout
   useEffect(() => {
-    if (lockoutSeconds > 0) {
-      const timer = setInterval(() => {
-        setLockoutSeconds((prev) => {
-          if (prev <= 1) {
-            setIsLocked(false)
-            setError(null)
-            setRemainingAttempts(5)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-      return () => clearInterval(timer)
-    }
-    return undefined
-  }, [lockoutSeconds])
+    if (!isLocked || lockoutSeconds <= 0) return
+
+    const timer = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        const next = prev - 1
+        if (next <= 0) {
+          setIsLocked(false)
+          setError(null)
+          setRemainingAttempts(5)
+          return 0
+        }
+        return next
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [isLocked])
 
   const verifyPin = useCallback(
     async (enteredPin: string) => {
@@ -76,10 +120,13 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         const result = await window.api.verifyPin(enteredPin)
 
         if (result.success) {
-          // If accounts were returned from backend, update the query cache
-          if (result.accounts) {
-            queryClient.setQueryData(queryKeys.accounts.list(), result.accounts)
-          }
+          // verifyPin returns accounts directly in the response — use them immediately
+          // so the cache is populated before onUnlock() triggers a re-render
+          const accounts = result.accounts
+          queryClient.setQueryData(
+            queryKeys.accounts.list(),
+            Array.isArray(accounts) ? accounts : []
+          )
           onUnlock()
         } else if (result.locked) {
           setIsLocked(true)
@@ -89,7 +136,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           setTimeout(() => {
             setShake(false)
             setPin(Array(6).fill(''))
-            lastVerifiedPinRef.current = '' // Reset so user can try again after lockout
+            lastVerifiedPinRef.current = ''
           }, 500)
         } else {
           setRemainingAttempts(result.remainingAttempts)
@@ -102,7 +149,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           setTimeout(() => {
             setShake(false)
             setPin(Array(6).fill(''))
-            lastVerifiedPinRef.current = '' // Reset so user can try again
+            lastVerifiedPinRef.current = ''
             inputRefs.current[0]?.focus()
           }, 500)
         }
@@ -110,7 +157,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         console.error('PIN verification error:', err)
         setError('An error occurred. Please try again.')
         setPin(Array(6).fill(''))
-        lastVerifiedPinRef.current = '' // Reset so user can try again
+        lastVerifiedPinRef.current = ''
       } finally {
         setIsVerifying(false)
       }
@@ -247,10 +294,10 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           animate={{ opacity: 1 }}
           className="relative z-10 flex flex-col items-center"
         >
-          <div className="mb-4 p-4 rounded-full bg-neutral-900 border border-neutral-800">
-            <Lock className="w-8 h-8 text-neutral-400" />
+          <div className="mb-4 p-4 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
+            <Lock className="w-8 h-8 text-[var(--color-text-secondary)]" />
           </div>
-          <p className="text-neutral-500 text-sm">Checking security status...</p>
+          <p className="text-[var(--color-text-muted)] text-sm">Checking security status...</p>
         </motion.div>
       ) : (
         /* Content */
@@ -262,7 +309,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           {/* Lock Icon */}
           <motion.div
             className={`mb-6 p-4 rounded-full border ${
-              isLocked ? 'bg-red-900/20 border-red-800' : 'bg-neutral-900 border-neutral-800'
+              isLocked ? 'bg-red-900/20 border-red-800' : 'bg-[var(--color-surface)] border-[var(--color-border)]'
             }`}
             initial={{ y: -20 }}
             animate={{ y: 0 }}
@@ -271,13 +318,13 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             {isLocked ? (
               <AlertTriangle className="w-8 h-8 text-red-500" />
             ) : (
-              <Lock className="w-8 h-8 text-neutral-400" />
+              <Lock className="w-8 h-8 text-[var(--color-text-secondary)]" />
             )}
           </motion.div>
 
           {/* Title */}
           <motion.h1
-            className="text-2xl font-bold text-white mb-2"
+            className="text-2xl font-bold text-[var(--color-text-primary)] mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -285,7 +332,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             {isLocked ? 'Account Locked' : 'Enter PIN'}
           </motion.h1>
           <motion.p
-            className="text-neutral-500 text-sm mb-8 text-center max-w-xs"
+            className="text-[var(--color-text-muted)] text-sm mb-8 text-center max-w-xs"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -302,34 +349,19 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             transition={{ duration: 0.4 }}
           >
             {pin.map((digit, index) => (
-              <motion.div
+              <PinInputField
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + index * 0.05 }}
-              >
-                <input
-                  ref={(el) => {
-                    inputRefs.current[index] = el
-                  }}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleInputChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  disabled={isLocked || isVerifying}
-                  className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-neutral-900 text-white focus:outline-none transition-all ${
-                    isLocked
-                      ? 'border-red-800 bg-red-900/10 cursor-not-allowed opacity-50'
-                      : error
-                        ? 'border-red-500 bg-red-500/10'
-                        : digit
-                          ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/5'
-                          : 'border-neutral-700 focus:border-neutral-500'
-                  }`}
-                />
-              </motion.div>
+                ref={(el) => {
+                  inputRefs.current[index] = el
+                }}
+                digit={digit}
+                index={index}
+                disabled={isLocked || isVerifying}
+                error={!!error}
+                isLocked={isLocked}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+              />
             ))}
           </motion.div>
 
@@ -363,7 +395,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 <div
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i < remainingAttempts ? 'bg-yellow-500' : 'bg-neutral-700'
+                    i < remainingAttempts ? 'bg-yellow-500' : 'bg-[var(--color-surface-hover)]'
                   }`}
                 />
               ))}
@@ -386,8 +418,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 disabled={isLocked || isVerifying}
                 className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border text-lg sm:text-xl font-medium transition-colors ${
                   isLocked || isVerifying
-                    ? 'bg-neutral-900/50 border-neutral-800/50 text-neutral-600 cursor-not-allowed'
-                    : 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800 hover:border-neutral-700'
+                    ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
+                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
                 }`}
               >
                 {num}
@@ -400,8 +432,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               disabled={isLocked || isVerifying}
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border transition-colors flex items-center justify-center ${
                 isLocked || isVerifying
-                  ? 'bg-neutral-900/50 border-neutral-800/50 text-neutral-600 cursor-not-allowed'
-                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700'
+                  ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
+                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
               }`}
             >
               <X className="w-5 h-5" />
@@ -413,8 +445,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               disabled={isLocked || isVerifying}
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border text-lg sm:text-xl font-medium transition-colors ${
                 isLocked || isVerifying
-                  ? 'bg-neutral-900/50 border-neutral-800/50 text-neutral-600 cursor-not-allowed'
-                  : 'bg-neutral-900 border-neutral-800 text-white hover:bg-neutral-800 hover:border-neutral-700'
+                  ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
+                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
               }`}
             >
               0
@@ -426,8 +458,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               disabled={isLocked || isVerifying}
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border transition-colors flex items-center justify-center ${
                 isLocked || isVerifying
-                  ? 'bg-neutral-900/50 border-neutral-800/50 text-neutral-600 cursor-not-allowed'
-                  : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:bg-neutral-800 hover:border-neutral-700'
+                  ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
+                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
               }`}
             >
               <Delete className="w-5 h-5" />
@@ -436,7 +468,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
 
           {/* Security note */}
           <motion.p
-            className="text-neutral-600 text-xs mt-8 text-center max-w-xs"
+            className="text-[var(--color-text-muted)] text-xs mt-8 text-center max-w-xs"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}

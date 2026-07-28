@@ -38,25 +38,25 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
   return (
     <div
       className={cn(
-        'flex-shrink-0 w-[140px] bg-neutral-900 border border-neutral-800 rounded-xl p-3 flex flex-col gap-2 hover:border-neutral-700 transition-all group',
+        'flex-shrink-0 w-[140px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 flex flex-col gap-2 hover:border-[var(--color-border-strong)] transition-all group',
         onClick && 'cursor-pointer',
         className
       )}
       onClick={onClick}
     >
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-neutral-800 overflow-hidden flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] overflow-hidden flex-shrink-0">
           {avatarUrl ? (
             <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <User size={14} className="text-neutral-600" />
+              <User size={14} className="text-[var(--color-text-muted)]" />
             </div>
           )}
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <div
-            className="font-medium text-xs text-white truncate flex items-center gap-1"
+            className="font-medium text-xs text-[var(--color-text-primary)] truncate flex items-center gap-1"
             title={name}
           >
             {name}
@@ -68,7 +68,7 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
             <div
               className={cn(
                 'text-[10px] font-medium',
-                variant === 'owner' ? 'text-amber-500' : 'text-neutral-500'
+                variant === 'owner' ? 'text-amber-500' : 'text-[var(--color-text-muted)]'
               )}
             >
               #{props.serialNumber.toLocaleString()}
@@ -78,17 +78,17 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
       </div>
 
       {variant === 'owner' && props.ownedSince && (
-        <div className="flex items-center justify-between mt-1 pt-2 border-t border-neutral-800">
+        <div className="flex items-center justify-between mt-1 pt-2 border-t border-[var(--color-border)]">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-[10px] text-neutral-500 truncate cursor-help">
+              <div className="text-[10px] text-[var(--color-text-muted)] truncate cursor-help">
                 {formatDate(props.ownedSince)}
               </div>
             </TooltipTrigger>
             <TooltipContent>
               <div className="text-xs">
                 <div>Owned since: {formatDateTime(props.ownedSince)}</div>
-                {userId && <div className="text-neutral-400">ID: {userId}</div>}
+                {userId && <div className="text-[var(--color-text-secondary)]">ID: {userId}</div>}
               </div>
             </TooltipContent>
           </Tooltip>
@@ -96,7 +96,7 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
       )}
 
       {variant === 'reseller' && (
-        <div className="flex flex-col gap-2 mt-1 pt-2 border-t border-neutral-800">
+        <div className="flex flex-col gap-2 mt-1 pt-2 border-t border-[var(--color-border)]">
           <div className="text-xs font-semibold text-emerald-400 flex items-center justify-between gap-1">
             <span className="flex items-center gap-1">
               {props.price.toLocaleString()}
@@ -106,7 +106,7 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
           <Button
             size="sm"
             variant="outline"
-            className="h-6 text-[10px] w-full hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-colors"
+            className="h-6 text-[10px] w-full hover:bg-emerald-500 hover:text-[var(--color-text-primary)] hover:border-emerald-500 transition-colors"
             onClick={(e) => {
               e.stopPropagation()
               props.onBuy?.()

@@ -30,6 +30,9 @@ export class CookieRefreshService {
       const cacheKey = `cookie_${cookie.substring(0, 20)}`
       const cached = this.validationCache.get(cacheKey)
       if (cached && Date.now() - cached.lastCheck < this.cacheValidityMs) {
+        // LRU: move to end on hit
+        this.validationCache.delete(cacheKey)
+        this.validationCache.set(cacheKey, cached)
         return cached.isValid
       }
 
@@ -40,6 +43,12 @@ export class CookieRefreshService {
         // Cookie is valid - update last active for this account
         this.updateAccountLastActive(user.id.toString(), cookie)
         
+        // Evict oldest entry if over 200 entries
+        if (this.validationCache.size >= 200) {
+          const oldestKey = this.validationCache.keys().next().value
+          if (oldestKey !== undefined) this.validationCache.delete(oldestKey)
+        }
+
         // Cache result
         this.validationCache.set(cacheKey, {
           lastCheck: Date.now(),
@@ -53,6 +62,13 @@ export class CookieRefreshService {
     } catch (error) {
       // Cache negative result
       const cacheKey = `cookie_${cookie.substring(0, 20)}`
+      
+      // Evict oldest entry if over 200 entries
+      if (this.validationCache.size >= 200) {
+        const oldestKey = this.validationCache.keys().next().value
+        if (oldestKey !== undefined) this.validationCache.delete(oldestKey)
+      }
+
       this.validationCache.set(cacheKey, {
         lastCheck: Date.now(),
         isValid: false
@@ -152,9 +168,8 @@ export class CookieRefreshService {
         throw new Error('Cookie is no longer valid')
       }
 
-      // Get fresh CSRF token and ticket
-      const csrfToken = await RobloxAuthService.getCsrfToken(cookie)
-      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, csrfToken)
+      // getAuthenticationTicket handles CSRF internally via 403-retry
+      const ticket = await RobloxAuthService.getAuthenticationTicket(cookie, '')
       
       return ticket
     } catch (error: any) {

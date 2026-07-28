@@ -631,4 +631,30 @@ export class AccountSettingsService {
     }
     return { success: true }
   }
+
+  /**
+   * Updates the user's display name
+   */
+  static async updateDisplayName(
+    cookie: string,
+    userId: number,
+    newDisplayName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const csrfToken = await getCsrfToken(cookie)
+    const response = await fetch(`https://users.roblox.com/v1/users/${userId}/display-names`, {
+      method: 'PATCH',
+      headers: {
+        Cookie: `.ROBLOSECURITY=${cookie}`,
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken
+      },
+      body: JSON.stringify({ newDisplayName })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+    }
+    return { success: true }
+  }
 }

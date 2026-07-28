@@ -10,11 +10,11 @@ export const getStatusColor = (status: AccountStatus): string => {
     case AccountStatus.InStudio:
       return 'bg-orange-500'
     case AccountStatus.Offline:
-      return 'bg-neutral-400'
+      return 'bg-[var(--color-text-muted)]'
     case AccountStatus.Banned:
       return 'bg-red-500'
     default:
-      return 'bg-neutral-500'
+      return 'bg-[var(--color-border-strong)]'
   }
 }
 
@@ -27,11 +27,11 @@ export const getStatusBorderColor = (status: AccountStatus): string => {
     case AccountStatus.InStudio:
       return 'border-orange-700'
     case AccountStatus.Offline:
-      return 'border-neutral-700'
+      return 'border-[var(--color-border-strong)]'
     case AccountStatus.Banned:
       return 'border-red-700'
     default:
-      return 'border-neutral-700'
+      return 'border-[var(--color-border-strong)]'
   }
 }
 
@@ -44,11 +44,11 @@ export const getStatusRingColor = (status: AccountStatus): string => {
     case AccountStatus.InStudio:
       return 'bg-orange-700'
     case AccountStatus.Offline:
-      return 'bg-neutral-600'
+      return 'bg-[var(--color-surface-muted)]'
     case AccountStatus.Banned:
       return 'bg-red-700'
     default:
-      return 'bg-neutral-700'
+      return 'bg-[var(--color-surface-hover)]'
   }
 }
 
@@ -74,7 +74,7 @@ export const getStatusIcon = (status: AccountStatus) => {
     [AccountStatus.Online]: 'text-blue-500',
     [AccountStatus.InGame]: 'text-emerald-500',
     [AccountStatus.InStudio]: 'text-orange-500',
-    [AccountStatus.Offline]: 'text-neutral-500',
+    [AccountStatus.Offline]: 'text-[var(--color-text-muted)]',
     [AccountStatus.Banned]: 'text-red-500'
   }[status]
 

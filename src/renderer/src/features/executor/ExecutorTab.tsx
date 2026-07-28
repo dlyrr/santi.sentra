@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronDown, ExternalLink } from 'lucide-react'
+import { ChevronDown, ExternalLink, ShieldCheck, Code, Play } from 'lucide-react'
 import { EXECUTORS, SELLERS, type Executor, type ExecutorPlan, type Seller } from './types'
 
 const ExecutorTab: React.FC = () => {
@@ -45,31 +45,34 @@ const ExecutorTab: React.FC = () => {
     })
 
   return (
-    <div className="absolute inset-0 flex flex-col w-full h-full bg-neutral-950 overflow-y-auto font-sans scrollbar-thin scrollbar-thumb-neutral-800 scrollbar-track-transparent">
-      <div className="flex-1 p-3">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between gap-4 mb-3">
+    <div className="relative flex h-full flex-col overflow-y-auto overflow-x-hidden bg-[#0A0A0B] text-[var(--color-text-primary)]">
+      <div className="relative z-10 flex flex-col gap-4 p-4 h-full">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl shadow-2xl">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-4">
             <div>
-              <h1 className="text-lg font-bold text-white">Roblox Executors</h1>
-              <p className="text-neutral-400 text-xs">Premium selection with best deals</p>
+              <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[var(--color-text-primary)]">
+                <Code className="h-5 w-5 text-[var(--accent-color)]" />
+                Script Executor
+              </h2>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Premium selection with the best deals</p>
             </div>
             {/* Seller Selection - Moved to Header */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowSellerDropdown(!showSellerDropdown)}
-                className="bg-neutral-800 border border-neutral-700 rounded-md px-2.5 py-1.5 text-left flex items-center justify-between hover:border-neutral-600 transition-colors whitespace-nowrap"
+                className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-left flex items-center justify-between hover:border-[var(--accent-color-border)] transition-colors whitespace-nowrap min-w-[200px]"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-xs font-medium">{selectedSeller.name}</span>
+                  <span className="text-[var(--color-text-primary)] text-sm font-medium">{selectedSeller.name}</span>
                   {selectedSeller.discount && (
-                    <span className="text-xs text-green-400 font-semibold">{selectedSeller.discount}</span>
+                    <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md">{selectedSeller.discount} off</span>
                   )}
                 </div>
-                <ChevronDown className={`w-3 h-3 text-neutral-400 transition-transform ml-1 ${showSellerDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-[var(--color-text-secondary)] transition-transform ml-2 ${showSellerDropdown ? 'rotate-180' : ''}`} />
               </button>
               
               {showSellerDropdown && (
-                <div className="absolute top-full right-0 mt-1 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg z-10 min-w-[200px]">
+                <div className="absolute top-full right-0 mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-2xl z-20 min-w-[220px] overflow-hidden">
                   {SELLERS.map((seller) => (
                     <button
                       key={seller.id}
@@ -77,13 +80,13 @@ const ExecutorTab: React.FC = () => {
                         setSelectedSeller(seller)
                         setShowSellerDropdown(false)
                       }}
-                      className="w-full px-2.5 py-1.5 text-left hover:bg-neutral-700 transition-colors flex items-center gap-2 first:rounded-t-md last:rounded-b-md text-xs"
+                      className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
                     >
-                      <ExternalLink className="w-3 h-3 text-neutral-400 flex-shrink-0" />
-                      <div className="flex-1 flex flex-col gap-0.5 min-w-0">
-                        <span className="text-white text-xs font-medium">{seller.name}</span>
+                      <ExternalLink className="w-4 h-4 text-[var(--color-text-secondary)] flex-shrink-0" />
+                      <div className="flex-1 flex flex-col min-w-0">
+                        <span className="text-[var(--color-text-primary)] text-sm font-medium">{seller.name}</span>
                         {seller.discount && (
-                          <span className="text-xs text-green-400">{seller.discount}</span>
+                          <span className="text-xs font-bold text-emerald-400">{seller.discount} discount</span>
                         )}
                       </div>
                     </button>
@@ -94,56 +97,55 @@ const ExecutorTab: React.FC = () => {
           </div>
           
           {/* Executor Grid - Compact Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
             {sortedExecutors.map((executor) => (
               <motion.div
                 key={executor.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-neutral-900/60 rounded-md border border-neutral-800/80 overflow-hidden hover:border-neutral-700/80 hover:bg-neutral-900 transition-all"
+                className="bg-black/20 rounded-xl border border-white/5 overflow-hidden hover:border-[var(--accent-color-border)] hover:bg-black/40 transition-all shadow-sm backdrop-blur-md"
               >
-                <div className="p-2.5">
-                  <div className="flex items-center justify-center mb-2">
+                <div className="p-3">
+                  <div className="flex items-center gap-2.5 mb-3">
                     <img
                       src={executor.icon}
                       alt={executor.name}
-                      className="w-10 h-10 object-contain"
+                      className="w-8 h-8 object-contain drop-shadow-md rounded-md bg-white/5 p-0.5 shrink-0"
                     />
+                    <h3 className="text-sm font-bold text-[var(--color-text-primary)] truncate">
+                      {executor.name}
+                    </h3>
                   </div>
 
-                  <h3 className="text-xs font-semibold text-white text-center mb-2 truncate">
-                    {executor.name}
-                  </h3>
-
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {executor.plans.map((plan) => (
                       <div
                         key={plan.id}
-                        className="flex items-center justify-between gap-1 p-1.5 bg-neutral-800/50 rounded-sm hover:bg-neutral-750/60 transition-colors"
+                        className="flex items-center justify-between gap-1.5 p-2 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors"
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-white truncate">
+                          <div className="text-xs font-medium text-[var(--color-text-primary)] truncate">
                             {plan.name}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 ml-1 flex-shrink-0">
+                        <div className="flex items-center gap-2 ml-1 flex-shrink-0">
                           {selectedSeller.discount ? (
                             <div className="flex flex-col items-end">
-                              <span className="text-xs text-neutral-500 line-through leading-none">
+                              <span className="text-[10px] text-[var(--color-text-muted)] line-through leading-none mb-0.5">
                                 ${plan.price.toFixed(2)}
                               </span>
-                              <span className="text-xs font-semibold text-green-400 leading-none">
+                              <span className="text-xs font-bold text-emerald-400 leading-none">
                                 ${getDiscountedPrice(plan.price).toFixed(2)}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-xs font-semibold text-green-400">
+                            <span className="text-xs font-bold text-emerald-400">
                               ${plan.price.toFixed(2)}
                             </span>
                           )}
                           <button
                             onClick={() => handlePurchase(plan, executor)}
-                            className="px-1.5 py-0.5 text-white text-xs rounded-sm transition-colors flex items-center gap-0.5 flex-shrink-0"
+                            className="px-2 py-1 rounded-md transition-colors flex items-center gap-1 flex-shrink-0 font-bold text-[11px]"
                             style={{
                               backgroundColor: 'var(--accent-color)',
                               color: 'var(--accent-color-foreground)'
@@ -155,7 +157,7 @@ const ExecutorTab: React.FC = () => {
                               e.currentTarget.style.backgroundColor = 'var(--accent-color)'
                             }}
                           >
-                            <ExternalLink className="w-2.5 h-2.5" />
+                            Buy <ExternalLink className="w-2.5 h-2.5" />
                           </button>
                         </div>
                       </div>

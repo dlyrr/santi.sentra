@@ -94,6 +94,12 @@ export const registerGroupHandlers = (): void => {
     }
   )
 
+  // Join a group
+  handle('join-group', z.tuple([z.string(), z.number()]), async (_, cookieRaw, groupId) => {
+    const cookie = RobloxAuthService.extractCookie(cookieRaw)
+    return RobloxGroupService.joinGroup(cookie, groupId)
+  })
+
   // Leave a group
   handle('leave-group', z.tuple([z.string(), z.number()]), async (_, cookieRaw, groupId) => {
     const cookie = RobloxAuthService.extractCookie(cookieRaw)

@@ -164,11 +164,11 @@ export const catalogSubcategorySchema = z.object({
 })
 
 export const catalogCategorySchema = z.object({
-  category: z.string(),
+  category: z.string().nullable(),
   taxonomy: z.string(),
   assetTypeIds: z.array(z.number()),
   bundleTypeIds: z.array(z.number()),
-  categoryId: z.number(),
+  categoryId: z.number().nullable(),
   name: z.string(),
   orderIndex: z.number(),
   subcategories: z.array(catalogSubcategorySchema),
