@@ -80,7 +80,7 @@ export class PerformanceService {
             await this.runRamOptimization(pids, settings.ramOptimizeLimit || 500)
           }
 
-          // CPU Optimization (TASX logic)
+          // CPU Optimization (logic bla)
           if (settings.enableOptimizations) {
             await this.runCpuOptimization(pids)
           }
@@ -221,7 +221,7 @@ $VK_F15 = 0x7E
     try {
       console.log(`[PerformanceService] Optimizing RAM for ${pids.length} processes...`)
       
-      // TASX-inspired deep RAM optimization using SetProcessWorkingSetSize and EmptyWorkingSet
+      // other project inspired deep RAM optimization using SetProcessWorkingSetSize and EmptyWorkingSet
       const psScript = `
 Add-Type @"
   using System;
@@ -252,7 +252,7 @@ foreach ($p in $pids) {
     try {
       console.log(`[PerformanceService] Optimizing CPU Affinity for ${pids.length} processes...`)
       
-      // TASX-inspired CPU Affinity & QoS adjustment.
+      // other project inspired CPU Affinity & QoS adjustment.
       // - Disables CPU Boost on process by setting Power Throttling / Priority
       // - Sets Process Affinity to leave system headroom
       const psScript = `
@@ -279,7 +279,7 @@ foreach ($p in $pids) {
     [UIntPtr]$procMask = [UIntPtr]::Zero
     [UIntPtr]$sysMask = [UIntPtr]::Zero
     if ([Win32]::GetProcessAffinityMask($proc.Handle, [ref]$procMask, [ref]$sysMask)) {
-      # Calculate logical cores. Leave at least 2 cores for system if possible (TASX logic).
+      # Calculate logical cores. Leave at least 2 cores for system if possible (sentra logic).
       $sysMaskVal = $sysMask.ToUInt64()
       $logicalCores = 0
       for ($i = 0; $i -lt 64; $i++) {
