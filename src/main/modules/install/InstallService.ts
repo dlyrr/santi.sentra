@@ -137,33 +137,36 @@ export class RobloxInstallService {
   private static readonly CACHE_DURATION = 1000 * 60 * 15 // 15 minutes
   private static installationStartTime = 0 // Track when installation begins
 
-  static async getDeployHistory(force = false): Promise<Record<string, string[]>> {
+  static async getDeployHistory(forceRefresh = false): Promise<Record<string, string[]>> {
     const now = Date.now()
-    // Force fresh fetch if installation started recently (within last 30 seconds)
-    // or if explicitly forced
-    const isRecentInstallation = this.installationStartTime && now - this.installationStartTime < 30000
-    if (!force && !isRecentInstallation && this.historyCache && now - this.lastHistoryFetch < this.CACHE_DURATION) {
+    if (!forceRefresh && this.historyCache && now - this.lastHistoryFetch < this.CACHE_DURATION) {
       return this.historyCache
     }
 
     try {
-      // Fetch both Windows and macOS history in parallel
-      const [windowsText, macText] = await Promise.all([
-        safeFetchText(DEPLOY_HISTORY_URL_WINDOWS).catch((e) => {
-          console.warn('[RobloxInstallService] Failed to fetch Windows deploy history:', e)
-          return ''
-        }),
-        safeFetchText(DEPLOY_HISTORY_URL_MAC).catch((e) => {
-          console.warn('[RobloxInstallService] Failed to fetch macOS deploy history:', e)
-          return ''
+      const types = Object.keys(BINARY_TYPES)
+      const results: Record<string, string[]> = {}
+
+      await Promise.all(
+        types.map(async (typ) => {
+          try {
+            const url = `https://clientsettings.roblox.com/v2/client-version/${typ}`
+            const res = await safeFetchText(url)
+            const json = JSON.parse(res)
+            
+            let hash = json.clientVersionUpload
+            if (hash.startsWith('version-')) {
+              hash = hash.replace('version-', '')
+            }
+            results[typ] = [hash]
+          } catch (e) {
+            console.warn(`[RobloxInstallService] Failed to fetch version for ${typ}:`, e)
+            results[typ] = []
+          }
         })
-      ])
+      )
 
-      // Combine both responses
-      const combinedText = windowsText + '\n' + macText
-      const history = this.parseHistory(combinedText.split(/\r?\n/))
-
-      const validatedHistory = deployHistorySchema.parse(history)
+      const validatedHistory = deployHistorySchema.parse(results)
 
       this.historyCache = validatedHistory
       this.lastHistoryFetch = now
@@ -173,32 +176,6 @@ export class RobloxInstallService {
       console.error('[RobloxInstallService] Failed to fetch deploy history', e)
       return this.historyCache || {}
     }
-  }
-
-  private static parseHistory(lines: string[]): Record<string, string[]> {
-    const pat = /New\s+(?<typ>\w+)\s+version-(?<hash>[a-f0-9]{16})/i
-    const found: Record<string, string[]> = {}
-    for (const k of Object.keys(BINARY_TYPES)) {
-      found[k] = []
-    }
-
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const match = lines[i].match(pat)
-      if (!match || !match.groups) continue
-
-      const { typ: alias, hash: verHash } = match.groups
-      const typ = ALIAS_TO_TYPE[alias]
-
-      if (typ && !found[typ].includes(verHash)) {
-        found[typ].push(verHash)
-      }
-    }
-
-    for (const k in found) {
-      found[k] = found[k].slice(0, 30)
-    }
-
-    return found
   }
 
   static async downloadAndInstall(

@@ -13,18 +13,14 @@ const execAsync = promisify(exec)
 export class PerformanceService {
   private static updateInterval: NodeJS.Timeout | null = null
   private static fastInterval: NodeJS.Timeout | null = null
+  private static frequentInterval: NodeJS.Timeout | null = null
   private static isRunning = false
   private static isFastRunning = false
+  private static isFrequentRunning = false
   private static wasHeadless = false
 
   static init() {
     this.startLoop()
-    
-    // Also re-apply framerate cap on startup if enabled
-    const settings = storageService.getRobloxSettings()
-    if (settings.framerateCapEnabled && settings.framerateCapValue) {
-      this.applyFramerateCap(settings.framerateCapValue)
-    }
   }
 
   private static startLoop() {
@@ -33,6 +29,10 @@ export class PerformanceService {
     }
     if (this.fastInterval) {
       clearTimeout(this.fastInterval)
+    }
+
+    if (this.frequentInterval) {
+      clearTimeout(this.frequentInterval)
     }
 
     // Use recursive setTimeout to prevent overlapping async calls.
@@ -51,10 +51,18 @@ export class PerformanceService {
       }, 5000)
     }
 
+    const scheduleFrequentMaintenance = () => {
+      this.frequentInterval = setTimeout(async () => {
+        await this.runFrequentMaintenance()
+        scheduleFrequentMaintenance()
+      }, 15000) // 15 seconds for RAM/CPU throttling
+    }
+
     // Initial run after 10s
     setTimeout(() => {
       this.runMaintenance().then(() => scheduleMaintenance())
       this.runFastMaintenance().then(() => scheduleFastMaintenance())
+      this.runFrequentMaintenance().then(() => scheduleFrequentMaintenance())
     }, 10000)
   }
 
@@ -75,16 +83,6 @@ export class PerformanceService {
             await this.runAntiAfk(pids)
           }
 
-          // RAM Optimization
-          if (settings.optimizeRamEnabled) {
-            await this.runRamOptimization(pids, settings.ramOptimizeLimit || 500)
-          }
-
-          // CPU Optimization (logic bla)
-          if (settings.enableOptimizations) {
-            await this.runCpuOptimization(pids)
-          }
-
           // Rename Windows
           if (settings.renameWindowsEnabled) {
             await this.runWindowRenamer(pids)
@@ -95,6 +93,35 @@ export class PerformanceService {
       console.error('[PerformanceService] Maintenance error:', err)
     } finally {
       this.isRunning = false
+    }
+  }
+
+  private static async runFrequentMaintenance() {
+    if (this.isFrequentRunning) return
+    this.isFrequentRunning = true
+
+    try {
+      const settings = storageService.getRobloxSettings()
+      
+      if (process.platform === 'win32') {
+        const pids = await ProcessMonitor.getRobloxProcessPids()
+        
+        if (pids.length > 0) {
+          // RAM Optimization
+          if (settings.optimizeRamEnabled) {
+            await this.runRamOptimization(pids, settings.ramOptimizeLimit || 500)
+          }
+
+          // CPU Optimization
+          if (settings.enableOptimizations) {
+            await this.runCpuOptimization(pids)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[PerformanceService] Frequent maintenance error:', err)
+    } finally {
+      this.isFrequentRunning = false
     }
   }
 
@@ -414,30 +441,6 @@ $renameMap = @{
       
     } catch (err) {
       console.error('[PerformanceService] Window Renamer error:', err)
-    }
-  }
-
-  public static applyFramerateCap(fps: number) {
-    try {
-      const localAppData = process.env.LOCALAPPDATA
-      if (!localAppData) return
-      
-      const settingsPath = path.join(localAppData, 'Roblox', 'GlobalBasicSettings_13.xml')
-      if (!fs.existsSync(settingsPath)) {
-        console.warn('[PerformanceService] GlobalBasicSettings_13.xml not found.')
-        return
-      }
-
-      let content = fs.readFileSync(settingsPath, 'utf8')
-      const regex = /(<int name="FramerateCap">)-?\d+(<\/int>)/
-      
-      if (regex.test(content)) {
-        content = content.replace(regex, `$1${fps}$2`)
-        fs.writeFileSync(settingsPath, content, 'utf8')
-        console.log(`[PerformanceService] Applied Framerate Cap: ${fps}`)
-      }
-    } catch (err) {
-      console.error('[PerformanceService] Error applying framerate cap:', err)
     }
   }
 }

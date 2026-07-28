@@ -163,6 +163,10 @@ export const safeFetchText = (url: string): Promise<string> => {
           )
         }
       })
+
+      response.on('error', (error) => {
+        reject(error)
+      })
     })
 
     request.on('error', (error) => {
@@ -201,6 +205,10 @@ export const safeFetchBuffer = (url: string): Promise<Buffer> => {
             )
           )
         }
+      })
+
+      response.on('error', (error) => {
+        reject(error)
       })
     })
 

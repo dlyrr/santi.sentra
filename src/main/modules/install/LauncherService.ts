@@ -6,6 +6,7 @@ import { RobloxAuthService } from '../auth/RobloxAuthService'
 import { RobloxInstallService } from './InstallService'
 import { cookieRefreshService } from '../auth/CookieRefreshService'
 import { RobloxUserService } from '../users/UserService'
+import { storageService } from '../system/StorageService'
 
 import { ProcessMonitor } from '../watcher/ProcessMonitor'
 
@@ -20,6 +21,34 @@ export class RobloxLauncherService {
       return pids.length
     } catch (error) {
       return 0
+    }
+  }
+
+  private static async syncFFlags(installPath: string): Promise<void> {
+    try {
+      const existingFlags = await RobloxInstallService.getFFlags(installPath)
+      const settings = storageService.getRobloxSettings()
+      
+      const mergedFlags = { ...existingFlags }
+      
+      // Map global settings to FFlags
+      if (settings.useDirectX12) {
+        mergedFlags['FFlagDebugGraphicsPreferD3D11'] = 'True'
+      }
+      
+      if (settings.lowEndGraphics) {
+        mergedFlags['DFIntDebugFRMQualityLevelOverride'] = 1
+        mergedFlags['FIntRenderShadowIntensity'] = 0
+        mergedFlags['FFlagDisablePostFx'] = 'True'
+      }
+      
+      if (settings.framerateCapEnabled && settings.framerateCapValue) {
+        mergedFlags['DFIntTaskSchedulerTargetFps'] = settings.framerateCapValue
+      }
+      
+      await RobloxInstallService.setFFlags(installPath, mergedFlags)
+    } catch (err) {
+      console.error('[LauncherService] Failed to sync FFlags:', err)
     }
   }
 
@@ -85,6 +114,7 @@ export class RobloxLauncherService {
       const initialCount = await this.getRobloxProcessCount()
 
       if (installPath) {
+        await this.syncFFlags(installPath)
         await RobloxInstallService.launchWithProtocol(installPath, protocolLaunchCommand)
       } else {
         // No install path specified - use system default via protocol handler
@@ -93,6 +123,7 @@ export class RobloxLauncherService {
           try {
             const installations = await RobloxInstallService.detectDefaultInstallations()
             if (installations.length > 0) {
+              await this.syncFFlags(installations[0].path)
               await RobloxInstallService.launchWithProtocol(installations[0].path, protocolLaunchCommand)
             } else {
               // Fallback to protocol handler if no install found
@@ -195,12 +226,14 @@ export class RobloxLauncherService {
       const initialCount = await this.getRobloxProcessCount()
 
       if (installPath) {
+        await this.syncFFlags(installPath)
         await RobloxInstallService.launchWithProtocol(installPath, protocolLaunchCommand)
       } else {
         if (process.platform === 'win32') {
           try {
             const installations = await RobloxInstallService.detectDefaultInstallations()
             if (installations.length > 0) {
+              await this.syncFFlags(installations[0].path)
               await RobloxInstallService.launchWithProtocol(installations[0].path, protocolLaunchCommand)
             } else {
               await shell.openExternal(protocolLaunchCommand)
