@@ -72,15 +72,9 @@ class UpdaterService {
 
     autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
       this.updateState({ status: 'downloaded', info, progress: null })
-      // automatically apply the update after a short delay to avoid leaving the
-      // app in a half‑updated state.
-      setTimeout(() => {
-        try {
-          this.performQuitAndInstall()
-        } catch (err) {
-          console.error('[Updater] auto-install failed:', err)
-        }
-      }, 2000)
+      // Notify the renderer so it can show a "Restart to update" banner.
+      // Do NOT auto-quit here — that caused users to experience sudden crashes
+      // whenever an update downloaded silently in the background.
     })
 
     autoUpdater.on('error', (error: Error) => {
