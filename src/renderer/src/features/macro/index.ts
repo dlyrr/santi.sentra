@@ -1,3 +1,3 @@
-import { MacroTab } from './MacroTab'
+import { MacroTab } from "./MacroTab";
 
-export default MacroTab
+export default MacroTab;

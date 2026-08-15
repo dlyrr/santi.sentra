@@ -1,34 +1,40 @@
-import React, { useMemo } from 'react'
-import { Download } from 'lucide-react'
+import React, { useMemo } from "react";
+import { Download } from "lucide-react";
 import GenericContextMenu, {
-  ContextMenuSection
-} from '@renderer/components/UI/menus/GenericContextMenu'
+  ContextMenuSection,
+} from "@renderer/components/UI/menus/GenericContextMenu";
 
 interface GameImageContextMenuProps {
-  activeMenu: { x: number; y: number; imageUrl: string; gameName: string } | null
-  onClose: () => void
-  onSaveImage: (imageUrl: string, gameName: string) => void
+  activeMenu: {
+    x: number;
+    y: number;
+    imageUrl: string;
+    gameName: string;
+  } | null;
+  onClose: () => void;
+  onSaveImage: (imageUrl: string, gameName: string) => void;
 }
 
 const GameImageContextMenu: React.FC<GameImageContextMenuProps> = ({
   activeMenu,
   onClose,
-  onSaveImage
+  onSaveImage,
 }) => {
   const sections: ContextMenuSection[] = useMemo(() => {
-    if (!activeMenu) return []
+    if (!activeMenu) return [];
     return [
       {
         items: [
           {
-            label: 'Save Image',
+            label: "Save Image",
             icon: <Download size={16} />,
-            onClick: () => onSaveImage(activeMenu.imageUrl, activeMenu.gameName)
-          }
-        ]
-      }
-    ]
-  }, [activeMenu, onSaveImage])
+            onClick: () =>
+              onSaveImage(activeMenu.imageUrl, activeMenu.gameName),
+          },
+        ],
+      },
+    ];
+  }, [activeMenu, onSaveImage]);
 
   return (
     <GenericContextMenu
@@ -36,7 +42,7 @@ const GameImageContextMenu: React.FC<GameImageContextMenuProps> = ({
       sections={sections}
       onClose={onClose}
     />
-  )
-}
+  );
+};
 
-export default GameImageContextMenu
+export default GameImageContextMenu;

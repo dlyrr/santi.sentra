@@ -1,6 +1,6 @@
 export interface SalesItem {
-  id: number
-  sales: number
+  id: number;
+  sales: number;
 }
 
 /**
@@ -8,29 +8,31 @@ export interface SalesItem {
  */
 export async function getSalesData(assetId: number): Promise<SalesItem | null> {
   try {
-    const result = await window.api.getSalesData(assetId)
-    return result
+    const result = await window.api.getSalesData(assetId);
+    return result;
   } catch (error) {
-    return null
+    return null;
   }
 }
 
 /**
  * Get sales data for multiple assets from the database
  */
-export async function getBatchSalesData(assetIds: number[]): Promise<Map<number, SalesItem>> {
+export async function getBatchSalesData(
+  assetIds: number[],
+): Promise<Map<number, SalesItem>> {
   try {
-    const result = await window.api.getBatchSalesData(assetIds)
-    const salesMap = new Map<number, SalesItem>()
+    const result = await window.api.getBatchSalesData(assetIds);
+    const salesMap = new Map<number, SalesItem>();
     for (const [assetIdStr, sales] of Object.entries(result)) {
-      const assetId = parseInt(assetIdStr, 10)
+      const assetId = parseInt(assetIdStr, 10);
       if (!isNaN(assetId)) {
-        salesMap.set(assetId, { id: assetId, sales: sales as number })
+        salesMap.set(assetId, { id: assetId, sales: sales as number });
       }
     }
-    return salesMap
+    return salesMap;
   } catch (error) {
-    return new Map()
+    return new Map();
   }
 }
 
@@ -39,10 +41,10 @@ export async function getBatchSalesData(assetIds: number[]): Promise<Map<number,
  * Note: This now requires an async call to the database
  */
 export async function hasSalesData(assetId: number): Promise<boolean> {
-  const data = await getSalesData(assetId)
-  return data !== null
+  const data = await getSalesData(assetId);
+  return data !== null;
 }
 
 export function formatNumber(num: number): string {
-  return num.toLocaleString()
+  return num.toLocaleString();
 }

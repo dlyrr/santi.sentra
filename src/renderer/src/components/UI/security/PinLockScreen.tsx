@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Lock, X, Delete, AlertTriangle } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { queryKeys } from '@shared/queryKeys'
+import React, { useState, useRef, useEffect, useCallback, memo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, X, Delete, AlertTriangle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@shared/queryKeys";
 
 interface PinLockScreenProps {
-  onUnlock: () => void
+  onUnlock: () => void;
 }
 
 // Memoized PIN input field to prevent unnecessary re-renders
@@ -13,13 +13,16 @@ const PinInputField = memo(
   React.forwardRef<
     HTMLInputElement,
     {
-      digit: string
-      index: number
-      disabled: boolean
-      error: boolean
-      isLocked: boolean
-      onChange: (index: number, value: string) => void
-      onKeyDown: (index: number, e: React.KeyboardEvent<HTMLInputElement>) => void
+      digit: string;
+      index: number;
+      disabled: boolean;
+      error: boolean;
+      isLocked: boolean;
+      onChange: (index: number, value: string) => void;
+      onKeyDown: (
+        index: number,
+        e: React.KeyboardEvent<HTMLInputElement>,
+      ) => void;
     }
   >(({ digit, index, disabled, error, isLocked, onChange, onKeyDown }, ref) => (
     <motion.div
@@ -38,250 +41,256 @@ const PinInputField = memo(
         disabled={disabled}
         className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-mono rounded-lg border-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none transition-all ${
           isLocked
-            ? 'border-red-800 bg-red-900/10 cursor-not-allowed opacity-50'
+            ? "border-red-800 bg-red-900/10 cursor-not-allowed opacity-50"
             : error
-              ? 'border-red-500 bg-red-500/10'
+              ? "border-red-500 bg-red-500/10"
               : digit
-                ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/5'
-                : 'border-[var(--color-border-strong)] focus:border-[var(--accent-color)]'
+                ? "border-[var(--accent-color)] bg-[var(--accent-color)]/5"
+                : "border-[var(--color-border-strong)] focus:border-[var(--accent-color)]"
         }`}
       />
     </motion.div>
-  ))
-)
+  )),
+);
 
-PinInputField.displayName = 'PinInputField'
+PinInputField.displayName = "PinInputField";
 
 const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
-  const queryClient = useQueryClient()
-  const [pin, setPin] = useState<string[]>(Array(6).fill(''))
-  const [error, setError] = useState<string | null>(null)
-  const [shake, setShake] = useState(false)
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [isLocked, setIsLocked] = useState(false)
-  const [lockoutSeconds, setLockoutSeconds] = useState(0)
-  const [remainingAttempts, setRemainingAttempts] = useState(5)
-  const [isCheckingLockout, setIsCheckingLockout] = useState(true)
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const lastVerifiedPinRef = useRef<string>('') // Track last verified PIN to prevent duplicate calls
+  const queryClient = useQueryClient();
+  const [pin, setPin] = useState<string[]>(Array(6).fill(""));
+  const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [remainingAttempts, setRemainingAttempts] = useState(5);
+  const [isCheckingLockout, setIsCheckingLockout] = useState(true);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const lastVerifiedPinRef = useRef<string>(""); // Track last verified PIN to prevent duplicate calls
   useEffect(() => {
     const checkLockoutStatus = async () => {
       try {
-        const status = await window.api.getPinLockoutStatus()
+        const status = await window.api.getPinLockoutStatus();
         if (status.locked && status.lockoutSeconds) {
-          setIsLocked(true)
-          setLockoutSeconds(status.lockoutSeconds)
-          setRemainingAttempts(0)
-          setError('Too many failed attempts. Please wait.')
+          setIsLocked(true);
+          setLockoutSeconds(status.lockoutSeconds);
+          setRemainingAttempts(0);
+          setError("Too many failed attempts. Please wait.");
         } else {
-          setRemainingAttempts(status.remainingAttempts)
+          setRemainingAttempts(status.remainingAttempts);
         }
       } catch (err) {
-        console.error('Failed to check lockout status:', err)
+        console.error("Failed to check lockout status:", err);
       } finally {
-        setIsCheckingLockout(false)
+        setIsCheckingLockout(false);
       }
-    }
-    checkLockoutStatus()
-  }, [])
+    };
+    checkLockoutStatus();
+  }, []);
 
   // Focus first input on mount
   useEffect(() => {
     if (!isLocked && !isCheckingLockout) {
-      inputRefs.current[0]?.focus()
+      inputRefs.current[0]?.focus();
     }
-  }, [isLocked, isCheckingLockout])
+  }, [isLocked, isCheckingLockout]);
 
   // Countdown timer for lockout
   useEffect(() => {
-    if (!isLocked || lockoutSeconds <= 0) return
+    if (!isLocked || lockoutSeconds <= 0) return;
 
     const timer = setInterval(() => {
       setLockoutSeconds((prev) => {
-        const next = prev - 1
+        const next = prev - 1;
         if (next <= 0) {
-          setIsLocked(false)
-          setError(null)
-          setRemainingAttempts(5)
-          return 0
+          setIsLocked(false);
+          setError(null);
+          setRemainingAttempts(5);
+          return 0;
         }
-        return next
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [isLocked])
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isLocked]);
 
   const verifyPin = useCallback(
     async (enteredPin: string) => {
-      setIsVerifying(true)
-      setError(null)
+      setIsVerifying(true);
+      setError(null);
 
       try {
-        const result = await window.api.verifyPin(enteredPin)
+        const result = await window.api.verifyPin(enteredPin);
 
         if (result.success) {
           // verifyPin returns accounts directly in the response — use them immediately
           // so the cache is populated before onUnlock() triggers a re-render
-          const accounts = result.accounts
+          const accounts = result.accounts;
           queryClient.setQueryData(
             queryKeys.accounts.list(),
-            Array.isArray(accounts) ? accounts : []
-          )
-          onUnlock()
+            Array.isArray(accounts) ? accounts : [],
+          );
+          
+          // The main process just decrypted the settings, force a refetch
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.settings.snapshot(),
+          });
+          
+          onUnlock();
         } else if (result.locked) {
-          setIsLocked(true)
-          setLockoutSeconds(result.lockoutSeconds || 300)
-          setError(`Too many failed attempts. Please wait.`)
-          setShake(true)
+          setIsLocked(true);
+          setLockoutSeconds(result.lockoutSeconds || 300);
+          setError(`Too many failed attempts. Please wait.`);
+          setShake(true);
           setTimeout(() => {
-            setShake(false)
-            setPin(Array(6).fill(''))
-            lastVerifiedPinRef.current = ''
-          }, 500)
+            setShake(false);
+            setPin(Array(6).fill(""));
+            lastVerifiedPinRef.current = "";
+          }, 500);
         } else {
-          setRemainingAttempts(result.remainingAttempts)
+          setRemainingAttempts(result.remainingAttempts);
           setError(
             result.remainingAttempts === 1
-              ? 'Incorrect PIN. 1 attempt remaining!'
-              : `Incorrect PIN. ${result.remainingAttempts} attempts remaining.`
-          )
-          setShake(true)
+              ? "Incorrect PIN. 1 attempt remaining!"
+              : `Incorrect PIN. ${result.remainingAttempts} attempts remaining.`,
+          );
+          setShake(true);
           setTimeout(() => {
-            setShake(false)
-            setPin(Array(6).fill(''))
-            lastVerifiedPinRef.current = ''
-            inputRefs.current[0]?.focus()
-          }, 500)
+            setShake(false);
+            setPin(Array(6).fill(""));
+            lastVerifiedPinRef.current = "";
+            inputRefs.current[0]?.focus();
+          }, 500);
         }
       } catch (err) {
-        console.error('PIN verification error:', err)
-        setError('An error occurred. Please try again.')
-        setPin(Array(6).fill(''))
-        lastVerifiedPinRef.current = ''
+        console.error("PIN verification error:", err);
+        setError("An error occurred. Please try again.");
+        setPin(Array(6).fill(""));
+        lastVerifiedPinRef.current = "";
       } finally {
-        setIsVerifying(false)
+        setIsVerifying(false);
       }
     },
-    [onUnlock, queryClient]
-  )
+    [onUnlock, queryClient],
+  );
 
   // Verify PIN when all digits are entered
   useEffect(() => {
-    const enteredPin = pin.join('')
+    const enteredPin = pin.join("");
     if (
       enteredPin.length === 6 &&
       !isVerifying &&
       !isLocked &&
       enteredPin !== lastVerifiedPinRef.current
     ) {
-      lastVerifiedPinRef.current = enteredPin // Mark this PIN as being verified
-      verifyPin(enteredPin)
+      lastVerifiedPinRef.current = enteredPin; // Mark this PIN as being verified
+      verifyPin(enteredPin);
     }
-  }, [pin, isVerifying, isLocked, verifyPin])
+  }, [pin, isVerifying, isLocked, verifyPin]);
 
   const handleInputChange = useCallback(
     (index: number, value: string) => {
-      if (isLocked || isVerifying) return
+      if (isLocked || isVerifying) return;
 
       // Only allow single digit
-      const digit = value.slice(-1)
-      if (!/^\d?$/.test(digit)) return
+      const digit = value.slice(-1);
+      if (!/^\d?$/.test(digit)) return;
 
       setPin((prev) => {
-        const newPin = [...prev]
-        newPin[index] = digit
-        return newPin
-      })
+        const newPin = [...prev];
+        newPin[index] = digit;
+        return newPin;
+      });
 
       // Move to next input if digit entered
       if (digit && index < 5) {
-        inputRefs.current[index + 1]?.focus()
+        inputRefs.current[index + 1]?.focus();
       }
     },
-    [isLocked, isVerifying]
-  )
+    [isLocked, isVerifying],
+  );
 
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (isLocked || isVerifying) return
+      if (isLocked || isVerifying) return;
 
-      if (e.key === 'Backspace') {
+      if (e.key === "Backspace") {
         if (!pin[index] && index > 0) {
           // Move to previous input if current is empty
-          inputRefs.current[index - 1]?.focus()
+          inputRefs.current[index - 1]?.focus();
           setPin((prev) => {
-            const newPin = [...prev]
-            newPin[index - 1] = ''
-            return newPin
-          })
+            const newPin = [...prev];
+            newPin[index - 1] = "";
+            return newPin;
+          });
         } else {
           setPin((prev) => {
-            const newPin = [...prev]
-            newPin[index] = ''
-            return newPin
-          })
+            const newPin = [...prev];
+            newPin[index] = "";
+            return newPin;
+          });
         }
-      } else if (e.key === 'ArrowLeft' && index > 0) {
-        inputRefs.current[index - 1]?.focus()
-      } else if (e.key === 'ArrowRight' && index < 5) {
-        inputRefs.current[index + 1]?.focus()
+      } else if (e.key === "ArrowLeft" && index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      } else if (e.key === "ArrowRight" && index < 5) {
+        inputRefs.current[index + 1]?.focus();
       }
     },
-    [pin, isLocked, isVerifying]
-  )
+    [pin, isLocked, isVerifying],
+  );
 
   const handleNumpadClick = useCallback(
     (digit: string) => {
-      if (isLocked || isVerifying) return
+      if (isLocked || isVerifying) return;
 
-      const firstEmptyIndex = pin.findIndex((d) => d === '')
+      const firstEmptyIndex = pin.findIndex((d) => d === "");
       if (firstEmptyIndex !== -1) {
-        handleInputChange(firstEmptyIndex, digit)
+        handleInputChange(firstEmptyIndex, digit);
         if (firstEmptyIndex < 5) {
-          inputRefs.current[firstEmptyIndex + 1]?.focus()
+          inputRefs.current[firstEmptyIndex + 1]?.focus();
         }
       }
     },
-    [pin, handleInputChange, isLocked, isVerifying]
-  )
+    [pin, handleInputChange, isLocked, isVerifying],
+  );
 
   const handleBackspace = useCallback(() => {
-    if (isLocked || isVerifying) return
+    if (isLocked || isVerifying) return;
 
     const lastFilledIndex = pin
       .map((d, i) => (d ? i : -1))
       .filter((i) => i !== -1)
-      .pop()
+      .pop();
     if (lastFilledIndex !== undefined) {
       setPin((prev) => {
-        const newPin = [...prev]
-        newPin[lastFilledIndex] = ''
-        return newPin
-      })
-      inputRefs.current[lastFilledIndex]?.focus()
+        const newPin = [...prev];
+        newPin[lastFilledIndex] = "";
+        return newPin;
+      });
+      inputRefs.current[lastFilledIndex]?.focus();
     }
-  }, [pin, isLocked, isVerifying])
+  }, [pin, isLocked, isVerifying]);
 
   const handleClear = useCallback(() => {
-    if (isLocked || isVerifying) return
+    if (isLocked || isVerifying) return;
 
-    setPin(Array(6).fill(''))
-    lastVerifiedPinRef.current = '' // Reset so user can try again
-    inputRefs.current[0]?.focus()
-  }, [isLocked, isVerifying])
+    setPin(Array(6).fill(""));
+    lastVerifiedPinRef.current = ""; // Reset so user can try again
+    inputRefs.current[0]?.focus();
+  }, [isLocked, isVerifying]);
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.1, filter: 'blur(10px)' }}
-      transition={{ duration: 0.5, ease: 'easeInOut' }}
+      exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
     >
       {/* Background gradient */}
@@ -297,7 +306,9 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           <div className="mb-4 p-4 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)]">
             <Lock className="w-8 h-8 text-[var(--color-text-secondary)]" />
           </div>
-          <p className="text-[var(--color-text-muted)] text-sm">Checking security status...</p>
+          <p className="text-[var(--color-text-muted)] text-sm">
+            Checking security status...
+          </p>
         </motion.div>
       ) : (
         /* Content */
@@ -309,7 +320,9 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           {/* Lock Icon */}
           <motion.div
             className={`mb-6 p-4 rounded-full border ${
-              isLocked ? 'bg-red-900/20 border-red-800' : 'bg-[var(--color-surface)] border-[var(--color-border)]'
+              isLocked
+                ? "bg-red-900/20 border-red-800"
+                : "bg-[var(--color-surface)] border-[var(--color-border)]"
             }`}
             initial={{ y: -20 }}
             animate={{ y: 0 }}
@@ -329,7 +342,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {isLocked ? 'Account Locked' : 'Enter PIN'}
+            {isLocked ? "Account Locked" : "Enter PIN"}
           </motion.h1>
           <motion.p
             className="text-[var(--color-text-muted)] text-sm mb-8 text-center max-w-xs"
@@ -339,7 +352,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           >
             {isLocked
               ? `Too many failed attempts. Try again in ${formatTime(lockoutSeconds)}`
-              : 'Enter your 6-digit PIN to unlock'}
+              : "Enter your 6-digit PIN to unlock"}
           </motion.p>
 
           {/* PIN Input */}
@@ -352,7 +365,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               <PinInputField
                 key={index}
                 ref={(el) => {
-                  inputRefs.current[index] = el
+                  inputRefs.current[index] = el;
                 }}
                 digit={digit}
                 index={index}
@@ -375,8 +388,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 exit={{ opacity: 0 }}
                 className={`text-sm mb-4 px-4 py-2 rounded-lg ${
                   isLocked
-                    ? 'text-red-400 bg-red-500/10 border border-red-500/20'
-                    : 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/20'
+                    ? "text-red-400 bg-red-500/10 border border-red-500/20"
+                    : "text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"
                 }`}
               >
                 {error}
@@ -395,7 +408,9 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 <div
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
-                    i < remainingAttempts ? 'bg-yellow-500' : 'bg-[var(--color-surface-hover)]'
+                    i < remainingAttempts
+                      ? "bg-yellow-500"
+                      : "bg-[var(--color-surface-hover)]"
                   }`}
                 />
               ))}
@@ -418,8 +433,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 disabled={isLocked || isVerifying}
                 className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border text-lg sm:text-xl font-medium transition-colors ${
                   isLocked || isVerifying
-                    ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
-                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
+                    ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
                 }`}
               >
                 {num}
@@ -432,21 +447,21 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               disabled={isLocked || isVerifying}
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border transition-colors flex items-center justify-center ${
                 isLocked || isVerifying
-                  ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
-                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
+                  ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
+                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
               }`}
             >
               <X className="w-5 h-5" />
             </motion.button>
             <motion.button
-              onClick={() => handleNumpadClick('0')}
+              onClick={() => handleNumpadClick("0")}
               whileHover={!isLocked ? { scale: 1.05 } : {}}
               whileTap={!isLocked ? { scale: 0.95 } : {}}
               disabled={isLocked || isVerifying}
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border text-lg sm:text-xl font-medium transition-colors ${
                 isLocked || isVerifying
-                  ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
-                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
+                  ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
+                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
               }`}
             >
               0
@@ -458,8 +473,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               disabled={isLocked || isVerifying}
               className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border transition-colors flex items-center justify-center ${
                 isLocked || isVerifying
-                  ? 'bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed'
-                  : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]'
+                  ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
+                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
               }`}
             >
               <Delete className="w-5 h-5" />
@@ -474,12 +489,14 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             transition={{ delay: 0.5 }}
           >
             Your PIN is securely hashed and encrypted.
-            {!isLocked && remainingAttempts === 5 && ' 5 attempts before lockout.'}
+            {!isLocked &&
+              remainingAttempts === 5 &&
+              " 5 attempts before lockout."}
           </motion.p>
         </motion.div>
       )}
     </motion.div>
-  )
-}
+  );
+};
 
-export default PinLockScreen
+export default PinLockScreen;

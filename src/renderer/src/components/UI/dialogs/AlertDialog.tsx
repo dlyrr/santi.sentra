@@ -1,18 +1,30 @@
-import React from 'react'
-import { AlertCircle, CheckCircle, InfoIcon, AlertTriangle } from 'lucide-react'
-import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, DialogClose } from './Dialog'
-import { cn } from '../../../lib/utils'
+import React from "react";
+import {
+  AlertCircle,
+  CheckCircle,
+  InfoIcon,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "./Dialog";
+import { cn } from "../../../lib/utils";
 
 export interface AlertDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  message: string
-  type?: 'info' | 'success' | 'error' | 'warning' | 'confirm'
-  confirmText?: string
-  cancelText?: string
-  onConfirm?: () => void
-  isDangerous?: boolean
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  type?: "info" | "success" | "error" | "warning" | "confirm";
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm?: () => void;
+  isDangerous?: boolean;
 }
 
 const AlertDialog: React.FC<AlertDialogProps> = ({
@@ -20,32 +32,32 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
   onClose,
   title,
   message,
-  type = 'info',
+  type = "info",
   confirmText,
-  cancelText = 'Cancel',
+  cancelText = "Cancel",
   onConfirm,
-  isDangerous = false
+  isDangerous = false,
 }) => {
-  const isConfirm = type === 'confirm'
+  const isConfirm = type === "confirm";
   const icon =
-    type === 'success' ? (
+    type === "success" ? (
       <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-    ) : type === 'error' ? (
+    ) : type === "error" ? (
       <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-    ) : type === 'warning' ? (
+    ) : type === "warning" ? (
       <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
     ) : (
       <InfoIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
-    )
+    );
 
   const bgColor =
-    type === 'success'
-      ? 'bg-green-500/10 border-green-500/20'
-      : type === 'error'
-        ? 'bg-red-500/10 border-red-500/20'
-        : type === 'warning'
-          ? 'bg-yellow-500/10 border-yellow-500/20'
-          : 'bg-blue-500/10 border-blue-500/20'
+    type === "success"
+      ? "bg-green-500/10 border-green-500/20"
+      : type === "error"
+        ? "bg-red-500/10 border-red-500/20"
+        : type === "warning"
+          ? "bg-yellow-500/10 border-yellow-500/20"
+          : "bg-blue-500/10 border-blue-500/20";
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -58,8 +70,15 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
           <DialogClose />
         </DialogHeader>
         <DialogBody className="space-y-6">
-          <div className={cn('flex items-start gap-3 p-3 rounded-lg border', bgColor)}>
-            <p className="text-sm text-[var(--color-text-secondary)]">{message}</p>
+          <div
+            className={cn(
+              "flex items-start gap-3 p-3 rounded-lg border",
+              bgColor,
+            )}
+          >
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {message}
+            </p>
           </div>
           <div className="flex gap-2 pt-2">
             {isConfirm && (
@@ -72,23 +91,23 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
             )}
             <button
               onClick={() => {
-                onConfirm?.()
-                onClose()
+                onConfirm?.();
+                onClose();
               }}
               className={cn(
-                'flex-1 px-4 py-2 text-sm rounded-lg font-medium transition-colors',
+                "flex-1 px-4 py-2 text-sm rounded-lg font-medium transition-colors",
                 isDangerous
-                  ? 'bg-red-600 text-[var(--color-text-primary)] hover:bg-red-700'
-                  : 'bg-[var(--accent-color)] text-black hover:opacity-90'
+                  ? "bg-red-600 text-[var(--color-text-primary)] hover:bg-red-700"
+                  : "bg-[var(--accent-color)] text-black hover:opacity-90",
               )}
             >
-              {confirmText || (isConfirm ? 'Confirm' : 'OK')}
+              {confirmText || (isConfirm ? "Confirm" : "OK")}
             </button>
           </div>
         </DialogBody>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default AlertDialog
+export default AlertDialog;

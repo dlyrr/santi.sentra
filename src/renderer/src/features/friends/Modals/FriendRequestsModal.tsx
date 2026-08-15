@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Users,
   Loader2,
@@ -9,113 +9,137 @@ import {
   User,
   Search,
   CheckCheck,
-  XCircle
-} from 'lucide-react'
-import { Virtuoso } from 'react-virtuoso'
-import { Account } from '@renderer/types'
-import { useNotification } from '@renderer/features/system/stores/useSnackbarStore'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { Dialog, DialogContent, DialogClose } from '@renderer/components/UI/dialogs/Dialog'
-import UniversalProfileModal from '@renderer/components/Modals/UniversalProfileModal'
-import { ConfirmModal } from '@renderer/components/UI/dialogs/ConfirmModal'
-import { ErrorMessage } from '@renderer/components/UI/feedback/ErrorMessage'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { LoadingSpinner } from '@renderer/components/UI/feedback/LoadingSpinner'
+  XCircle,
+} from "lucide-react";
+import { Virtuoso } from "react-virtuoso";
+import { Account } from "@renderer/types";
+import { useNotification } from "@renderer/features/system/stores/useSnackbarStore";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@renderer/components/UI/dialogs/Dialog";
+import UniversalProfileModal from "@renderer/components/Modals/UniversalProfileModal";
+import { ConfirmModal } from "@renderer/components/UI/dialogs/ConfirmModal";
+import { ErrorMessage } from "@renderer/components/UI/feedback/ErrorMessage";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import { LoadingSpinner } from "@renderer/components/UI/feedback/LoadingSpinner";
 
 interface FriendRequestsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  selectedAccount: Account | null
-  onFriendAdded?: () => void
-  onRequestCountChange?: (count: number) => void
+  isOpen: boolean;
+  onClose: () => void;
+  selectedAccount: Account | null;
+  onFriendAdded?: () => void;
+  onRequestCountChange?: (count: number) => void;
 }
 
 interface FriendRequest {
-  id: number
-  userId: number
-  username: string
-  displayName: string
-  avatarUrl: string
-  created: string
-  originSourceType?: string
-  sourceUniverseId?: number | string | null
-  mutualFriendsList: string[]
-  contactName?: string | null
-  senderNickname?: string
+  id: number;
+  userId: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string;
+  created: string;
+  originSourceType?: string;
+  sourceUniverseId?: number | string | null;
+  mutualFriendsList: string[];
+  contactName?: string | null;
+  senderNickname?: string;
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  UserProfile: 'Profile',
-  InGame: 'In-game',
-  FriendFinder: 'Friend finder',
-  ContactImporter: 'Contacts',
-  Unknown: 'Unknown'
-}
+  UserProfile: "Profile",
+  InGame: "In-game",
+  FriendFinder: "Friend finder",
+  ContactImporter: "Contacts",
+  Unknown: "Unknown",
+};
 
-const SOURCE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+const SOURCE_ICONS: Record<
+  string,
+  React.ComponentType<{ size?: number; className?: string }>
+> = {
   UserProfile: User,
   InGame: Gamepad2,
   FriendFinder: Search,
   ContactImporter: Users,
-  Unknown: User
-}
+  Unknown: User,
+};
 
 const formatTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-  const diffWeeks = Math.floor(diffDays / 7)
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  const diffWeeks = Math.floor(diffDays / 7);
 
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  if (diffWeeks < 4) return `${diffWeeks}w ago`
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffWeeks < 4) return `${diffWeeks}w ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
 
-const formatSource = (request: FriendRequest, universeNames: Record<string, string>) => {
+const formatSource = (
+  request: FriendRequest,
+  universeNames: Record<string, string>,
+) => {
   if (!request.originSourceType) {
-    return 'Unknown'
+    return "Unknown";
   }
 
-  const label = SOURCE_LABELS[request.originSourceType] ?? request.originSourceType
-  if (request.originSourceType === 'InGame' && request.sourceUniverseId) {
-    const key = request.sourceUniverseId.toString()
-    const universeName = universeNames[key]
+  const label =
+    SOURCE_LABELS[request.originSourceType] ?? request.originSourceType;
+  if (request.originSourceType === "InGame" && request.sourceUniverseId) {
+    const key = request.sourceUniverseId.toString();
+    const universeName = universeNames[key];
     if (universeName) {
-      return universeName
+      return universeName;
     }
-    return label
+    return label;
   }
-  return label
-}
+  return label;
+};
 
 const formatMutualFriends = (mutuals: string[]) => {
-  if (!mutuals.length) return null
-  if (mutuals.length === 1) return `${mutuals[0]} is a mutual friend`
-  if (mutuals.length <= 2) return `${mutuals.join(' & ')} are mutual friends`
-  return `${mutuals.length} mutual friends`
-}
+  if (!mutuals.length) return null;
+  if (mutuals.length === 1) return `${mutuals[0]} is a mutual friend`;
+  if (mutuals.length <= 2) return `${mutuals.join(" & ")} are mutual friends`;
+  return `${mutuals.length} mutual friends`;
+};
 
-const getAlias = (request: FriendRequest) => request.contactName || request.senderNickname || ''
+const getAlias = (request: FriendRequest) =>
+  request.contactName || request.senderNickname || "";
 
 // Request card item component
 const RequestCard: React.FC<{
-  request: FriendRequest
-  universeNames: Record<string, string>
-  processingId: number | null
-  onAccept: (request: FriendRequest) => void
-  onDecline: (request: FriendRequest) => void
-  onOpenProfile: (request: FriendRequest) => void
-}> = ({ request, universeNames, processingId, onAccept, onDecline, onOpenProfile }) => {
-  const isProcessing = processingId === request.userId
-  const SourceIcon = SOURCE_ICONS[request.originSourceType || 'Unknown'] || User
-  const alias = getAlias(request)
-  const mutualText = formatMutualFriends(request.mutualFriendsList)
+  request: FriendRequest;
+  universeNames: Record<string, string>;
+  processingId: number | null;
+  onAccept: (request: FriendRequest) => void;
+  onDecline: (request: FriendRequest) => void;
+  onOpenProfile: (request: FriendRequest) => void;
+}> = ({
+  request,
+  universeNames,
+  processingId,
+  onAccept,
+  onDecline,
+  onOpenProfile,
+}) => {
+  const isProcessing = processingId === request.userId;
+  const SourceIcon =
+    SOURCE_ICONS[request.originSourceType || "Unknown"] || User;
+  const alias = getAlias(request);
+  const mutualText = formatMutualFriends(request.mutualFriendsList);
 
   return (
     <div className="group relative bg-[var(--color-surface)]/40 hover:bg-[var(--color-surface)]/70 border border-[var(--color-border)]/50 hover:border-[var(--color-border-strong)]/50 rounded-xl transition-all duration-200">
@@ -136,14 +160,23 @@ const RequestCard: React.FC<{
 
           {/* User info */}
           <div className="flex-1 min-w-0">
-            <button onClick={() => onOpenProfile(request)} className="text-left pressable w-full">
+            <button
+              onClick={() => onOpenProfile(request)}
+              className="text-left pressable w-full"
+            >
               <div className="flex items-center gap-2">
                 <h4 className="font-semibold text-[var(--color-text-primary)] truncate group-hover:text-[var(--accent-color)] transition-colors">
                   {request.displayName}
                 </h4>
-                {alias && <span className="text-xs text-[var(--color-text-muted)] truncate">({alias})</span>}
+                {alias && (
+                  <span className="text-xs text-[var(--color-text-muted)] truncate">
+                    ({alias})
+                  </span>
+                )}
               </div>
-              <p className="text-sm text-[var(--color-text-muted)] truncate">@{request.username}</p>
+              <p className="text-sm text-[var(--color-text-muted)] truncate">
+                @{request.username}
+              </p>
             </button>
 
             {/* Meta info badges */}
@@ -158,7 +191,9 @@ const RequestCard: React.FC<{
                     </span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>Sent from {formatSource(request, universeNames)}</TooltipContent>
+                <TooltipContent>
+                  Sent from {formatSource(request, universeNames)}
+                </TooltipContent>
               </Tooltip>
 
               {/* Time badge */}
@@ -169,7 +204,9 @@ const RequestCard: React.FC<{
                     <span>{formatTimeAgo(request.created)}</span>
                   </div>
                 </TooltipTrigger>
-                <TooltipContent>{new Date(request.created).toLocaleString()}</TooltipContent>
+                <TooltipContent>
+                  {new Date(request.created).toLocaleString()}
+                </TooltipContent>
               </Tooltip>
 
               {/* Mutual friends badge */}
@@ -222,253 +259,332 @@ const RequestCard: React.FC<{
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
   isOpen,
   onClose,
   selectedAccount,
   onFriendAdded,
-  onRequestCountChange
+  onRequestCountChange,
 }) => {
-  const [isLoading, setIsLoading] = useState(false)
-  const [requests, setRequests] = useState<FriendRequest[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [processingId, setProcessingId] = useState<number | null>(null)
-  const [processingAll, setProcessingAll] = useState<'accept' | 'decline' | null>(null)
-  const [universeNames, setUniverseNames] = useState<Record<string, string>>({})
-  const [selectedProfileUserId, setSelectedProfileUserId] = useState<number | null>(null)
-  const [confirmAction, setConfirmAction] = useState<'accept' | 'decline' | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const { showNotification } = useNotification()
+  const [isLoading, setIsLoading] = useState(false);
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingAll, setProcessingAll] = useState<
+    "accept" | "decline" | null
+  >(null);
+  const [universeNames, setUniverseNames] = useState<Record<string, string>>(
+    {},
+  );
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<
+    number | null
+  >(null);
+  const [confirmAction, setConfirmAction] = useState<
+    "accept" | "decline" | null
+  >(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { showNotification } = useNotification();
 
   // Stats computed from requests
   const stats = useMemo(() => {
-    const withMutuals = requests.filter((r) => r.mutualFriendsList.length > 0).length
-    return { total: requests.length, withMutuals }
-  }, [requests])
+    const withMutuals = requests.filter(
+      (r) => r.mutualFriendsList.length > 0,
+    ).length;
+    return { total: requests.length, withMutuals };
+  }, [requests]);
 
   const filteredRequests = useMemo(() => {
-    if (!searchQuery.trim()) return requests
-    const lowerQuery = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return requests;
+    const lowerQuery = searchQuery.toLowerCase();
     return requests.filter(
       (req) =>
         req.displayName.toLowerCase().includes(lowerQuery) ||
         req.username.toLowerCase().includes(lowerQuery) ||
-        (req.contactName && req.contactName.toLowerCase().includes(lowerQuery)) ||
-        (req.senderNickname && req.senderNickname.toLowerCase().includes(lowerQuery))
-    )
-  }, [requests, searchQuery])
+        (req.contactName &&
+          req.contactName.toLowerCase().includes(lowerQuery)) ||
+        (req.senderNickname &&
+          req.senderNickname.toLowerCase().includes(lowerQuery)),
+    );
+  }, [requests, searchQuery]);
 
-  const fetchUniverseNames = useCallback(async (pendingRequests: FriendRequest[]) => {
-    const inGameUniverseIds = Array.from(
-      new Set(
-        pendingRequests
-          .filter((req) => req.originSourceType === 'InGame' && req.sourceUniverseId)
-          .map((req) => {
-            if (typeof req.sourceUniverseId === 'number') return req.sourceUniverseId
-            if (typeof req.sourceUniverseId === 'string') {
-              const parsed = parseInt(req.sourceUniverseId, 10)
-              return Number.isNaN(parsed) ? null : parsed
-            }
-            return null
-          })
-          .filter((id): id is number => typeof id === 'number' && Number.isFinite(id) && id > 0)
-      )
-    )
+  const fetchUniverseNames = useCallback(
+    async (pendingRequests: FriendRequest[]) => {
+      const inGameUniverseIds = Array.from(
+        new Set(
+          pendingRequests
+            .filter(
+              (req) =>
+                req.originSourceType === "InGame" && req.sourceUniverseId,
+            )
+            .map((req) => {
+              if (typeof req.sourceUniverseId === "number")
+                return req.sourceUniverseId;
+              if (typeof req.sourceUniverseId === "string") {
+                const parsed = parseInt(req.sourceUniverseId, 10);
+                return Number.isNaN(parsed) ? null : parsed;
+              }
+              return null;
+            })
+            .filter(
+              (id): id is number =>
+                typeof id === "number" && Number.isFinite(id) && id > 0,
+            ),
+        ),
+      );
 
-    if (!inGameUniverseIds.length) {
-      setUniverseNames({})
-      return
-    }
+      if (!inGameUniverseIds.length) {
+        setUniverseNames({});
+        return;
+      }
 
-    if (typeof window.api?.getGamesByUniverseIds !== 'function') {
-      console.warn('getGamesByUniverseIds API not available')
-      return
-    }
+      if (typeof window.api?.getGamesByUniverseIds !== "function") {
+        console.warn("getGamesByUniverseIds API not available");
+        return;
+      }
 
-    try {
-      const games = await window.api.getGamesByUniverseIds(inGameUniverseIds)
-      const map: Record<string, string> = {}
-      games?.forEach((game: any) => {
-        const universeId = (game?.universeId ?? game?.id)?.toString()
-        if (universeId && game?.name) {
-          map[universeId] = game.name
-        }
-      })
-      setUniverseNames(map)
-    } catch (err) {
-      console.error('Failed to fetch universe names for friend requests', err)
-    }
-  }, [])
+      try {
+        const games = await window.api.getGamesByUniverseIds(inGameUniverseIds);
+        const map: Record<string, string> = {};
+        games?.forEach((game: any) => {
+          const universeId = (game?.universeId ?? game?.id)?.toString();
+          if (universeId && game?.name) {
+            map[universeId] = game.name;
+          }
+        });
+        setUniverseNames(map);
+      } catch (err) {
+        console.error(
+          "Failed to fetch universe names for friend requests",
+          err,
+        );
+      }
+    },
+    [],
+  );
 
   const fetchRequests = useCallback(async () => {
     if (!selectedAccount?.cookie) {
-      setRequests([])
-      onRequestCountChange?.(0)
-      return
+      setRequests([]);
+      onRequestCountChange?.(0);
+      return;
     }
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const fetchedRequests = await window.api.getFriendRequests(selectedAccount.cookie)
+      const fetchedRequests = await window.api.getFriendRequests(
+        selectedAccount.cookie,
+      );
       const toNumber = (value: string | number | undefined): number => {
-        if (typeof value === 'number') return value
-        if (typeof value === 'string') {
-          const parsed = parseInt(value, 10)
-          return Number.isNaN(parsed) ? 0 : parsed
+        if (typeof value === "number") return value;
+        if (typeof value === "string") {
+          const parsed = parseInt(value, 10);
+          return Number.isNaN(parsed) ? 0 : parsed;
         }
-        return 0
-      }
+        return 0;
+      };
 
-      const normalizedRequests: FriendRequest[] = fetchedRequests.map((req: any) => {
-        const userId = toNumber(req.userId ?? req.id)
-        const fallbackName = `User ${userId}`
-        return {
-          id: toNumber(req.id),
-          userId: userId,
-          username: req.username || fallbackName,
-          displayName: req.displayName || req.username || fallbackName,
-          avatarUrl: req.avatarUrl || '',
-          created: req.created || new Date().toISOString(),
-          originSourceType: req.originSourceType ?? req.friendRequest?.originSourceType,
-          sourceUniverseId: req.sourceUniverseId ?? req.friendRequest?.sourceUniverseId ?? null,
-          mutualFriendsList: Array.isArray(req.mutualFriendsList) ? req.mutualFriendsList : [],
-          contactName: req.contactName ?? req.friendRequest?.contactName ?? null,
-          senderNickname: req.senderNickname ?? req.friendRequest?.senderNickname ?? ''
-        }
-      })
+      const normalizedRequests: FriendRequest[] = fetchedRequests.map(
+        (req: any) => {
+          const userId = toNumber(req.userId ?? req.id);
+          const fallbackName = `User ${userId}`;
+          return {
+            id: toNumber(req.id),
+            userId: userId,
+            username: req.username || fallbackName,
+            displayName: req.displayName || req.username || fallbackName,
+            avatarUrl: req.avatarUrl || "",
+            created: req.created || new Date().toISOString(),
+            originSourceType:
+              req.originSourceType ?? req.friendRequest?.originSourceType,
+            sourceUniverseId:
+              req.sourceUniverseId ??
+              req.friendRequest?.sourceUniverseId ??
+              null,
+            mutualFriendsList: Array.isArray(req.mutualFriendsList)
+              ? req.mutualFriendsList
+              : [],
+            contactName:
+              req.contactName ?? req.friendRequest?.contactName ?? null,
+            senderNickname:
+              req.senderNickname ?? req.friendRequest?.senderNickname ?? "",
+          };
+        },
+      );
 
-      setRequests(normalizedRequests)
-      void fetchUniverseNames(normalizedRequests)
-      onRequestCountChange?.(normalizedRequests.length)
+      setRequests(normalizedRequests);
+      void fetchUniverseNames(normalizedRequests);
+      onRequestCountChange?.(normalizedRequests.length);
     } catch (err) {
-      console.error('Failed to fetch friend requests:', err)
-      setError('Failed to load friend requests.')
-      onRequestCountChange?.(0)
+      console.error("Failed to fetch friend requests:", err);
+      setError("Failed to load friend requests.");
+      onRequestCountChange?.(0);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [selectedAccount, onRequestCountChange, fetchUniverseNames])
+  }, [selectedAccount, onRequestCountChange, fetchUniverseNames]);
 
   useEffect(() => {
     if (isOpen) {
-      fetchRequests()
+      fetchRequests();
     }
-  }, [isOpen, fetchRequests])
+  }, [isOpen, fetchRequests]);
 
   const handleAccept = async (request: FriendRequest) => {
-    if (processingId || processingAll || !selectedAccount?.cookie) return
-    setProcessingId(request.userId)
+    if (processingId || processingAll || !selectedAccount?.cookie) return;
+    setProcessingId(request.userId);
 
     try {
-      await window.api.acceptFriendRequest(selectedAccount.cookie, request.userId)
-      showNotification(`Accepted friend request from ${request.displayName}`, 'success')
+      await window.api.acceptFriendRequest(
+        selectedAccount.cookie,
+        request.userId,
+      );
+      showNotification(
+        `Accepted friend request from ${request.displayName}`,
+        "success",
+      );
       setRequests((prev) => {
-        const updated = prev.filter((r) => r.userId !== request.userId)
-        onRequestCountChange?.(updated.length)
-        return updated
-      })
-      onFriendAdded?.()
+        const updated = prev.filter((r) => r.userId !== request.userId);
+        onRequestCountChange?.(updated.length);
+        return updated;
+      });
+      onFriendAdded?.();
     } catch (err) {
-      console.error('Failed to accept friend request:', err)
-      showNotification('Failed to accept friend request', 'error')
+      console.error("Failed to accept friend request:", err);
+      showNotification("Failed to accept friend request", "error");
     } finally {
-      setProcessingId(null)
+      setProcessingId(null);
     }
-  }
+  };
 
   const handleDecline = async (request: FriendRequest) => {
-    if (processingId || processingAll || !selectedAccount?.cookie) return
-    setProcessingId(request.userId)
+    if (processingId || processingAll || !selectedAccount?.cookie) return;
+    setProcessingId(request.userId);
 
     try {
-      await window.api.declineFriendRequest(selectedAccount.cookie, request.userId)
-      showNotification(`Declined friend request from ${request.displayName}`, 'success')
+      await window.api.declineFriendRequest(
+        selectedAccount.cookie,
+        request.userId,
+      );
+      showNotification(
+        `Declined friend request from ${request.displayName}`,
+        "success",
+      );
       setRequests((prev) => {
-        const updated = prev.filter((r) => r.userId !== request.userId)
-        onRequestCountChange?.(updated.length)
-        return updated
-      })
+        const updated = prev.filter((r) => r.userId !== request.userId);
+        onRequestCountChange?.(updated.length);
+        return updated;
+      });
     } catch (err) {
-      console.error('Failed to decline friend request:', err)
-      showNotification('Failed to decline friend request', 'error')
+      console.error("Failed to decline friend request:", err);
+      showNotification("Failed to decline friend request", "error");
     } finally {
-      setProcessingId(null)
+      setProcessingId(null);
     }
-  }
+  };
 
   const handleAcceptAll = async () => {
-    if (processingId || processingAll || !selectedAccount?.cookie || requests.length === 0) return
-    setProcessingAll('accept')
-    setConfirmAction(null)
+    if (
+      processingId ||
+      processingAll ||
+      !selectedAccount?.cookie ||
+      requests.length === 0
+    )
+      return;
+    setProcessingAll("accept");
+    setConfirmAction(null);
 
-    let successCount = 0
-    let failCount = 0
-    const currentRequests = [...requests]
+    let successCount = 0;
+    let failCount = 0;
+    const currentRequests = [...requests];
 
     for (const request of currentRequests) {
       try {
-        await window.api.acceptFriendRequest(selectedAccount.cookie, request.userId)
-        successCount++
+        await window.api.acceptFriendRequest(
+          selectedAccount.cookie,
+          request.userId,
+        );
+        successCount++;
         setRequests((prev) => {
-          const updated = prev.filter((r) => r.userId !== request.userId)
-          onRequestCountChange?.(updated.length)
-          return updated
-        })
-        onFriendAdded?.()
+          const updated = prev.filter((r) => r.userId !== request.userId);
+          onRequestCountChange?.(updated.length);
+          return updated;
+        });
+        onFriendAdded?.();
       } catch (err) {
-        console.error('Failed to accept friend request:', err)
-        failCount++
+        console.error("Failed to accept friend request:", err);
+        failCount++;
       }
     }
 
     if (failCount === 0) {
-      showNotification(`Accepted all ${successCount} friend requests`, 'success')
+      showNotification(
+        `Accepted all ${successCount} friend requests`,
+        "success",
+      );
     } else {
-      showNotification(`Accepted ${successCount} requests, ${failCount} failed`, 'error')
+      showNotification(
+        `Accepted ${successCount} requests, ${failCount} failed`,
+        "error",
+      );
     }
-    setProcessingAll(null)
-  }
+    setProcessingAll(null);
+  };
 
   const handleDeclineAll = async () => {
-    if (processingId || processingAll || !selectedAccount?.cookie || requests.length === 0) return
-    setProcessingAll('decline')
-    setConfirmAction(null)
+    if (
+      processingId ||
+      processingAll ||
+      !selectedAccount?.cookie ||
+      requests.length === 0
+    )
+      return;
+    setProcessingAll("decline");
+    setConfirmAction(null);
 
-    let successCount = 0
-    let failCount = 0
-    const currentRequests = [...requests]
+    let successCount = 0;
+    let failCount = 0;
+    const currentRequests = [...requests];
 
     for (const request of currentRequests) {
       try {
-        await window.api.declineFriendRequest(selectedAccount.cookie, request.userId)
-        successCount++
+        await window.api.declineFriendRequest(
+          selectedAccount.cookie,
+          request.userId,
+        );
+        successCount++;
         setRequests((prev) => {
-          const updated = prev.filter((r) => r.userId !== request.userId)
-          onRequestCountChange?.(updated.length)
-          return updated
-        })
+          const updated = prev.filter((r) => r.userId !== request.userId);
+          onRequestCountChange?.(updated.length);
+          return updated;
+        });
       } catch (err) {
-        console.error('Failed to decline friend request:', err)
-        failCount++
+        console.error("Failed to decline friend request:", err);
+        failCount++;
       }
     }
 
     if (failCount === 0) {
-      showNotification(`Declined all ${successCount} friend requests`, 'success')
+      showNotification(
+        `Declined all ${successCount} friend requests`,
+        "success",
+      );
     } else {
-      showNotification(`Declined ${successCount} requests, ${failCount} failed`, 'error')
+      showNotification(
+        `Declined ${successCount} requests, ${failCount} failed`,
+        "error",
+      );
     }
-    setProcessingAll(null)
-  }
+    setProcessingAll(null);
+  };
 
   const handleOpenProfile = (request: FriendRequest) => {
-    setSelectedProfileUserId(request.userId)
-  }
+    setSelectedProfileUserId(request.userId);
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -482,7 +598,9 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">Friend Requests</h3>
+                  <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
+                    Friend Requests
+                  </h3>
                   {stats.total > 0 && (
                     <span className="px-2 py-0.5 bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-xs font-semibold rounded-full">
                       {stats.total}
@@ -491,10 +609,10 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                 </div>
                 <p className="text-sm text-[var(--color-text-secondary)] font-medium">
                   {stats.total === 0
-                    ? 'No pending requests'
+                    ? "No pending requests"
                     : stats.withMutuals > 0
                       ? `${stats.withMutuals} with mutual friends`
-                      : 'Manage incoming requests'}
+                      : "Manage incoming requests"}
                 </p>
               </div>
             </div>
@@ -520,16 +638,18 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
         {/* Bulk Actions */}
         {requests.length > 1 && !isLoading && !error && (
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)]/50 bg-[var(--color-surface)]/30 shrink-0">
-            <span className="text-xs text-[var(--color-text-muted)]">Bulk actions</span>
+            <span className="text-xs text-[var(--color-text-muted)]">
+              Bulk actions
+            </span>
             <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => setConfirmAction('accept')}
+                    onClick={() => setConfirmAction("accept")}
                     disabled={!!processingId || !!processingAll}
                     className="pressable inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[var(--accent-color-faint)] hover:bg-[var(--accent-color-soft)] text-[var(--accent-color)] rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {processingAll === 'accept' ? (
+                    {processingAll === "accept" ? (
                       <Loader2 size={12} className="animate-spin" />
                     ) : (
                       <CheckCheck size={12} />
@@ -537,16 +657,18 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                     <span>Accept All</span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Accept all {stats.total} requests</TooltipContent>
+                <TooltipContent>
+                  Accept all {stats.total} requests
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => setConfirmAction('decline')}
+                    onClick={() => setConfirmAction("decline")}
                     disabled={!!processingId || !!processingAll}
                     className="pressable inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[var(--color-surface-hover)]/50 hover:bg-red-500/10 text-[var(--color-text-secondary)] hover:text-red-400 rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {processingAll === 'decline' ? (
+                    {processingAll === "decline" ? (
                       <Loader2 size={12} className="animate-spin" />
                     ) : (
                       <XCircle size={12} />
@@ -554,7 +676,9 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                     <span>Decline All</span>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Decline all {stats.total} requests</TooltipContent>
+                <TooltipContent>
+                  Decline all {stats.total} requests
+                </TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -606,7 +730,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
               )}
               components={{
                 Header: () => <div className="h-4" />,
-                Footer: () => <div className="h-4" />
+                Footer: () => <div className="h-4" />,
               }}
             />
           )}
@@ -621,14 +745,16 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
         initialData={
           selectedProfileUserId
             ? (() => {
-                const request = requests.find((r) => r.userId === selectedProfileUserId)
+                const request = requests.find(
+                  (r) => r.userId === selectedProfileUserId,
+                );
                 return request
                   ? {
                       id: request.userId,
                       name: request.username,
                       displayName: request.displayName,
                       headshotUrl: request.avatarUrl,
-                      description: '',
+                      description: "",
                       created: request.created,
                       isBanned: false,
                       externalAppDisplayName: null,
@@ -637,16 +763,16 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
                       friendCount: 0,
                       isPremium: false,
                       isAdmin: false,
-                      avatarImageUrl: null
+                      avatarImageUrl: null,
                     }
-                  : undefined
+                  : undefined;
               })()
             : undefined
         }
       />
 
       <ConfirmModal
-        isOpen={confirmAction === 'accept'}
+        isOpen={confirmAction === "accept"}
         onClose={() => setConfirmAction(null)}
         onConfirm={handleAcceptAll}
         title="Accept All Requests"
@@ -656,7 +782,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
       />
 
       <ConfirmModal
-        isOpen={confirmAction === 'decline'}
+        isOpen={confirmAction === "decline"}
         onClose={() => setConfirmAction(null)}
         onConfirm={handleDeclineAll}
         title="Decline All Requests"
@@ -666,7 +792,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
         isDangerous
       />
     </Dialog>
-  )
-}
+  );
+};
 
-export default FriendRequestsModal
+export default FriendRequestsModal;

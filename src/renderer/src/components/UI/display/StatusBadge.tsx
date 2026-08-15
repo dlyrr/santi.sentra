@@ -1,10 +1,13 @@
-import React from 'react'
-import { AccountStatus } from '../../../types'
-import { Badge } from './Badge'
-import { getStatusBorderColor, getStatusColor } from '../../../utils/statusUtils'
+import React from "react";
+import { AccountStatus } from "../../../types";
+import { Badge } from "./Badge";
+import {
+  getStatusBorderColor,
+  getStatusColor,
+} from "../../../utils/statusUtils";
 
 interface StatusBadgeProps {
-  status: AccountStatus
+  status: AccountStatus;
 }
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
@@ -17,7 +20,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       />
       {status}
     </Badge>
-  )
-}
+  );
+};
 
-export default StatusBadge
+export default StatusBadge;

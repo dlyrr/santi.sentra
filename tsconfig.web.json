@@ -16,15 +16,9 @@
     "baseUrl": ".",
     "resolveJsonModule": true,
     "paths": {
-      "@renderer/*": [
-        "src/renderer/src/*"
-      ],
-      "@shared/*": [
-        "src/shared/*"
-      ],
-      "@assets/*": [
-        "assets/*"
-      ]
+      "@renderer/*": ["src/renderer/src/*"],
+      "@shared/*": ["src/shared/*"],
+      "@assets/*": ["assets/*"]
     }
   }
 }

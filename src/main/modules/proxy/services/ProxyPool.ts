@@ -1,10 +1,14 @@
-import type { Proxy, ProxyPoolConfig, ProxyPoolState } from '../types/ProxyTypes'
+import type {
+  Proxy,
+  ProxyPoolConfig,
+  ProxyPoolState,
+} from "../types/ProxyTypes";
 
 export class ProxyPool {
   constructor(_config: ProxyPoolConfig = {}) {}
 
   addProxy(proxy: Proxy): void {
-    void proxy
+    void proxy;
   }
 
   removeProxy(_id: string): void {
@@ -12,6 +16,6 @@ export class ProxyPool {
   }
 
   getState(): ProxyPoolState {
-    return { size: 0 }
+    return { size: 0 };
   }
 }

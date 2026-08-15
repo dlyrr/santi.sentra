@@ -1,1 +1,1 @@
-export { default } from './InstallTab'
+export { default } from "./InstallTab";

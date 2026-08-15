@@ -23,10 +23,7 @@ export class ProfitCalculator {
   /**
    * Calculate profit with fees.
    */
-  public calculateProfitWithFees(
-    item: Item,
-    config: TradingConfig
-  ): number {
+  public calculateProfitWithFees(item: Item, config: TradingConfig): number {
     let profit = this.calculateSimpleProfit(item);
 
     if (config.includeFees) {
@@ -44,9 +41,7 @@ export class ProfitCalculator {
     if (item.purchasePrice === 0) {
       return 0;
     }
-    return (
-      ((item.resalePrice - item.purchasePrice) / item.purchasePrice) * 100
-    );
+    return ((item.resalePrice - item.purchasePrice) / item.purchasePrice) * 100;
   }
 
   /**
@@ -54,7 +49,7 @@ export class ProfitCalculator {
    */
   public calculateProfitPercentageWithFees(
     item: Item,
-    config: TradingConfig
+    config: TradingConfig,
   ): number {
     if (item.purchasePrice === 0) {
       return 0;
@@ -94,9 +89,7 @@ export class ProfitCalculator {
       : 0;
     const netProfit = simpleProfit - fees;
     const netProfitPercentage =
-      item.purchasePrice === 0
-        ? 0
-        : (netProfit / item.purchasePrice) * 100;
+      item.purchasePrice === 0 ? 0 : (netProfit / item.purchasePrice) * 100;
 
     const passesThreshold = this.checkThreshold(netProfit, config);
 

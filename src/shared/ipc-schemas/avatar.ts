@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { successResponseSchema } from './common'
+import { z } from "zod";
+import { successResponseSchema } from "./common";
 
 // ============================================================================
 // AVATAR & THUMBNAIL SCHEMAS
@@ -12,66 +12,66 @@ export const thumbnail3DResponseSchema = z.object({
     .array(
       z.object({
         state: z.string().optional(),
-        imageUrl: z.string().nullable().optional()
-      })
+        imageUrl: z.string().nullable().optional(),
+      }),
     )
-    .optional()
-})
+    .optional(),
+});
 
-export type Thumbnail3DResponse = z.infer<typeof thumbnail3DResponseSchema>
+export type Thumbnail3DResponse = z.infer<typeof thumbnail3DResponseSchema>;
 
 export const avatarAssetSchema = z.object({
   id: z.number(),
   name: z.string(),
   assetType: z.object({
     id: z.number(),
-    name: z.string()
+    name: z.string(),
   }),
   currentVersionId: z.number().optional(),
   meta: z
     .object({
       order: z.number().optional(),
       puffiness: z.number().optional(),
-      version: z.number().optional()
+      version: z.number().optional(),
     })
-    .optional()
-})
+    .optional(),
+});
 
 export const avatarStateSchema = z.object({
   scales: z.unknown(),
   bodyColors: z.unknown(),
   assets: z.array(avatarAssetSchema),
-  playerAvatarType: z.string()
-})
-export type AvatarState = z.infer<typeof avatarStateSchema>
+  playerAvatarType: z.string(),
+});
+export type AvatarState = z.infer<typeof avatarStateSchema>;
 
 export const thumbnailEntrySchema = z.object({
   requestId: z.string().optional(),
   targetId: z.number(),
   state: z.string(),
-  imageUrl: z.string().nullable()
-})
+  imageUrl: z.string().nullable(),
+});
 
 export const thumbnailBatchSchema = z.object({
-  data: z.array(thumbnailEntrySchema)
-})
+  data: z.array(thumbnailEntrySchema),
+});
 
 export const avatarHeadshotSchema = z.object({
   targetId: z.number(),
   state: z.string(),
-  imageUrl: z.string().nullable()
-})
+  imageUrl: z.string().nullable(),
+});
 
 export const userOutfitSummarySchema = z.object({
   id: z.number(),
   name: z.string(),
-  isEditable: z.boolean()
-})
+  isEditable: z.boolean(),
+});
 
 export const userOutfitCollectionSchema = z.object({
   data: z.array(userOutfitSummarySchema),
-  total: z.number()
-})
+  total: z.number(),
+});
 
 export const outfitDetailsSchema = z.object({
   id: z.number(),
@@ -81,23 +81,23 @@ export const outfitDetailsSchema = z.object({
   scale: z.unknown(),
   playerAvatarType: z.string(),
   outfitType: z.string(),
-  isEditable: z.boolean()
-})
+  isEditable: z.boolean(),
+});
 
 export const wearingAssetsResultSchema = successResponseSchema.extend({
-  invalidAssets: z.array(z.unknown()).optional()
-})
+  invalidAssets: z.array(z.unknown()).optional(),
+});
 
 export const updateOutfitResultSchema = successResponseSchema.extend({
   id: z.number(),
-  name: z.string()
-})
+  name: z.string(),
+});
 
-export type ThumbnailBatch = z.infer<typeof thumbnailBatchSchema>
-export type OutfitCollection = z.infer<typeof userOutfitCollectionSchema>
-export type OutfitDetails = z.infer<typeof outfitDetailsSchema>
-export type WearingAssetsResult = z.infer<typeof wearingAssetsResultSchema>
-export type UpdateOutfitResult = z.infer<typeof updateOutfitResultSchema>
+export type ThumbnailBatch = z.infer<typeof thumbnailBatchSchema>;
+export type OutfitCollection = z.infer<typeof userOutfitCollectionSchema>;
+export type OutfitDetails = z.infer<typeof outfitDetailsSchema>;
+export type WearingAssetsResult = z.infer<typeof wearingAssetsResultSchema>;
+export type UpdateOutfitResult = z.infer<typeof updateOutfitResultSchema>;
 
 // ============================================================================
 // INVENTORY SCHEMAS
@@ -106,29 +106,29 @@ export type UpdateOutfitResult = z.infer<typeof updateOutfitResultSchema>
 export const favoriteItemSchema = z.object({
   id: z.number(),
   name: z.string(),
-  type: z.string()
-})
+  type: z.string(),
+});
 
 export const inventoryItemSchema = z.object({
   assetId: z.number(),
   name: z.string().optional(),
   assetName: z.string().optional(),
   assetType: z.union([z.number(), z.string()]).optional(),
-  created: z.string().optional()
-})
+  created: z.string().optional(),
+});
 
 export const inventoryPageSchema = z
   .object({
     previousPageCursor: z.string().nullable(),
     nextPageCursor: z.string().nullable(),
     data: z.array(inventoryItemSchema).optional(),
-    date: z.array(inventoryItemSchema).optional()
+    date: z.array(inventoryItemSchema).optional(),
   })
   .transform((obj) => ({
     previousPageCursor: obj.previousPageCursor,
     nextPageCursor: obj.nextPageCursor,
-    data: obj.data || obj.date || []
-  }))
+    data: obj.data || obj.date || [],
+  }));
 
 export const collectiblesSchema = z.array(
   z
@@ -139,15 +139,15 @@ export const collectiblesSchema = z.array(
       recentAveragePrice: z.number().optional(),
       originalPrice: z.number().optional(),
       assetStock: z.number().optional(),
-      buildersClubMembershipType: z.number().optional()
+      buildersClubMembershipType: z.number().optional(),
     })
-    .passthrough()
-)
+    .passthrough(),
+);
 
-export type FavoriteItem = z.infer<typeof favoriteItemSchema>
-export type InventoryItem = z.infer<typeof inventoryItemSchema>
-export type InventoryPage = z.infer<typeof inventoryPageSchema>
-export type CollectibleItem = z.infer<typeof collectiblesSchema>[number]
+export type FavoriteItem = z.infer<typeof favoriteItemSchema>;
+export type InventoryItem = z.infer<typeof inventoryItemSchema>;
+export type InventoryPage = z.infer<typeof inventoryPageSchema>;
+export type CollectibleItem = z.infer<typeof collectiblesSchema>[number];
 
 // ============================================================================
 // CATALOG SCHEMAS
@@ -160,8 +160,8 @@ export const catalogSubcategorySchema = z.object({
   bundleTypeIds: z.array(z.number()),
   subcategoryId: z.number().nullable(),
   name: z.string(),
-  shortName: z.string().nullable().optional()
-})
+  shortName: z.string().nullable().optional(),
+});
 
 export const catalogCategorySchema = z.object({
   category: z.string().nullable(),
@@ -172,8 +172,8 @@ export const catalogCategorySchema = z.object({
   name: z.string(),
   orderIndex: z.number(),
   subcategories: z.array(catalogSubcategorySchema),
-  isSearchable: z.boolean()
-})
+  isSearchable: z.boolean(),
+});
 
 export const catalogItemSchema = z.object({
   id: z.number(),
@@ -199,20 +199,22 @@ export const catalogItemSchema = z.object({
   itemStatus: z.array(z.string()).optional(),
   itemRestrictions: z.array(z.string()).optional(),
   unitsAvailableForConsumption: z.number().optional(),
-  productId: z.number().optional()
-})
+  productId: z.number().optional(),
+});
 
 export const catalogItemsSearchResponseSchema = z.object({
   keyword: z.string().nullable().optional(),
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(catalogItemSchema)
-})
+  data: z.array(catalogItemSchema),
+});
 
-export type CatalogCategory = z.infer<typeof catalogCategorySchema>
-export type CatalogSubcategory = z.infer<typeof catalogSubcategorySchema>
-export type CatalogItem = z.infer<typeof catalogItemSchema>
-export type CatalogItemsSearchResponse = z.infer<typeof catalogItemsSearchResponseSchema>
+export type CatalogCategory = z.infer<typeof catalogCategorySchema>;
+export type CatalogSubcategory = z.infer<typeof catalogSubcategorySchema>;
+export type CatalogItem = z.infer<typeof catalogItemSchema>;
+export type CatalogItemsSearchResponse = z.infer<
+  typeof catalogItemsSearchResponseSchema
+>;
 
 export enum CatalogSortType {
   Relevance = 0,
@@ -220,30 +222,30 @@ export enum CatalogSortType {
   Bestselling = 2,
   RecentlyPublished = 3,
   PriceHighToLow = 4,
-  PriceLowToHigh = 5
+  PriceLowToHigh = 5,
 }
 
 export enum CatalogSalesTypeFilter {
   All = 1,
   Collectibles = 2,
-  Limited = 3
+  Limited = 3,
 }
 
 export interface CatalogSearchParams {
-  keyword?: string
-  taxonomy?: string
-  subcategory?: string
-  sortType?: CatalogSortType
-  sortAggregation?: number
-  salesTypeFilter?: CatalogSalesTypeFilter
-  minPrice?: number
-  maxPrice?: number
-  creatorName?: string
-  creatorType?: string
-  limit?: number
-  cursor?: string
-  includeNotForSale?: boolean
-  cookie?: string
+  keyword?: string;
+  taxonomy?: string;
+  subcategory?: string;
+  sortType?: CatalogSortType;
+  sortAggregation?: number;
+  salesTypeFilter?: CatalogSalesTypeFilter;
+  minPrice?: number;
+  maxPrice?: number;
+  creatorName?: string;
+  creatorType?: string;
+  limit?: number;
+  cursor?: string;
+  includeNotForSale?: boolean;
+  cookie?: string;
 }
 
 export const assetDetailsSchema = z.object({
@@ -298,24 +300,30 @@ export const assetDetailsSchema = z.object({
       Id: z.number().optional(),
       CreatorType: z.string().optional(),
       CreatorTargetId: z.number().optional(),
-      HasVerifiedBadge: z.boolean().optional()
+      HasVerifiedBadge: z.boolean().optional(),
     })
     .optional(),
   CollectiblesItemDetails: z
     .object({
       CollectibleLowestResalePrice: z.number().nullable().optional(),
-      CollectibleLowestAvailableResaleProductId: z.string().nullable().optional(),
-      CollectibleLowestAvailableResaleItemInstanceId: z.string().nullable().optional(),
+      CollectibleLowestAvailableResaleProductId: z
+        .string()
+        .nullable()
+        .optional(),
+      CollectibleLowestAvailableResaleItemInstanceId: z
+        .string()
+        .nullable()
+        .optional(),
       CollectibleQuantityLimitPerUser: z.number().nullable().optional(),
       IsForSale: z.boolean().optional(),
       TotalQuantity: z.number().optional(),
-      IsLimited: z.boolean().optional()
+      IsLimited: z.boolean().optional(),
     })
     .optional(),
   CollectibleProductId: z.string().nullable().optional(),
   CollectibleItemId: z.string().nullable().optional(),
-  collectibleLowestResalePrice: z.number().nullable().optional()
-})
+  collectibleLowestResalePrice: z.number().nullable().optional(),
+});
 
 export const recommendationItemSchema = z.object({
   id: z.number(),
@@ -330,8 +338,8 @@ export const recommendationItemSchema = z.object({
   lowestResalePrice: z.number().nullable().optional(),
   collectibleItemId: z.string().nullable().optional(),
   totalQuantity: z.number().nullable().optional(),
-  favoriteCount: z.number().optional()
-})
+  favoriteCount: z.number().optional(),
+});
 
 export const catalogItemDetailSchema = z.object({
   id: z.number(),
@@ -358,22 +366,22 @@ export const catalogItemDetailSchema = z.object({
   saleLocationType: z.string().optional(),
   hasResellers: z.boolean().optional(),
   quantityLimitPerUser: z.number().optional(),
-  priceStatus: z.string().optional()
-})
+  priceStatus: z.string().optional(),
+});
 
 export const batchCatalogDetailsSchema = z.object({
-  data: z.array(catalogItemDetailSchema)
-})
+  data: z.array(catalogItemDetailSchema),
+});
 
 export const recommendationsSchema = z.object({
-  data: z.array(z.union([z.number(), z.string(), z.object({}).passthrough()]))
-})
+  data: z.array(z.union([z.number(), z.string(), z.object({}).passthrough()])),
+});
 
-export type AssetDetails = z.infer<typeof assetDetailsSchema>
-export type RecommendationItem = z.infer<typeof recommendationItemSchema>
-export type Recommendations = z.infer<typeof recommendationsSchema>
-export type CatalogItemDetail = z.infer<typeof catalogItemDetailSchema>
-export type BatchCatalogDetails = z.infer<typeof batchCatalogDetailsSchema>
+export type AssetDetails = z.infer<typeof assetDetailsSchema>;
+export type RecommendationItem = z.infer<typeof recommendationItemSchema>;
+export type Recommendations = z.infer<typeof recommendationsSchema>;
+export type CatalogItemDetail = z.infer<typeof catalogItemDetailSchema>;
+export type BatchCatalogDetails = z.infer<typeof batchCatalogDetailsSchema>;
 
 export const catalogSearchItemSchema = z.object({
   bundledItems: z.array(z.unknown()).optional(),
@@ -400,18 +408,18 @@ export const catalogSearchItemSchema = z.object({
   totalQuantity: z.number().optional(),
   saleLocationType: z.string().optional(),
   hasResellers: z.boolean().optional(),
-  isOffSale: z.boolean().optional()
-})
+  isOffSale: z.boolean().optional(),
+});
 
 export const catalogSearchResponseSchema = z.object({
   keyword: z.string().optional(),
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(catalogSearchItemSchema)
-})
+  data: z.array(catalogSearchItemSchema),
+});
 
-export type CatalogSearchItem = z.infer<typeof catalogSearchItemSchema>
-export type CatalogSearchResponse = z.infer<typeof catalogSearchResponseSchema>
+export type CatalogSearchItem = z.infer<typeof catalogSearchItemSchema>;
+export type CatalogSearchResponse = z.infer<typeof catalogSearchResponseSchema>;
 
 export const resellerItemSchema = z.object({
   collectibleProductId: z.string(),
@@ -420,21 +428,21 @@ export const resellerItemSchema = z.object({
     hasVerifiedBadge: z.boolean(),
     sellerId: z.number(),
     sellerType: z.string(),
-    name: z.string()
+    name: z.string(),
   }),
   price: z.number(),
   serialNumber: z.number().nullable().optional(),
-  errorMessage: z.string().nullable().optional()
-})
+  errorMessage: z.string().nullable().optional(),
+});
 
 export const resellersResponseSchema = z.object({
   data: z.array(resellerItemSchema),
   nextPageCursor: z.string().nullable().optional(),
-  previousPageCursor: z.string().nullable().optional()
-})
+  previousPageCursor: z.string().nullable().optional(),
+});
 
-export type ResellerItem = z.infer<typeof resellerItemSchema>
-export type ResellersResponse = z.infer<typeof resellersResponseSchema>
+export type ResellerItem = z.infer<typeof resellerItemSchema>;
+export type ResellersResponse = z.infer<typeof resellersResponseSchema>;
 
 export const assetOwnerSchema = z.object({
   id: z.number(),
@@ -444,27 +452,27 @@ export const assetOwnerSchema = z.object({
     .object({
       id: z.number(),
       type: z.string(),
-      name: z.string().nullable().optional()
+      name: z.string().nullable().optional(),
     })
     .nullable()
     .optional(),
   created: z.string().optional(),
-  updated: z.string().optional()
-})
+  updated: z.string().optional(),
+});
 
 export const assetOwnersResponseSchema = z.object({
   data: z.array(assetOwnerSchema),
   nextPageCursor: z.string().nullable().optional(),
-  previousPageCursor: z.string().nullable().optional()
-})
+  previousPageCursor: z.string().nullable().optional(),
+});
 
-export type AssetOwner = z.infer<typeof assetOwnerSchema>
-export type AssetOwnersResponse = z.infer<typeof assetOwnersResponseSchema>
+export type AssetOwner = z.infer<typeof assetOwnerSchema>;
+export type AssetOwnersResponse = z.infer<typeof assetOwnersResponseSchema>;
 
 export const priceDataPointSchema = z.object({
   value: z.number(),
-  date: z.string()
-})
+  date: z.string(),
+});
 
 export const resaleDataSchema = z.object({
   assetStock: z.number().nullable().optional(),
@@ -472,10 +480,10 @@ export const resaleDataSchema = z.object({
   numberRemaining: z.number().nullable().optional(),
   recentAveragePrice: z.number().nullable().optional(),
   originalPrice: z.number().nullable().optional(),
-  priceDataPoints: z.array(priceDataPointSchema).nullable().optional()
-})
+  priceDataPoints: z.array(priceDataPointSchema).nullable().optional(),
+});
 
-export type ResaleData = z.infer<typeof resaleDataSchema>
+export type ResaleData = z.infer<typeof resaleDataSchema>;
 
 // ============================================================================
 // PURCHASE SCHEMAS
@@ -490,9 +498,9 @@ export const purchaseLimitedResultSchema = z
     title: z.string().optional(),
     errorMsg: z.string().optional(),
     showDivId: z.string().optional(),
-    shortMessage: z.string().optional()
+    shortMessage: z.string().optional(),
   })
-  .passthrough()
+  .passthrough();
 
 export const purchaseCatalogResultSchema = z
   .object({
@@ -501,12 +509,12 @@ export const purchaseCatalogResultSchema = z
     pending: z.boolean().optional(),
     errorMessage: z.string().nullable().optional(),
     reason: z.string().optional(),
-    statusCode: z.number().optional()
+    statusCode: z.number().optional(),
   })
-  .passthrough()
+  .passthrough();
 
-export type PurchaseLimitedResult = z.infer<typeof purchaseLimitedResultSchema>
-export type PurchaseCatalogResult = z.infer<typeof purchaseCatalogResultSchema>
+export type PurchaseLimitedResult = z.infer<typeof purchaseLimitedResultSchema>;
+export type PurchaseCatalogResult = z.infer<typeof purchaseCatalogResultSchema>;
 
 // ============================================================================
 // DOWNLOAD SCHEMAS
@@ -515,17 +523,19 @@ export type PurchaseCatalogResult = z.infer<typeof purchaseCatalogResultSchema>
 export const downloadResultSchema = z.object({
   success: z.boolean(),
   canceled: z.boolean().optional(),
-  path: z.string().optional()
-})
+  path: z.string().optional(),
+});
 
 export const templateDownloadResultSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
-  path: z.string().optional()
-})
+  path: z.string().optional(),
+});
 
-export type DownloadResult = z.infer<typeof downloadResultSchema>
-export type TemplateDownloadResult = z.infer<typeof templateDownloadResultSchema>
+export type DownloadResult = z.infer<typeof downloadResultSchema>;
+export type TemplateDownloadResult = z.infer<
+  typeof templateDownloadResultSchema
+>;
 
 // ============================================================================
 // CATALOG DATABASE SCHEMAS
@@ -545,8 +555,8 @@ export const catalogDbItemSchema = z.object({
   IsForSale: z.boolean(),
   IsLimited: z.boolean(),
   IsLimitedUnique: z.boolean(),
-  CollectiblesItemDetails: z.string().nullable()
-})
+  CollectiblesItemDetails: z.string().nullable(),
+});
 
 export const catalogDbSearchResultSchema = z.object({
   AssetId: z.number(),
@@ -557,8 +567,8 @@ export const catalogDbSearchResultSchema = z.object({
   IsLimitedUnique: z.boolean(),
   PriceInRobux: z.number(),
   IsForSale: z.boolean(),
-  Sales: z.number()
-})
+  Sales: z.number(),
+});
 
 // Exported FlexSearch catalog index schema
 export const catalogIndexExportSchema = z.object({
@@ -573,17 +583,17 @@ export const catalogIndexExportSchema = z.object({
         PriceInRobux: z.number(), // coerce nullable numeric to number for search data
         IsForSale: z.boolean(),
         IsLimited: z.boolean(),
-        IsLimitedUnique: z.boolean()
-      })
-    ])
-  )
-})
+        IsLimitedUnique: z.boolean(),
+      }),
+    ]),
+  ),
+});
 
 export const salesDataSchema = z.object({
   id: z.number(),
-  sales: z.number()
-})
+  sales: z.number(),
+});
 
-export type CatalogDbItem = z.infer<typeof catalogDbItemSchema>
-export type CatalogDbSearchResult = z.infer<typeof catalogDbSearchResultSchema>
-export type CatalogIndexExport = z.infer<typeof catalogIndexExportSchema>
+export type CatalogDbItem = z.infer<typeof catalogDbItemSchema>;
+export type CatalogDbSearchResult = z.infer<typeof catalogDbSearchResultSchema>;
+export type CatalogIndexExport = z.infer<typeof catalogIndexExportSchema>;

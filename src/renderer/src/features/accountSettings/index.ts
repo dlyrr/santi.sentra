@@ -1,1 +1,1 @@
-export { default } from './AccountSettingsTab'
+export { default } from "./AccountSettingsTab";

@@ -1,52 +1,67 @@
-import React, { useState, useEffect } from 'react'
-import { Save, FileText } from 'lucide-react'
-import { Account } from '@renderer/types'
-import { Dialog, DialogContent, DialogClose } from '@renderer/components/UI/dialogs/Dialog'
+import React, { useState, useEffect } from "react";
+import { Save, FileText } from "lucide-react";
+import { Account } from "@renderer/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@renderer/components/UI/dialogs/Dialog";
 
 interface EditNoteModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (accountIds: string[], newNote: string) => void
-  account?: Account | null
-  accounts?: Account[] | null
-  privacyMode?: boolean
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (accountIds: string[], newNote: string) => void;
+  account?: Account | null;
+  accounts?: Account[] | null;
+  privacyMode?: boolean;
 }
 
-const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, account, accounts, privacyMode }) => {
-  const [note, setNote] = useState('')
+const EditNoteModal: React.FC<EditNoteModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  account,
+  accounts,
+  privacyMode,
+}) => {
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (isOpen) {
       if (account) {
-        setNote(account.notes || '')
+        setNote(account.notes || "");
       } else if (accounts && accounts.length > 0) {
         // If bulk, only set if all have same note, else empty
-        const firstNote = accounts[0].notes || ''
-        const allSame = accounts.every((a) => (a.notes || '') === firstNote)
-        setNote(allSame ? firstNote : '')
+        const firstNote = accounts[0].notes || "";
+        const allSame = accounts.every((a) => (a.notes || "") === firstNote);
+        setNote(allSame ? firstNote : "");
       }
     }
-  }, [isOpen, account, accounts])
+  }, [isOpen, account, accounts]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (account) {
-      onSave([account.id], note)
-      onClose()
+      onSave([account.id], note);
+      onClose();
     } else if (accounts) {
-      onSave(accounts.map((a) => a.id), note)
-      onClose()
+      onSave(
+        accounts.map((a) => a.id),
+        note,
+      );
+      onClose();
     }
-  }
+  };
 
-  if (!isOpen || (!account && (!accounts || accounts.length === 0))) return null
+  if (!isOpen || (!account && (!accounts || accounts.length === 0)))
+    return null;
 
-  const isBulk = !!accounts && accounts.length > 1
-  const subtitle = isBulk 
+  const isBulk = !!accounts && accounts.length > 1;
+  const subtitle = isBulk
     ? `For ${accounts.length} selected accounts`
-    : account 
-      ? `For @${account.username}` 
-      : ''
+    : account
+      ? `For @${account.username}`
+      : "";
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -54,14 +69,21 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[var(--color-surface)] rounded-lg">
-              <FileText className="text-[var(--color-text-secondary)]" size={20} />
+              <FileText
+                className="text-[var(--color-text-secondary)]"
+                size={20}
+              />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Edit Note{isBulk ? 's' : ''}</h3>
-              <p 
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                Edit Note{isBulk ? "s" : ""}
+              </h3>
+              <p
                 className="text-sm text-[var(--color-text-muted)]"
-                style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-              >{subtitle}</p>
+                style={privacyMode ? { filter: "blur(16px)" } : undefined}
+              >
+                {subtitle}
+              </p>
             </div>
           </div>
           <DialogClose />
@@ -69,7 +91,10 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="noteInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
+            <label
+              htmlFor="noteInput"
+              className="text-sm font-medium text-[var(--color-text-secondary)]"
+            >
               Account Note
             </label>
             <textarea
@@ -101,7 +126,7 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ isOpen, onClose, onSave, 
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default EditNoteModal
+export default EditNoteModal;

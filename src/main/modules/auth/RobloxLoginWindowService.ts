@@ -1,84 +1,113 @@
-import { BrowserWindow, BrowserWindowConstructorOptions, session, shell, BrowserView, ipcMain } from 'electron'
-import type { Cookie, Event as ElectronEvent } from 'electron'
-import { UserAgentService } from './UserAgentService'
+import {
+  BrowserWindow,
+  BrowserWindowConstructorOptions,
+  session,
+  shell,
+  BrowserView,
+  ipcMain,
+} from "electron";
+import type { Cookie, Event as ElectronEvent } from "electron";
+import { UserAgentService } from "./UserAgentService";
 
 export class RobloxLoginWindowService {
-  private static readonly PARTITION = 'persist:roblox-login'
-  private static readonly ROBLOX_LOGIN_URL = 'https://www.roblox.com/login'
+  private static readonly PARTITION = "persist:roblox-login";
+  private static readonly ROBLOX_LOGIN_URL = "https://www.roblox.com/login";
   private static readonly PERMITTED_PERMISSIONS = new Set<string>([
-    'clipboard-read',
-    'display-capture',
-    'fullscreen',
-    'hid',
-    'idle-detection',
-    'media',
-    'mediaKeySystem',
-    'notifications',
-    'pointerLock',
-    'serial',
-    'usb'
-  ])
+    "clipboard-read",
+    "display-capture",
+    "fullscreen",
+    "hid",
+    "idle-detection",
+    "media",
+    "mediaKeySystem",
+    "notifications",
+    "pointerLock",
+    "serial",
+    "usb",
+  ]);
 
-  private static loginWindow: BrowserWindow | null = null
-  private static pendingPromise: Promise<string> | null = null
+  private static loginWindow: BrowserWindow | null = null;
+  private static pendingPromise: Promise<string> | null = null;
 
   static async openLoginWindow(): Promise<string> {
     if (this.pendingPromise) {
-      return this.pendingPromise
+      return this.pendingPromise;
     }
 
     this.pendingPromise = new Promise<string>((resolve, reject) => {
-      const loginSession = session.fromPartition(this.PARTITION, { cache: true })
+      const loginSession = session.fromPartition(this.PARTITION, {
+        cache: true,
+      });
 
-      let isResolved = false
-      let isPromiseSettled = false
-      let rejectionError: Error | null = null
+      let isResolved = false;
+      let isPromiseSettled = false;
+      let rejectionError: Error | null = null;
 
       const handleCookieChange = (
         _event: ElectronEvent,
         cookie: Cookie,
-        _cause: 'explicit' | 'overwrite' | 'expired' | 'evicted' | 'expired-overwrite',
-        removed: boolean
+        _cause:
+          | "explicit"
+          | "overwrite"
+          | "expired"
+          | "evicted"
+          | "expired-overwrite",
+        removed: boolean,
       ) => {
-        if (!removed && cookie.name === '.ROBLOSECURITY') {
-          isResolved = true
-          isPromiseSettled = true
-          resolve(cookie.value)
-          this.loginWindow?.close()
+        if (!removed && cookie.name === ".ROBLOSECURITY") {
+          isResolved = true;
+          isPromiseSettled = true;
+          resolve(cookie.value);
+          this.loginWindow?.close();
         }
-      }
+      };
 
       const cleanup = async () => {
-        loginSession.cookies.removeListener('changed', handleCookieChange)
-        loginSession.setPermissionRequestHandler(null)
+        loginSession.cookies.removeListener("changed", handleCookieChange);
+        loginSession.setPermissionRequestHandler(null);
         try {
-          await loginSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
+          await loginSession.cookies.remove(
+            "https://www.roblox.com",
+            ".ROBLOSECURITY",
+          );
         } catch (error) {
-          console.warn('[RobloxLoginWindow] Failed to remove security cookie after finish:', error)
+          console.warn(
+            "[RobloxLoginWindow] Failed to remove security cookie after finish:",
+            error,
+          );
         }
-        this.loginWindow = null
-        this.pendingPromise = null
-      }
+        this.loginWindow = null;
+        this.pendingPromise = null;
+      };
 
       const start = async () => {
         try {
-          await loginSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
+          await loginSession.cookies.remove(
+            "https://www.roblox.com",
+            ".ROBLOSECURITY",
+          );
         } catch (error) {
-          console.warn('[RobloxLoginWindow] Failed to remove previous security cookie:', error)
+          console.warn(
+            "[RobloxLoginWindow] Failed to remove previous security cookie:",
+            error,
+          );
         }
 
-        loginSession.cookies.on('changed', handleCookieChange)
-        loginSession.setPermissionRequestHandler((_wc, permission, callback) => {
-          if (permission && this.PERMITTED_PERMISSIONS.has(permission)) callback(true)
-          else callback(false)
-        })
+        loginSession.cookies.on("changed", handleCookieChange);
+        loginSession.setPermissionRequestHandler(
+          (_wc, permission, callback) => {
+            if (permission && this.PERMITTED_PERMISSIONS.has(permission))
+              callback(true);
+            else callback(false);
+          },
+        );
 
         const windowOptions: BrowserWindowConstructorOptions = {
           width: 480,
           height: 720,
-          title: 'Roblox Login',
+          title: "Roblox Login",
           autoHideMenuBar: true,
-          backgroundColor: '#050505',
+          backgroundColor: "#050505",
           parent: BrowserWindow.getFocusedWindow() ?? undefined,
           modal: false,
           show: false,
@@ -86,198 +115,235 @@ export class RobloxLoginWindowService {
             partition: this.PARTITION,
             nodeIntegration: false,
             contextIsolation: true,
-            spellcheck: true
-          }
-        }
+            spellcheck: true,
+          },
+        };
 
-        this.loginWindow = new BrowserWindow(windowOptions)
+        this.loginWindow = new BrowserWindow(windowOptions);
 
-        const userAgent = this.getRealisticUserAgent()
-        if (userAgent) this.loginWindow.webContents.setUserAgent(userAgent)
+        const userAgent = this.getRealisticUserAgent();
+        if (userAgent) this.loginWindow.webContents.setUserAgent(userAgent);
 
-        this.loginWindow.on('ready-to-show', () => {
-          this.loginWindow?.show()
-          this.loginWindow?.focus()
-        })
+        this.loginWindow.on("ready-to-show", () => {
+          this.loginWindow?.show();
+          this.loginWindow?.focus();
+        });
 
-        this.loginWindow.webContents.on('render-process-gone', (_event, details) => {
-          console.error('[RobloxLoginWindow] Renderer process gone:', details)
-          try {
-            if (this.loginWindow && !this.loginWindow.isDestroyed()) {
-              this.loginWindow.close()
+        this.loginWindow.webContents.on(
+          "render-process-gone",
+          (_event, details) => {
+            console.error(
+              "[RobloxLoginWindow] Renderer process gone:",
+              details,
+            );
+            try {
+              if (this.loginWindow && !this.loginWindow.isDestroyed()) {
+                this.loginWindow.close();
+              }
+            } catch (err) {
+              console.warn(
+                "[RobloxLoginWindow] Error during cleanup after renderer gone:",
+                err,
+              );
             }
-          } catch (err) {
-            console.warn('[RobloxLoginWindow] Error during cleanup after renderer gone:', err)
-          }
-        })
+          },
+        );
 
-        this.loginWindow.on('unresponsive', () => {
+        this.loginWindow.on("unresponsive", () => {
           try {
             if (this.loginWindow && !this.loginWindow.isDestroyed()) {
-              this.loginWindow.close()
+              this.loginWindow.close();
             }
           } catch {}
-        })
+        });
 
-        this.loginWindow.on('closed', async () => {
-          await cleanup()
+        this.loginWindow.on("closed", async () => {
+          await cleanup();
           if (!isPromiseSettled) {
-            isPromiseSettled = true
-            reject(rejectionError ?? new Error('LOGIN_WINDOW_CLOSED'))
+            isPromiseSettled = true;
+            reject(rejectionError ?? new Error("LOGIN_WINDOW_CLOSED"));
           }
-        })
+        });
 
         this.loginWindow.webContents.setWindowOpenHandler(({ url }) => {
-          shell.openExternal(url)
-          return { action: 'deny' }
-        })
+          shell.openExternal(url);
+          return { action: "deny" };
+        });
 
         try {
           await this.loginWindow.loadURL(this.ROBLOX_LOGIN_URL, {
-            httpReferrer: 'https://www.roblox.com/',
-            userAgent: this.loginWindow.webContents.getUserAgent()
-          })
+            httpReferrer: "https://www.roblox.com/",
+            userAgent: this.loginWindow.webContents.getUserAgent(),
+          });
         } catch (error) {
           rejectionError =
-            error instanceof Error ? error : new Error('Failed to load Roblox login page')
+            error instanceof Error
+              ? error
+              : new Error("Failed to load Roblox login page");
           if (this.loginWindow && !this.loginWindow.isDestroyed()) {
-            this.loginWindow.close()
+            this.loginWindow.close();
           } else {
-            await cleanup()
+            await cleanup();
             if (!isPromiseSettled) {
-              isPromiseSettled = true
-              reject(rejectionError)
+              isPromiseSettled = true;
+              reject(rejectionError);
             }
           }
         }
-      }
+      };
 
       void start().catch(async (error) => {
-        rejectionError = error instanceof Error ? error : new Error('Failed to open login window')
+        rejectionError =
+          error instanceof Error
+            ? error
+            : new Error("Failed to open login window");
         if (this.loginWindow && !this.loginWindow.isDestroyed()) {
-          this.loginWindow.close()
-          return
+          this.loginWindow.close();
+          return;
         }
-        await cleanup()
+        await cleanup();
         if (!isPromiseSettled) {
-          isPromiseSettled = true
-          reject(rejectionError)
+          isPromiseSettled = true;
+          reject(rejectionError);
         }
-      })
-    })
+      });
+    });
 
-    return this.pendingPromise
+    return this.pendingPromise;
   }
 
   static async openBrowserWithAccount(
     cookie: string,
-    url: string = 'https://www.roblox.com/home',
+    url: string = "https://www.roblox.com/home",
     windowWidth?: number,
-    windowHeight?: number
+    windowHeight?: number,
   ): Promise<void> {
-    const partition = `persist:account-browser-${Date.now()}`
-    const browserSession = session.fromPartition(partition, { cache: true })
+    const partition = `persist:account-browser-${Date.now()}`;
+    const browserSession = session.fromPartition(partition, { cache: true });
 
-    let browserWindow: BrowserWindow | null = null
+    let browserWindow: BrowserWindow | null = null;
 
     try {
       try {
-        await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
+        await browserSession.cookies.remove(
+          "https://www.roblox.com",
+          ".ROBLOSECURITY",
+        );
       } catch {}
 
       await browserSession.cookies.set({
-        url: 'https://www.roblox.com',
-        name: '.ROBLOSECURITY',
+        url: "https://www.roblox.com",
+        name: ".ROBLOSECURITY",
         value: cookie,
-        domain: '.roblox.com',
-        path: '/',
+        domain: ".roblox.com",
+        path: "/",
         httpOnly: true,
         secure: true,
-        expirationDate: Math.floor(Date.now() / 1000) + 31536000
-      })
+        expirationDate: Math.floor(Date.now() / 1000) + 31536000,
+      });
 
       const windowOptions: BrowserWindowConstructorOptions = {
         width: windowWidth && windowWidth > 0 ? windowWidth : 1280,
         height: windowHeight && windowHeight > 0 ? windowHeight : 800,
-        title: 'Roblox Browser',
+        title: "Roblox Browser",
         autoHideMenuBar: true,
-        backgroundColor: '#050505',
+        backgroundColor: "#050505",
         show: true,
         webPreferences: {
           partition,
           nodeIntegration: false,
           contextIsolation: true,
           webviewTag: true,
-          spellcheck: true
-        }
-      }
+          spellcheck: true,
+        },
+      };
 
-      browserWindow = new BrowserWindow(windowOptions)
+      browserWindow = new BrowserWindow(windowOptions);
 
-      const userAgent = this.getRealisticUserAgent()
-      if (userAgent) browserWindow.webContents.setUserAgent(userAgent)
+      const userAgent = this.getRealisticUserAgent();
+      if (userAgent) browserWindow.webContents.setUserAgent(userAgent);
 
-      browserWindow.webContents.on('render-process-gone', () => {
-        if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
-      })
+      browserWindow.webContents.on("render-process-gone", () => {
+        if (browserWindow && !browserWindow.isDestroyed())
+          browserWindow.close();
+      });
 
-      browserWindow.on('unresponsive', () => {
-        if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
-      })
+      browserWindow.on("unresponsive", () => {
+        if (browserWindow && !browserWindow.isDestroyed())
+          browserWindow.close();
+      });
 
-      browserWindow.on('closed', async () => {
-        browserWindow = null
+      browserWindow.on("closed", async () => {
+        browserWindow = null;
         try {
-          await browserSession.clearCache()
-          await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
+          await browserSession.clearCache();
+          await browserSession.cookies.remove(
+            "https://www.roblox.com",
+            ".ROBLOSECURITY",
+          );
         } catch {}
-      })
+      });
 
-      const toolbarHeight = 40
+      const toolbarHeight = 40;
 
-      const toolbarView = new BrowserView({ webPreferences: { nodeIntegration: true, contextIsolation: false } })
-      const contentView = new BrowserView({ webPreferences: { partition, nodeIntegration: false, contextIsolation: true } })
+      const toolbarView = new BrowserView({
+        webPreferences: { nodeIntegration: true, contextIsolation: false },
+      });
+      const contentView = new BrowserView({
+        webPreferences: {
+          partition,
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+      });
 
-      browserWindow.setBrowserView(toolbarView)
-      browserWindow.addBrowserView(contentView)
+      browserWindow.setBrowserView(toolbarView);
+      browserWindow.addBrowserView(contentView);
 
       const resizeViews = () => {
-        if (!browserWindow || browserWindow.isDestroyed()) return
-        const [w, h] = browserWindow.getContentSize()
-        toolbarView.setBounds({ x: 0, y: 0, width: w, height: toolbarHeight })
-        contentView.setBounds({ x: 0, y: toolbarHeight, width: w, height: Math.max(0, h - toolbarHeight) })
-        toolbarView.setAutoResize({ width: true })
-        contentView.setAutoResize({ width: true, height: true })
-      }
+        if (!browserWindow || browserWindow.isDestroyed()) return;
+        const [w, h] = browserWindow.getContentSize();
+        toolbarView.setBounds({ x: 0, y: 0, width: w, height: toolbarHeight });
+        contentView.setBounds({
+          x: 0,
+          y: toolbarHeight,
+          width: w,
+          height: Math.max(0, h - toolbarHeight),
+        });
+        toolbarView.setAutoResize({ width: true });
+        contentView.setAutoResize({ width: true, height: true });
+      };
 
-      resizeViews()
-      browserWindow.on('resize', resizeViews)
+      resizeViews();
+      browserWindow.on("resize", resizeViews);
 
-      const ipcChannel = 'sentra-browser-cmd'
+      const ipcChannel = "sentra-browser-cmd";
 
       const ipcHandler = (_event: any, cmd: string, payload?: any) => {
-        if (!contentView?.webContents) return
+        if (!contentView?.webContents) return;
         switch (cmd) {
-          case 'back':
-            if (contentView.webContents.canGoBack()) contentView.webContents.goBack()
-            break
-          case 'forward':
-            if (contentView.webContents.canGoForward()) contentView.webContents.goForward()
-            break
-          case 'reload':
-            contentView.webContents.reload()
-            break
-          case 'load':
-            if (typeof payload === 'string') {
-              let u = payload.trim()
-              if (!/^https?:\/\//i.test(u)) u = 'https://' + u
-              contentView.webContents.loadURL(u)
+          case "back":
+            if (contentView.webContents.canGoBack())
+              contentView.webContents.goBack();
+            break;
+          case "forward":
+            if (contentView.webContents.canGoForward())
+              contentView.webContents.goForward();
+            break;
+          case "reload":
+            contentView.webContents.reload();
+            break;
+          case "load":
+            if (typeof payload === "string") {
+              let u = payload.trim();
+              if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+              contentView.webContents.loadURL(u);
             }
-            break
+            break;
         }
-      }
+      };
 
-      ipcMain.on(ipcChannel, ipcHandler)
+      ipcMain.on(ipcChannel, ipcHandler);
 
       // Load a minimal toolbar UI into the toolbar BrowserView so navigation controls are visible.
       try {
@@ -317,73 +383,97 @@ export class RobloxLoginWindowService {
               $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click() })
             </script>
           </body>
-          </html>`
+          </html>`;
 
-        await toolbarView.webContents.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(toolbarHTML))
+        await toolbarView.webContents.loadURL(
+          "data:text/html;charset=utf-8," + encodeURIComponent(toolbarHTML),
+        );
       } catch (err) {
         // Non-fatal: if toolbar fails to load, continue without it
-        console.warn('[RobloxLoginWindow] Failed to load toolbar UI', err)
+        console.warn("[RobloxLoginWindow] Failed to load toolbar UI", err);
       }
 
       // Update toolbar button enabled state when navigation events occur in the content view
       const updateToolbarButtons = async () => {
         try {
-          if (!toolbarView?.webContents || !contentView?.webContents) return
-          const canBack = await contentView.webContents.canGoBack()
-          const canForward = await contentView.webContents.canGoForward()
-          await toolbarView.webContents.executeJavaScript(`document.getElementById('back').disabled = ${!canBack}`)
-          await toolbarView.webContents.executeJavaScript(`document.getElementById('forward').disabled = ${!canForward}`)
-          const currentUrl = contentView.webContents.getURL() || ''
-          await toolbarView.webContents.executeJavaScript(`document.getElementById('url').value = ${JSON.stringify(currentUrl)}`)
+          if (!toolbarView?.webContents || !contentView?.webContents) return;
+          const canBack = await contentView.webContents.canGoBack();
+          const canForward = await contentView.webContents.canGoForward();
+          await toolbarView.webContents.executeJavaScript(
+            `document.getElementById('back').disabled = ${!canBack}`,
+          );
+          await toolbarView.webContents.executeJavaScript(
+            `document.getElementById('forward').disabled = ${!canForward}`,
+          );
+          const currentUrl = contentView.webContents.getURL() || "";
+          await toolbarView.webContents.executeJavaScript(
+            `document.getElementById('url').value = ${JSON.stringify(currentUrl)}`,
+          );
         } catch {}
-      }
+      };
 
       if (contentView?.webContents) {
-        contentView.webContents.on('did-navigate', updateToolbarButtons)
-        contentView.webContents.on('did-navigate-in-page', updateToolbarButtons)
-        contentView.webContents.on('did-finish-load', updateToolbarButtons)
+        contentView.webContents.on("did-navigate", updateToolbarButtons);
+        contentView.webContents.on(
+          "did-navigate-in-page",
+          updateToolbarButtons,
+        );
+        contentView.webContents.on("did-finish-load", updateToolbarButtons);
       }
 
-      browserWindow.on('closed', () => {
-        ipcMain.removeListener(ipcChannel, ipcHandler)
-      })
+      browserWindow.on("closed", () => {
+        ipcMain.removeListener(ipcChannel, ipcHandler);
+      });
 
       // Handle popup / new tab requests from content page - open in external browser
       contentView.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url)
-        return { action: 'deny' }
-      })
+        shell.openExternal(url);
+        return { action: "deny" };
+      });
 
       // Handle navigation failures gracefully - only close on truly fatal errors
-      contentView.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-        // Ignore common non-fatal error codes:
-        // -3 = ERR_ABORTED (navigation cancelled, e.g. redirect)
-        // -6 = ERR_FILE_NOT_FOUND (url paste mid-type)
-        // -102 = ERR_CONNECTION_REFUSED (temp network issue)
-        const nonFatalCodes = new Set([-3, -6, -102, -105, -106, -118])
-        if (isMainFrame && !nonFatalCodes.has(errorCode)) {
-          console.warn(`[Browser] Load failed (${errorCode}): ${errorDescription} @ ${validatedURL}`)
-        }
-        // Never close the window on load failure - let user retry
-      })
+      contentView.webContents.on(
+        "did-fail-load",
+        (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+          // Ignore common non-fatal error codes:
+          // -3 = ERR_ABORTED (navigation cancelled, e.g. redirect)
+          // -6 = ERR_FILE_NOT_FOUND (url paste mid-type)
+          // -102 = ERR_CONNECTION_REFUSED (temp network issue)
+          const nonFatalCodes = new Set([-3, -6, -102, -105, -106, -118]);
+          if (isMainFrame && !nonFatalCodes.has(errorCode)) {
+            console.warn(
+              `[Browser] Load failed (${errorCode}): ${errorDescription} @ ${validatedURL}`,
+            );
+          }
+          // Never close the window on load failure - let user retry
+        },
+      );
 
       try {
         await contentView.webContents.loadURL(url, {
-          httpReferrer: 'https://www.roblox.com/',
-          userAgent: browserWindow.webContents.getUserAgent()
-        })
+          httpReferrer: "https://www.roblox.com/",
+          userAgent: browserWindow.webContents.getUserAgent(),
+        });
       } catch (loadError) {
         // Non-fatal: URL load errors shouldn't close the browser window
         // The user can still navigate using the toolbar
-        console.warn('[Browser] Initial URL load error (window still open):', loadError)
+        console.warn(
+          "[Browser] Initial URL load error (window still open):",
+          loadError,
+        );
       }
     } catch (error) {
-      if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
+      if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close();
       try {
-        await browserSession.clearCache()
-        await browserSession.cookies.remove('https://www.roblox.com', '.ROBLOSECURITY')
+        await browserSession.clearCache();
+        await browserSession.cookies.remove(
+          "https://www.roblox.com",
+          ".ROBLOSECURITY",
+        );
       } catch {}
-      throw error instanceof Error ? error : new Error('Failed to open browser with account')
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to open browser with account");
     }
   }
 
@@ -393,94 +483,116 @@ export class RobloxLoginWindowService {
    */
   static async openSignupBrowser(
     windowWidth?: number,
-    windowHeight?: number
-  ): Promise<{ browserWindow: BrowserWindow; pageUrl: string; webContents: any; partition: string }> {
-    const partition = `persist:signup-${Date.now()}`
-    const signupSession = session.fromPartition(partition, { cache: true })
+    windowHeight?: number,
+  ): Promise<{
+    browserWindow: BrowserWindow;
+    pageUrl: string;
+    webContents: any;
+    partition: string;
+  }> {
+    const partition = `persist:signup-${Date.now()}`;
+    const signupSession = session.fromPartition(partition, { cache: true });
 
-    let browserWindow: BrowserWindow | null = null
+    let browserWindow: BrowserWindow | null = null;
 
     try {
       const windowOptions: BrowserWindowConstructorOptions = {
         width: windowWidth && windowWidth > 0 ? windowWidth : 1280,
         height: windowHeight && windowHeight > 0 ? windowHeight : 800,
-        title: 'Roblox Signup',
+        title: "Roblox Signup",
         autoHideMenuBar: true,
-        backgroundColor: '#050505',
+        backgroundColor: "#050505",
         show: true,
         webPreferences: {
           partition,
           nodeIntegration: false,
           contextIsolation: true,
           webviewTag: true,
-          spellcheck: true
-        }
-      }
+          spellcheck: true,
+        },
+      };
 
-      browserWindow = new BrowserWindow(windowOptions)
+      browserWindow = new BrowserWindow(windowOptions);
 
-      const userAgent = this.getRealisticUserAgent()
-      if (userAgent) browserWindow.webContents.setUserAgent(userAgent)
+      const userAgent = this.getRealisticUserAgent();
+      if (userAgent) browserWindow.webContents.setUserAgent(userAgent);
 
-      browserWindow.webContents.on('render-process-gone', () => {
-        if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
-      })
+      browserWindow.webContents.on("render-process-gone", () => {
+        if (browserWindow && !browserWindow.isDestroyed())
+          browserWindow.close();
+      });
 
-      browserWindow.on('unresponsive', () => {
-        if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
-      })
+      browserWindow.on("unresponsive", () => {
+        if (browserWindow && !browserWindow.isDestroyed())
+          browserWindow.close();
+      });
 
-      browserWindow.on('closed', async () => {
-        browserWindow = null
+      browserWindow.on("closed", async () => {
+        browserWindow = null;
         try {
-          await signupSession.clearCache()
+          await signupSession.clearCache();
         } catch {}
-      })
+      });
 
-      const toolbarHeight = 40
-      const toolbarView = new BrowserView({ webPreferences: { nodeIntegration: true, contextIsolation: false } })
-      const contentView = new BrowserView({ webPreferences: { partition, nodeIntegration: false, contextIsolation: true } })
+      const toolbarHeight = 40;
+      const toolbarView = new BrowserView({
+        webPreferences: { nodeIntegration: true, contextIsolation: false },
+      });
+      const contentView = new BrowserView({
+        webPreferences: {
+          partition,
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+      });
 
-      browserWindow.setBrowserView(toolbarView)
-      browserWindow.addBrowserView(contentView)
+      browserWindow.setBrowserView(toolbarView);
+      browserWindow.addBrowserView(contentView);
 
       const resizeViews = () => {
-        if (!browserWindow || browserWindow.isDestroyed()) return
-        const [w, h] = browserWindow.getContentSize()
-        toolbarView.setBounds({ x: 0, y: 0, width: w, height: toolbarHeight })
-        contentView.setBounds({ x: 0, y: toolbarHeight, width: w, height: Math.max(0, h - toolbarHeight) })
-        toolbarView.setAutoResize({ width: true })
-        contentView.setAutoResize({ width: true, height: true })
-      }
+        if (!browserWindow || browserWindow.isDestroyed()) return;
+        const [w, h] = browserWindow.getContentSize();
+        toolbarView.setBounds({ x: 0, y: 0, width: w, height: toolbarHeight });
+        contentView.setBounds({
+          x: 0,
+          y: toolbarHeight,
+          width: w,
+          height: Math.max(0, h - toolbarHeight),
+        });
+        toolbarView.setAutoResize({ width: true });
+        contentView.setAutoResize({ width: true, height: true });
+      };
 
-      resizeViews()
-      browserWindow.on('resize', resizeViews)
+      resizeViews();
+      browserWindow.on("resize", resizeViews);
 
-      const ipcChannel = 'sentra-signup-browser-cmd'
+      const ipcChannel = "sentra-signup-browser-cmd";
 
       const ipcHandler = (_event: any, cmd: string, payload?: any) => {
-        if (!contentView?.webContents) return
+        if (!contentView?.webContents) return;
         switch (cmd) {
-          case 'back':
-            if (contentView.webContents.canGoBack()) contentView.webContents.goBack()
-            break
-          case 'forward':
-            if (contentView.webContents.canGoForward()) contentView.webContents.goForward()
-            break
-          case 'reload':
-            contentView.webContents.reload()
-            break
-          case 'load':
-            if (typeof payload === 'string') {
-              let u = payload.trim()
-              if (!/^https?:\/\//i.test(u)) u = 'https://' + u
-              contentView.webContents.loadURL(u)
+          case "back":
+            if (contentView.webContents.canGoBack())
+              contentView.webContents.goBack();
+            break;
+          case "forward":
+            if (contentView.webContents.canGoForward())
+              contentView.webContents.goForward();
+            break;
+          case "reload":
+            contentView.webContents.reload();
+            break;
+          case "load":
+            if (typeof payload === "string") {
+              let u = payload.trim();
+              if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+              contentView.webContents.loadURL(u);
             }
-            break
+            break;
         }
-      }
+      };
 
-      ipcMain.on(ipcChannel, ipcHandler)
+      ipcMain.on(ipcChannel, ipcHandler);
 
       // Load toolbar UI (same as openBrowserWithAccount)
       try {
@@ -520,60 +632,75 @@ export class RobloxLoginWindowService {
               $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click() })
             </script>
           </body>
-          </html>`
+          </html>`;
 
-        await toolbarView.webContents.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(toolbarHTML))
+        await toolbarView.webContents.loadURL(
+          "data:text/html;charset=utf-8," + encodeURIComponent(toolbarHTML),
+        );
       } catch (err) {
-        console.warn('[RobloxSignupBrowser] Failed to load toolbar UI', err)
+        console.warn("[RobloxSignupBrowser] Failed to load toolbar UI", err);
       }
 
       // Update toolbar buttons
       const updateToolbarButtons = async () => {
         try {
-          if (!toolbarView?.webContents || !contentView?.webContents) return
-          const canBack = await contentView.webContents.canGoBack()
-          const canForward = await contentView.webContents.canGoForward()
-          await toolbarView.webContents.executeJavaScript(`document.getElementById('back').disabled = ${!canBack}`)
-          await toolbarView.webContents.executeJavaScript(`document.getElementById('forward').disabled = ${!canForward}`)
-          const currentUrl = contentView.webContents.getURL() || ''
-          await toolbarView.webContents.executeJavaScript(`document.getElementById('url').value = ${JSON.stringify(currentUrl)}`)
+          if (!toolbarView?.webContents || !contentView?.webContents) return;
+          const canBack = await contentView.webContents.canGoBack();
+          const canForward = await contentView.webContents.canGoForward();
+          await toolbarView.webContents.executeJavaScript(
+            `document.getElementById('back').disabled = ${!canBack}`,
+          );
+          await toolbarView.webContents.executeJavaScript(
+            `document.getElementById('forward').disabled = ${!canForward}`,
+          );
+          const currentUrl = contentView.webContents.getURL() || "";
+          await toolbarView.webContents.executeJavaScript(
+            `document.getElementById('url').value = ${JSON.stringify(currentUrl)}`,
+          );
         } catch {}
-      }
+      };
 
       if (contentView?.webContents) {
-        contentView.webContents.on('did-navigate', updateToolbarButtons)
-        contentView.webContents.on('did-navigate-in-page', updateToolbarButtons)
-        contentView.webContents.on('did-finish-load', updateToolbarButtons)
+        contentView.webContents.on("did-navigate", updateToolbarButtons);
+        contentView.webContents.on(
+          "did-navigate-in-page",
+          updateToolbarButtons,
+        );
+        contentView.webContents.on("did-finish-load", updateToolbarButtons);
       }
 
-      browserWindow.on('closed', () => {
-        ipcMain.removeListener(ipcChannel, ipcHandler)
-      })
+      browserWindow.on("closed", () => {
+        ipcMain.removeListener(ipcChannel, ipcHandler);
+      });
 
       // Load signup page in content view
-      await contentView.webContents.loadURL('https://www.roblox.com/signup', {
-        httpReferrer: 'https://www.roblox.com/',
-        userAgent: browserWindow.webContents.getUserAgent()
-      })
+      await contentView.webContents.loadURL("https://www.roblox.com/signup", {
+        httpReferrer: "https://www.roblox.com/",
+        userAgent: browserWindow.webContents.getUserAgent(),
+      });
 
-      console.log('[RobloxSignupBrowser] Signup browser opened with custom toolbar')
+      console.log(
+        "[RobloxSignupBrowser] Signup browser opened with custom toolbar",
+      );
 
       return {
         browserWindow,
-        pageUrl: 'https://www.roblox.com/signup',
+        pageUrl: "https://www.roblox.com/signup",
         webContents: contentView.webContents,
-        partition
-      }
+        partition,
+      };
     } catch (error) {
-      if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close()
+      if (browserWindow && !browserWindow.isDestroyed()) browserWindow.close();
       try {
-        await signupSession.clearCache()
+        await signupSession.clearCache();
       } catch {}
-      throw error instanceof Error ? error : new Error('Failed to open signup browser')
+      throw error instanceof Error
+        ? error
+        : new Error("Failed to open signup browser");
     }
   }
 
   private static getRealisticUserAgent(): string {
-    return UserAgentService.getCurrentUserAgent()
+    return UserAgentService.getCurrentUserAgent();
   }
 }

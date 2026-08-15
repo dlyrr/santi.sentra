@@ -1,7 +1,13 @@
-import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react'
-import { motion } from 'framer-motion'
-import { createPortal } from 'react-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useLayoutEffect,
+} from "react";
+import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
   FileText,
@@ -18,151 +24,170 @@ import {
   MapPin,
   Trash2,
   RefreshCw,
-  ExternalLink
-} from 'lucide-react'
-import { SearchInput } from '@renderer/components/UI/inputs/SearchInput'
-import { Virtuoso } from 'react-virtuoso'
-import { useClickOutside } from '../../hooks/useClickOutside'
-import ConfirmModal from '@renderer/components/UI/dialogs/ConfirmModal'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/UI/display/Tooltip'
-import type { LogMetadata } from '@shared/ipc-schemas/system'
-import { useLogs, useLogContent, useDeleteAllLogs, useDeleteLog } from './api/useLogs'
-import { queryKeys } from '@shared/queryKeys'
+  ExternalLink,
+} from "lucide-react";
+import { SearchInput } from "@renderer/components/UI/inputs/SearchInput";
+import { Virtuoso } from "react-virtuoso";
+import { useClickOutside } from "../../hooks/useClickOutside";
+import ConfirmModal from "@renderer/components/UI/dialogs/ConfirmModal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../../components/UI/display/Tooltip";
+import type { LogMetadata } from "@shared/ipc-schemas/system";
+import {
+  useLogs,
+  useLogContent,
+  useDeleteAllLogs,
+  useDeleteLog,
+} from "./api/useLogs";
+import { queryKeys } from "@shared/queryKeys";
 import {
   useAutoRefreshEnabled,
   useLogSearchQuery,
   useSelectedLogId,
   useSetSelectedLogId,
   useSetLogSearchQuery,
-  useToggleAutoRefresh
-} from './stores/useLogsStore'
+  useToggleAutoRefresh,
+} from "./stores/useLogsStore";
 
 interface LogEntry {
-  timestamp: string
-  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG'
-  source: string
-  message: string
+  timestamp: string;
+  level: "INFO" | "WARN" | "ERROR" | "DEBUG";
+  source: string;
+  message: string;
 }
 
 interface ProcessedLog extends LogMetadata {
-  id: string
-  createdAt: string
-  formattedSize: string
-  date: string
+  id: string;
+  createdAt: string;
+  formattedSize: string;
+  date: string;
 }
 
 interface SelectedLog extends ProcessedLog {
-  entries: LogEntry[]
-  isLoadingContent: boolean
-  isTruncated: boolean
-  totalLines: number
+  entries: LogEntry[];
+  isLoadingContent: boolean;
+  isTruncated: boolean;
+  totalLines: number;
 }
 
-const MAX_DISPLAY_LINES = 1000
+const MAX_DISPLAY_LINES = 1000;
 
 const formatBytes = (bytes: number, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const dm = decimals < 0 ? 0 : decimals
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
-}
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+};
 
 const parseLogLines = (content: string): LogEntry[] => {
-  const lines = content.split('\n')
+  const lines = content.split("\n");
   return lines
     .map((line) => {
       // Example: 2025-11-21T03:32:41.169Z,0.169887,2588,6,Warning [FLog::RobloxStarter] Starting module: Network
       const match = line.match(
-        /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z),[^,]+,[^,]+,[^,]+,(\w+) \[(.*?)\] (.*)$/
-      )
+        /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z),[^,]+,[^,]+,[^,]+,(\w+) \[(.*?)\] (.*)$/,
+      );
       if (match) {
-        let level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' = 'INFO'
-        const rawLevel = match[2].toUpperCase()
-        if (rawLevel.includes('ERROR') || rawLevel.includes('CRITICAL')) level = 'ERROR'
-        else if (rawLevel.includes('WARN')) level = 'WARN'
-        else if (rawLevel.includes('DEBUG')) level = 'DEBUG'
+        let level: "INFO" | "WARN" | "ERROR" | "DEBUG" = "INFO";
+        const rawLevel = match[2].toUpperCase();
+        if (rawLevel.includes("ERROR") || rawLevel.includes("CRITICAL"))
+          level = "ERROR";
+        else if (rawLevel.includes("WARN")) level = "WARN";
+        else if (rawLevel.includes("DEBUG")) level = "DEBUG";
 
         return {
-          timestamp: match[1].split('T')[1].replace('Z', ''),
+          timestamp: match[1].split("T")[1].replace("Z", ""),
           level,
           source: match[3],
-          message: match[4]
-        }
+          message: match[4],
+        };
       }
 
-      if (line.trim() === '') return null
+      if (line.trim() === "") return null;
 
       return {
-        timestamp: '',
-        level: 'INFO',
-        source: 'System',
-        message: line
-      }
+        timestamp: "",
+        level: "INFO",
+        source: "System",
+        message: line,
+      };
     })
-    .filter(Boolean) as LogEntry[]
-}
+    .filter(Boolean) as LogEntry[];
+};
 
-const useTruncationCheck = <T extends HTMLElement>(deps: React.DependencyList = []) => {
-  const ref = useRef<T | null>(null)
-  const [isTruncated, setIsTruncated] = useState(false)
+const useTruncationCheck = <T extends HTMLElement>(
+  deps: React.DependencyList = [],
+) => {
+  const ref = useRef<T | null>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
 
   useLayoutEffect(() => {
     const updateIsTruncated = () => {
-      const el = ref.current
-      if (!el) return
-      setIsTruncated(el.scrollWidth - el.clientWidth > 1)
+      const el = ref.current;
+      if (!el) return;
+      setIsTruncated(el.scrollWidth - el.clientWidth > 1);
+    };
+
+    const element = ref.current;
+    if (!element) return;
+
+    updateIsTruncated();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(updateIsTruncated);
+      resizeObserver.observe(element);
     }
 
-    const element = ref.current
-    if (!element) return
-
-    updateIsTruncated()
-
-    let resizeObserver: ResizeObserver | null = null
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(updateIsTruncated)
-      resizeObserver.observe(element)
-    }
-
-    window.addEventListener('resize', updateIsTruncated)
+    window.addEventListener("resize", updateIsTruncated);
 
     return () => {
-      resizeObserver?.disconnect()
-      window.removeEventListener('resize', updateIsTruncated)
-    }
-  }, [...deps])
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateIsTruncated);
+    };
+  }, [...deps]);
 
-  return { ref, isTruncated }
-}
+  return { ref, isTruncated };
+};
 
 interface TruncationTooltipValueProps {
-  value?: string | null
-  className?: string
-  fallback?: string
-  privacyMode?: boolean
-  isPrivate?: boolean
+  value?: string | null;
+  className?: string;
+  fallback?: string;
+  privacyMode?: boolean;
+  isPrivate?: boolean;
 }
 
-const TruncationTooltipValue: React.FC<TruncationTooltipValueProps & { privacyMode?: boolean; isPrivate?: boolean }> = ({
+const TruncationTooltipValue: React.FC<
+  TruncationTooltipValueProps & { privacyMode?: boolean; isPrivate?: boolean }
+> = ({
   value,
   className,
-  fallback = 'N/A',
+  fallback = "N/A",
   privacyMode = false,
-  isPrivate = false
+  isPrivate = false,
 }) => {
-  const displayValue = value || fallback
-  const { ref, isTruncated } = useTruncationCheck<HTMLDivElement>([displayValue])
+  const displayValue = value || fallback;
+  const { ref, isTruncated } = useTruncationCheck<HTMLDivElement>([
+    displayValue,
+  ]);
 
   const content = (
-    <div ref={ref} className={`${className} ${privacyMode && isPrivate ? 'privacy-blur' : ''}`}>
+    <div
+      ref={ref}
+      className={`${className} ${privacyMode && isPrivate ? "privacy-blur" : ""}`}
+    >
       {displayValue}
     </div>
-  )
+  );
 
   if (!isTruncated) {
-    return content
+    return content;
   }
 
   return (
@@ -170,122 +195,138 @@ const TruncationTooltipValue: React.FC<TruncationTooltipValueProps & { privacyMo
       <TooltipTrigger asChild>{content}</TooltipTrigger>
       <TooltipContent>{displayValue}</TooltipContent>
     </Tooltip>
-  )
-}
+  );
+};
 
-const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) => {
-  const logSearchQuery = useLogSearchQuery()
-  const setLogSearchQuery = useSetLogSearchQuery()
-  const selectedLogId = useSelectedLogId()
-  const setSelectedLogId = useSetSelectedLogId()
-  const autoRefreshEnabled = useAutoRefreshEnabled()
-  const toggleAutoRefresh = useToggleAutoRefresh()
-  const queryClient = useQueryClient()
+const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
+  privacyMode = false,
+}) => {
+  const logSearchQuery = useLogSearchQuery();
+  const setLogSearchQuery = useSetLogSearchQuery();
+  const selectedLogId = useSelectedLogId();
+  const setSelectedLogId = useSetSelectedLogId();
+  const autoRefreshEnabled = useAutoRefreshEnabled();
+  const toggleAutoRefresh = useToggleAutoRefresh();
+  const queryClient = useQueryClient();
   const { data: logsMetadata = [], isLoading } = useLogs({
-    refetchInterval: autoRefreshEnabled ? 5000 : false
-  })
-  const { mutateAsync: deleteLogMutation } = useDeleteLog()
-  const { mutateAsync: deleteAllLogsMutation } = useDeleteAllLogs()
-  const [gameName, setGameName] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; logId: string } | null>(
-    null
-  )
-  const [logPendingDeletion, setLogPendingDeletion] = useState<ProcessedLog | null>(null)
-  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false)
-  const contextMenuRef = useRef<HTMLDivElement>(null)
+    refetchInterval: autoRefreshEnabled ? 5000 : false,
+  });
+  const { mutateAsync: deleteLogMutation } = useDeleteLog();
+  const { mutateAsync: deleteAllLogsMutation } = useDeleteAllLogs();
+  const [gameName, setGameName] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    logId: string;
+  } | null>(null);
+  const [logPendingDeletion, setLogPendingDeletion] =
+    useState<ProcessedLog | null>(null);
+  const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(contextMenuRef, () => setContextMenu(null))
+  useClickOutside(contextMenuRef, () => setContextMenu(null));
 
   const logs = useMemo<ProcessedLog[]>(() => {
     return logsMetadata.map((meta) => {
-      const dateObj = new Date(meta.lastModified)
+      const dateObj = new Date(meta.lastModified);
       return {
         ...meta,
         id: meta.filename,
-        createdAt: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt: dateObj.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         formattedSize: formatBytes(meta.size),
-        date: dateObj.toLocaleDateString()
-      }
-    })
-  }, [logsMetadata])
+        date: dateObj.toLocaleDateString(),
+      };
+    });
+  }, [logsMetadata]);
 
   const handleContextMenu = (e: React.MouseEvent, logId: string) => {
-    e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY, logId })
-  }
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, logId });
+  };
 
   const handleRefreshLog = (logId: string) => {
-    setContextMenu(null)
-    queryClient.invalidateQueries({ queryKey: queryKeys.logs.content(logId) })
-  }
+    setContextMenu(null);
+    queryClient.invalidateQueries({ queryKey: queryKeys.logs.content(logId) });
+  };
 
   const handleOpenInNotepad = async (logId: string) => {
-    setContextMenu(null)
+    setContextMenu(null);
     try {
-      await window.api.openLogFile(logId)
-      } catch (error) {
-        console.error('Failed to open log in Notepad:', error instanceof Error ? error.message : String(error))
+      await window.api.openLogFile(logId);
+    } catch (error) {
+      console.error(
+        "Failed to open log in Notepad:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
-  }
+  };
 
   const handleDeleteLog = (logId: string) => {
-    setContextMenu(null)
-    const target = logs.find((l) => l.id === logId) || null
-    setLogPendingDeletion(target)
-  }
+    setContextMenu(null);
+    const target = logs.find((l) => l.id === logId) || null;
+    setLogPendingDeletion(target);
+  };
 
   const confirmDeleteLog = async () => {
-    if (!logPendingDeletion) return
-    const logId = logPendingDeletion.id
+    if (!logPendingDeletion) return;
+    const logId = logPendingDeletion.id;
 
     try {
-      const success = await deleteLogMutation(logPendingDeletion.filename)
+      const success = await deleteLogMutation(logPendingDeletion.filename);
       if (success && selectedLogId === logId) {
-        setSelectedLogId(null)
+        setSelectedLogId(null);
       } else if (!success) {
-        console.warn('Failed to delete log file.')
+        console.warn("Failed to delete log file.");
       }
     } catch (error) {
-      console.error('Error deleting log:', error instanceof Error ? error.message : String(error))
+      console.error(
+        "Error deleting log:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
-    setLogPendingDeletion(null)
-  }
+    setLogPendingDeletion(null);
+  };
 
   const handleClearAllLogs = () => {
-    setIsClearAllModalOpen(true)
-  }
+    setIsClearAllModalOpen(true);
+  };
 
   const confirmClearAllLogs = async () => {
     try {
-      const success = await deleteAllLogsMutation()
+      const success = await deleteAllLogsMutation();
       if (success) {
-        setSelectedLogId(null)
+        setSelectedLogId(null);
       } else {
-        console.warn('Failed to delete all logs.')
+        console.warn("Failed to delete all logs.");
       }
     } catch (error) {
-      console.error('Error deleting all logs:', error instanceof Error ? error.message : String(error))
+      console.error(
+        "Error deleting all logs:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
-    setIsClearAllModalOpen(false)
-  }
+    setIsClearAllModalOpen(false);
+  };
 
   const selectedLogMeta = useMemo(() => {
-    return logs.find((log) => log.id === selectedLogId) ?? null
-  }, [logs, selectedLogId])
+    return logs.find((log) => log.id === selectedLogId) ?? null;
+  }, [logs, selectedLogId]);
 
   useEffect(() => {
     if (selectedLogId && !selectedLogMeta) {
-      setSelectedLogId(null)
+      setSelectedLogId(null);
     }
-  }, [selectedLogId, selectedLogMeta, setSelectedLogId])
+  }, [selectedLogId, selectedLogMeta, setSelectedLogId]);
 
-  const { data: rawLogContent, isFetching: isLogContentFetching } = useLogContent(
-    selectedLogMeta?.filename ?? null
-  )
+  const { data: rawLogContent, isFetching: isLogContentFetching } =
+    useLogContent(selectedLogMeta?.filename ?? null);
 
   const selectedLog: SelectedLog | null = useMemo(() => {
     if (!selectedLogMeta) {
-      return null
+      return null;
     }
 
     if (!rawLogContent) {
@@ -294,116 +335,125 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
         entries: [],
         totalLines: 0,
         isTruncated: false,
-        isLoadingContent: isLogContentFetching
-      }
+        isLoadingContent: isLogContentFetching,
+      };
     }
 
-    const allEntries = parseLogLines(rawLogContent)
-    const totalLines = allEntries.length
-    const isTruncated = totalLines > MAX_DISPLAY_LINES
-    const entries = isTruncated ? allEntries.slice(-MAX_DISPLAY_LINES) : allEntries
+    const allEntries = parseLogLines(rawLogContent);
+    const totalLines = allEntries.length;
+    const isTruncated = totalLines > MAX_DISPLAY_LINES;
+    const entries = isTruncated
+      ? allEntries.slice(-MAX_DISPLAY_LINES)
+      : allEntries;
 
     return {
       ...selectedLogMeta,
       entries,
       isTruncated,
       totalLines,
-      isLoadingContent: isLogContentFetching
-    }
-  }, [selectedLogMeta, rawLogContent, isLogContentFetching])
+      isLoadingContent: isLogContentFetching,
+    };
+  }, [selectedLogMeta, rawLogContent, isLogContentFetching]);
 
   // Group log entries by timestamp for better readability
   const logItemsWithTimestamps = useMemo(() => {
-    if (!selectedLog) return []
-    
-    const items: Array<{ type: 'timestamp'; timestamp: string } | { type: 'entry'; entry: LogEntry }> = []
-    let lastTimestamp: string | null = null
+    if (!selectedLog) return [];
+
+    const items: Array<
+      | { type: "timestamp"; timestamp: string }
+      | { type: "entry"; entry: LogEntry }
+    > = [];
+    let lastTimestamp: string | null = null;
 
     for (const entry of selectedLog.entries) {
       if (entry.timestamp && entry.timestamp !== lastTimestamp) {
-        items.push({ type: 'timestamp', timestamp: entry.timestamp })
-        lastTimestamp = entry.timestamp
+        items.push({ type: "timestamp", timestamp: entry.timestamp });
+        lastTimestamp = entry.timestamp;
       }
-      items.push({ type: 'entry', entry })
+      items.push({ type: "entry", entry });
     }
 
-    return items
-  }, [selectedLog])
+    return items;
+  }, [selectedLog]);
 
   const groupedLogs = useMemo(() => {
     const filteredLogs = logSearchQuery
-      ? logs.filter((log) => log.filename.toLowerCase().includes(logSearchQuery.toLowerCase()))
-      : logs
+      ? logs.filter((log) =>
+          log.filename.toLowerCase().includes(logSearchQuery.toLowerCase()),
+        )
+      : logs;
 
-    const today = new Date().toLocaleDateString()
-    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString()
+    const today = new Date().toLocaleDateString();
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString();
 
     const grouped = filteredLogs.reduce(
       (acc, log) => {
-        let label = log.date
-        if (log.date === today) label = 'Today'
-        else if (log.date === yesterday) label = 'Yesterday'
+        let label = log.date;
+        if (log.date === today) label = "Today";
+        else if (log.date === yesterday) label = "Yesterday";
 
-        if (!acc[label]) acc[label] = []
-        acc[label].push(log)
-        return acc
+        if (!acc[label]) acc[label] = [];
+        acc[label].push(log);
+        return acc;
       },
-      {} as Record<string, ProcessedLog[]>
-    )
+      {} as Record<string, ProcessedLog[]>,
+    );
 
     // Sort groups: Today, Yesterday, then others
-    const labels = Object.keys(grouped)
+    const labels = Object.keys(grouped);
     labels.sort((a, b) => {
-      if (a === 'Today') return -1
-      if (b === 'Today') return 1
-      if (a === 'Yesterday') return -1
-      if (b === 'Yesterday') return 1
-      return new Date(b).getTime() - new Date(a).getTime()
-    })
+      if (a === "Today") return -1;
+      if (b === "Today") return 1;
+      if (a === "Yesterday") return -1;
+      if (b === "Yesterday") return 1;
+      return new Date(b).getTime() - new Date(a).getTime();
+    });
 
     return labels.map((label) => ({
       label,
-      logs: grouped[label]
-    }))
-  }, [logs, logSearchQuery])
+      logs: grouped[label],
+    }));
+  }, [logs, logSearchQuery]);
 
   useEffect(() => {
     const fetchGameName = async () => {
-      setGameName(null)
-      if (!selectedLogMeta?.universeId) return
+      setGameName(null);
+      if (!selectedLogMeta?.universeId) return;
 
       try {
-        const api = (window as any).api
-        if (typeof api.getGamesByUniverseIds === 'function') {
-          const universeId = parseInt(selectedLogMeta.universeId, 10)
+        const api = (window as any).api;
+        if (typeof api.getGamesByUniverseIds === "function") {
+          const universeId = parseInt(selectedLogMeta.universeId, 10);
           if (!isNaN(universeId)) {
-            const games = await api.getGamesByUniverseIds([universeId])
+            const games = await api.getGamesByUniverseIds([universeId]);
             if (games && games.length > 0) {
-              setGameName(games[0].name)
+              setGameName(games[0].name);
             }
           }
         } else {
-          console.warn('getGamesByUniverseIds API not available')
+          console.warn("getGamesByUniverseIds API not available");
         }
       } catch (e) {
-        console.error('Failed to fetch game name:', e)
+        console.error("Failed to fetch game name:", e);
       }
-    }
-    fetchGameName()
-  }, [selectedLogMeta?.universeId])
+    };
+    fetchGameName();
+  }, [selectedLogMeta?.universeId]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
-      <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] flex items-center justify-between px-6 z-20">
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Logs</h1>
+      <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">System Logs</h1>
+        </div>
         <div className="flex items-center gap-3">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={handleClearAllLogs}
-                className="pressable flex items-center gap-2 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-colors text-xs font-medium border border-red-500/20"
+                className="pressable flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-[var(--control-radius)] transition-all text-sm font-medium border border-red-500/20 shadow-sm"
               >
-                <Trash2 size={14} />
+                <Trash2 size={15} />
                 Clear All
               </button>
             </TooltipTrigger>
@@ -413,14 +463,17 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
             <TooltipTrigger asChild>
               <button
                 onClick={toggleAutoRefresh}
-                className={`pressable flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-xs font-medium border ${
+                className={`pressable flex items-center gap-2 px-4 py-2 rounded-[var(--control-radius)] transition-all text-sm font-medium border shadow-sm ${
                   autoRefreshEnabled
-                    ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
-                    : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                    : "bg-[var(--color-surface)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
-                <RefreshCw size={14} className={autoRefreshEnabled ? 'animate-spin' : ''} />
-                {autoRefreshEnabled ? 'Auto Refresh: On' : 'Auto Refresh: Off'}
+                <RefreshCw
+                  size={15}
+                  className={autoRefreshEnabled ? "animate-spin" : ""}
+                />
+                {autoRefreshEnabled ? "Auto Refresh: On" : "Auto Refresh: Off"}
               </button>
             </TooltipTrigger>
             <TooltipContent>Toggle 5s background refresh</TooltipContent>
@@ -434,11 +487,13 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 bg-[var(--color-surface-strong)] border-r border-[var(--color-border)] flex flex-col shrink-0">
+      <div className="flex-1 flex overflow-hidden p-8 gap-6 bg-[var(--color-app-bg)]">
+        <div className="w-80 bg-[var(--color-surface)]/50 backdrop-blur-md border border-[var(--color-border)] rounded-2xl flex flex-col shrink-0 shadow-xl overflow-hidden">
           <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6">
             {isLoading ? (
-              <div className="text-center py-10 text-[var(--color-text-muted)] text-sm">Loading logs...</div>
+              <div className="text-center py-10 text-[var(--color-text-muted)] text-sm">
+                Loading logs...
+              </div>
             ) : groupedLogs.length > 0 ? (
               groupedLogs.map((group) => (
                 <div key={group.label}>
@@ -448,7 +503,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
                   </h3>
                   <div className="space-y-1">
                     {group.logs.map((log, index) => {
-                      const isSelected = selectedLogId === log.id
+                      const isSelected = selectedLogId === log.id;
                       return (
                         <motion.button
                           key={log.id}
@@ -460,8 +515,8 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
                           whileTap={{ scale: 0.97 }}
                           className={`pressable relative w-full flex items-start gap-3 p-3 rounded-lg transition-all text-left group overflow-hidden ${
                             isSelected
-                              ? 'bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] shadow-[0_10px_30px_rgba(0,0,0,0.28)]'
-                              : 'hover:bg-[var(--color-surface-hover)] border border-transparent'
+                              ? "bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] shadow-[0_10px_30px_rgba(0,0,0,0.28)]"
+                              : "hover:bg-[var(--color-surface-hover)] border border-transparent"
                           }`}
                         >
                           {isSelected && (
@@ -470,15 +525,15 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
                           <div
                             className={`mt-0.5 ${
                               isSelected
-                                ? 'text-[var(--color-text-primary)]'
-                                : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]'
+                                ? "text-[var(--color-text-primary)]"
+                                : "text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]"
                             }`}
                           >
                             <FileText size={18} />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div
-                              className={`text-sm font-medium truncate ${isSelected ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}
+                              className={`text-sm font-medium truncate ${isSelected ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-secondary)]"}`}
                             >
                               {log.filename}
                             </div>
@@ -492,18 +547,20 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
                             </div>
                           </div>
                         </motion.button>
-                      )
+                      );
                     })}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-10 text-[var(--color-text-muted)] text-sm">No logs found.</div>
+              <div className="text-center py-10 text-[var(--color-text-muted)] text-sm">
+                No logs found.
+              </div>
             )}
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col bg-[var(--color-app-bg)] min-w-0">
+        <div className="flex-1 flex flex-col bg-[var(--color-surface)]/50 backdrop-blur-md border border-[var(--color-border)] rounded-2xl min-w-0 shadow-xl overflow-hidden">
           {selectedLog ? (
             <>
               <div className="shrink-0 grid grid-cols-2 xl:grid-cols-3 gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/20">
@@ -603,13 +660,20 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
               {/* Log Toolbar */}
               <div className="shrink-0 h-10 border-b border-[var(--color-border)] flex items-center justify-between px-4 bg-[var(--color-surface)]/50 text-xs">
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <span className="font-mono text-[var(--color-text-secondary)]">{selectedLog.filename}</span>
+                  <span className="font-mono text-[var(--color-text-secondary)]">
+                    {selectedLog.filename}
+                  </span>
                   <span className="text-[var(--color-text-muted)]">|</span>
-                  <span className="text-[var(--color-text-secondary)]">{selectedLog.date}</span>
+                  <span className="text-[var(--color-text-secondary)]">
+                    {selectedLog.date}
+                  </span>
                   <span className="text-[var(--color-text-muted)]">|</span>
                   <span className="text-[var(--color-text-secondary)] flex items-center gap-1">
                     <FileText size={10} />
-                    {selectedLog.totalLines ? selectedLog.totalLines.toLocaleString() : 0} lines
+                    {selectedLog.totalLines
+                      ? selectedLog.totalLines.toLocaleString()
+                      : 0}{" "}
+                    lines
                   </span>
                   {selectedLog.isTruncated && (
                     <>
@@ -631,43 +695,45 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
                   </div>
                 ) : (
                   <Virtuoso
-                    style={{ height: '100%' }}
+                    style={{ height: "100%" }}
                     data={logItemsWithTimestamps}
                     overscan={200}
                     computeItemKey={(index, item) => {
-                      if (item.type === 'timestamp') {
-                        return `${selectedLog?.id ?? 'log'}-timestamp-${item.timestamp}`
+                      if (item.type === "timestamp") {
+                        return `${selectedLog?.id ?? "log"}-timestamp-${item.timestamp}`;
                       } else {
-                        return `${selectedLog?.id ?? 'log'}-entry-${index}-${item.entry.source}`
+                        return `${selectedLog?.id ?? "log"}-entry-${index}-${item.entry.source}`;
                       }
                     }}
                     itemContent={(_, item) => {
-                      if (item.type === 'timestamp') {
+                      if (item.type === "timestamp") {
                         return (
                           <div className="sticky top-0 bg-[var(--color-app-bg)] border-y border-[var(--color-border)] py-2 px-3 z-10">
                             <div className="text-xs font-mono font-bold text-[var(--color-text-secondary)] tracking-wider">
                               {item.timestamp}
                             </div>
                           </div>
-                        )
+                        );
                       }
 
-                      const entry = item.entry
+                      const entry = item.entry;
                       return (
                         <div className="flex flex-col gap-1 py-1.5 px-3 hover:bg-[var(--color-surface)]/50 rounded transition-colors group/line">
                           <div className="flex items-center gap-1.5">
-                            {entry.level !== 'INFO' && (
+                            {entry.level !== "INFO" && (
                               <span
                                 className={`shrink-0 w-16 text-[10px] font-bold px-1.5 py-0.5 rounded text-center select-none flex items-center justify-center gap-1 ${
-                                  entry.level === 'WARN'
-                                    ? 'bg-yellow-500/10 text-yellow-400'
-                                    : entry.level === 'ERROR'
-                                      ? 'bg-red-500/10 text-red-400'
-                                      : 'bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]'
+                                  entry.level === "WARN"
+                                    ? "bg-yellow-500/10 text-yellow-400"
+                                    : entry.level === "ERROR"
+                                      ? "bg-red-500/10 text-red-400"
+                                      : "bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)]"
                                 }`}
                               >
-                                {entry.level === 'ERROR' && <Bug size={10} />}
-                                {entry.level === 'WARN' && <AlertTriangle size={10} />}
+                                {entry.level === "ERROR" && <Bug size={10} />}
+                                {entry.level === "WARN" && (
+                                  <AlertTriangle size={10} />
+                                )}
                                 {entry.level}
                               </span>
                             )}
@@ -679,14 +745,14 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
                             {entry.message}
                           </span>
                         </div>
-                      )
+                      );
                     }}
                     components={{
                       Footer: () => (
                         <div className="mt-8 pt-4 border-t border-[var(--color-border)]/50 text-center text-xs text-[var(--color-text-muted)] italic select-none flex items-center justify-center gap-2 pb-4">
                           <CheckCircle2 size={12} /> End of log file
                         </div>
-                      )
+                      ),
                     }}
                   />
                 )}
@@ -697,9 +763,12 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
               <div className="w-20 h-20 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mb-6 shadow-2xl">
                 <FileClock size={40} className="opacity-50" />
               </div>
-              <p className="text-xl font-bold text-[var(--color-text-primary)]">No Log Selected</p>
+              <p className="text-xl font-bold text-[var(--color-text-primary)]">
+                No Log Selected
+              </p>
               <p className="text-sm mt-2 max-w-xs text-center text-[var(--color-text-secondary)]">
-                Select a log file from the sidebar to view detailed session information.
+                Select a log file from the sidebar to view detailed session
+                information.
               </p>
             </div>
           )}
@@ -714,7 +783,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
             className="fixed z-50 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl py-1"
             style={{
               top: Math.min(contextMenu.y, window.innerHeight - 100),
-              left: Math.min(contextMenu.x, window.innerWidth - 200)
+              left: Math.min(contextMenu.x, window.innerWidth - 200),
             }}
           >
             <button
@@ -740,7 +809,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
               <span>Delete Log</span>
             </button>
           </div>,
-          document.body
+          document.body,
         )}
       {logPendingDeletion && (
         <ConfirmModal
@@ -765,7 +834,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({ privacyMode = false }) =
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default LogsTab
+export default LogsTab;

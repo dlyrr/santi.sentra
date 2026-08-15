@@ -1,70 +1,70 @@
-import { ipcMain, IpcMainInvokeEvent, BrowserWindow } from 'electron'
-import { z } from 'zod'
-import { watcherService } from './WatcherService'
+import { ipcMain, IpcMainInvokeEvent, BrowserWindow } from "electron";
+import { z } from "zod";
+import { watcherService } from "./WatcherService";
 
 const handle = <T extends any[]>(
   channel: string,
   schema: z.ZodType<T>,
-  handler: (event: IpcMainInvokeEvent, ...args: T) => Promise<any>
+  handler: (event: IpcMainInvokeEvent, ...args: T) => Promise<any>,
 ) => {
   ipcMain.handle(channel, async (event, ...args) => {
     try {
-      const parsedArgs = schema.parse(args)
-      return await handler(event, ...parsedArgs)
+      const parsedArgs = schema.parse(args);
+      return await handler(event, ...parsedArgs);
     } catch (error: any) {
-      console.error(`[WatcherController] Error handling ${channel}:`, error)
+      console.error(`[WatcherController] Error handling ${channel}:`, error);
       if (error instanceof z.ZodError) {
-        throw new Error(`Validation error: ${error.message}`)
+        throw new Error(`Validation error: ${error.message}`);
       }
-      throw error
+      throw error;
     }
-  })
-}
+  });
+};
 
 /**
  * Register Watcher IPC handlers
  */
 export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
   // Initialize watcher service with main window
-  watcherService.initialize(mainWindow)
+  watcherService.initialize(mainWindow);
 
   /**
    * Get all active sessions
    */
-  handle('watcher:get-sessions', z.tuple([]), async () => {
-    const sessions = watcherService.getSessions()
-    return sessions
-  })
+  handle("watcher:get-sessions", z.tuple([]), async () => {
+    const sessions = watcherService.getSessions();
+    return sessions;
+  });
 
   /**
    * Get a specific session
    */
-  handle('watcher:get-session', z.tuple([z.string()]), async (_, sessionId) => {
-    const session = watcherService.getSession(sessionId)
-    return session || null
-  })
+  handle("watcher:get-session", z.tuple([z.string()]), async (_, sessionId) => {
+    const session = watcherService.getSession(sessionId);
+    return session || null;
+  });
 
   /**
    * Start watching
    */
-  handle('watcher:start', z.tuple([]), async () => {
-    watcherService.startWatching()
-    return { success: true }
-  })
+  handle("watcher:start", z.tuple([]), async () => {
+    watcherService.startWatching();
+    return { success: true };
+  });
 
   /**
    * Stop watching
    */
-  handle('watcher:stop', z.tuple([]), async () => {
-    watcherService.stopWatching()
-    return { success: true }
-  })
+  handle("watcher:stop", z.tuple([]), async () => {
+    watcherService.stopWatching();
+    return { success: true };
+  });
 
   /**
    * Add a new session
    */
   ipcMain.handle(
-    'watcher:add-session',
+    "watcher:add-session",
     async (
       _event,
       accountId: string,
@@ -74,14 +74,14 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
       placeId: number,
       logFile: string,
       launchConfig?: {
-        cookie: string
-        placeId: string | number
-        jobId?: string
-        friendId?: string | number
-        installPath?: string
+        cookie: string;
+        placeId: string | number;
+        jobId?: string;
+        friendId?: string | number;
+        installPath?: string;
       },
       jobId?: string,
-      friendId?: string
+      friendId?: string,
     ) => {
       try {
         const session = watcherService.addSession(
@@ -93,36 +93,43 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
           logFile,
           launchConfig,
           jobId,
-          friendId
-        )
-        return session
+          friendId,
+        );
+        return session;
       } catch (error: any) {
-        console.error('[WatcherController] Error handling watcher:add-session:', error)
-        throw error
+        console.error(
+          "[WatcherController] Error handling watcher:add-session:",
+          error,
+        );
+        throw error;
       }
-    }
-  )
+    },
+  );
 
   /**
    * Remove a session
    */
-  handle('watcher:remove-session', z.any(), async (_, sessionId: string, killProcess?: boolean) => {
-    watcherService.stopSession(sessionId, killProcess)
-    return { success: true }
-  })
+  handle(
+    "watcher:remove-session",
+    z.any(),
+    async (_, sessionId: string, killProcess?: boolean) => {
+      watcherService.stopSession(sessionId, killProcess);
+      return { success: true };
+    },
+  );
 
   /**
    * Get watcher configuration
    */
-  handle('watcher:get-config', z.tuple([]), async () => {
-    return watcherService.getConfig()
-  })
+  handle("watcher:get-config", z.tuple([]), async () => {
+    return watcherService.getConfig();
+  });
 
   /**
    * Update watcher configuration
    */
   handle(
-    'watcher:set-config',
+    "watcher:set-config",
     z.tuple([
       z.object({
         enabled: z.boolean().optional(),
@@ -136,43 +143,43 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
         enableClientTimeout: z.boolean().optional(),
         clientTimeoutSeconds: z.number().optional(),
         enableCPULimiter: z.boolean().optional(),
-        cpuLimitPercent: z.number().optional()
-      })
+        cpuLimitPercent: z.number().optional(),
+      }),
     ]),
     async (_, config) => {
-      watcherService.updateConfig(config)
-      return watcherService.getConfig()
-    }
-  )
+      watcherService.updateConfig(config);
+      return watcherService.getConfig();
+    },
+  );
 
   /**
    * Get event log
    */
-  handle('watcher:get-events', z.tuple([]), async () => {
-    return watcherService.getEventLog()
-  })
+  handle("watcher:get-events", z.tuple([]), async () => {
+    return watcherService.getEventLog();
+  });
 
   /**
    * Clear event log
    */
-  handle('watcher:clear-events', z.tuple([]), async () => {
-    watcherService.clearEventLog()
-    return { success: true }
-  })
+  handle("watcher:clear-events", z.tuple([]), async () => {
+    watcherService.clearEventLog();
+    return { success: true };
+  });
 
   /**
    * Clear all (sessions and events)
    */
-  handle('watcher:clear-all', z.tuple([]), async () => {
-    watcherService.clearAll()
-    return { success: true }
-  })
+  handle("watcher:clear-all", z.tuple([]), async () => {
+    watcherService.clearAll();
+    return { success: true };
+  });
 
   /**
    * Auto-track a newly launched game
    */
   handle(
-    'watcher:auto-track-launch',
+    "watcher:auto-track-launch",
     z.tuple([
       z.object({
         accountId: z.string(),
@@ -181,10 +188,21 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
         placeId: z.number(),
         launchConfig: z.any().optional(),
         displayName: z.string().optional(),
-        avatarUrl: z.string().optional()
-      })
+        avatarUrl: z.string().optional(),
+      }),
     ]),
-    async (_, { accountId, username, userId, placeId, launchConfig, displayName, avatarUrl }) => {
+    async (
+      _,
+      {
+        accountId,
+        username,
+        userId,
+        placeId,
+        launchConfig,
+        displayName,
+        avatarUrl,
+      },
+    ) => {
       const session = await watcherService.autoTrackLaunchedGame(
         accountId,
         username,
@@ -192,61 +210,74 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
         placeId,
         launchConfig,
         displayName,
-        avatarUrl
-      )
-      return session || { success: false, message: 'Failed to track launched game' }
-    }
-  )
+        avatarUrl,
+      );
+      return (
+        session || { success: false, message: "Failed to track launched game" }
+      );
+    },
+  );
 
   /**
    * Join a private server with an account
    */
   handle(
-    'watcher:join-private-server',
+    "watcher:join-private-server",
     z.tuple([z.string(), z.string(), z.number()]),
     async (_, accountId, jobId, placeId) => {
-      const success = await watcherService.joinPrivateServer(accountId, jobId, placeId)
-      return { success }
-    }
-  )
+      const success = await watcherService.joinPrivateServer(
+        accountId,
+        jobId,
+        placeId,
+      );
+      return { success };
+    },
+  );
 
   /**
    * Join a public game with an account
    */
   handle(
-    'watcher:join-game',
+    "watcher:join-game",
     z.tuple([z.string(), z.number()]),
     async (_, accountId, placeId) => {
-      const success = await watcherService.joinGame(accountId, placeId)
-      return { success }
-    }
-  )
+      const success = await watcherService.joinGame(accountId, placeId);
+      return { success };
+    },
+  );
 
   /**
    * Rejoin a watched session's private server
    */
   handle(
-    'watcher:rejoin-private-server',
+    "watcher:rejoin-private-server",
     z.tuple([z.string(), z.string()]),
     async (_, sessionId, jobId) => {
-      const success = await watcherService.rejoinPrivateServer(sessionId, jobId)
-      return { success }
-    }
-  )
+      const success = await watcherService.rejoinPrivateServer(
+        sessionId,
+        jobId,
+      );
+      return { success };
+    },
+  );
 
   /**
    * Launch a game with a URL (supports private server links)
    */
   handle(
-    'watcher:launch-game-with-url',
+    "watcher:launch-game-with-url",
     z.tuple([z.string(), z.number(), z.string()]),
     async (_, accountId, placeId, url) => {
-      const success = await watcherService.launchGameWithUrl(accountId, placeId, url)
-      return { success }
-    }
-  )
+      const success = await watcherService.launchGameWithUrl(
+        accountId,
+        placeId,
+        url,
+      );
+      return { success };
+    },
+  );
 
-  console.log('[WatcherController] Handlers registered')
+  console.log("[WatcherController] Handlers registered");
 }
 
-export { watcherService }
+export { watcherService };

@@ -1,155 +1,253 @@
-import { z } from 'zod'
-import { invoke } from './invoke'
-import * as S from '../../shared/ipc-schemas'
+import { z } from "zod";
+import { invoke } from "./invoke";
+import * as S from "../../shared/ipc-schemas";
 
 // ============================================================================
 // AVATAR API
 // ============================================================================
 
 export const avatarApi = {
-  getAvatarUrl: (userId: string) => invoke('get-avatar-url', z.string(), userId),
+  getAvatarUrl: (userId: string) =>
+    invoke("get-avatar-url", z.string(), userId),
   getBatchUserAvatars: (userIds: number[], size?: string, cookie?: string) =>
     invoke(
-      'get-batch-user-avatars',
+      "get-batch-user-avatars",
       z.record(z.string(), z.string().nullable()),
       userIds,
       size,
-      cookie
+      cookie,
     ),
   getCurrentAvatar: (cookie: string, userId?: number) =>
-    invoke('get-current-avatar', S.avatarStateSchema, cookie, userId),
+    invoke("get-current-avatar", S.avatarStateSchema, cookie, userId),
   setWearingAssets: (
     cookie: string,
     assets: Array<{
-      id: number
-      name: string
-      assetType: { id: number; name: string }
-      currentVersionId?: number
-      meta?: { order?: number; puffiness?: number; version?: number }
-    }>
-  ) => invoke('set-wearing-assets', S.wearingAssetsResultSchema, cookie, assets),
+      id: number;
+      name: string;
+      assetType: { id: number; name: string };
+      currentVersionId?: number;
+      meta?: { order?: number; puffiness?: number; version?: number };
+    }>,
+  ) =>
+    invoke("set-wearing-assets", S.wearingAssetsResultSchema, cookie, assets),
   setBodyColors: (cookie: string, bodyColors: unknown) =>
-    invoke('set-body-colors', S.successResponseSchema, cookie, bodyColors),
+    invoke("set-body-colors", S.successResponseSchema, cookie, bodyColors),
   setAvatarScales: (
     cookie: string,
-    scales: { height: number; width: number; head: number; proportion: number; bodyType: number }
-  ) => invoke('set-avatar-scales', S.successResponseSchema, cookie, scales),
-  setPlayerAvatarType: (cookie: string, playerAvatarType: 'R6' | 'R15') =>
-    invoke('set-player-avatar-type', S.successResponseSchema, cookie, playerAvatarType),
+    scales: {
+      height: number;
+      width: number;
+      head: number;
+      proportion: number;
+      bodyType: number;
+    },
+  ) => invoke("set-avatar-scales", S.successResponseSchema, cookie, scales),
+  setPlayerAvatarType: (cookie: string, playerAvatarType: "R6" | "R15") =>
+    invoke(
+      "set-player-avatar-type",
+      S.successResponseSchema,
+      cookie,
+      playerAvatarType,
+    ),
   renderAvatarPreview: (cookie: string, userId: number, assetId: number) =>
     invoke(
-      'render-avatar-preview',
+      "render-avatar-preview",
       z.object({
         imageUrl: z.string(),
-        renderType: z.enum(['2d', '3d']).optional()
+        renderType: z.enum(["2d", "3d"]).optional(),
       }),
       cookie,
       userId,
-      assetId
+      assetId,
     ),
-  getBatchThumbnails: (targetIds: number[], type?: 'Asset' | 'Outfit' | 'BadgeIcon') =>
-    invoke('get-batch-thumbnails', S.thumbnailBatchSchema, targetIds, type),
-  getUserOutfits: (cookie: string, userId: number, isEditable: boolean, page: number) =>
-    invoke('get-user-outfits', S.userOutfitCollectionSchema, cookie, userId, isEditable, page),
+  getBatchThumbnails: (
+    targetIds: number[],
+    type?: "Asset" | "Outfit" | "BadgeIcon",
+  ) => invoke("get-batch-thumbnails", S.thumbnailBatchSchema, targetIds, type),
+  getUserOutfits: (
+    cookie: string,
+    userId: number,
+    isEditable: boolean,
+    page: number,
+  ) =>
+    invoke(
+      "get-user-outfits",
+      S.userOutfitCollectionSchema,
+      cookie,
+      userId,
+      isEditable,
+      page,
+    ),
   wearOutfit: (cookie: string, outfitId: number) =>
-    invoke('wear-outfit', S.successResponseSchema, cookie, outfitId),
+    invoke("wear-outfit", S.successResponseSchema, cookie, outfitId),
   updateOutfit: (cookie: string, outfitId: number, details: unknown) =>
-    invoke('update-outfit', S.updateOutfitResultSchema, cookie, outfitId, details),
+    invoke(
+      "update-outfit",
+      S.updateOutfitResultSchema,
+      cookie,
+      outfitId,
+      details,
+    ),
   getOutfitDetails: (cookie: string, outfitId: number) =>
-    invoke('get-outfit-details', S.outfitDetailsSchema, cookie, outfitId),
+    invoke("get-outfit-details", S.outfitDetailsSchema, cookie, outfitId),
   deleteOutfit: (cookie: string, outfitId: number) =>
-    invoke('delete-outfit', S.successResponseSchema, cookie, outfitId),
+    invoke("delete-outfit", S.successResponseSchema, cookie, outfitId),
   getAvatar3DManifest: (cookie: string, userId: number | string) =>
-    invoke('get-avatar-3d-manifest', z.object({ imageUrl: z.string() }), cookie, userId),
+    invoke(
+      "get-avatar-3d-manifest",
+      z.object({ imageUrl: z.string() }),
+      cookie,
+      userId,
+    ),
   getAsset3DManifest: (cookie: string, assetId: number | string) =>
-    invoke('get-asset-3d-manifest', z.object({ imageUrl: z.string() }), cookie, assetId),
-  downloadAsset3D: (assetId: number, type: 'obj' | 'texture', assetName: string) =>
-    invoke('download-asset-3d', S.downloadResultSchema, assetId, type, assetName)
-}
+    invoke(
+      "get-asset-3d-manifest",
+      z.object({ imageUrl: z.string() }),
+      cookie,
+      assetId,
+    ),
+  downloadAsset3D: (
+    assetId: number,
+    type: "obj" | "texture",
+    assetName: string,
+  ) =>
+    invoke(
+      "download-asset-3d",
+      S.downloadResultSchema,
+      assetId,
+      type,
+      assetName,
+    ),
+};
 
 // ============================================================================
 // INVENTORY API
 // ============================================================================
 
 export const inventoryApi = {
-  getInventory: (cookie: string, userId: number, assetTypeId: number, cursor?: string) =>
-    invoke('get-inventory', S.inventoryPageSchema, cookie, userId, assetTypeId, cursor),
+  getInventory: (
+    cookie: string,
+    userId: number,
+    assetTypeId: number,
+    cursor?: string,
+  ) =>
+    invoke(
+      "get-inventory",
+      S.inventoryPageSchema,
+      cookie,
+      userId,
+      assetTypeId,
+      cursor,
+    ),
   getInventoryV2: (
     cookie: string,
     userId: number,
     assetTypes: string[],
     cursor?: string,
     limit?: number,
-    sortOrder?: 'Asc' | 'Desc'
+    sortOrder?: "Asc" | "Desc",
   ) =>
     invoke(
-      'get-inventory-v2',
+      "get-inventory-v2",
       S.inventoryPageSchema,
       cookie,
       userId,
       assetTypes,
       cursor,
       limit,
-      sortOrder
+      sortOrder,
     ),
   getCollectibles: (cookie: string, userId: number) =>
-    invoke('get-collectibles', z.any(), cookie, userId)
-}
+    invoke("get-collectibles", z.any(), cookie, userId),
+};
 
 // ============================================================================
 // CATALOG API
 // ============================================================================
 
 export const catalogApi = {
-  getAssetContent: (url: string) => invoke('get-asset-content', z.string(), url),
+  getAssetContent: (url: string) =>
+    invoke("get-asset-content", z.string(), url),
   getAssetDetails: (cookie: string, assetId: number) =>
-    invoke('get-asset-details', S.assetDetailsSchema, cookie, assetId),
-  getBatchAssetDetails: (cookie: string, assetIds: number[], itemType?: 'Asset' | 'Bundle') =>
+    invoke("get-asset-details", S.assetDetailsSchema, cookie, assetId),
+  getBatchAssetDetails: (
+    cookie: string,
+    assetIds: number[],
+    itemType?: "Asset" | "Bundle",
+  ) =>
     invoke(
-      'get-batch-asset-details',
+      "get-batch-asset-details",
       z.array(S.catalogItemDetailSchema),
       cookie,
       assetIds,
-      itemType
+      itemType,
     ),
   getAssetRecommendations: (cookie: string, assetId: number) =>
-    invoke('get-asset-recommendations', S.recommendationsSchema, cookie, assetId),
-  getAssetResellers: (collectibleItemId: string, limit?: number, cursor?: string) =>
-    invoke('get-asset-resellers', S.resellersResponseSchema, collectibleItemId, limit, cursor),
+    invoke(
+      "get-asset-recommendations",
+      S.recommendationsSchema,
+      cookie,
+      assetId,
+    ),
+  getAssetResellers: (
+    collectibleItemId: string,
+    limit?: number,
+    cursor?: string,
+  ) =>
+    invoke(
+      "get-asset-resellers",
+      S.resellersResponseSchema,
+      collectibleItemId,
+      limit,
+      cursor,
+    ),
   getAssetOwners: (
     cookie: string,
     assetId: number,
     limit?: number,
-    sortOrder?: 'Asc' | 'Desc',
-    cursor?: string
+    sortOrder?: "Asc" | "Desc",
+    cursor?: string,
   ) =>
     invoke(
-      'get-asset-owners',
+      "get-asset-owners",
       S.assetOwnersResponseSchema,
       cookie,
       assetId,
       limit,
       sortOrder,
-      cursor
+      cursor,
     ),
-  getResaleData: (assetId: number) => invoke('get-resale-data', S.resaleDataSchema, assetId),
-  checkAssetOwnership: (cookie: string, userId: number, assetId: number, itemType?: string) =>
-    invoke('check-asset-ownership', z.boolean(), cookie, userId, assetId, itemType),
+  getResaleData: (assetId: number) =>
+    invoke("get-resale-data", S.resaleDataSchema, assetId),
+  checkAssetOwnership: (
+    cookie: string,
+    userId: number,
+    assetId: number,
+    itemType?: string,
+  ) =>
+    invoke(
+      "check-asset-ownership",
+      z.boolean(),
+      cookie,
+      userId,
+      assetId,
+      itemType,
+    ),
   purchaseLimitedItem: (
     cookie: string,
     collectibleItemInstanceId: string,
     expectedPrice: number,
     sellerId: number,
-    collectibleProductId: string
+    collectibleProductId: string,
   ) =>
     invoke(
-      'purchase-limited-item',
+      "purchase-limited-item",
       S.purchaseLimitedResultSchema,
       cookie,
       collectibleItemInstanceId,
       expectedPrice,
       sellerId,
-      collectibleProductId
+      collectibleProductId,
     ),
   purchaseCatalogItem: (
     cookie: string,
@@ -158,10 +256,10 @@ export const catalogApi = {
     expectedSellerId: number,
     collectibleProductId?: string,
     expectedPurchaserId?: string,
-    idempotencyKey?: string
+    idempotencyKey?: string,
   ) =>
     invoke(
-      'purchase-catalog-item',
+      "purchase-catalog-item",
       S.purchaseCatalogResultSchema,
       cookie,
       collectibleItemId,
@@ -169,52 +267,85 @@ export const catalogApi = {
       expectedSellerId,
       collectibleProductId,
       expectedPurchaserId,
-      idempotencyKey
+      idempotencyKey,
     ),
-  getAssetHierarchy: (assetId: number) => invoke('get-asset-hierarchy', z.any(), assetId),
+  getAssetHierarchy: (assetId: number) =>
+    invoke("get-asset-hierarchy", z.any(), assetId),
   searchCatalog: (keyword: string, limit?: number, creatorName?: string) =>
-    invoke('search-catalog', S.catalogSearchResponseSchema, keyword, limit, creatorName),
-  getCatalogNavigation: () => invoke('get-catalog-navigation', z.array(S.catalogCategorySchema)),
+    invoke(
+      "search-catalog",
+      S.catalogSearchResponseSchema,
+      keyword,
+      limit,
+      creatorName,
+    ),
+  getCatalogNavigation: () =>
+    invoke("get-catalog-navigation", z.array(S.catalogCategorySchema)),
   searchCatalogItems: (params: {
-    keyword?: string
-    taxonomy?: string
-    subcategory?: string
-    sortType?: number
-    sortAggregation?: number
-    salesTypeFilter?: number
-    minPrice?: number
-    maxPrice?: number
-    creatorName?: string
-    creatorType?: string
-    limit?: number
-    cursor?: string
-    includeNotForSale?: boolean
-    cookie?: string
-  }) => invoke('search-catalog-items', S.catalogItemsSearchResponseSchema, params),
+    keyword?: string;
+    taxonomy?: string;
+    subcategory?: string;
+    sortType?: number;
+    sortAggregation?: number;
+    salesTypeFilter?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    creatorName?: string;
+    creatorType?: string;
+    limit?: number;
+    cursor?: string;
+    includeNotForSale?: boolean;
+    cookie?: string;
+  }) =>
+    invoke("search-catalog-items", S.catalogItemsSearchResponseSchema, params),
   getCatalogSearchSuggestions: (prefix: string, limit?: number) =>
-    invoke('get-catalog-search-suggestions', z.array(z.string()), prefix, limit),
+    invoke(
+      "get-catalog-search-suggestions",
+      z.array(z.string()),
+      prefix,
+      limit,
+    ),
   getCatalogThumbnails: (items: Array<{ id: number; itemType: string }>) =>
-    invoke('get-catalog-thumbnails', z.record(z.string(), z.string()), items),
-  downloadCatalogTemplate: (assetId: number, assetName: string, cookie?: string) =>
-    invoke('download-catalog-template', S.templateDownloadResultSchema, assetId, assetName, cookie)
-}
+    invoke("get-catalog-thumbnails", z.record(z.string(), z.string()), items),
+  downloadCatalogTemplate: (
+    assetId: number,
+    assetName: string,
+    cookie?: string,
+  ) =>
+    invoke(
+      "download-catalog-template",
+      S.templateDownloadResultSchema,
+      assetId,
+      assetName,
+      cookie,
+    ),
+};
 
 // ============================================================================
 // CATALOG DATABASE API
 // ============================================================================
 
 export const catalogDatabaseApi = {
-  getAllCatalogItems: () => invoke('get-all-catalog-items', z.array(S.catalogDbSearchResultSchema)),
-  getCatalogIndexExport: () => invoke('get-catalog-index-export', S.catalogIndexExportSchema),
+  getAllCatalogItems: () =>
+    invoke("get-all-catalog-items", z.array(S.catalogDbSearchResultSchema)),
+  getCatalogIndexExport: () =>
+    invoke("get-catalog-index-export", S.catalogIndexExportSchema),
   searchCatalogDb: (query: string, limit?: number) =>
-    invoke('search-catalog-db', z.array(S.catalogDbSearchResultSchema), query, limit),
+    invoke(
+      "search-catalog-db",
+      z.array(S.catalogDbSearchResultSchema),
+      query,
+      limit,
+    ),
   getCatalogItemById: (assetId: number) =>
-    invoke('get-catalog-item-by-id', S.catalogDbItemSchema.nullable(), assetId),
+    invoke("get-catalog-item-by-id", S.catalogDbItemSchema.nullable(), assetId),
   getSalesData: (assetId: number) =>
-    invoke('get-sales-data', S.salesDataSchema.nullable(), assetId),
+    invoke("get-sales-data", S.salesDataSchema.nullable(), assetId),
   getBatchSalesData: (assetIds: number[]) =>
-    invoke('get-batch-sales-data', z.record(z.string(), z.number()), assetIds),
-  getCatalogItemCount: () => invoke('get-catalog-item-count', z.number()),
-  getCatalogDbStatus: () => invoke('get-catalog-db-status', S.catalogDbStatusSchema),
-  downloadCatalogDb: () => invoke('download-catalog-db', S.catalogDbDownloadResultSchema)
-}
+    invoke("get-batch-sales-data", z.record(z.string(), z.number()), assetIds),
+  getCatalogItemCount: () => invoke("get-catalog-item-count", z.number()),
+  getCatalogDbStatus: () =>
+    invoke("get-catalog-db-status", S.catalogDbStatusSchema),
+  downloadCatalogDb: () =>
+    invoke("download-catalog-db", S.catalogDbDownloadResultSchema),
+};

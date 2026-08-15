@@ -1,3 +1,3 @@
-import { SniperTab } from './SniperTab'
+import { SniperTab } from "./SniperTab";
 
-export default SniperTab
+export default SniperTab;

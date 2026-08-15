@@ -1,16 +1,16 @@
-import React, { ReactNode } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { useHorizontalScroll } from '@renderer/hooks/useHorizontalScroll'
+import React, { ReactNode } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import { useHorizontalScroll } from "@renderer/hooks/useHorizontalScroll";
 
 interface HorizontalCarouselProps {
-  children: ReactNode
-  className?: string
-  onNearEnd?: () => void
-  nearEndThreshold?: number
-  showControls?: boolean
-  title?: string
-  titleExtra?: ReactNode
+  children: ReactNode;
+  className?: string;
+  onNearEnd?: () => void;
+  nearEndThreshold?: number;
+  showControls?: boolean;
+  title?: string;
+  titleExtra?: ReactNode;
 }
 
 export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
@@ -20,16 +20,16 @@ export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
   nearEndThreshold = 200,
   showControls = true,
   title,
-  titleExtra
+  titleExtra,
 }) => {
   const {
     scrollRef: carouselRef,
     canScrollLeft,
     canScrollRight,
-    scroll: scrollCarousel
-  } = useHorizontalScroll([children], { onNearEnd, nearEndThreshold })
+    scroll: scrollCarousel,
+  } = useHorizontalScroll([children], { onNearEnd, nearEndThreshold });
 
-  const hasChildren = React.Children.count(children) > 0
+  const hasChildren = React.Children.count(children) > 0;
 
   return (
     <div className={className}>
@@ -44,25 +44,25 @@ export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
           {showControls && hasChildren && (
             <div className="flex items-center gap-1 ml-auto">
               <button
-                onClick={() => scrollCarousel('left')}
+                onClick={() => scrollCarousel("left")}
                 disabled={!canScrollLeft}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all',
+                  "p-1.5 rounded-lg transition-all",
                   canScrollLeft
-                    ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
+                    ? "bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed",
                 )}
               >
                 <ChevronLeft size={16} />
               </button>
               <button
-                onClick={() => scrollCarousel('right')}
+                onClick={() => scrollCarousel("right")}
                 disabled={!canScrollRight}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all',
+                  "p-1.5 rounded-lg transition-all",
                   canScrollRight
-                    ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
+                    ? "bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed",
                 )}
               >
                 <ChevronRight size={16} />
@@ -74,10 +74,10 @@ export const HorizontalCarousel: React.FC<HorizontalCarouselProps> = ({
       <div
         ref={carouselRef}
         className="flex gap-3 overflow-x-auto scrollbar-none scroll-smooth pb-2"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {children}
       </div>
     </div>
-  )
-}
+  );
+};

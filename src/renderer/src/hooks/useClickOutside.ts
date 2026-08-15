@@ -1,33 +1,33 @@
-import { useEffect, RefObject } from 'react'
+import { useEffect, RefObject } from "react";
 
 export const useClickOutside = (
   ref: RefObject<HTMLElement | null>,
   handler: () => void,
-  additionalCondition?: boolean
+  additionalCondition?: boolean,
 ) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        handler()
+        handler();
       }
       if (additionalCondition) {
-        const target = event.target as HTMLElement
-        if (!target.closest('[data-menu-id]')) {
-          handler()
+        const target = event.target as HTMLElement;
+        if (!target.closest("[data-menu-id]")) {
+          handler();
         }
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside);
     if (additionalCondition) {
-      window.addEventListener('scroll', handler, true)
+      window.addEventListener("scroll", handler, true);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener("mousedown", handleClickOutside);
       if (additionalCondition) {
-        window.removeEventListener('scroll', handler, true)
+        window.removeEventListener("scroll", handler, true);
       }
-    }
-  }, [ref, handler, additionalCondition])
-}
+    };
+  }, [ref, handler, additionalCondition]);
+};

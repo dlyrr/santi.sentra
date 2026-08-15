@@ -1,37 +1,43 @@
-import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '../../../lib/utils'
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../../../lib/utils";
 
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors',
+  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-colors",
   {
     variants: {
       variant: {
-        default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
+        default:
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
         secondary:
-          'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
-          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
-        outline: 'text-foreground',
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
         // Status variants
-        Online: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-        'In-Game': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-        'In Studio': 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-        Offline: 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] border-[var(--color-border)]',
-        Banned: 'bg-red-500/10 text-red-400 border-red-500/20'
-      }
+        Online: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        "In-Game": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        "In Studio": "bg-amber-500/10 text-amber-400 border-amber-500/20",
+        Offline:
+          "bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] border-[var(--color-border)]",
+        Banned: "bg-red-500/10 text-red-400 border-red-500/20",
+      },
     },
     defaultVariants: {
-      variant: 'default'
-    }
-  }
-)
+      variant: "default",
+    },
+  },
+);
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />
+  return (
+    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+  );
 }
 
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };

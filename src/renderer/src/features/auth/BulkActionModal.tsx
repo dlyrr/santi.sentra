@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react'
-import { UserPlus, Users } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/UI/dialogs/Dialog'
-import { Button } from '../../components/UI/buttons/Button'
+import React, { useState, useEffect } from "react";
+import { UserPlus, Users } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/UI/dialogs/Dialog";
+import { Button } from "../../components/UI/buttons/Button";
 
 interface BulkActionModalProps {
-  isOpen: boolean
-  onClose: () => void
-  actionType: 'addFriend' | 'joinGroup'
-  onSubmit: (targetId: number) => void
-  isProcessing: boolean
-  selectedCount: number
+  isOpen: boolean;
+  onClose: () => void;
+  actionType: "addFriend" | "joinGroup";
+  onSubmit: (targetId: number) => void;
+  isProcessing: boolean;
+  selectedCount: number;
 }
 
 const BulkActionModal: React.FC<BulkActionModalProps> = ({
@@ -18,41 +23,48 @@ const BulkActionModal: React.FC<BulkActionModalProps> = ({
   actionType,
   onSubmit,
   isProcessing,
-  selectedCount
+  selectedCount,
 }) => {
-  const [targetIdStr, setTargetIdStr] = useState('')
+  const [targetIdStr, setTargetIdStr] = useState("");
 
   // Reset input when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setTargetIdStr('')
+      setTargetIdStr("");
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const id = parseInt(targetIdStr, 10)
-    if (isNaN(id) || id <= 0) return
-    onSubmit(id)
-  }
+    e.preventDefault();
+    const id = parseInt(targetIdStr, 10);
+    if (isNaN(id) || id <= 0) return;
+    onSubmit(id);
+  };
 
-  const isFriend = actionType === 'addFriend'
-  const Icon = isFriend ? UserPlus : Users
-  const title = isFriend ? 'Bulk Add Friend' : 'Bulk Join Group'
-  const placeholder = isFriend ? 'Enter target User ID...' : 'Enter target Group ID...'
+  const isFriend = actionType === "addFriend";
+  const Icon = isFriend ? UserPlus : Users;
+  const title = isFriend ? "Bulk Add Friend" : "Bulk Join Group";
+  const placeholder = isFriend
+    ? "Enter target User ID..."
+    : "Enter target Group ID...";
 
   return (
     <Dialog isOpen={isOpen} onClose={isProcessing ? () => {} : onClose}>
       <DialogContent className="max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl p-6">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${isFriend ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+            <div
+              className={`p-2 rounded-lg ${isFriend ? "bg-blue-500/10 text-blue-400" : "bg-emerald-500/10 text-emerald-400"}`}
+            >
               <Icon size={24} />
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold text-[var(--color-text-primary)]">{title}</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-[var(--color-text-primary)]">
+                {title}
+              </DialogTitle>
               <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-                Execute this action for {selectedCount} selected account{selectedCount === 1 ? '' : 's'}.
+                Execute this action for {selectedCount} selected account
+                {selectedCount === 1 ? "" : "s"}.
               </p>
             </div>
           </div>
@@ -61,7 +73,7 @@ const BulkActionModal: React.FC<BulkActionModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-[var(--color-text-secondary)]">
-              {isFriend ? 'User ID' : 'Group ID'}
+              {isFriend ? "User ID" : "Group ID"}
             </label>
             <input
               type="number"
@@ -89,15 +101,19 @@ const BulkActionModal: React.FC<BulkActionModalProps> = ({
               type="submit"
               variant="default"
               disabled={isProcessing || !targetIdStr.trim()}
-              className={`px-5 ${isFriend ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-[var(--color-text-primary)] border-transparent`}
+              className={`px-5 ${isFriend ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700"} text-[var(--color-text-primary)] border-transparent`}
             >
-              {isProcessing ? 'Processing...' : (isFriend ? 'Add Friend' : 'Join Group')}
+              {isProcessing
+                ? "Processing..."
+                : isFriend
+                  ? "Add Friend"
+                  : "Join Group"}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default BulkActionModal
+export default BulkActionModal;

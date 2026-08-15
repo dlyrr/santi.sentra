@@ -1,475 +1,499 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
-import { useQueryClient, useQueries } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Users, Clock, ChevronRight, User, RefreshCw } from 'lucide-react'
-import { Virtuoso } from 'react-virtuoso'
-import { Account } from '@renderer/types'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { Input } from '@renderer/components/UI/inputs/Input'
-import { Avatar, AvatarImage, AvatarFallback } from '@renderer/components/UI/display/Avatar'
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useQueryClient, useQueries } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  Users,
+  Clock,
+  User,
+  RefreshCw,
+} from "lucide-react";
+import { Virtuoso } from "react-virtuoso";
+import { Account } from "@renderer/types";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { Input } from "@renderer/components/UI/inputs/Input";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@renderer/components/UI/display/Avatar";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-  TooltipProvider
-} from '@renderer/components/UI/display/Tooltip'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { ErrorMessage } from '@renderer/components/UI/feedback/ErrorMessage'
-import { Tabs } from '@renderer/components/UI/navigation/Tabs'
-import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
-import { formatNumber } from '@renderer/utils/numberUtils'
+  TooltipProvider,
+} from "@renderer/components/UI/display/Tooltip";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import { ErrorMessage } from "@renderer/components/UI/feedback/ErrorMessage";
+import VerifiedIcon from "@renderer/components/UI/icons/VerifiedIcon";
+import { formatNumber } from "@renderer/utils/numberUtils";
 import {
   useActiveGroupsTab,
   useSetActiveGroupsTab,
   useSelectedGroupId,
   useSetSelectedGroupId,
   useGroupsSearchQuery,
-  useSetGroupsSearchQuery
-} from './stores/useGroupsStore'
-import { useSelectedIds } from '@renderer/stores/useSelectionStore'
-import { useAccountsManager } from '@renderer/hooks/queries'
-import { queryKeys } from '@shared/queryKeys'
+  useSetGroupsSearchQuery,
+} from "./stores/useGroupsStore";
+import { useSelectedIds } from "@renderer/stores/useSelectionStore";
+import { useAccountsManager } from "@renderer/hooks/queries";
+import { queryKeys } from "@shared/queryKeys";
 import {
   type GroupMembership,
-  type PendingGroupRequest
-} from './api/useGroups'
-import type { ChangeEvent } from 'react'
-import UniversalProfileModal from '@renderer/components/Modals/UniversalProfileModal'
-import { GroupDetailsPanel } from './components/GroupDetailsPanel'
-import AccessoryDetailsModal from '@renderer/features/avatar/Modals/AccessoryDetailsModal'
+  type PendingGroupRequest,
+} from "./api/useGroups";
+import type { ChangeEvent } from "react";
+import UniversalProfileModal from "@renderer/components/Modals/UniversalProfileModal";
+import { GroupDetailsPanel } from "./components/GroupDetailsPanel";
+import AccessoryDetailsModal from "@renderer/features/avatar/Modals/AccessoryDetailsModal";
+import GroupsToolbar from "./GroupsToolbar";
 
 interface GroupsTabProps {
-  selectedAccount: Account | null
+  selectedAccount: Account | null;
 }
 
 // Sidebar Group Item Component
 interface GroupItemProps {
   group: {
-    id: number
-    name: string
-    memberCount?: number
-    hasVerifiedBadge?: boolean
-  }
+    id: number;
+    name: string;
+    memberCount?: number;
+    hasVerifiedBadge?: boolean;
+  };
   role?: {
-    name: string
-    rank: number
-  }
-  thumbnail?: string
-  isSelected: boolean
-  isPending?: boolean
-  created?: string
-  selectedAccountsCount?: number
-  onClick: () => void
+    name: string;
+    rank: number;
+  };
+  thumbnail?: string;
+  isSelected: boolean;
+  isPending?: boolean;
+  created?: string;
+  selectedAccountsCount?: number;
+  onClick: () => void;
 }
 
-const GroupItem = ({ group, role, thumbnail, isSelected, isPending, selectedAccountsCount, onClick }: GroupItemProps) => {
+const GroupItem = ({
+  group,
+  role,
+  thumbnail,
+  isSelected,
+  isPending,
+  selectedAccountsCount,
+  onClick,
+}: GroupItemProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -10 }}
+      initial={{ opacity: 0, x: -8 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.18 }}
+      className="px-2 py-0.5"
     >
       <button
         onClick={onClick}
-        className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group overflow-hidden ${
+        className={[
+          "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left group overflow-hidden",
           isSelected
-            ? 'bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] shadow-[0_10px_30px_rgba(0,0,0,0.28)]'
-            : 'hover:bg-[var(--color-surface-hover)] border border-transparent'
-        }`}
+            ? "bg-[rgba(var(--accent-color-rgb),0.12)] border border-[var(--accent-color-border)] shadow-sm"
+            : "hover:bg-[var(--color-surface-hover)] border border-transparent",
+        ].join(" ")}
       >
+        {/* Accent left bar */}
         {isSelected && (
-          <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-[var(--accent-color)]" />
+          <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-[var(--accent-color)] shadow-[0_0_8px_var(--accent-color-glow)]" />
         )}
-        <Avatar className="w-10 h-10 rounded-lg border border-[var(--color-border-strong)] shrink-0">
-          <AvatarImage src={thumbnail} alt={group.name} />
-          <AvatarFallback className="rounded-lg bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]">
-            {group.name.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
 
+        {/* Avatar */}
+        <div className="relative shrink-0">
+          <Avatar className="w-10 h-10 rounded-xl border border-[var(--color-border)] group-hover:border-[var(--color-border-strong)] transition-colors">
+            <AvatarImage src={thumbnail} alt={group.name} />
+            <AvatarFallback className="rounded-xl bg-[var(--color-surface-hover)] text-xs font-bold text-[var(--color-text-secondary)]">
+              {group.name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {isPending && (
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-yellow-500/90 border-2 border-[var(--color-app-bg)] flex items-center justify-center">
+              <Clock size={8} className="text-white" />
+            </span>
+          )}
+        </div>
+
+        {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`font-medium truncate text-sm ${
-                isSelected ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-primary)]'
-              }`}
-            >
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate leading-none">
               {group.name}
             </span>
-            {group.hasVerifiedBadge && <VerifiedIcon width={14} height={14} className="shrink-0" />}
+            {group.hasVerifiedBadge && (
+              <VerifiedIcon width={13} height={13} className="shrink-0" />
+            )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-            {role && !isPending && <span className="truncate">{role.name}</span>}
-            {isPending && (
-              <span className="text-yellow-500 flex items-center gap-1">
-                <Clock size={10} />
-                Pending
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {role && !isPending && (
+              <span className="text-[10px] font-medium bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-md px-1.5 py-0.5 text-[var(--color-text-muted)] truncate max-w-[100px]">
+                {role.name}
               </span>
             )}
             {group.memberCount && (
-              <span className="flex items-center gap-1">
-                <Users size={12} />
+              <span className="text-[10px] text-[var(--color-text-muted)] flex items-center gap-0.5">
+                <Users size={9} />
                 {formatNumber(group.memberCount)}
               </span>
             )}
             {selectedAccountsCount && selectedAccountsCount > 1 ? (
-              <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                <User size={12} />
-                {selectedAccountsCount} Selected
+              <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                <User size={9} />
+                {selectedAccountsCount}
               </span>
             ) : null}
           </div>
         </div>
-
-        <ChevronRight
-          size={16}
-          className={`shrink-0 transition-colors ${
-            isSelected
-              ? 'text-[var(--color-text-muted)]'
-              : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]'
-          }`}
-        />
       </button>
     </motion.div>
-  )
-}
+  );
+};
 
 // Main Groups Tab Component
 const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
   // Store state
-  const activeTab = useActiveGroupsTab()
-  const setActiveTab = useSetActiveGroupsTab()
-  const selectedGroupId = useSelectedGroupId()
-  const setSelectedGroupId = useSetSelectedGroupId()
-  const searchQuery = useGroupsSearchQuery()
-  const setSearchQuery = useSetGroupsSearchQuery()
+  const activeTab = useActiveGroupsTab();
+  const setActiveTab = useSetActiveGroupsTab();
+  const selectedGroupId = useSelectedGroupId();
+  const setSelectedGroupId = useSetSelectedGroupId();
+  const searchQuery = useGroupsSearchQuery();
+  const setSearchQuery = useSetGroupsSearchQuery();
 
   // Profile modal state
-  const [profileUserId, setProfileUserId] = useState<number | null>(null)
+  const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [selectedStoreItem, setSelectedStoreItem] = useState<{
-    id: number
-    name: string
-    imageUrl?: string
-  } | null>(null)
+    id: number;
+    name: string;
+    imageUrl?: string;
+  } | null>(null);
 
-  const selectedIds = useSelectedIds()
-  const { accounts } = useAccountsManager()
+  const selectedIds = useSelectedIds();
+  const { accounts } = useAccountsManager();
   const targetAccounts = useMemo(() => {
     if (selectedIds.size > 0) {
-      return accounts.filter((a) => selectedIds.has(a.id) && a.cookie)
+      return accounts.filter((a) => selectedIds.has(a.id) && a.cookie);
     }
-    return selectedAccount && selectedAccount.cookie ? [selectedAccount] : []
-  }, [selectedAccount, selectedIds, accounts])
-  const [sidebarWidth, setSidebarWidth] = useState(320) // default to 80 * 4
-  const [isResizing, setIsResizing] = useState(false)
-  const sidebarWidthRef = useRef(sidebarWidth)
-  const MIN_SIDEBAR_WIDTH = 240
-  const MAX_SIDEBAR_WIDTH = 480
-  const sidebarRef = useRef<HTMLDivElement | null>(null)
-  const resizeOriginRef = useRef(0)
+    return selectedAccount && selectedAccount.cookie ? [selectedAccount] : [];
+  }, [selectedAccount, selectedIds, accounts]);
+  const [sidebarWidth, setSidebarWidth] = useState(320); // default to 80 * 4
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarWidthRef = useRef(sidebarWidth);
+  const MIN_SIDEBAR_WIDTH = 240;
+  const MAX_SIDEBAR_WIDTH = 480;
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const resizeOriginRef = useRef(0);
 
   const clampWidth = (width: number) =>
-    Math.min(Math.max(width, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH)
+    Math.min(Math.max(width, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH);
 
   // Keep ref in sync
   useEffect(() => {
-    sidebarWidthRef.current = sidebarWidth
-  }, [sidebarWidth])
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
 
   // Restore saved width
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem('groupsSidebarWidth')
+      const saved = window.localStorage.getItem("groupsSidebarWidth");
       if (saved) {
-        const parsed = parseInt(saved, 10)
+        const parsed = parseInt(saved, 10);
         if (!Number.isNaN(parsed)) {
-          setSidebarWidth(clampWidth(parsed))
+          setSidebarWidth(clampWidth(parsed));
         }
       }
     } catch (error) {
-      console.error('Failed to load groups sidebar width', error)
+      console.error("Failed to load groups sidebar width", error);
     }
-  }, [])
+  }, []);
 
   // Handle drag-to-resize lifecycle
   useEffect(() => {
-    if (!isResizing) return
+    if (!isResizing) return;
 
     const handleMouseMove = (event: MouseEvent) => {
-      const newWidth = clampWidth(event.clientX - resizeOriginRef.current)
-      setSidebarWidth(newWidth)
-      sidebarWidthRef.current = newWidth
-    }
+      const newWidth = clampWidth(event.clientX - resizeOriginRef.current);
+      setSidebarWidth(newWidth);
+      sidebarWidthRef.current = newWidth;
+    };
 
     const handleMouseUp = () => {
-      setIsResizing(false)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
       try {
-        window.localStorage.setItem('groupsSidebarWidth', sidebarWidthRef.current.toString())
+        window.localStorage.setItem(
+          "groupsSidebarWidth",
+          sidebarWidthRef.current.toString(),
+        );
       } catch (error) {
-        console.error('Failed to save groups sidebar width', error)
+        console.error("Failed to save groups sidebar width", error);
       }
-    }
+    };
 
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-  }, [isResizing])
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing]);
 
   // Get user ID
-  const userId = selectedAccount?.userId ? parseInt(selectedAccount.userId, 10) : null
+  const userId = selectedAccount?.userId
+    ? parseInt(selectedAccount.userId, 10)
+    : null;
 
   // Queries
   const joinedQueries = useQueries({
     queries: targetAccounts.map((acc) => ({
-      queryKey: queryKeys.groups.userGroups(acc.userId ? parseInt(acc.userId) : 0),
+      queryKey: queryKeys.groups.userGroups(
+        acc.userId ? parseInt(acc.userId) : 0,
+      ),
       queryFn: async (): Promise<GroupMembership[]> => {
-        const uid = acc.userId ? parseInt(acc.userId) : null
-        if (!uid) return []
-        const groups = await window.api.getUserGroupsFull(uid)
-        if (groups.length === 0) return []
-        const groupIds = groups.map((g: any) => g.group.id)
-        const thumbnails = await window.api.getGroupThumbnails(groupIds)
+        const uid = acc.userId ? parseInt(acc.userId) : null;
+        if (!uid) return [];
+        const groups = await window.api.getUserGroupsFull(uid);
+        if (groups.length === 0) return [];
+        const groupIds = groups.map((g: any) => g.group.id);
+        const thumbnails = await window.api.getGroupThumbnails(groupIds);
         return groups.map((g: any) => ({
           ...g,
-          thumbnail: thumbnails[g.group.id] || ''
-        }))
+          thumbnail: thumbnails[g.group.id] || "",
+        }));
       },
-      staleTime: 60 * 1000
-    }))
-  })
+      staleTime: 60 * 1000,
+    })),
+  });
 
   const pendingQueries = useQueries({
     queries: targetAccounts.map((acc) => ({
       queryKey: queryKeys.groups.pending(acc.id),
       queryFn: async (): Promise<PendingGroupRequest[]> => {
-        if (!acc.cookie) return []
-        const pending = await window.api.getPendingGroupRequests(acc.cookie)
-        if (pending.length === 0) return []
-        const groupIds = pending.map((g: any) => g.group.id)
-        const thumbnails = await window.api.getGroupThumbnails(groupIds)
-        return pending.map((g: any) => ({ ...g, thumbnail: thumbnails[g.group.id] || '' }))
+        if (!acc.cookie) return [];
+        const pending = await window.api.getPendingGroupRequests(acc.cookie);
+        if (pending.length === 0) return [];
+        const groupIds = pending.map((g: any) => g.group.id);
+        const thumbnails = await window.api.getGroupThumbnails(groupIds);
+        return pending.map((g: any) => ({
+          ...g,
+          thumbnail: thumbnails[g.group.id] || "",
+        }));
       },
-      staleTime: 30 * 1000
-    }))
-  })
+      staleTime: 30 * 1000,
+    })),
+  });
 
   const joinedGroups = useMemo(() => {
-    const all = joinedQueries.flatMap(q => q.data || [])
-    const unique = new Map<number, GroupMembership & { selectedAccountsCount?: number }>()
-    const counts = new Map<number, number>()
-    
-    all.forEach(g => {
-      counts.set(g.group.id, (counts.get(g.group.id) || 0) + 1)
+    const all = joinedQueries.flatMap((q) => q.data || []);
+    const unique = new Map<
+      number,
+      GroupMembership & { selectedAccountsCount?: number }
+    >();
+    const counts = new Map<number, number>();
+
+    all.forEach((g) => {
+      counts.set(g.group.id, (counts.get(g.group.id) || 0) + 1);
       if (!unique.has(g.group.id)) {
-        unique.set(g.group.id, g)
+        unique.set(g.group.id, g);
       }
-    })
-    
-    return Array.from(unique.values()).map(g => ({
+    });
+
+    return Array.from(unique.values()).map((g) => ({
       ...g,
-      selectedAccountsCount: counts.get(g.group.id)
-    }))
-  }, [joinedQueries])
+      selectedAccountsCount: counts.get(g.group.id),
+    }));
+  }, [joinedQueries]);
 
   const pendingGroups = useMemo(() => {
-    const all = pendingQueries.flatMap(q => q.data || [])
-    const unique = new Map<number, PendingGroupRequest & { selectedAccountsCount?: number }>()
-    const counts = new Map<number, number>()
-    
-    all.forEach(g => {
-      counts.set(g.group.id, (counts.get(g.group.id) || 0) + 1)
-      if (!unique.has(g.group.id)) {
-        unique.set(g.group.id, g)
-      }
-    })
-    
-    return Array.from(unique.values()).map(g => ({
-      ...g,
-      selectedAccountsCount: counts.get(g.group.id)
-    }))
-  }, [pendingQueries])
+    const all = pendingQueries.flatMap((q) => q.data || []);
+    const unique = new Map<
+      number,
+      PendingGroupRequest & { selectedAccountsCount?: number }
+    >();
+    const counts = new Map<number, number>();
 
-  const joinedLoading = joinedQueries.some(q => q.isLoading)
-  const pendingLoading = pendingQueries.some(q => q.isLoading)
-  const joinedFetching = joinedQueries.some(q => q.isFetching)
-  const pendingFetching = pendingQueries.some(q => q.isFetching)
-  const joinedError = joinedQueries.some(q => q.error)
-  const pendingError = pendingQueries.some(q => q.error)
+    all.forEach((g) => {
+      counts.set(g.group.id, (counts.get(g.group.id) || 0) + 1);
+      if (!unique.has(g.group.id)) {
+        unique.set(g.group.id, g);
+      }
+    });
+
+    return Array.from(unique.values()).map((g) => ({
+      ...g,
+      selectedAccountsCount: counts.get(g.group.id),
+    }));
+  }, [pendingQueries]);
+
+  const joinedLoading = joinedQueries.some((q) => q.isLoading);
+  const pendingLoading = pendingQueries.some((q) => q.isLoading);
+  const joinedFetching = joinedQueries.some((q) => q.isFetching);
+  const pendingFetching = pendingQueries.some((q) => q.isFetching);
+  const joinedError = joinedQueries.some((q) => q.error);
+  const pendingError = pendingQueries.some((q) => q.error);
 
   // Filter groups by search
   const filteredJoinedGroups = useMemo(() => {
-    if (!searchQuery.trim()) return joinedGroups
-    const query = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return joinedGroups;
+    const query = searchQuery.toLowerCase();
     return joinedGroups.filter(
       (g: GroupMembership) =>
-        g.group.name.toLowerCase().includes(query) || g.role.name.toLowerCase().includes(query)
-    )
-  }, [joinedGroups, searchQuery])
+        g.group.name.toLowerCase().includes(query) ||
+        g.role.name.toLowerCase().includes(query),
+    );
+  }, [joinedGroups, searchQuery]);
 
   const filteredPendingGroups = useMemo(() => {
-    if (!searchQuery.trim()) return pendingGroups
-    const query = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return pendingGroups;
+    const query = searchQuery.toLowerCase();
     return pendingGroups.filter((g: PendingGroupRequest) =>
-      g.group.name.toLowerCase().includes(query)
-    )
-  }, [pendingGroups, searchQuery])
+      g.group.name.toLowerCase().includes(query),
+    );
+  }, [pendingGroups, searchQuery]);
 
-  const displayGroups = activeTab === 'joined' ? filteredJoinedGroups : filteredPendingGroups
-  const isLoading = activeTab === 'joined' ? joinedLoading : pendingLoading
-  const isFetching = activeTab === 'joined' ? joinedFetching : pendingFetching
-  const error = activeTab === 'joined' ? joinedError : pendingError
+  const displayGroups =
+    activeTab === "joined" ? filteredJoinedGroups : filteredPendingGroups;
+  const isLoading = activeTab === "joined" ? joinedLoading : pendingLoading;
+  const isFetching = activeTab === "joined" ? joinedFetching : pendingFetching;
+  const error = activeTab === "joined" ? joinedError : pendingError;
 
   // Get the selected group's user role (for joined groups)
   const selectedGroupMembership = useMemo(() => {
-    if (activeTab !== 'joined' || !selectedGroupId) return null
-    return joinedGroups.find((g) => g.group.id === selectedGroupId)
-  }, [activeTab, selectedGroupId, joinedGroups])
+    if (activeTab !== "joined" || !selectedGroupId) return null;
+    return joinedGroups.find((g) => g.group.id === selectedGroupId);
+  }, [activeTab, selectedGroupId, joinedGroups]);
 
   const handleRefresh = () => {
-    if (activeTab === 'joined') {
-      joinedQueries.forEach(q => q.refetch())
+    if (activeTab === "joined") {
+      joinedQueries.forEach((q) => q.refetch());
     } else {
-      pendingQueries.forEach(q => q.refetch())
+      pendingQueries.forEach((q) => q.refetch());
     }
-  }
+  };
 
   // Auto-select first group when data loads or tab changes
   useEffect(() => {
     if (!isLoading && displayGroups.length > 0 && !selectedGroupId) {
-      setSelectedGroupId(displayGroups[0].group.id)
+      setSelectedGroupId(displayGroups[0].group.id);
     }
-  }, [isLoading, displayGroups, selectedGroupId, setSelectedGroupId])
+  }, [isLoading, displayGroups, selectedGroupId, setSelectedGroupId]);
 
   // Clear selection when changing tabs
   useEffect(() => {
-    setSelectedGroupId(null)
-    setSearchQuery('')
-  }, [activeTab, setSelectedGroupId, setSearchQuery])
+    setSelectedGroupId(null);
+    setSearchQuery("");
+  }, [activeTab, setSelectedGroupId, setSearchQuery]);
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
-        {/* Toolbar */}
-        <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Groups</h1>
-          </div>
+      <div className="flex flex-col h-full" style={{ background: "var(--color-app-bg)" }}>
 
-          <div className="flex items-center gap-3">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleRefresh}
-                  disabled={isLoading || isFetching || !selectedAccount}
-                >
-                  <RefreshCw size={18} className={isLoading || isFetching ? 'animate-spin' : ''} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Refresh Groups</TooltipContent>
-            </Tooltip>
-            
-          </div>
-        </div>
+        {/* Compact Toolbar */}
+        <GroupsToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filteredGroupsCount={displayGroups.length}
+          onRefresh={handleRefresh}
+          isLoading={isLoading}
+          isFetching={isFetching}
+        />
 
         {/* Main Content */}
         {targetAccounts.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
-            <EmptyState
-              icon={Users}
-              title="No Accounts Selected"
-              description="Select one or more accounts to view groups."
-            />
+            <EmptyState icon={Users} title="No Accounts Selected" description="Select one or more accounts to view their groups." />
           </div>
         ) : (
           <div className="flex-1 flex min-h-0">
-            {/* Sidebar */}
+
+            {/* Premium Sidebar */}
             <div
               ref={sidebarRef}
-              className={`relative border-r border-[var(--color-border)] flex flex-col shrink-0 bg-[var(--color-surface)]/30 ${!isResizing ? 'transition-[width] duration-150 ease-in-out' : ''}`}
-              style={{ width: `${sidebarWidth}px` }}
+              className={`relative flex flex-col shrink-0 border-r border-[var(--color-border)] ${!isResizing ? "transition-[width] duration-150 ease-in-out" : ""}`}
+              style={{ width: `${sidebarWidth}px`, background: "var(--color-surface)" }}
             >
-              {/* Sidebar Tabs */}
-              <Tabs
-                tabs={[
-                  {
-                    id: 'joined',
-                    label: 'Joined',
-                    icon: Users
-                  },
-                  {
-                    id: 'pending',
-                    label: 'Pending',
-                    icon: Clock
-                  }
-                ]}
-                activeTab={activeTab}
-                onTabChange={(tabId: string) => setActiveTab(tabId as 'joined' | 'pending')}
-                layoutId="groupsSidebarTabIndicator"
-              />
+              {/* Tab pills */}
+              <div className="flex items-center gap-1.5 px-3 py-3 border-b border-[var(--color-border)]">
+                {[
+                  { id: "joined", label: "Joined", count: filteredJoinedGroups.length },
+                  { id: "pending", label: "Pending", count: filteredPendingGroups.length },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as "joined" | "pending")}
+                    className={[
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200",
+                      activeTab === tab.id
+                        ? "bg-[var(--accent-color)] text-white shadow-sm"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]",
+                    ].join(" ")}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className={[
+                        "px-1.5 py-0.5 rounded-md text-[10px] font-bold",
+                        activeTab === tab.id ? "bg-white/20 text-white" : "bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]",
+                      ].join(" ")}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
 
               {/* Search */}
-              <div className="p-3 border-b border-[var(--color-border)]">
+              <div className="px-3 py-2 border-b border-[var(--color-border)]">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={14} className="text-[var(--color-text-muted)]" />
+                    <Search size={13} className="text-[var(--color-text-muted)]" />
                   </div>
                   <Input
                     type="text"
-                    placeholder="Search groups..."
+                    placeholder="Search groups…"
                     value={searchQuery}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                    className="pl-9 h-9 text-sm"
+                    className="pl-8 h-10 text-xs rounded-lg"
                   />
                 </div>
               </div>
 
               {/* Groups List */}
-              <div className="flex-1 overflow-hidden p-2">
+              <div className="flex-1 overflow-hidden py-1.5">
                 <AnimatePresence mode="wait">
                   {isLoading ? (
-                    <div className="space-y-2 p-2">
+                    <div className="space-y-0.5 px-2 py-1">
                       {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="flex items-center gap-3 p-2.5">
-                          <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-hover)] animate-pulse" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 w-24 bg-[var(--color-surface-hover)] rounded animate-pulse" />
-                            <div className="h-3 w-16 bg-[var(--color-surface-hover)] rounded animate-pulse" />
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                          <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-hover)] animate-pulse" />
+                          <div className="flex-1 space-y-1.5">
+                            <div className="h-3.5 w-28 bg-[var(--color-surface-hover)] rounded-md animate-pulse" />
+                            <div className="h-2.5 w-16 bg-[var(--color-surface-hover)] rounded-md animate-pulse" />
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : error ? (
                     <div className="p-4">
-                      <ErrorMessage
-                        message="There was an error communicating with Roblox."
-                        onRetry={handleRefresh}
-                      />
+                      <ErrorMessage message="There was an error communicating with Roblox." onRetry={handleRefresh} />
                     </div>
                   ) : displayGroups.length === 0 ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex flex-col items-center justify-center h-full text-center p-4"
-                    >
-                      <Users size={32} className="text-[var(--color-text-muted)] mb-2" />
-                      <p className="text-sm text-[var(--color-text-muted)]">
-                        {searchQuery
-                          ? 'No groups match your search'
-                          : activeTab === 'joined'
-                            ? 'No groups joined yet'
-                            : 'No pending requests'}
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full text-center p-6">
+                      <div className="w-12 h-12 rounded-2xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center mb-3">
+                        <Users size={20} className="text-[var(--color-text-muted)]" />
+                      </div>
+                      <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                        {searchQuery ? "No matches" : activeTab === "joined" ? "No groups joined" : "No pending requests"}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                        {searchQuery ? "Try a different search term" : ""}
                       </p>
                     </motion.div>
                   ) : (
@@ -477,8 +501,8 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                       data={displayGroups as (GroupMembership | PendingGroupRequest)[]}
                       overscan={200}
                       itemContent={(_index, item) => {
-                        if (activeTab === 'joined') {
-                          const joinedItem = item as GroupMembership & { selectedAccountsCount?: number }
+                        if (activeTab === "joined") {
+                          const joinedItem = item as GroupMembership & { selectedAccountsCount?: number };
                           return (
                             <GroupItem
                               key={joinedItem.group.id}
@@ -489,9 +513,9 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                               selectedAccountsCount={joinedItem.selectedAccountsCount}
                               onClick={() => setSelectedGroupId(joinedItem.group.id)}
                             />
-                          )
+                          );
                         } else {
-                          const pendingItem = item as PendingGroupRequest & { selectedAccountsCount?: number }
+                          const pendingItem = item as PendingGroupRequest & { selectedAccountsCount?: number };
                           return (
                             <GroupItem
                               key={pendingItem.group.id}
@@ -503,7 +527,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                               selectedAccountsCount={pendingItem.selectedAccountsCount}
                               onClick={() => setSelectedGroupId(pendingItem.group.id)}
                             />
-                          )
+                          );
                         }
                       }}
                     />
@@ -514,18 +538,14 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
               {/* Resize Handle */}
               <div
                 className="absolute top-0 right-0 h-full cursor-col-resize z-20"
-                style={{
-                  right: '-2px',
-                  width: '4px',
-                  background: isResizing ? 'rgb(115, 115, 115)' : 'transparent'
-                }}
+                style={{ right: "-2px", width: "4px", background: isResizing ? "rgba(var(--accent-color-rgb),0.4)" : "transparent" }}
                 onMouseDown={() => {
-                  const left = sidebarRef.current?.getBoundingClientRect().left ?? 0
-                  resizeOriginRef.current = left
-                  setIsResizing(true)
+                  const left = sidebarRef.current?.getBoundingClientRect().left ?? 0;
+                  resizeOriginRef.current = left;
+                  setIsResizing(true);
                 }}
               >
-                <div className="absolute inset-0 hover:bg-[var(--color-surface-hover)] transition-colors" />
+                <div className="absolute inset-0 hover:bg-[var(--accent-color)]/20 transition-colors" />
               </div>
             </div>
 
@@ -533,7 +553,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
             <GroupDetailsPanel
               groupId={selectedGroupId}
               selectedAccount={selectedAccount}
-              isPending={activeTab === 'pending'}
+              isPending={activeTab === "pending"}
               userRole={selectedGroupMembership?.role}
               onViewProfile={(userId) => setProfileUserId(userId)}
               onStoreItemSelect={(item) => setSelectedStoreItem(item)}
@@ -542,7 +562,6 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
         )}
       </div>
 
-      {/* Profile Modal */}
       <UniversalProfileModal
         isOpen={!!profileUserId}
         onClose={() => setProfileUserId(null)}
@@ -556,14 +575,10 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
         onClose={() => setSelectedStoreItem(null)}
         assetId={selectedStoreItem?.id || null}
         account={selectedAccount}
-        initialData={
-          selectedStoreItem
-            ? { name: selectedStoreItem.name, imageUrl: selectedStoreItem.imageUrl || '' }
-            : undefined
-        }
+        initialData={selectedStoreItem ? { name: selectedStoreItem.name, imageUrl: selectedStoreItem.imageUrl || "" } : undefined}
       />
     </TooltipProvider>
-  )
-}
+  );
+};
 
-export default GroupsTab
+export default GroupsTab;

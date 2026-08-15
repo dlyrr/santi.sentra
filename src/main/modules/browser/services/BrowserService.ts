@@ -5,7 +5,11 @@
 
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
-import { AppError, ErrorCode, ErrorSeverity } from "../../shared/error/AppError";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+} from "../../shared/error/AppError";
 import {
   BrowserLaunchOptions,
   NavigationConfig,
@@ -79,7 +83,7 @@ export class BrowserService extends EventEmitter implements IBrowserService {
         ErrorCode.BROWSER_LAUNCH_ERROR,
         "BrowserService",
         ErrorSeverity.HIGH,
-        { error }
+        { error },
       );
       this.logger.error("Browser launch failed", error as Error);
       throw appError;
@@ -95,7 +99,7 @@ export class BrowserService extends EventEmitter implements IBrowserService {
         "Browser not launched",
         ErrorCode.BROWSER_LAUNCH_ERROR,
         "BrowserService",
-        ErrorSeverity.MEDIUM
+        ErrorSeverity.MEDIUM,
       );
     }
 
@@ -108,7 +112,7 @@ export class BrowserService extends EventEmitter implements IBrowserService {
         this.browser.goto(config.url, {
           waitUntil: config.waitUntil ?? "load",
         }),
-        timeout
+        timeout,
       );
 
       this.state.currentUrl = config.url;
@@ -123,7 +127,7 @@ export class BrowserService extends EventEmitter implements IBrowserService {
         ErrorCode.BROWSER_NAVIGATION_ERROR,
         "BrowserService",
         ErrorSeverity.MEDIUM,
-        { url: config.url, error }
+        { url: config.url, error },
       );
       this.logger.error("Navigation error", error as Error, {
         url: config.url,
@@ -171,10 +175,7 @@ export class BrowserService extends EventEmitter implements IBrowserService {
   /**
    * Execute function with timeout.
    */
-  private withTimeout<T>(
-    promise: Promise<T>,
-    timeout: number
-  ): Promise<T> {
+  private withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
     return Promise.race<T>([
       promise,
       new Promise<T>((_, reject) =>
@@ -184,11 +185,11 @@ export class BrowserService extends EventEmitter implements IBrowserService {
               new AppError(
                 "Operation timeout",
                 ErrorCode.BROWSER_TIMEOUT_ERROR,
-                "BrowserService"
-              )
+                "BrowserService",
+              ),
             ),
-          timeout
-        )
+          timeout,
+        ),
       ),
     ]);
   }

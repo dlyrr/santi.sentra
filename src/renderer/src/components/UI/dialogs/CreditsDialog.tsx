@@ -1,21 +1,32 @@
-import React from 'react'
-import { Heart, Github, ExternalLink } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogBody } from './Dialog'
+import React from "react";
+import { Heart, Github, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+  DialogBody,
+} from "./Dialog";
 
 interface Credit {
-  name: string
-  role: string
-  link?: string
+  name: string;
+  role: string;
+  link?: string;
 }
 
 interface CreditsDialogProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 const credits: Credit[] = [
-  { name: 'experimentid', role: 'Lead developer', link: 'https://github.com/sashaga2a24' }
-]
+  {
+    name: "experimentid",
+    role: "Lead developer",
+    link: "https://github.com/ex9d",
+  },
+];
 
 const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
   return (
@@ -37,8 +48,12 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
                   className="flex items-center justify-between p-3 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-lg"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-[var(--color-text-primary)] text-sm truncate">{credit.name}</div>
-                    <div className="text-xs text-[var(--color-text-secondary)] truncate">{credit.role}</div>
+                    <div className="font-medium text-[var(--color-text-primary)] text-sm truncate">
+                      {credit.name}
+                    </div>
+                    <div className="text-xs text-[var(--color-text-secondary)] truncate">
+                      {credit.role}
+                    </div>
                   </div>
                   {credit.link && (
                     <a
@@ -48,7 +63,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
                       className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors ml-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {credit.link.includes('github') ? (
+                      {credit.link.includes("github") ? (
                         <Github size={16} />
                       ) : (
                         <ExternalLink size={16} />
@@ -60,8 +75,13 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <Heart size={32} className="mx-auto text-[var(--color-text-muted)] mb-3" />
-              <p className="text-[var(--color-text-secondary)] text-sm">No credits added yet.</p>
+              <Heart
+                size={32}
+                className="mx-auto text-[var(--color-text-muted)] mb-3"
+              />
+              <p className="text-[var(--color-text-secondary)] text-sm">
+                No credits added yet.
+              </p>
               <p className="text-[var(--color-text-muted)] text-xs mt-1">
                 Edit CreditsDialog.tsx to add contributors.
               </p>
@@ -70,7 +90,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
 
           <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
             <p className="text-center text-xs text-[var(--color-text-muted)]">
-              Currently solo project by experimentid.{' '}
+              Currently solo project by experimentid.{" "}
               <span role="img" aria-label="heart">
                 ❤️
               </span>
@@ -79,7 +99,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({ isOpen, onClose }) => {
         </DialogBody>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default CreditsDialog
+export default CreditsDialog;

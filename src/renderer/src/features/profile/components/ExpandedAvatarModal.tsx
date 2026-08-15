@@ -1,17 +1,23 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@renderer/components/UI/display/Avatar'
+import React, { useState, useEffect, lazy, Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@renderer/components/UI/display/Avatar";
 
-const Avatar3DThumbnail = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail'))
-import { ProfileData } from '../hooks/useProfileData'
+const Avatar3DThumbnail = lazy(
+  () => import("@renderer/components/Avatar/Avatar3DThumbnail"),
+);
+import { ProfileData } from "../hooks/useProfileData";
 
 interface ExpandedAvatarModalProps {
-  isOpen: boolean
-  onClose: () => void
-  userId: number
-  profile: ProfileData
-  cookie?: string
+  isOpen: boolean;
+  onClose: () => void;
+  userId: number;
+  profile: ProfileData;
+  cookie?: string;
 }
 
 export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
@@ -19,41 +25,41 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
   onClose,
   userId,
   profile,
-  cookie
+  cookie,
 }) => {
   // Track if 3D viewer should be mounted (delayed unmount for exit animation)
-  const [shouldMount3D, setShouldMount3D] = useState(false)
+  const [shouldMount3D, setShouldMount3D] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setShouldMount3D(true)
+      setShouldMount3D(true);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        e.stopPropagation()
-        e.preventDefault()
-        onClose()
+      if (e.key === "Escape" && isOpen) {
+        e.stopPropagation();
+        e.preventDefault();
+        onClose();
       }
-    }
+    };
 
     if (isOpen) {
-      window.addEventListener('keydown', handleEscape, true) // Use capture phase to handle before other handlers
+      window.addEventListener("keydown", handleEscape, true); // Use capture phase to handle before other handlers
       return () => {
-        window.removeEventListener('keydown', handleEscape, true)
-      }
+        window.removeEventListener("keydown", handleEscape, true);
+      };
     }
-    return undefined
-  }, [isOpen, onClose])
+    return undefined;
+  }, [isOpen, onClose]);
 
   const handleExitComplete = () => {
     // Unmount 3D viewer after exit animation completes to free resources
     // onExitComplete runs after the exit animation, so we can safely unmount
-    setShouldMount3D(false)
-  }
+    setShouldMount3D(false);
+  };
 
   return (
     <AnimatePresence onExitComplete={handleExitComplete}>
@@ -79,10 +85,11 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
               backgroundImage:
-                'linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .03) 25%, rgba(255, 255, 255, .03) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .03) 75%, rgba(255, 255, 255, .03) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .03) 25%, rgba(255, 255, 255, .03) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .03) 75%, rgba(255, 255, 255, .03) 76%, transparent 77%, transparent)',
-              backgroundSize: '80px 80px',
-              transform: 'perspective(1000px) rotateX(60deg) translateY(20%) scale(2)',
-              transformOrigin: 'center center'
+                "linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .03) 25%, rgba(255, 255, 255, .03) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .03) 75%, rgba(255, 255, 255, .03) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .03) 25%, rgba(255, 255, 255, .03) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .03) 75%, rgba(255, 255, 255, .03) 76%, transparent 77%, transparent)",
+              backgroundSize: "80px 80px",
+              transform:
+                "perspective(1000px) rotateX(60deg) translateY(20%) scale(2)",
+              transformOrigin: "center center",
             }}
           />
 
@@ -96,8 +103,8 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ delay: 0.1 }}
             onClick={(e) => {
-              e.stopPropagation()
-              onClose()
+              e.stopPropagation();
+              onClose();
             }}
             className="absolute top-10 right-6 z-10 p-3 bg-[var(--color-surface)]/80 hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] rounded-full transition-colors backdrop-blur-md border border-[var(--color-border-strong)]/50 cursor-pointer"
           >
@@ -115,12 +122,16 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             <Avatar className="w-12 h-12 shadow-lg">
               <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
               <AvatarFallback className="text-sm font-bold text-[var(--color-text-primary)] bg-[var(--color-surface-hover)]">
-                {profile.displayName?.slice(0, 2)?.toUpperCase() || 'RB'}
+                {profile.displayName?.slice(0, 2)?.toUpperCase() || "RB"}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="text-lg font-bold text-[var(--color-text-primary)]">{profile.displayName}</div>
-              <div className="text-sm text-[var(--color-text-secondary)]">@{profile.username}</div>
+              <div className="text-lg font-bold text-[var(--color-text-primary)]">
+                {profile.displayName}
+              </div>
+              <div className="text-sm text-[var(--color-text-secondary)]">
+                @{profile.username}
+              </div>
             </div>
           </motion.div>
 
@@ -140,7 +151,7 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
             className="relative w-[80vw] h-[80vh] max-w-[1200px] max-h-[900px] mx-auto flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.preventDefault()}
@@ -166,5 +177,5 @@ export const ExpandedAvatarModal: React.FC<ExpandedAvatarModalProps> = ({
         </motion.div>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};

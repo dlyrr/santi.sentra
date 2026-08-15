@@ -1,6 +1,6 @@
-import { ipcRenderer } from 'electron'
-import { invoke } from './invoke'
-import { z } from 'zod'
+import { ipcRenderer } from "electron";
+import { invoke } from "./invoke";
+import { z } from "zod";
 
 // ============================================================================
 // WATCHER API
@@ -21,19 +21,21 @@ const watcherSessionSchema = z.object({
   logFile: z.string(),
   lastLogSize: z.number(),
   lastUpdate: z.number(),
-  status: z.enum(['running', 'crashed', 'restarting']),
+  status: z.enum(["running", "crashed", "restarting"]),
   restartCount: z.number(),
   restartAttempts: z.number(),
   lastCrashTime: z.number().optional(),
   lastCrashReason: z.string().optional(),
-  launchConfig: z.object({
-    cookie: z.string(),
-    placeId: z.union([z.string(), z.number()]),
-    jobId: z.string().optional(),
-    friendId: z.union([z.string(), z.number()]).optional(),
-    installPath: z.string().optional()
-  }).optional()
-})
+  launchConfig: z
+    .object({
+      cookie: z.string(),
+      placeId: z.union([z.string(), z.number()]),
+      jobId: z.string().optional(),
+      friendId: z.union([z.string(), z.number()]).optional(),
+      installPath: z.string().optional(),
+    })
+    .optional(),
+});
 
 const watcherConfigSchema = z.object({
   enabled: z.boolean(),
@@ -47,34 +49,38 @@ const watcherConfigSchema = z.object({
   enableClientTimeout: z.boolean().optional(),
   clientTimeoutSeconds: z.number().optional(),
   enableCPULimiter: z.boolean().optional(),
-  cpuLimitPercent: z.number().optional()
-})
+  cpuLimitPercent: z.number().optional(),
+});
 
 const watcherEventSchema = z.object({
   timestamp: z.number(),
-  type: z.enum(['session-started', 'session-crashed', 'session-restarted', 'session-stopped', 'error']),
+  type: z.enum([
+    "session-started",
+    "session-crashed",
+    "session-restarted",
+    "session-stopped",
+    "error",
+  ]),
   sessionId: z.string(),
   username: z.string(),
   message: z.string(),
-  details: z.any().optional()
-})
+  details: z.any().optional(),
+});
 
 export const watcherApi = {
   // Get all active sessions
   getSessions: () =>
-    invoke('watcher:get-sessions', z.array(watcherSessionSchema)),
+    invoke("watcher:get-sessions", z.array(watcherSessionSchema)),
 
   // Get a specific session
   getSession: (sessionId: string) =>
-    invoke('watcher:get-session', watcherSessionSchema.nullable(), sessionId),
+    invoke("watcher:get-session", watcherSessionSchema.nullable(), sessionId),
 
   // Start watching
-  start: () =>
-    invoke('watcher:start', z.object({ success: z.boolean() })),
+  start: () => invoke("watcher:start", z.object({ success: z.boolean() })),
 
   // Stop watching
-  stop: () =>
-    invoke('watcher:stop', z.object({ success: z.boolean() })),
+  stop: () => invoke("watcher:stop", z.object({ success: z.boolean() })),
 
   // Add a new session
   addSession: (
@@ -85,15 +91,15 @@ export const watcherApi = {
     placeId: number,
     logFile: string,
     launchConfig?: {
-      cookie: string
-      placeId: string | number
-      jobId?: string
-      friendId?: string | number
-      installPath?: string
-    }
+      cookie: string;
+      placeId: string | number;
+      jobId?: string;
+      friendId?: string | number;
+      installPath?: string;
+    },
   ) =>
     invoke(
-      'watcher:add-session',
+      "watcher:add-session",
       watcherSessionSchema,
       accountId,
       username,
@@ -101,83 +107,106 @@ export const watcherApi = {
       pid,
       placeId,
       logFile,
-      launchConfig
+      launchConfig,
     ),
 
   // Remove a session
   removeSession: (sessionId: string, killProcess?: boolean) =>
-    invoke('watcher:remove-session', z.object({ success: z.boolean() }), sessionId, killProcess),
+    invoke(
+      "watcher:remove-session",
+      z.object({ success: z.boolean() }),
+      sessionId,
+      killProcess,
+    ),
 
   // Get watcher configuration
-  getConfig: () =>
-    invoke('watcher:get-config', watcherConfigSchema),
+  getConfig: () => invoke("watcher:get-config", watcherConfigSchema),
 
   // Update watcher configuration
-  setConfig: (config: Partial<{
-    enabled: boolean
-    autoRestart: boolean
-    restartDelaySeconds: number
-    checkIntervalMs: number
-    logCheckIntervalMs: number
-  }>) =>
-    invoke('watcher:set-config', watcherConfigSchema, config),
+  setConfig: (
+    config: Partial<{
+      enabled: boolean;
+      autoRestart: boolean;
+      restartDelaySeconds: number;
+      checkIntervalMs: number;
+      logCheckIntervalMs: number;
+    }>,
+  ) => invoke("watcher:set-config", watcherConfigSchema, config),
 
   // Get event log
-  getEvents: () =>
-    invoke('watcher:get-events', z.array(watcherEventSchema)),
+  getEvents: () => invoke("watcher:get-events", z.array(watcherEventSchema)),
 
   // Clear event log
   clearEvents: () =>
-    invoke('watcher:clear-events', z.object({ success: z.boolean() })),
+    invoke("watcher:clear-events", z.object({ success: z.boolean() })),
 
   // Clear all (sessions and events)
   clearAll: () =>
-    invoke('watcher:clear-all', z.object({ success: z.boolean() })),
+    invoke("watcher:clear-all", z.object({ success: z.boolean() })),
 
   // Listen for session crashed events
-  onSessionCrashed: (callback: (data: { sessionId: string; username: string; reason: string }) => void) => {
+  onSessionCrashed: (
+    callback: (data: {
+      sessionId: string;
+      username: string;
+      reason: string;
+    }) => void,
+  ) => {
     const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-      callback(data)
-    }
-    ipcRenderer.on('watcher:session-crashed', handler)
+      callback(data);
+    };
+    ipcRenderer.on("watcher:session-crashed", handler);
 
     // Return cleanup function
     return () => {
-      ipcRenderer.removeListener('watcher:session-crashed', handler)
-    }
+      ipcRenderer.removeListener("watcher:session-crashed", handler);
+    };
   },
 
   // Listen for session restarted events
-  onSessionRestarted: (callback: (data: { sessionId: string; username: string; restartCount: number }) => void) => {
+  onSessionRestarted: (
+    callback: (data: {
+      sessionId: string;
+      username: string;
+      restartCount: number;
+    }) => void,
+  ) => {
     const handler = (_event: Electron.IpcRendererEvent, data: any) => {
-      callback(data)
-    }
-    ipcRenderer.on('watcher:session-restarted', handler)
+      callback(data);
+    };
+    ipcRenderer.on("watcher:session-restarted", handler);
 
     // Return cleanup function
     return () => {
-      ipcRenderer.removeListener('watcher:session-restarted', handler)
-    }
+      ipcRenderer.removeListener("watcher:session-restarted", handler);
+    };
   },
 
   // Listen for watcher events in real-time
-  onEvent: (callback: (event: {
-    timestamp: number
-    type: 'session-started' | 'session-crashed' | 'session-restarted' | 'session-stopped' | 'error'
-    sessionId: string
-    username: string
-    message: string
-    details?: any
-  }) => void) => {
+  onEvent: (
+    callback: (event: {
+      timestamp: number;
+      type:
+        | "session-started"
+        | "session-crashed"
+        | "session-restarted"
+        | "session-stopped"
+        | "error";
+      sessionId: string;
+      username: string;
+      message: string;
+      details?: any;
+    }) => void,
+  ) => {
     const handler = (_event: Electron.IpcRendererEvent, watcherEvent: any) => {
-      callback(watcherEvent)
-    }
-    ipcRenderer.on('watcher:event', handler)
+      callback(watcherEvent);
+    };
+    ipcRenderer.on("watcher:event", handler);
 
     // Return cleanup function
     return () => {
-      ipcRenderer.removeListener('watcher:event', handler)
-    }
+      ipcRenderer.removeListener("watcher:event", handler);
+    };
   },
 
   // Auto-track a newly launched game
@@ -188,10 +217,10 @@ export const watcherApi = {
     placeId: number,
     launchConfig?: any,
     displayName?: string,
-    avatarUrl?: string
+    avatarUrl?: string,
   ) =>
     invoke(
-      'watcher:auto-track-launch',
+      "watcher:auto-track-launch",
       z.any(), // Returns session or null
       {
         accountId,
@@ -200,36 +229,60 @@ export const watcherApi = {
         placeId,
         launchConfig,
         displayName,
-        avatarUrl
-      }
+        avatarUrl,
+      },
     ),
 
   // Join a private server with an account
   joinPrivateServer: (accountId: string, jobId: string, placeId: number) =>
-    invoke('watcher:join-private-server', z.object({ success: z.boolean() }), accountId, jobId, placeId),
+    invoke(
+      "watcher:join-private-server",
+      z.object({ success: z.boolean() }),
+      accountId,
+      jobId,
+      placeId,
+    ),
 
   // Join a public game with an account
   joinGame: (accountId: string, placeId: number) =>
-    invoke('watcher:join-game', z.object({ success: z.boolean() }), accountId, placeId),
+    invoke(
+      "watcher:join-game",
+      z.object({ success: z.boolean() }),
+      accountId,
+      placeId,
+    ),
 
   // Rejoin a watched session's private server
   rejoinPrivateServer: (sessionId: string, jobId: string) =>
-    invoke('watcher:rejoin-private-server', z.object({ success: z.boolean() }), sessionId, jobId),
+    invoke(
+      "watcher:rejoin-private-server",
+      z.object({ success: z.boolean() }),
+      sessionId,
+      jobId,
+    ),
 
   // Launch a game with a URL (supports private server links)
   launchGameWithUrl: (accountId: string, placeId: number, url: string) =>
-    invoke('watcher:launch-game-with-url', z.object({ success: z.boolean() }), accountId, placeId, url),
+    invoke(
+      "watcher:launch-game-with-url",
+      z.object({ success: z.boolean() }),
+      accountId,
+      placeId,
+      url,
+    ),
 
   // Listen for sessions updates
-  onSessionsUpdated: (callback: (sessions: typeof watcherSessionSchema) => void) => {
+  onSessionsUpdated: (
+    callback: (sessions: typeof watcherSessionSchema) => void,
+  ) => {
     const handler = (_event: Electron.IpcRendererEvent, sessions: any) => {
-      callback(sessions)
-    }
-    ipcRenderer.on('watcher:sessions-updated', handler)
+      callback(sessions);
+    };
+    ipcRenderer.on("watcher:sessions-updated", handler);
 
     // Return cleanup function
     return () => {
-      ipcRenderer.removeListener('watcher:sessions-updated', handler)
-    }
-  }
-}
+      ipcRenderer.removeListener("watcher:sessions-updated", handler);
+    };
+  },
+};

@@ -1,16 +1,23 @@
-import React, { useMemo } from 'react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { useRolimonsPlayer, ROLIMONS_BADGES } from '@renderer/features/avatar/api/useRolimons'
+import React, { useMemo } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import {
+  useRolimonsPlayer,
+  ROLIMONS_BADGES,
+} from "@renderer/features/avatar/api/useRolimons";
 
 interface RolimonsBadgesProps {
-  userId: number
+  userId: number;
 }
 
 export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
-  const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true)
+  const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true);
 
   const sortedRolimonsBadges = useMemo(() => {
-    if (!rolimonsPlayer?.rolibadges) return []
+    if (!rolimonsPlayer?.rolibadges) return [];
 
     const colorOrder: Record<string, number> = {
       yellow: 1,
@@ -29,40 +36,46 @@ export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
       emerald: 14,
       green: 15,
       lime: 16,
-      neutral: 17
-    }
+      neutral: 17,
+    };
 
     const getColorType = (badgeKey: string): string => {
-      const badgeMeta = ROLIMONS_BADGES[badgeKey]
-      if (!badgeMeta) return 'neutral'
+      const badgeMeta = ROLIMONS_BADGES[badgeKey];
+      if (!badgeMeta) return "neutral";
       // Handle color classes like text-emerald-400 or text-[var(--color-text-primary)]
-      const colorMatch = badgeMeta.color.match(/text-(\w+)(?:-\d+)?/)
-      return colorMatch ? colorMatch[1] : 'neutral'
-    }
+      const colorMatch = badgeMeta.color.match(/text-(\w+)(?:-\d+)?/);
+      return colorMatch ? colorMatch[1] : "neutral";
+    };
 
     return Object.entries(rolimonsPlayer.rolibadges)
       .map(([badgeKey, acquiredTime]) => ({
         badgeKey,
         acquiredTime,
         colorType: getColorType(badgeKey),
-        colorOrder: colorOrder[getColorType(badgeKey)] ?? 999
+        colorOrder: colorOrder[getColorType(badgeKey)] ?? 999,
       }))
       .sort((a, b) => {
         if (a.colorOrder !== b.colorOrder) {
-          return a.colorOrder - b.colorOrder
+          return a.colorOrder - b.colorOrder;
         }
-        return a.badgeKey.localeCompare(b.badgeKey)
-      })
-  }, [rolimonsPlayer?.rolibadges])
+        return a.badgeKey.localeCompare(b.badgeKey);
+      });
+  }, [rolimonsPlayer?.rolibadges]);
 
-  if (sortedRolimonsBadges.length === 0) return null
+  if (sortedRolimonsBadges.length === 0) return null;
 
   // Wrap at ~half of the available header width.
-  const topPadding = sortedRolimonsBadges.length <= 4 ? 'pt-2' : 'pt-4'
+  const topPadding = sortedRolimonsBadges.length <= 4 ? "pt-2" : "pt-4";
 
-  const renderBadge = ({ badgeKey, acquiredTime }: { badgeKey: string; acquiredTime: number }) => {
-    const badgeMeta = ROLIMONS_BADGES[badgeKey]
-    if (!badgeMeta) return null
+  const renderBadge = ({
+    badgeKey,
+    acquiredTime,
+  }: {
+    badgeKey: string;
+    acquiredTime: number;
+  }) => {
+    const badgeMeta = ROLIMONS_BADGES[badgeKey];
+    if (!badgeMeta) return null;
 
     return (
       <Tooltip key={badgeKey}>
@@ -85,18 +98,18 @@ export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
           </div>
         </TooltipContent>
       </Tooltip>
-    )
-  }
+    );
+  };
 
   return (
     <div className={`relative z-10 px-6 pb-4 ${topPadding}`}>
       <div className="w-full max-w-full sm:max-w-[50%]">
         <div className="flex flex-wrap items-center justify-start gap-2">
           {sortedRolimonsBadges.map(({ badgeKey, acquiredTime }) =>
-            renderBadge({ badgeKey, acquiredTime })
+            renderBadge({ badgeKey, acquiredTime }),
           )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

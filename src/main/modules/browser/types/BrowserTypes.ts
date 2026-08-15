@@ -20,7 +20,16 @@ export interface BrowserLaunchOptions {
 export interface FormField {
   selector: string;
   value?: string | boolean | number;
-  type: "text" | "email" | "password" | "number" | "select" | "checkbox" | "radio" | "file" | "custom";
+  type:
+    | "text"
+    | "email"
+    | "password"
+    | "number"
+    | "select"
+    | "checkbox"
+    | "radio"
+    | "file"
+    | "custom";
   waitForVisible?: boolean;
   clearFirst?: boolean;
   action?: "fill" | "select" | "click" | "custom";

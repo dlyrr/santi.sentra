@@ -1,38 +1,41 @@
-import React, { useState, useRef } from 'react'
-import { ChevronDown, LogOut, User } from 'lucide-react'
-import { useClickOutside } from '../../../hooks/useClickOutside'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Avatar, AvatarImage, AvatarFallback } from '../display/Avatar'
-import { Account } from '../../../types'
+import React, { useState, useRef } from "react";
+import { ChevronDown, LogOut, User } from "lucide-react";
+import { useClickOutside } from "../../../hooks/useClickOutside";
+import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarImage, AvatarFallback } from "../display/Avatar";
+import { Account } from "../../../types";
 
 interface UserProfileDropdownProps {
-  account: Account | null
-  onSignOut: () => void
+  account: Account | null;
+  onSignOut: () => void;
 }
 
-const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSignOut }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
+  account,
+  onSignOut,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(dropdownRef, () => setIsOpen(false))
+  useClickOutside(dropdownRef, () => setIsOpen(false));
 
   if (!account) {
     return (
       <div
         className="flex items-center gap-2 px-3 py-1.5 text-sm text-[var(--color-text-muted)]"
-        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       >
         <User size={16} />
         <span>No account selected</span>
       </div>
-    )
+    );
   }
 
   return (
     <div
       className="relative"
       ref={dropdownRef}
-      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
     >
       <button
         type="button"
@@ -41,17 +44,21 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSi
       >
         <Avatar className="h-7 w-7">
           <AvatarImage src={account.avatarUrl} alt={account.displayName} />
-          <AvatarFallback>{account.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+          <AvatarFallback>
+            {account.displayName?.charAt(0).toUpperCase() || "U"}
+          </AvatarFallback>
         </Avatar>
         <div className="flex flex-col items-start">
           <span className="text-sm font-medium text-[var(--color-text-primary)] leading-tight">
             {account.displayName}
           </span>
-          <span className="text-xs text-[var(--color-text-muted)] leading-tight">@{account.username}</span>
+          <span className="text-xs text-[var(--color-text-muted)] leading-tight">
+            @{account.username}
+          </span>
         </div>
         <ChevronDown
           size={14}
-          className={`text-[var(--color-text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-[var(--color-text-muted)] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -68,14 +75,16 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSi
               <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
                 {account.displayName}
               </p>
-              <p className="text-xs text-[var(--color-text-muted)] truncate">@{account.username}</p>
+              <p className="text-xs text-[var(--color-text-muted)] truncate">
+                @{account.username}
+              </p>
             </div>
 
             <button
               type="button"
               onClick={() => {
-                setIsOpen(false)
-                onSignOut()
+                setIsOpen(false);
+                onSignOut();
               }}
               className="pressable w-full text-left px-3 py-2 text-sm flex items-center gap-2 text-red-400 hover:bg-[var(--color-surface-hover)] hover:text-red-300 transition-colors"
             >
@@ -86,7 +95,7 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({ account, onSi
         )}
       </AnimatePresence>
     </div>
-  )
-}
+  );
+};
 
-export default UserProfileDropdown
+export default UserProfileDropdown;

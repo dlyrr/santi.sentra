@@ -1,1 +1,1 @@
-export { default } from './AvatarTab'
+export { default } from "./AvatarTab";

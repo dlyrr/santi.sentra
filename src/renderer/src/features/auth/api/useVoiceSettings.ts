@@ -1,37 +1,42 @@
-import { useMemo } from 'react'
-import { useQueries, UseQueryResult } from '@tanstack/react-query'
-import { queryKeys } from '../../../../../shared/queryKeys'
-import { Account } from '@renderer/types'
-import { VoiceSettings } from '@shared/ipc-schemas'
+import { useMemo } from "react";
+import { useQueries, UseQueryResult } from "@tanstack/react-query";
+import { queryKeys } from "../../../../../shared/queryKeys";
+import { Account } from "@renderer/types";
+import { VoiceSettings } from "@shared/ipc-schemas";
 
 export const useVoiceSettingsForAccounts = (accounts: Account[]) => {
-  const accountsWithCookies = useMemo(() => accounts.filter((acc) => acc.cookie), [accounts])
+  const accountsWithCookies = useMemo(
+    () => accounts.filter((acc) => acc.cookie),
+    [accounts],
+  );
 
   const voiceQueries = useQueries({
     queries: accountsWithCookies.map((account) => ({
       queryKey: queryKeys.accounts.voice(account.cookie!),
       queryFn: () => window.api.getVoiceSettings(account.cookie!),
       enabled: !!account.cookie,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchInterval: 5 * 60 * 1000
-    }))
-  }) as UseQueryResult<VoiceSettings | undefined>[]
+      staleTime: 10 * 60 * 1000, // 10 minutes
+      refetchInterval: 10 * 60 * 1000,
+      retry: false,
+      refetchOnWindowFocus: false,
+    })),
+  }) as UseQueryResult<VoiceSettings | undefined>[];
 
   const statusByAccountId = useMemo(() => {
-    const map: Record<string, VoiceSettings> = {}
+    const map: Record<string, VoiceSettings> = {};
 
     voiceQueries.forEach((query, index) => {
-      const account = accountsWithCookies[index]
+      const account = accountsWithCookies[index];
       if (account && query.data) {
-        map[account.id] = query.data
+        map[account.id] = query.data;
       }
-    })
+    });
 
-    return map
-  }, [accountsWithCookies, voiceQueries])
+    return map;
+  }, [accountsWithCookies, voiceQueries]);
 
-  const isLoading = voiceQueries.some((query) => query.isLoading)
-  const isFetching = voiceQueries.some((query) => query.isFetching)
+  const isLoading = voiceQueries.some((query) => query.isLoading);
+  const isFetching = voiceQueries.some((query) => query.isFetching);
 
-  return { statusByAccountId, isLoading, isFetching }
-}
+  return { statusByAccountId, isLoading, isFetching };
+};

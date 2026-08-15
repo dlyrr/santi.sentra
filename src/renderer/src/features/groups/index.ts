@@ -1,3 +1,3 @@
-import GroupsTab from './GroupsTab'
+import GroupsTab from "./GroupsTab";
 
-export default GroupsTab
+export default GroupsTab;

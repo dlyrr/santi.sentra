@@ -41,7 +41,7 @@ export class ConfigManager implements IConfigManager {
       ErrorCode.CONFIGURATION_ERROR,
       "CONFIG",
       ErrorSeverity.MEDIUM,
-      { key }
+      { key },
     );
   }
 
@@ -93,7 +93,7 @@ export class ConfigManager implements IConfigManager {
 export class ConfigValidator {
   public static validateRequired<T>(
     config: Record<string, unknown>,
-    keys: string[]
+    keys: string[],
   ): asserts config is Record<string, unknown> {
     const missing = keys.filter((key) => !(key in config));
 
@@ -103,7 +103,7 @@ export class ConfigValidator {
         ErrorCode.CONFIGURATION_ERROR,
         "CONFIG",
         ErrorSeverity.HIGH,
-        { missing }
+        { missing },
       );
     }
   }
@@ -111,7 +111,7 @@ export class ConfigValidator {
   public static validateType(
     config: Record<string, unknown>,
     key: string,
-    expectedType: string
+    expectedType: string,
   ): void {
     const value = config[key];
     const actualType = typeof value;
@@ -122,7 +122,7 @@ export class ConfigValidator {
         ErrorCode.CONFIGURATION_ERROR,
         "CONFIG",
         ErrorSeverity.MEDIUM,
-        { key, expectedType, actualType }
+        { key, expectedType, actualType },
       );
     }
   }
@@ -131,7 +131,7 @@ export class ConfigValidator {
     config: Record<string, unknown>,
     key: string,
     min: number,
-    max: number
+    max: number,
   ): void {
     const value = config[key];
 
@@ -141,7 +141,7 @@ export class ConfigValidator {
         ErrorCode.CONFIGURATION_ERROR,
         "CONFIG",
         ErrorSeverity.MEDIUM,
-        { key }
+        { key },
       );
     }
 
@@ -151,7 +151,7 @@ export class ConfigValidator {
         ErrorCode.CONFIGURATION_ERROR,
         "CONFIG",
         ErrorSeverity.MEDIUM,
-        { key, value, min, max }
+        { key, value, min, max },
       );
     }
   }

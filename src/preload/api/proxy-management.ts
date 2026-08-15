@@ -2,109 +2,109 @@
  * Proxy Management Module API - Expose proxy management to renderer process
  */
 
-import { invoke } from './invoke'
-import { z } from 'zod'
+import { invoke } from "./invoke";
+import { z } from "zod";
 
 export const proxyMgmtApi = {
   addProxies: (proxies: any[]) =>
     invoke(
-      'proxy:add-proxies',
+      "proxy:add-proxies",
       z.object({
         success: z.boolean(),
         count: z.number().optional(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      proxies
+      proxies,
     ),
 
   importProxies: (filePath: string) =>
     invoke(
-      'proxy:import',
+      "proxy:import",
       z.object({
         success: z.boolean(),
         count: z.number().optional(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      filePath
+      filePath,
     ),
 
   exportProxies: (filePath: string) =>
     invoke(
-      'proxy:export',
+      "proxy:export",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      filePath
+      filePath,
     ),
 
   testProxies: () =>
     invoke(
-      'proxy:test-proxies',
+      "proxy:test-proxies",
       z.object({
         success: z.boolean(),
         results: z.any().optional(),
-        error: z.string().optional()
-      })
+        error: z.string().optional(),
+      }),
     ),
 
   getHealthyProxy: () =>
     invoke(
-      'proxy:get-healthy',
+      "proxy:get-healthy",
       z.object({
         success: z.boolean(),
         proxy: z.any().optional(),
-        error: z.string().optional()
-      })
+        error: z.string().optional(),
+      }),
     ),
 
   assignProxyToSession: (sessionId: string) =>
     invoke(
-      'proxy:assign-session',
+      "proxy:assign-session",
       z.object({
         success: z.boolean(),
         session: z.any().optional(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      sessionId
+      sessionId,
     ),
 
   releaseSession: (sessionId: string) =>
     invoke(
-      'proxy:release-session',
+      "proxy:release-session",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      sessionId
+      sessionId,
     ),
 
   getPoolState: () =>
     invoke(
-      'proxy:get-state',
+      "proxy:get-state",
       z.object({
         success: z.boolean(),
         state: z.any().optional(),
-        error: z.string().optional()
-      })
+        error: z.string().optional(),
+      }),
     ),
 
   setConfiguration: (config: any) =>
     invoke(
-      'proxy:set-config',
+      "proxy:set-config",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      config
+      config,
     ),
 
   clearProxies: () =>
     invoke(
-      'proxy:clear',
+      "proxy:clear",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
-      })
-    )
-}
+        error: z.string().optional(),
+      }),
+    ),
+};

@@ -1,28 +1,37 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Award, Ribbon } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { SkeletonSquareCard } from '@renderer/components/UI/display/SkeletonCard'
+import React from "react";
+import { motion } from "framer-motion";
+import { Award, Ribbon } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { SkeletonSquareCard } from "@renderer/components/UI/display/SkeletonCard";
 
 interface Badge {
-  id: number
-  name: string
-  description: string
-  imageUrl: string
+  id: number;
+  name: string;
+  description: string;
+  imageUrl: string;
 }
 
 interface BadgesSectionProps {
-  robloxBadges: Badge[]
-  experienceBadges: Badge[]
-  isLoadingRobloxBadges: boolean
-  isLoadingExperienceBadges: boolean
+  robloxBadges: Badge[];
+  experienceBadges: Badge[];
+  isLoadingRobloxBadges: boolean;
+  isLoadingExperienceBadges: boolean;
 }
 
-const BadgeGrid: React.FC<{ badges: Badge[]; isLoading: boolean }> = ({ badges, isLoading }) => {
+const BadgeGrid: React.FC<{ badges: Badge[]; isLoading: boolean }> = ({
+  badges,
+  isLoading,
+}) => {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
       {isLoading
-        ? Array.from({ length: 6 }).map((_, i) => <SkeletonSquareCard key={i} />)
+        ? Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonSquareCard key={i} />
+          ))
         : badges.map((badge) => (
             <Tooltip key={badge.id}>
               <TooltipTrigger asChild>
@@ -39,7 +48,7 @@ const BadgeGrid: React.FC<{ badges: Badge[]; isLoading: boolean }> = ({ badges, 
                       className="absolute inset-0 pointer-events-none"
                       style={{
                         background:
-                          'linear-gradient(180deg, rgba(8,8,8,0) 0%, rgba(8,8,8,0.12) 35%, rgba(8,8,8,0.65) 100%)'
+                          "linear-gradient(180deg, rgba(8,8,8,0) 0%, rgba(8,8,8,0.12) 35%, rgba(8,8,8,0.65) 100%)",
                       }}
                     />
                     <div className="relative p-3 text-[11px] font-semibold text-[var(--color-text-primary)] line-clamp-2 leading-tight">
@@ -57,19 +66,20 @@ const BadgeGrid: React.FC<{ badges: Badge[]; isLoading: boolean }> = ({ badges, 
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 export const BadgesSection: React.FC<BadgesSectionProps> = ({
   robloxBadges,
   experienceBadges,
   isLoadingRobloxBadges,
-  isLoadingExperienceBadges
+  isLoadingExperienceBadges,
 }) => {
-  const hasRobloxBadges = isLoadingRobloxBadges || robloxBadges.length > 0
-  const hasExperienceBadges = isLoadingExperienceBadges || experienceBadges.length > 0
+  const hasRobloxBadges = isLoadingRobloxBadges || robloxBadges.length > 0;
+  const hasExperienceBadges =
+    isLoadingExperienceBadges || experienceBadges.length > 0;
 
-  if (!hasRobloxBadges && !hasExperienceBadges) return null
+  if (!hasRobloxBadges && !hasExperienceBadges) return null;
 
   return (
     <>
@@ -101,13 +111,19 @@ export const BadgesSection: React.FC<BadgesSectionProps> = ({
         >
           <div className="mb-4">
             <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <Ribbon size={18} className="text-[var(--color-text-secondary)]" />
+              <Ribbon
+                size={18}
+                className="text-[var(--color-text-secondary)]"
+              />
               Experience Badges
             </h3>
           </div>
-          <BadgeGrid badges={experienceBadges} isLoading={isLoadingExperienceBadges} />
+          <BadgeGrid
+            badges={experienceBadges}
+            isLoading={isLoadingExperienceBadges}
+          />
         </motion.div>
       )}
     </>
-  )
-}
+  );
+};

@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Loader2, Grid2X2, Grid3X3, User } from 'lucide-react'
-import { VirtuosoGrid } from 'react-virtuoso'
-import { SearchInput } from '@renderer/components/UI/inputs/SearchInput'
-import CustomDropdown, { DropdownOption } from '@renderer/components/UI/menus/CustomDropdown'
-import { SkeletonSquareCard } from '@renderer/components/UI/display/SkeletonCard'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Package, Loader2, Grid2X2, Grid3X3, User } from "lucide-react";
+import { VirtuosoGrid } from "react-virtuoso";
+import { SearchInput } from "@renderer/components/UI/inputs/SearchInput";
+import CustomDropdown, {
+  DropdownOption,
+} from "@renderer/components/UI/menus/CustomDropdown";
+import { SkeletonSquareCard } from "@renderer/components/UI/display/SkeletonCard";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
 import {
   Sheet,
   SheetContent,
@@ -13,54 +15,57 @@ import {
   SheetHeader,
   SheetTitle,
   SheetClose,
-  SheetBody
-} from '@renderer/components/UI/dialogs/Sheet'
-import { useInventoryV2, useInventoryThumbnails } from '@renderer/hooks/queries'
-import InventoryItemContextMenu from '../InventoryItemContextMenu'
-import AccessoryDetailsModal from '@renderer/features/avatar/Modals/AccessoryDetailsModal'
+  SheetBody,
+} from "@renderer/components/UI/dialogs/Sheet";
+import {
+  useInventoryV2,
+  useInventoryThumbnails,
+} from "@renderer/hooks/queries";
+import InventoryItemContextMenu from "../InventoryItemContextMenu";
+import AccessoryDetailsModal from "@renderer/features/avatar/Modals/AccessoryDetailsModal";
 
 // Asset type categories based on Roblox inventory API
 // These match the AssetType enum values that the inventory API accepts
 const ASSET_TYPES: DropdownOption[] = [
-  { value: 'All', label: 'All Items' },
-  { value: 'Hat', label: 'Hat' },
-  { value: 'HairAccessory', label: 'Hair' },
-  { value: 'FaceAccessory', label: 'Face Accessory' },
-  { value: 'NeckAccessory', label: 'Neck Accessory' },
-  { value: 'ShoulderAccessory', label: 'Shoulder Accessory' },
-  { value: 'FrontAccessory', label: 'Front Accessory' },
-  { value: 'BackAccessory', label: 'Back Accessory' },
-  { value: 'WaistAccessory', label: 'Waist Accessory' },
-  { value: 'Gear', label: 'Gear' },
-  { value: 'Shirt', label: 'Shirt' },
-  { value: 'Pants', label: 'Pants' },
-  { value: 'TShirt', label: 'T-Shirt' },
-  { value: 'Head', label: 'Head' },
-  { value: 'Face', label: 'Face' },
-  { value: 'EmoteAnimation', label: 'Emote' }
-]
+  { value: "All", label: "All Items" },
+  { value: "Hat", label: "Hat" },
+  { value: "HairAccessory", label: "Hair" },
+  { value: "FaceAccessory", label: "Face Accessory" },
+  { value: "NeckAccessory", label: "Neck Accessory" },
+  { value: "ShoulderAccessory", label: "Shoulder Accessory" },
+  { value: "FrontAccessory", label: "Front Accessory" },
+  { value: "BackAccessory", label: "Back Accessory" },
+  { value: "WaistAccessory", label: "Waist Accessory" },
+  { value: "Gear", label: "Gear" },
+  { value: "Shirt", label: "Shirt" },
+  { value: "Pants", label: "Pants" },
+  { value: "TShirt", label: "T-Shirt" },
+  { value: "Head", label: "Head" },
+  { value: "Face", label: "Face" },
+  { value: "EmoteAnimation", label: "Emote" },
+];
 
 const SORT_OPTIONS: DropdownOption[] = [
-  { value: 'Desc', label: 'Newest First' },
-  { value: 'Asc', label: 'Oldest First' }
-]
+  { value: "Desc", label: "Newest First" },
+  { value: "Asc", label: "Oldest First" },
+];
 
 interface InventoryItemCardProps {
   item: {
-    assetId: number
-    name?: string
-    assetName?: string
-    assetType?: string | number
-    created?: string
-  }
-  thumbnailUrl?: string
-  index: number
-  onClick?: () => void
+    assetId: number;
+    name?: string;
+    assetName?: string;
+    assetType?: string | number;
+    created?: string;
+  };
+  thumbnailUrl?: string;
+  index: number;
+  onClick?: () => void;
   onContextMenu?: (
     e: React.MouseEvent,
-    item: { assetId: number; name: string; assetType?: string | number }
-  ) => void
-  isCompact?: boolean
+    item: { assetId: number; name: string; assetType?: string | number },
+  ) => void;
+  isCompact?: boolean;
 }
 
 const InventoryItemCard = ({
@@ -69,18 +74,22 @@ const InventoryItemCard = ({
   index,
   onClick,
   onContextMenu,
-  isCompact = false
+  isCompact = false,
 }: InventoryItemCardProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const displayName = item.name || item.assetName || 'Unknown Item'
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const displayName = item.name || item.assetName || "Unknown Item";
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
     if (onContextMenu) {
-      onContextMenu(e, { assetId: item.assetId, name: displayName, assetType: item.assetType })
+      onContextMenu(e, {
+        assetId: item.assetId,
+        name: displayName,
+        assetType: item.assetType,
+      });
     }
-  }
+  };
 
   return (
     <motion.div
@@ -93,20 +102,22 @@ const InventoryItemCard = ({
     >
       {/* Image Container */}
       <div
-        className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? 'aspect-square p-0' : 'aspect-square p-2'}`}
+        className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? "aspect-square p-0" : "aspect-square p-2"}`}
       >
         <div
-          className={`w-full h-full relative overflow-hidden bg-[var(--color-surface-hover)] ${isCompact ? '' : 'rounded-lg'}`}
+          className={`w-full h-full relative overflow-hidden bg-[var(--color-surface-hover)] ${isCompact ? "" : "rounded-lg"}`}
         >
           {thumbnailUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
+              {!imageLoaded && (
+                <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />
+              )}
               <img
                 src={thumbnailUrl}
                 alt={displayName}
                 onLoad={() => setImageLoaded(true)}
                 className={`w-full h-full object-contain transition-all duration-500 group-hover:scale-110 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                  imageLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 loading="lazy"
               />
@@ -121,7 +132,7 @@ const InventoryItemCard = ({
 
       {/* Item Info */}
       <div
-        className={`flex flex-col gap-1.5 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] ${isCompact ? 'p-2' : 'p-3'}`}
+        className={`flex flex-col gap-1.5 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] ${isCompact ? "p-2" : "p-3"}`}
       >
         <h3 className="font-medium text-sm text-[var(--color-text-primary)] truncate">
           {displayName}
@@ -133,15 +144,15 @@ const InventoryItemCard = ({
         )}
       </div>
     </motion.div>
-  )
-}
+  );
+};
 
 interface PlayerInventorySheetProps {
-  isOpen: boolean
-  onClose: () => void
-  userId: number
-  username: string
-  cookie?: string
+  isOpen: boolean;
+  onClose: () => void;
+  userId: number;
+  username: string;
+  cookie?: string;
 }
 
 const PlayerInventorySheet = ({
@@ -149,175 +160,213 @@ const PlayerInventorySheet = ({
   onClose,
   userId,
   username,
-  cookie
+  cookie,
 }: PlayerInventorySheetProps) => {
-  const [viewMode, setViewMode] = useState<'default' | 'compact'>('default')
-  const [selectedAssetType, setSelectedAssetType] = useState<string>('All')
-  const [sortOrder, setSortOrder] = useState<'Asc' | 'Desc'>('Desc')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<"default" | "compact">("default");
+  const [selectedAssetType, setSelectedAssetType] = useState<string>("All");
+  const [sortOrder, setSortOrder] = useState<"Asc" | "Desc">("Desc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-    assetId: number
-    assetName: string
-    assetType?: string | number
-  } | null>(null)
+    x: number;
+    y: number;
+    assetId: number;
+    assetName: string;
+    assetType?: string | number;
+  } | null>(null);
   const [selectedAccessory, setSelectedAccessory] = useState<{
-    id: number
-    name: string
-    imageUrl?: string
-  } | null>(null)
+    id: number;
+    name: string;
+    imageUrl?: string;
+  } | null>(null);
 
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const assetTypes = useMemo(() => {
-    if (selectedAssetType === 'All') {
-      return ['Hat', 'Shirt', 'Pants', 'TShirt', 'HairAccessory', 'FaceAccessory', 'Gear']
+    if (selectedAssetType === "All") {
+      return [
+        "Hat",
+        "Shirt",
+        "Pants",
+        "TShirt",
+        "HairAccessory",
+        "FaceAccessory",
+        "Gear",
+      ];
     }
-    return [selectedAssetType]
-  }, [selectedAssetType])
+    return [selectedAssetType];
+  }, [selectedAssetType]);
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInventoryV2({
-    cookie: cookie || '',
-    userId,
-    assetTypes,
-    sortOrder,
-    limit: 100,
-    enabled:
-      isOpen && !!cookie && userId > 0 && (selectedAssetType === 'All' || assetTypes.length > 0)
-  })
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInventoryV2({
+      cookie: cookie || "",
+      userId,
+      assetTypes,
+      sortOrder,
+      limit: 100,
+      enabled:
+        isOpen &&
+        !!cookie &&
+        userId > 0 &&
+        (selectedAssetType === "All" || assetTypes.length > 0),
+    });
 
   const items = useMemo(() => {
-    const allItems = data?.pages.flatMap((page) => page.data) || []
+    const allItems = data?.pages.flatMap((page) => page.data) || [];
 
     // Filter by search query
     if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.toLowerCase()
+      const query = debouncedSearchQuery.toLowerCase();
       return allItems.filter((item) => {
-        const name = (item.name || item.assetName || '').toLowerCase()
-        return name.includes(query)
-      })
+        const name = (item.name || item.assetName || "").toLowerCase();
+        return name.includes(query);
+      });
     }
 
-    return allItems
-  }, [data, debouncedSearchQuery])
+    return allItems;
+  }, [data, debouncedSearchQuery]);
 
   // Get unique asset IDs for thumbnail fetching
   const assetIds = useMemo(() => {
-    return items.map((item) => item.assetId).filter((id, index, self) => self.indexOf(id) === index)
-  }, [items])
+    return items
+      .map((item) => item.assetId)
+      .filter((id, index, self) => self.indexOf(id) === index);
+  }, [items]);
 
   // Fetch thumbnails using react-query + zustand
-  const { thumbnails } = useInventoryThumbnails(assetIds, isOpen && items.length > 0)
+  const { thumbnails } = useInventoryThumbnails(
+    assetIds,
+    isOpen && items.length > 0,
+  );
 
   // Infinite scroll observer
-  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
+          fetchNextPage();
         }
       },
-      { threshold: 0.1 }
-    )
+      { threshold: 0.1 },
+    );
 
     if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current)
+      observer.observe(loadMoreRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const gridStyle: React.CSSProperties = {
     gridTemplateColumns:
-      viewMode === 'compact'
-        ? 'repeat(auto-fill, minmax(140px, 1fr))'
-        : 'repeat(auto-fill, minmax(200px, 1fr))'
-  }
+      viewMode === "compact"
+        ? "repeat(auto-fill, minmax(140px, 1fr))"
+        : "repeat(auto-fill, minmax(200px, 1fr))",
+  };
 
   // Handle item click
   const handleItemClick = useCallback(
     (item: (typeof items)[0]) => {
       setSelectedAccessory({
         id: item.assetId,
-        name: item.name || item.assetName || 'Unknown Item',
-        imageUrl: thumbnails[item.assetId]
-      })
+        name: item.name || item.assetName || "Unknown Item",
+        imageUrl: thumbnails[item.assetId],
+      });
     },
-    [thumbnails]
-  )
+    [thumbnails],
+  );
 
   // Handle context menu
   const handleContextMenu = useCallback(
-    (e: React.MouseEvent, item: { assetId: number; name: string; assetType?: string | number }) => {
+    (
+      e: React.MouseEvent,
+      item: { assetId: number; name: string; assetType?: string | number },
+    ) => {
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
         assetId: item.assetId,
         assetName: item.name,
-        assetType: item.assetType
-      })
+        assetType: item.assetType,
+      });
     },
-    []
-  )
+    [],
+  );
 
   // Handle download OBJ
-  const handleDownloadObj = useCallback(async (assetId: number, assetName: string) => {
-    try {
-      const result = await (window as any).api.downloadAsset3D(assetId, 'obj', assetName)
-      if (!result?.success) console.error('Failed to download OBJ')
-    } catch (err) {
-      console.error('Failed to download OBJ:', err)
-    }
-  }, [])
+  const handleDownloadObj = useCallback(
+    async (assetId: number, assetName: string) => {
+      try {
+        const result = await (window as any).api.downloadAsset3D(
+          assetId,
+          "obj",
+          assetName,
+        );
+        if (!result?.success) console.error("Failed to download OBJ");
+      } catch (err) {
+        console.error("Failed to download OBJ:", err);
+      }
+    },
+    [],
+  );
 
   // Handle download texture
-  const handleDownloadTexture = useCallback(async (assetId: number, assetName: string) => {
-    try {
-      const result = await (window as any).api.downloadAsset3D(assetId, 'texture', assetName)
-      if (!result?.success) console.error('Failed to download texture')
-    } catch (err) {
-      console.error('Failed to download texture:', err)
-    }
-  }, [])
+  const handleDownloadTexture = useCallback(
+    async (assetId: number, assetName: string) => {
+      try {
+        const result = await (window as any).api.downloadAsset3D(
+          assetId,
+          "texture",
+          assetName,
+        );
+        if (!result?.success) console.error("Failed to download texture");
+      } catch (err) {
+        console.error("Failed to download texture:", err);
+      }
+    },
+    [],
+  );
 
   const handleCopyAssetId = useCallback(async (assetId: number) => {
     try {
-      await navigator.clipboard.writeText(String(assetId))
+      await navigator.clipboard.writeText(String(assetId));
     } catch (err) {
-      console.error('Failed to copy asset ID:', err)
+      console.error("Failed to copy asset ID:", err);
       // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = String(assetId)
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
+      const textArea = document.createElement("textarea");
+      textArea.value = String(assetId);
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
     }
-  }, [])
+  }, []);
 
   const handleDownloadTemplate = useCallback(
     async (assetId: number, assetName: string) => {
       try {
-        const result = await window.api.downloadCatalogTemplate(assetId, assetName, cookie)
+        const result = await window.api.downloadCatalogTemplate(
+          assetId,
+          assetName,
+          cookie,
+        );
         if (!result.success) {
-          console.error('Failed to download template:', result.message)
+          console.error("Failed to download template:", result.message);
         }
       } catch (err) {
-        console.error('Failed to download template:', err)
+        console.error("Failed to download template:", err);
       }
     },
-    [cookie]
-  )
+    [cookie],
+  );
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose}>
@@ -351,7 +400,7 @@ const PlayerInventorySheet = ({
               <CustomDropdown
                 options={SORT_OPTIONS}
                 value={sortOrder}
-                onChange={(value) => setSortOrder(value as 'Asc' | 'Desc')}
+                onChange={(value) => setSortOrder(value as "Asc" | "Desc")}
                 placeholder="Sort By"
                 className="w-40"
               />
@@ -367,15 +416,15 @@ const PlayerInventorySheet = ({
               {/* View Mode Toggle */}
               <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
-                  onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                  onClick={() => setViewMode("default")}
+                  className={`p-1.5 rounded transition-all ${viewMode === "default" ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"}`}
                   title="Default View"
                 >
                   <Grid2X2 size={18} />
                 </button>
                 <button
-                  onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                  onClick={() => setViewMode("compact")}
+                  className={`p-1.5 rounded transition-all ${viewMode === "compact" ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"}`}
                   title="Compact View"
                 >
                   <Grid3X3 size={18} />
@@ -421,7 +470,9 @@ const PlayerInventorySheet = ({
                     icon={Package}
                     title="No items found"
                     description={
-                      searchQuery ? 'Try adjusting your search' : 'No items in this category'
+                      searchQuery
+                        ? "Try adjusting your search"
+                        : "No items in this category"
                     }
                     variant="minimal"
                   />
@@ -437,9 +488,9 @@ const PlayerInventorySheet = ({
                   <VirtuosoGrid
                     totalCount={items.length}
                     overscan={200}
-                    listClassName={`grid gap-4 ${viewMode === 'compact' ? 'grid-cols-[repeat(auto-fill,minmax(140px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(200px,1fr))]'}`}
+                    listClassName={`grid gap-4 ${viewMode === "compact" ? "grid-cols-[repeat(auto-fill,minmax(140px,1fr))]" : "grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"}`}
                     itemContent={(index) => {
-                      const item = items[index]
+                      const item = items[index];
                       return (
                         <InventoryItemCard
                           key={`${item.assetId}-${index}`}
@@ -448,13 +499,13 @@ const PlayerInventorySheet = ({
                           index={index}
                           onClick={() => handleItemClick(item)}
                           onContextMenu={handleContextMenu}
-                          isCompact={viewMode === 'compact'}
+                          isCompact={viewMode === "compact"}
                         />
-                      )
+                      );
                     }}
                     endReached={() => {
                       if (hasNextPage && !isFetchingNextPage) {
-                        fetchNextPage()
+                        fetchNextPage();
                       }
                     }}
                     components={{
@@ -466,7 +517,7 @@ const PlayerInventorySheet = ({
                               <span>Loading more...</span>
                             </div>
                           </div>
-                        ) : null
+                        ) : null,
                     }}
                   />
                 </motion.div>
@@ -495,12 +546,12 @@ const PlayerInventorySheet = ({
           account={cookie ? ({ cookie, userId: String(userId) } as any) : null}
           initialData={{
             name: selectedAccessory.name,
-            imageUrl: selectedAccessory.imageUrl || ''
+            imageUrl: selectedAccessory.imageUrl || "",
           }}
         />
       )}
     </Sheet>
-  )
-}
+  );
+};
 
-export default PlayerInventorySheet
+export default PlayerInventorySheet;

@@ -5,16 +5,18 @@
 
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
-import { AppError, ErrorCode, ErrorSeverity } from "../../shared/error/AppError";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+} from "../../shared/error/AppError";
 import {
   BrowserLaunchOptions,
   NavigationConfig,
   FormConfig,
   AutomationResult,
 } from "../types/BrowserTypes";
-import {
-  IBrowserAutomationService,
-} from "../interfaces/BrowserInterfaces";
+import { IBrowserAutomationService } from "../interfaces/BrowserInterfaces";
 import { BrowserService } from "./BrowserService";
 import { FormAutomationService } from "./FormAutomationService";
 
@@ -47,7 +49,7 @@ export class BrowserAutomationService
         "Failed to launch browser automation",
         ErrorCode.BROWSER_LAUNCH_ERROR,
         "BrowserAutomationService",
-        ErrorSeverity.HIGH
+        ErrorSeverity.HIGH,
       );
       this.logger.error("Launch failed", error as Error);
       throw appError;
@@ -76,7 +78,7 @@ export class BrowserAutomationService
         throw new AppError(
           "Browser not available",
           ErrorCode.BROWSER_LAUNCH_ERROR,
-          "BrowserAutomationService"
+          "BrowserAutomationService",
         );
       }
 
@@ -96,7 +98,7 @@ export class BrowserAutomationService
    */
   public async executeAutomation(
     navigation: NavigationConfig,
-    form: FormConfig
+    form: FormConfig,
   ): Promise<AutomationResult> {
     const startTime = Date.now();
 
@@ -105,7 +107,7 @@ export class BrowserAutomationService
         "Automation already in progress",
         ErrorCode.BROWSER_FORM_ERROR,
         "BrowserAutomationService",
-        ErrorSeverity.MEDIUM
+        ErrorSeverity.MEDIUM,
       );
     }
 
@@ -156,10 +158,7 @@ export class BrowserAutomationService
         success: false,
         url: navigation.url,
         timestamp: Date.now(),
-        error:
-          error instanceof Error
-            ? error
-            : new Error(String(error)),
+        error: error instanceof Error ? error : new Error(String(error)),
       };
 
       this.logger.error("Automation failed", error as Error, {
@@ -198,8 +197,8 @@ export class BrowserAutomationService
             new AppError(
               "User interaction timeout",
               ErrorCode.BROWSER_TIMEOUT_ERROR,
-              "BrowserAutomationService"
-            )
+              "BrowserAutomationService",
+            ),
           );
         }, timeout);
 
@@ -235,7 +234,7 @@ export class BrowserAutomationService
         throw new AppError(
           "Browser not available",
           ErrorCode.BROWSER_LAUNCH_ERROR,
-          "BrowserAutomationService"
+          "BrowserAutomationService",
         );
       }
 

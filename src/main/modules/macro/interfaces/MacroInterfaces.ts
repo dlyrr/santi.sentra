@@ -2,8 +2,16 @@
  * Macro service interfaces.
  */
 
-import { MacroRecordingCallback, MacroPlaybackCallback } from "../types/MacroTypes";
-import type { Macro, MacroRecorderConfig, MacroPlaybackConfig, MacroPlaybackResult } from "../types/MacroTypes";
+import {
+  MacroRecordingCallback,
+  MacroPlaybackCallback,
+} from "../types/MacroTypes";
+import type {
+  Macro,
+  MacroRecorderConfig,
+  MacroPlaybackConfig,
+  MacroPlaybackResult,
+} from "../types/MacroTypes";
 
 export interface IMacroRecorder {
   startRecording(config: MacroRecorderConfig): void;
@@ -16,7 +24,7 @@ export interface IMacroRecorder {
 export interface IMacroPlayer {
   play(
     macro: Macro,
-    config?: MacroPlaybackConfig
+    config?: MacroPlaybackConfig,
   ): Promise<MacroPlaybackResult>;
   pause(): void;
   resume(): void;
@@ -30,7 +38,7 @@ export interface IMacroService {
   stopRecording(): Macro | null;
   playMacro(
     macro: Macro,
-    config?: MacroPlaybackConfig
+    config?: MacroPlaybackConfig,
   ): Promise<MacroPlaybackResult>;
   saveMacro(macro: Macro, filePath: string): Promise<void>;
   loadMacro(filePath: string): Promise<Macro>;

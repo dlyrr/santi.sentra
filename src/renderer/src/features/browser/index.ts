@@ -1,1 +1,1 @@
-export { BrowserTab as default } from './BrowserTab'
+export { BrowserTab as default } from "./BrowserTab";

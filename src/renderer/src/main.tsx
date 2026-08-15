@@ -1,13 +1,13 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import App from './App'
-import ErrorBoundary from './components/ErrorBoundary'
-import { ThemeProvider } from './theme/ThemeProvider'
-import './index.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { ThemeProvider } from "./theme/ThemeProvider";
+import "./index.css";
 
-const rendererStart = performance.now()
-;(window as any).__perfRendererStart = rendererStart
+const rendererStart = performance.now();
+(window as any).__perfRendererStart = rendererStart;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,15 +15,15 @@ const queryClient = new QueryClient({
       staleTime: 30 * 1000,
       gcTime: 5 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
     },
     mutations: {
-      retry: 0
-    }
-  }
-})
+      retry: 0,
+    },
+  },
+});
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -32,5 +32,5 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         </ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>
-  </React.StrictMode>
-)
+  </React.StrictMode>,
+);

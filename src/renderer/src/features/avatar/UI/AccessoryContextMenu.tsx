@@ -1,26 +1,26 @@
-import { useMemo } from 'react'
-import { Star, Copy, Edit2, Save, Trash2, Info } from 'lucide-react'
+import { useMemo } from "react";
+import { Star, Copy, Edit2, Save, Trash2, Info } from "lucide-react";
 import GenericContextMenu, {
   ContextMenuSection,
-  ContextMenuItem
-} from '@renderer/components/UI/menus/GenericContextMenu'
+  ContextMenuItem,
+} from "@renderer/components/UI/menus/GenericContextMenu";
 
 interface AccessoryContextMenuProps {
   activeMenu: {
-    id: number
-    name: string
-    isFavorite: boolean
-    x: number
-    y: number
-    canEdit?: boolean
-  } | null
-  onClose: () => void
-  onViewDetails?: (id: number) => void
-  onFavorite: (id: number, name: string) => void
-  onCopyId: (id: number) => void
-  onRename?: (id: number, currentName: string) => void
-  onUpdate?: (id: number, name: string) => void
-  onDelete?: (id: number, name: string) => void
+    id: number;
+    name: string;
+    isFavorite: boolean;
+    x: number;
+    y: number;
+    canEdit?: boolean;
+  } | null;
+  onClose: () => void;
+  onViewDetails?: (id: number) => void;
+  onFavorite: (id: number, name: string) => void;
+  onCopyId: (id: number) => void;
+  onRename?: (id: number, currentName: string) => void;
+  onUpdate?: (id: number, name: string) => void;
+  onDelete?: (id: number, name: string) => void;
 }
 
 const AccessoryContextMenu = ({
@@ -31,79 +31,89 @@ const AccessoryContextMenu = ({
   onCopyId,
   onRename,
   onUpdate,
-  onDelete
+  onDelete,
 }: AccessoryContextMenuProps) => {
   const sections: ContextMenuSection[] = useMemo(() => {
-    if (!activeMenu) return []
+    if (!activeMenu) return [];
 
-    const mainItems: ContextMenuItem[] = []
+    const mainItems: ContextMenuItem[] = [];
 
     if (onViewDetails) {
       mainItems.push({
-        label: 'View Details',
+        label: "View Details",
         icon: <Info size={16} />,
-        onClick: () => onViewDetails(activeMenu.id)
-      })
+        onClick: () => onViewDetails(activeMenu.id),
+      });
     }
 
     mainItems.push({
-      label: activeMenu.isFavorite ? 'Unfavorite' : 'Favorite',
+      label: activeMenu.isFavorite ? "Unfavorite" : "Favorite",
       icon: (
         <Star
           size={16}
-          className={activeMenu.isFavorite ? 'fill-yellow-400 text-yellow-400' : ''}
+          className={
+            activeMenu.isFavorite ? "fill-yellow-400 text-yellow-400" : ""
+          }
         />
       ),
-      onClick: () => onFavorite(activeMenu.id, activeMenu.name)
-    })
+      onClick: () => onFavorite(activeMenu.id, activeMenu.name),
+    });
 
     const copySection = {
       items: [
         {
-          label: 'Copy Asset ID',
+          label: "Copy Asset ID",
           icon: <Copy size={16} />,
-          onClick: () => onCopyId(activeMenu.id)
-        }
-      ]
-    }
+          onClick: () => onCopyId(activeMenu.id),
+        },
+      ],
+    };
 
-    const result = [{ items: mainItems }, copySection]
+    const result = [{ items: mainItems }, copySection];
 
     if (activeMenu.canEdit) {
-      const editItems: ContextMenuItem[] = []
+      const editItems: ContextMenuItem[] = [];
 
       if (onUpdate) {
         editItems.push({
-          label: 'Update with Worn',
+          label: "Update with Worn",
           icon: <Save size={16} />,
-          onClick: () => onUpdate(activeMenu.id, activeMenu.name)
-        })
+          onClick: () => onUpdate(activeMenu.id, activeMenu.name),
+        });
       }
 
       if (onRename) {
         editItems.push({
-          label: 'Rename Outfit',
+          label: "Rename Outfit",
           icon: <Edit2 size={16} />,
-          onClick: () => onRename(activeMenu.id, activeMenu.name)
-        })
+          onClick: () => onRename(activeMenu.id, activeMenu.name),
+        });
       }
 
       if (onDelete) {
         editItems.push({
-          label: 'Delete Outfit',
+          label: "Delete Outfit",
           icon: <Trash2 size={16} />,
           onClick: () => onDelete(activeMenu.id, activeMenu.name),
-          variant: 'danger' as const
-        })
+          variant: "danger" as const,
+        });
       }
 
       if (editItems.length > 0) {
-        result.push({ items: editItems })
+        result.push({ items: editItems });
       }
     }
 
-    return result
-  }, [activeMenu, onViewDetails, onFavorite, onCopyId, onRename, onUpdate, onDelete])
+    return result;
+  }, [
+    activeMenu,
+    onViewDetails,
+    onFavorite,
+    onCopyId,
+    onRename,
+    onUpdate,
+    onDelete,
+  ]);
 
   return (
     <GenericContextMenu
@@ -111,7 +121,7 @@ const AccessoryContextMenu = ({
       sections={sections}
       onClose={onClose}
     />
-  )
-}
+  );
+};
 
-export default AccessoryContextMenu
+export default AccessoryContextMenu;

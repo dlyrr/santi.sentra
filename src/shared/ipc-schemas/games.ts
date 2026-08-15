@@ -1,6 +1,6 @@
-import { z } from 'zod'
+import { z } from "zod";
 
-const stringOrNumberSchema = z.union([z.string(), z.number()])
+const stringOrNumberSchema = z.union([z.string(), z.number()]);
 
 // ============================================================================
 // GAME SERVER SCHEMAS
@@ -22,25 +22,25 @@ export const gameServerSchema = z
       .object({
         id: stringOrNumberSchema.nullable().optional(),
         type: z.string().optional(),
-        name: z.string().optional()
+        name: z.string().optional(),
       })
       .partial()
       .optional(),
-    friends: z.array(stringOrNumberSchema).optional()
+    friends: z.array(stringOrNumberSchema).optional(),
   })
-  .passthrough()
+  .passthrough();
 
 export const pagedServerSchema = z.object({
   previousPageCursor: z.string().nullable(),
   nextPageCursor: z.string().nullable(),
-  data: z.array(gameServerSchema)
-})
+  data: z.array(gameServerSchema),
+});
 
-export const regionsBatchSchema = z.record(z.string(), z.string())
-export type RegionLookup = z.infer<typeof regionsBatchSchema>
+export const regionsBatchSchema = z.record(z.string(), z.string());
+export type RegionLookup = z.infer<typeof regionsBatchSchema>;
 
-export type GameServerPayload = z.infer<typeof gameServerSchema>
-export type ServerPage = z.infer<typeof pagedServerSchema>
+export type GameServerPayload = z.infer<typeof gameServerSchema>;
+export type ServerPage = z.infer<typeof pagedServerSchema>;
 
 // ============================================================================
 // GAME DETAILS SCHEMAS
@@ -60,7 +60,7 @@ export const gameDetailsSchema = z
         name: z.string(),
         type: z.string(),
         isRNVAccount: z.boolean().optional(),
-        hasVerifiedBadge: z.boolean().optional()
+        hasVerifiedBadge: z.boolean().optional(),
       })
       .optional(),
     price: z.number().nullable().optional(),
@@ -79,9 +79,9 @@ export const gameDetailsSchema = z
     genre: z.string().optional(),
     isAllGenre: z.boolean().optional(),
     isFavoritedByUser: z.boolean().optional(),
-    favoritedCount: z.number().optional()
+    favoritedCount: z.number().optional(),
   })
-  .passthrough()
+  .passthrough();
 
 export const placeDetailsSchema = z
   .object({
@@ -96,9 +96,9 @@ export const placeDetailsSchema = z
     universeId: z.number().optional(),
     universeRootPlaceId: z.number().optional(),
     price: z.number().optional(),
-    imageToken: z.string().optional()
+    imageToken: z.string().optional(),
   })
-  .passthrough()
+  .passthrough();
 
 export const gameSortsSchema = z.object({
   sorts: z
@@ -113,24 +113,24 @@ export const gameSortsSchema = z.object({
         contentType: z.string().optional(),
         id: z.union([z.string(), z.number()]).optional(),
         sortId: z.union([z.string(), z.number()]).optional(),
-        sortDisplayName: z.string().optional()
-      })
+        sortDisplayName: z.string().optional(),
+      }),
     )
     .optional(),
-  data: z.array(z.any()).optional()
-})
+  data: z.array(z.any()).optional(),
+});
 
 export const gameVoteSchema = z.object({
   id: z.number(),
   upVotes: z.number(),
-  downVotes: z.number()
-})
+  downVotes: z.number(),
+});
 
 export const gameThumbnailSchema = z.object({
   targetId: z.number(),
   state: z.string(),
-  imageUrl: z.string().nullable()
-})
+  imageUrl: z.string().nullable(),
+});
 
 export const searchResponseSchema = z.object({
   searchResults: z
@@ -146,32 +146,32 @@ export const searchResponseSchema = z.object({
                 playerCount: z.number().optional(),
                 totalVisits: z.number().optional(),
                 description: z.string().optional().nullable(),
-                creatorName: z.string().optional()
+                creatorName: z.string().optional(),
               })
-              .passthrough()
+              .passthrough(),
           )
-          .optional()
-      })
+          .optional(),
+      }),
     )
     .optional(),
-  keyword: z.string().optional()
-})
+  keyword: z.string().optional(),
+});
 
-export type GameDetails = z.infer<typeof gameDetailsSchema>
-export type PlaceDetails = z.infer<typeof placeDetailsSchema>
+export type GameDetails = z.infer<typeof gameDetailsSchema>;
+export type PlaceDetails = z.infer<typeof placeDetailsSchema>;
 
 export const socialLinkSchema = z.object({
   id: z.number(),
   title: z.string(),
   url: z.string(),
-  type: z.string()
-})
+  type: z.string(),
+});
 
 export const socialLinksResponseSchema = z.object({
-  data: z.array(socialLinkSchema)
-})
+  data: z.array(socialLinkSchema),
+});
 
-export type SocialLink = z.infer<typeof socialLinkSchema>
+export type SocialLink = z.infer<typeof socialLinkSchema>;
 
 export const voteResponseSchema = z.object({
   success: z.boolean(),
@@ -185,13 +185,13 @@ export const voteResponseSchema = z.object({
       canVote: z.boolean(),
       userVote: z.boolean().nullable(),
       hasVoted: z.boolean(),
-      reasonForNotVoteable: z.string().optional()
+      reasonForNotVoteable: z.string().optional(),
     })
     .nullable()
-    .optional()
-})
+    .optional(),
+});
 
-export type VoteResponse = z.infer<typeof voteResponseSchema>
+export type VoteResponse = z.infer<typeof voteResponseSchema>;
 
 export const gamePassSchema = z.object({
   id: z.number(),
@@ -205,23 +205,23 @@ export const gamePassSchema = z.object({
       creatorType: z.string(),
       creatorId: z.number(),
       name: z.string(),
-      deprecatedId: z.number().optional()
+      deprecatedId: z.number().optional(),
     })
     .optional(),
   displayName: z.string(),
   displayDescription: z.string().nullable().optional(),
   displayIconImageAssetId: z.number().optional(),
   created: z.string().optional(),
-  updated: z.string().optional()
-})
+  updated: z.string().optional(),
+});
 
 export const gamePassesResponseSchema = z.object({
   gamePasses: z.array(gamePassSchema),
-  nextPageToken: z.string().nullable().optional()
-})
+  nextPageToken: z.string().nullable().optional(),
+});
 
-export type GamePass = z.infer<typeof gamePassSchema>
-export type GamePassesResponse = z.infer<typeof gamePassesResponseSchema>
+export type GamePass = z.infer<typeof gamePassSchema>;
+export type GamePassesResponse = z.infer<typeof gamePassesResponseSchema>;
 
 // ============================================================================
 // GROUP SCHEMAS
@@ -233,8 +233,8 @@ export const groupOwnerSchema = z.object({
   id: z.number().optional(),
   username: z.string().optional(),
   displayName: z.string().optional(),
-  type: z.string().optional()
-})
+  type: z.string().optional(),
+});
 
 export const groupDetailsSchema = z
   .object({
@@ -247,7 +247,7 @@ export const groupDetailsSchema = z
         body: z.string().optional(),
         poster: groupOwnerSchema.nullable().optional(),
         created: z.string(),
-        updated: z.string()
+        updated: z.string(),
       })
       .passthrough()
       .nullable()
@@ -257,21 +257,21 @@ export const groupDetailsSchema = z
     publicEntryAllowed: z.boolean().optional(),
     hasVerifiedBadge: z.boolean().optional(),
     hasSocialModules: z.boolean().optional(),
-    isLocked: z.boolean().optional()
+    isLocked: z.boolean().optional(),
   })
-  .passthrough()
+  .passthrough();
 
 export const groupRoleSchema = z.object({
   id: z.number(),
   name: z.string(),
   rank: z.number(),
-  memberCount: z.number().optional()
-})
+  memberCount: z.number().optional(),
+});
 
 export const groupRolesResponseSchema = z.object({
   groupId: z.number(),
-  roles: z.array(groupRoleSchema)
-})
+  roles: z.array(groupRoleSchema),
+});
 
 export const groupGameSchema = z.object({
   id: z.number(),
@@ -280,25 +280,25 @@ export const groupGameSchema = z.object({
   creator: z
     .object({
       id: z.number(),
-      type: z.string()
+      type: z.string(),
     })
     .optional(),
   rootPlace: z
     .object({
       id: z.number(),
-      type: z.string()
+      type: z.string(),
     })
     .optional(),
   created: z.string().optional(),
   updated: z.string().optional(),
-  placeVisits: z.number().optional()
-})
+  placeVisits: z.number().optional(),
+});
 
 export const groupGamesResponseSchema = z.object({
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(groupGameSchema)
-})
+  data: z.array(groupGameSchema),
+});
 
 export const userGroupMembershipSchema = z.object({
   group: z.object({
@@ -311,22 +311,22 @@ export const userGroupMembershipSchema = z.object({
         body: z.string().optional(),
         poster: groupOwnerSchema.nullable().optional(),
         created: z.string(),
-        updated: z.string()
+        updated: z.string(),
       })
       .nullable()
       .optional(),
     memberCount: z.number().optional(),
     isBuildersClubOnly: z.boolean().optional(),
     publicEntryAllowed: z.boolean().optional(),
-    hasVerifiedBadge: z.boolean().optional()
+    hasVerifiedBadge: z.boolean().optional(),
   }),
   role: groupRoleSchema,
-  isPrimaryGroup: z.boolean().optional()
-})
+  isPrimaryGroup: z.boolean().optional(),
+});
 
 export const userGroupsResponseSchema = z.object({
-  data: z.array(userGroupMembershipSchema)
-})
+  data: z.array(userGroupMembershipSchema),
+});
 
 export const pendingGroupRequestRawSchema = z.object({
   id: z.number(),
@@ -335,8 +335,8 @@ export const pendingGroupRequestRawSchema = z.object({
   owner: groupOwnerSchema.nullable().optional(),
   memberCount: z.number().optional(),
   hasVerifiedBadge: z.boolean().optional(),
-  created: z.string().optional()
-})
+  created: z.string().optional(),
+});
 
 export const pendingGroupRequestSchema = z.object({
   group: z.object({
@@ -345,18 +345,18 @@ export const pendingGroupRequestSchema = z.object({
     description: z.string().nullable().optional(),
     owner: groupOwnerSchema.nullable().optional(),
     memberCount: z.number().optional(),
-    hasVerifiedBadge: z.boolean().optional()
+    hasVerifiedBadge: z.boolean().optional(),
   }),
-  created: z.string().optional()
-})
+  created: z.string().optional(),
+});
 
 export const pendingGroupRequestsRawResponseSchema = z.object({
-  data: z.array(pendingGroupRequestRawSchema)
-})
+  data: z.array(pendingGroupRequestRawSchema),
+});
 
 export const pendingGroupRequestsResponseSchema = z.object({
-  data: z.array(pendingGroupRequestSchema)
-})
+  data: z.array(pendingGroupRequestSchema),
+});
 
 export const groupV2Schema = z.object({
   id: z.number(),
@@ -365,44 +365,50 @@ export const groupV2Schema = z.object({
   owner: z
     .object({
       id: z.number(),
-      type: z.string()
+      type: z.string(),
     })
     .nullable()
     .optional(),
   created: z.string().optional(),
-  hasVerifiedBadge: z.boolean().optional()
-})
+  hasVerifiedBadge: z.boolean().optional(),
+});
 
 export const groupsV2ResponseSchema = z.object({
-  data: z.array(groupV2Schema)
-})
+  data: z.array(groupV2Schema),
+});
 
 export const groupSocialLinkSchema = z.object({
   id: z.number(),
   type: z.string(),
   url: z.string(),
-  title: z.string()
-})
+  title: z.string(),
+});
 
 export const groupSocialLinksResponseSchema = z.object({
-  data: z.array(groupSocialLinkSchema)
-})
+  data: z.array(groupSocialLinkSchema),
+});
 
-export type GroupOwner = z.infer<typeof groupOwnerSchema>
-export type GroupDetails = z.infer<typeof groupDetailsSchema>
-export type GroupRole = z.infer<typeof groupRoleSchema>
-export type GroupRolesResponse = z.infer<typeof groupRolesResponseSchema>
-export type GroupGame = z.infer<typeof groupGameSchema>
-export type GroupGamesResponse = z.infer<typeof groupGamesResponseSchema>
-export type UserGroupMembership = z.infer<typeof userGroupMembershipSchema>
-export type UserGroupsResponse = z.infer<typeof userGroupsResponseSchema>
-export type PendingGroupRequestRaw = z.infer<typeof pendingGroupRequestRawSchema>
-export type PendingGroupRequest = z.infer<typeof pendingGroupRequestSchema>
-export type PendingGroupRequestsRawResponse = z.infer<typeof pendingGroupRequestsRawResponseSchema>
-export type PendingGroupRequestsResponse = z.infer<typeof pendingGroupRequestsResponseSchema>
-export type GroupV2 = z.infer<typeof groupV2Schema>
-export type GroupsV2Response = z.infer<typeof groupsV2ResponseSchema>
-export type GroupSocialLink = z.infer<typeof groupSocialLinkSchema>
+export type GroupOwner = z.infer<typeof groupOwnerSchema>;
+export type GroupDetails = z.infer<typeof groupDetailsSchema>;
+export type GroupRole = z.infer<typeof groupRoleSchema>;
+export type GroupRolesResponse = z.infer<typeof groupRolesResponseSchema>;
+export type GroupGame = z.infer<typeof groupGameSchema>;
+export type GroupGamesResponse = z.infer<typeof groupGamesResponseSchema>;
+export type UserGroupMembership = z.infer<typeof userGroupMembershipSchema>;
+export type UserGroupsResponse = z.infer<typeof userGroupsResponseSchema>;
+export type PendingGroupRequestRaw = z.infer<
+  typeof pendingGroupRequestRawSchema
+>;
+export type PendingGroupRequest = z.infer<typeof pendingGroupRequestSchema>;
+export type PendingGroupRequestsRawResponse = z.infer<
+  typeof pendingGroupRequestsRawResponseSchema
+>;
+export type PendingGroupRequestsResponse = z.infer<
+  typeof pendingGroupRequestsResponseSchema
+>;
+export type GroupV2 = z.infer<typeof groupV2Schema>;
+export type GroupsV2Response = z.infer<typeof groupsV2ResponseSchema>;
+export type GroupSocialLink = z.infer<typeof groupSocialLinkSchema>;
 
 export const groupWallPostSchema = z.object({
   id: z.number(),
@@ -412,66 +418,70 @@ export const groupWallPostSchema = z.object({
         userId: z.number(),
         username: z.string(),
         displayName: z.string(),
-        hasVerifiedBadge: z.boolean().optional()
+        hasVerifiedBadge: z.boolean().optional(),
       }),
       role: z.object({
         id: z.number(),
         name: z.string(),
-        rank: z.number()
-      })
+        rank: z.number(),
+      }),
     })
     .nullable()
     .optional(),
   body: z.string(),
   created: z.string(),
-  updated: z.string()
-})
+  updated: z.string(),
+});
 
 export const groupWallPostsResponseSchema = z.object({
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(groupWallPostSchema)
-})
+  data: z.array(groupWallPostSchema),
+});
 
 export const groupMemberSchema = z.object({
   user: z.object({
     userId: z.number(),
     username: z.string(),
     displayName: z.string(),
-    hasVerifiedBadge: z.boolean().optional()
+    hasVerifiedBadge: z.boolean().optional(),
   }),
   role: z.object({
     id: z.number(),
     name: z.string(),
-    rank: z.number()
-  })
-})
+    rank: z.number(),
+  }),
+});
 
 export const groupMembersResponseSchema = z.object({
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(groupMemberSchema)
-})
+  data: z.array(groupMemberSchema),
+});
 
 export const groupRoleMemberSchema = z.object({
   hasVerifiedBadge: z.boolean().optional(),
   userId: z.number(),
   username: z.string(),
-  displayName: z.string()
-})
+  displayName: z.string(),
+});
 
 export const groupRoleMembersResponseSchema = z.object({
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(groupRoleMemberSchema)
-})
+  data: z.array(groupRoleMemberSchema),
+});
 
-export type GroupWallPost = z.infer<typeof groupWallPostSchema>
-export type GroupWallPostsResponse = z.infer<typeof groupWallPostsResponseSchema>
-export type GroupMember = z.infer<typeof groupMemberSchema>
-export type GroupMembersResponse = z.infer<typeof groupMembersResponseSchema>
-export type GroupRoleMember = z.infer<typeof groupRoleMemberSchema>
-export type GroupRoleMembersResponse = z.infer<typeof groupRoleMembersResponseSchema>
+export type GroupWallPost = z.infer<typeof groupWallPostSchema>;
+export type GroupWallPostsResponse = z.infer<
+  typeof groupWallPostsResponseSchema
+>;
+export type GroupMember = z.infer<typeof groupMemberSchema>;
+export type GroupMembersResponse = z.infer<typeof groupMembersResponseSchema>;
+export type GroupRoleMember = z.infer<typeof groupRoleMemberSchema>;
+export type GroupRoleMembersResponse = z.infer<
+  typeof groupRoleMembersResponseSchema
+>;
 
 export const groupStoreItemSchema = z.object({
   id: z.number(),
@@ -497,15 +507,15 @@ export const groupStoreItemSchema = z.object({
   itemStatus: z.array(z.string()).optional(),
   itemRestrictions: z.array(z.string()).optional(),
   unitsAvailableForConsumption: z.number().optional(),
-  productId: z.number().optional()
-})
+  productId: z.number().optional(),
+});
 
 export const groupStoreResponseSchema = z.object({
   keyword: z.string().nullable().optional(),
   previousPageCursor: z.string().nullable().optional(),
   nextPageCursor: z.string().nullable().optional(),
-  data: z.array(groupStoreItemSchema)
-})
+  data: z.array(groupStoreItemSchema),
+});
 
-export type GroupStoreItem = z.infer<typeof groupStoreItemSchema>
-export type GroupStoreResponse = z.infer<typeof groupStoreResponseSchema>
+export type GroupStoreItem = z.infer<typeof groupStoreItemSchema>;
+export type GroupStoreResponse = z.infer<typeof groupStoreResponseSchema>;

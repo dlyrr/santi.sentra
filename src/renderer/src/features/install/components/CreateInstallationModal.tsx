@@ -1,29 +1,37 @@
-import React, { useState, useEffect } from 'react'
-import { HardDrive, Loader2, Box, Laptop, FolderOpen, X } from 'lucide-react'
+import React, { useState, useEffect } from "react";
+import { HardDrive, Loader2, Box, Laptop, FolderOpen, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogBody
-} from '@renderer/components/UI/dialogs/Dialog'
-import CustomDropdown from '@renderer/components/UI/menus/CustomDropdown'
-import { BinaryType } from '@renderer/types'
-import { getApiType } from '../stores/useInstallationsStore'
+  DialogBody,
+} from "@renderer/components/UI/dialogs/Dialog";
+import CustomDropdown from "@renderer/components/UI/menus/CustomDropdown";
+import { BinaryType } from "@renderer/types";
+import { getApiType } from "../stores/useInstallationsStore";
 
 interface CreateInstallationModalProps {
-  isOpen: boolean
-  onClose: () => void
-  isMac: boolean
-  history: Record<string, string[]>
-  isInstalling: boolean
-  installProgress: { status: string; percent: number; detail: string }
-  onCreate: (name: string, type: BinaryType, version: string, channel: string, customPath?: string) => void
-  initialTab?: 'auto' | 'custom'
+  isOpen: boolean;
+  onClose: () => void;
+  isMac: boolean;
+  history: Record<string, string[]>;
+  isInstalling: boolean;
+  installProgress: { status: string; percent: number; detail: string };
+  onCreate: (
+    name: string,
+    type: BinaryType,
+    version: string,
+    channel: string,
+    customPath?: string,
+  ) => void;
+  initialTab?: "auto" | "custom";
 }
 
-export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = ({
+export const CreateInstallationModal: React.FC<
+  CreateInstallationModalProps
+> = ({
   isOpen,
   onClose,
   isMac,
@@ -31,80 +39,87 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
   isInstalling,
   installProgress,
   onCreate,
-  initialTab = 'auto'
+  initialTab = "auto",
 }) => {
-  const [activeTab, setActiveTab] = useState<'auto' | 'custom'>(initialTab)
-  const [newName, setNewName] = useState('')
+  const [activeTab, setActiveTab] = useState<"auto" | "custom">(initialTab);
+  const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<BinaryType>(
-    isMac ? BinaryType.MacPlayer : BinaryType.WindowsPlayer
-  )
-  const [newVersion, setNewVersion] = useState('')
-  const [newChannel, setNewChannel] = useState('live')
-  const [customPath, setCustomPath] = useState('')
-  const [freshHistory, setFreshHistory] = useState<Record<string, string[]>>(history)
+    isMac ? BinaryType.MacPlayer : BinaryType.WindowsPlayer,
+  );
+  const [newVersion, setNewVersion] = useState("");
+  const [newChannel, setNewChannel] = useState("live");
+  const [customPath, setCustomPath] = useState("");
+  const [freshHistory, setFreshHistory] =
+    useState<Record<string, string[]>>(history);
 
-  const availableVersions = freshHistory[getApiType(newType)] || []
+  const availableVersions = freshHistory[getApiType(newType)] || [];
 
   // Reset form when modal opens and load versions
   useEffect(() => {
     if (isOpen && !isInstalling) {
-      setActiveTab(initialTab)
-      setNewName('')
-      setNewType(isMac ? BinaryType.MacPlayer : BinaryType.WindowsPlayer)
-      setNewVersion('')
-      setNewChannel('live')
-      setCustomPath('');
+      setActiveTab(initialTab);
+      setNewName("");
+      setNewType(isMac ? BinaryType.MacPlayer : BinaryType.WindowsPlayer);
+      setNewVersion("");
+      setNewChannel("live");
+      setCustomPath("");
       // Force fresh deploy history fetch when modal opens (includes macOS versions)
       (async () => {
         try {
-          const freshData = await window.api.getDeployHistory(true)
-          setFreshHistory(freshData)
+          const freshData = await window.api.getDeployHistory(true);
+          setFreshHistory(freshData);
         } catch (e) {
-          console.error('Failed to load deploy history:', e instanceof Error ? e.message : String(e))
+          console.error(
+            "Failed to load deploy history:",
+            e instanceof Error ? e.message : String(e),
+          );
         }
-      })()
+      })();
     }
-  }, [isOpen, isMac, isInstalling, initialTab])
+  }, [isOpen, isMac, isInstalling, initialTab]);
 
   const handleChoosePath = async () => {
     try {
-      const path = await window.api.selectInstallationDirectory()
+      const path = await window.api.selectInstallationDirectory();
       if (path) {
-        setCustomPath(path)
+        setCustomPath(path);
       }
     } catch (error) {
-      console.error('Failed to choose installation path:', error instanceof Error ? error.message : String(error))
+      console.error(
+        "Failed to choose installation path:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
-  }
+  };
 
   const handleClearPath = () => {
-    setCustomPath('')
-  }
+    setCustomPath("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!newName.trim()) {
-      return
+      return;
     }
 
-    if (activeTab === 'custom') {
+    if (activeTab === "custom") {
       if (!customPath) {
-        return
+        return;
       }
-      onCreate(newName, newType, '', '', customPath)
+      onCreate(newName, newType, "", "", customPath);
     } else {
-      const version = newVersion || availableVersions[0]
+      const version = newVersion || availableVersions[0];
       if (!version) {
-        return
+        return;
       }
       // Pass customPath as undefined if not set; onCreate expects optional string or undefined
-      onCreate(newName, newType, version, newChannel, customPath || undefined)
+      onCreate(newName, newType, version, newChannel, customPath || undefined);
     }
-  }
+  };
 
   const binaryTypeOptions = isMac
     ? [BinaryType.MacPlayer, BinaryType.MacStudio]
-    : [BinaryType.WindowsPlayer, BinaryType.WindowsStudio]
+    : [BinaryType.WindowsPlayer, BinaryType.WindowsStudio];
 
   return (
     <Dialog isOpen={isOpen} onClose={() => !isInstalling && onClose()}>
@@ -116,7 +131,9 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
         <DialogBody>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Name</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                Name
+              </label>
               <input
                 type="text"
                 required
@@ -128,15 +145,18 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Type</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                Type
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 {binaryTypeOptions.map((type) => {
                   const isStudio =
-                    type === BinaryType.WindowsStudio || type === BinaryType.MacStudio
-                  const isSelected = newType === type
+                    type === BinaryType.WindowsStudio ||
+                    type === BinaryType.MacStudio;
+                  const isSelected = newType === type;
                   const selectedClasses = isStudio
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                    : 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                    ? "bg-blue-500/10 border-blue-500/50 text-blue-400"
+                    : "bg-emerald-500/10 border-emerald-500/50 text-emerald-400";
                   return (
                     <button
                       key={type}
@@ -145,13 +165,15 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                       className={`pressable flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         isSelected
                           ? selectedClasses
-                          : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                          : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                       }`}
                     >
                       {isStudio ? <Box size={20} /> : <Laptop size={20} />}
-                      <span className="text-sm font-medium">{isStudio ? 'Studio' : 'Player'}</span>
+                      <span className="text-sm font-medium">
+                        {isStudio ? "Studio" : "Player"}
+                      </span>
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -161,33 +183,35 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               <div className="flex gap-2 mb-4">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('auto')}
+                  onClick={() => setActiveTab("auto")}
                   className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === 'auto'
-                        ? 'bg-[var(--accent-color)] text-[var(--accent-color-foreground)]'
-                        : 'bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-                    }`}
-                  >
-                    Auto Install
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('custom')}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === 'custom'
-                        ? 'bg-[var(--accent-color)] text-[var(--accent-color-foreground)]'
-                        : 'bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-                    }`}
-                  >
-                    Custom Path
-                  </button>
-                </div>
+                    activeTab === "auto"
+                      ? "bg-[var(--accent-color)] text-[var(--accent-color-foreground)]"
+                      : "bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                  }`}
+                >
+                  Auto Install
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("custom")}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === "custom"
+                      ? "bg-[var(--accent-color)] text-[var(--accent-color-foreground)]"
+                      : "bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                  }`}
+                >
+                  Custom Path
+                </button>
+              </div>
 
               {/* Auto Install Tab */}
-              {activeTab === 'auto' && (
+              {activeTab === "auto" && (
                 <div className="grid grid-cols-2 gap-4 space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Version</label>
+                    <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                      Version
+                    </label>
                     {!history || Object.keys(history).length === 0 ? (
                       <div className="w-full px-4 py-2.5 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm flex items-center justify-center gap-2">
                         <Loader2 size={14} className="animate-spin" />
@@ -202,7 +226,8 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                         options={availableVersions.map((v) => ({
                           value: v,
                           label: v,
-                          subLabel: v === availableVersions[0] ? '(Latest)' : undefined
+                          subLabel:
+                            v === availableVersions[0] ? "(Latest)" : undefined,
                         }))}
                         value={newVersion}
                         onChange={setNewVersion}
@@ -212,7 +237,9 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Channel</label>
+                    <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                      Channel
+                    </label>
                     <input
                       type="text"
                       value={newChannel}
@@ -225,9 +252,11 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               )}
 
               {/* Custom Path Tab */}
-              {activeTab === 'custom' && (
+              {activeTab === "custom" && (
                 <div className="space-y-3">
-                  <p className="text-xs text-[var(--color-text-muted)]">Select the path to your existing Roblox installation</p>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    Select the path to your existing Roblox installation
+                  </p>
                   {!customPath ? (
                     <button
                       type="button"
@@ -240,7 +269,10 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                   ) : (
                     <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)]/50 flex items-center justify-between">
                       <div className="flex-1 text-sm truncate text-[var(--color-text-secondary)] flex items-center gap-2">
-                        <FolderOpen size={14} className="text-[var(--accent-color)] flex-shrink-0" />
+                        <FolderOpen
+                          size={14}
+                          className="text-[var(--accent-color)] flex-shrink-0"
+                        />
                         <span className="truncate">{customPath}</span>
                       </div>
                       <button
@@ -262,12 +294,16 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               disabled={
                 isInstalling ||
                 !newName ||
-                (activeTab === 'custom'
+                (activeTab === "custom"
                   ? !customPath
-                  : !history || Object.keys(history).length === 0 || (availableVersions.length === 0 && !newVersion && newChannel !== 'live'))
+                  : !history ||
+                    Object.keys(history).length === 0 ||
+                    (availableVersions.length === 0 &&
+                      !newVersion &&
+                      newChannel !== "live"))
               }
               className={`pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold rounded-lg transition-all border border-[var(--accent-color-border)] shadow-[0_10px_30px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed ${
-                isInstalling ? 'py-4' : 'py-3'
+                isInstalling ? "py-4" : "py-3"
               }`}
             >
               {isInstalling ? (
@@ -288,7 +324,9 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               ) : (
                 <>
                   <HardDrive size={18} />
-                  <span>{activeTab === 'custom' ? 'Add Installation' : 'Install'}</span>
+                  <span>
+                    {activeTab === "custom" ? "Add Installation" : "Install"}
+                  </span>
                 </>
               )}
             </button>
@@ -296,5 +334,5 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
         </DialogBody>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};

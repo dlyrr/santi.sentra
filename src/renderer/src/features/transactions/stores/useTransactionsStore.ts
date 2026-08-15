@@ -1,30 +1,33 @@
-import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
-import type { TransactionTypeEnum, TransactionTimeFrame } from '@shared/ipc-schemas/transactions'
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
+import type {
+  TransactionTypeEnum,
+  TransactionTimeFrame,
+} from "@shared/ipc-schemas/transactions";
 
 interface TransactionsState {
   // Filters
-  selectedTransactionType: TransactionTypeEnum | 'all'
-  timeFrame: TransactionTimeFrame
+  selectedTransactionType: TransactionTypeEnum | "all";
+  timeFrame: TransactionTimeFrame;
 
   // View state
-  showSummary: boolean
+  showSummary: boolean;
 }
 
 interface TransactionsActions {
-  setSelectedTransactionType: (type: TransactionTypeEnum | 'all') => void
-  setTimeFrame: (timeFrame: TransactionTimeFrame) => void
-  setShowSummary: (show: boolean) => void
-  clearFilters: () => void
+  setSelectedTransactionType: (type: TransactionTypeEnum | "all") => void;
+  setTimeFrame: (timeFrame: TransactionTimeFrame) => void;
+  setShowSummary: (show: boolean) => void;
+  clearFilters: () => void;
 }
 
-type TransactionsStore = TransactionsState & TransactionsActions
+type TransactionsStore = TransactionsState & TransactionsActions;
 
 const initialState: TransactionsState = {
-  selectedTransactionType: 'all',
-  timeFrame: 'Month',
-  showSummary: true
-}
+  selectedTransactionType: "all",
+  timeFrame: "Month",
+  showSummary: true,
+};
 
 export const useTransactionsStore = create<TransactionsStore>()(
   devtools(
@@ -33,41 +36,51 @@ export const useTransactionsStore = create<TransactionsStore>()(
         ...initialState,
 
         setSelectedTransactionType: (type) =>
-          set({ selectedTransactionType: type }, false, 'setSelectedTransactionType'),
+          set(
+            { selectedTransactionType: type },
+            false,
+            "setSelectedTransactionType",
+          ),
 
-        setTimeFrame: (timeFrame) => set({ timeFrame }, false, 'setTimeFrame'),
+        setTimeFrame: (timeFrame) => set({ timeFrame }, false, "setTimeFrame"),
 
-        setShowSummary: (show) => set({ showSummary: show }, false, 'setShowSummary'),
+        setShowSummary: (show) =>
+          set({ showSummary: show }, false, "setShowSummary"),
 
         clearFilters: () =>
           set(
             {
-              selectedTransactionType: 'all',
-              timeFrame: 'Month'
+              selectedTransactionType: "all",
+              timeFrame: "Month",
             },
             false,
-            'clearFilters'
-          )
+            "clearFilters",
+          ),
       }),
       {
-        name: 'transactions-storage',
+        name: "transactions-storage",
         partialize: (state) => ({
           showSummary: state.showSummary,
-          timeFrame: state.timeFrame
-        })
-      }
+          timeFrame: state.timeFrame,
+        }),
+      },
     ),
-    { name: 'TransactionsStore' }
-  )
-)
+    { name: "TransactionsStore" },
+  ),
+);
 
 // Selectors
 export const useSelectedTransactionType = () =>
-  useTransactionsStore((state) => state.selectedTransactionType)
+  useTransactionsStore((state) => state.selectedTransactionType);
 export const useSetSelectedTransactionType = () =>
-  useTransactionsStore((state) => state.setSelectedTransactionType)
-export const useTimeFrame = () => useTransactionsStore((state) => state.timeFrame)
-export const useSetTimeFrame = () => useTransactionsStore((state) => state.setTimeFrame)
-export const useShowSummary = () => useTransactionsStore((state) => state.showSummary)
-export const useSetShowSummary = () => useTransactionsStore((state) => state.setShowSummary)
-export const useClearTransactionFilters = () => useTransactionsStore((state) => state.clearFilters)
+  useTransactionsStore((state) => state.setSelectedTransactionType);
+export const useTimeFrame = () =>
+  useTransactionsStore((state) => state.timeFrame);
+export const useSetTimeFrame = () =>
+  useTransactionsStore((state) => state.setTimeFrame);
+export const useShowSummary = () =>
+  useTransactionsStore((state) => state.showSummary);
+export const useSetShowSummary = () =>
+  useTransactionsStore((state) => state.setShowSummary);
+export const useClearTransactionFilters = () =>
+  useTransactionsStore((state) => state.clearFilters);

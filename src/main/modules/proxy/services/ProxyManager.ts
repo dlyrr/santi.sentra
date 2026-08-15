@@ -1,24 +1,24 @@
-import type { ProxySession, ProxyPoolConfig } from '../types/ProxyTypes'
-import { ProxyPool } from './ProxyPool'
+import type { ProxySession, ProxyPoolConfig } from "../types/ProxyTypes";
+import { ProxyPool } from "./ProxyPool";
 
 export class ProxyManager {
-  private pool: ProxyPool
+  private pool: ProxyPool;
 
   constructor(_config: ProxyPoolConfig = {}) {
-    this.pool = new ProxyPool(_config)
+    this.pool = new ProxyPool(_config);
   }
 
   getPool(): ProxyPool {
-    return this.pool
+    return this.pool;
   }
 
   createSession(): ProxySession {
-    return { id: 'default' }
+    return { id: "default" };
   }
 }
 
 export class ProxyManagerFactory {
   static create(_config: ProxyPoolConfig = {}): ProxyManager {
-    return new ProxyManager(_config)
+    return new ProxyManager(_config);
   }
 }

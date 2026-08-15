@@ -5,10 +5,10 @@
 <!-- TODO: Add project logo (e.g., assets/logo.png) -->
 <!-- ![Logo](assets/logo.png) -->
 
-[![GitHub stars](https://img.shields.io/github/stars/sashaga2a24/installer?style=for-the-badge)](https://github.com/sashaga2a24/installer/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/sashaga2a24/installer?style=for-the-badge)](https://github.com/sashaga2a24/installer/network)
-[![GitHub issues](https://img.shields.io/github/issues/sashaga2a24/installer?style=for-the-badge)](https://github.com/sashaga2a24/installer/issues)
-[![GitHub license](https://img.shields.io/github/license/sashaga2a24/installer?style=for-the-badge)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/ex9d/sentra?style=for-the-badge)](https://github.com/ex9d/sentra/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/ex9d/sentra?style=for-the-badge)](https://github.com/ex9d/sentra/network)
+[![GitHub issues](https://img.shields.io/github/issues/ex9d/sentra?style=for-the-badge)](https://github.com/ex9d/sentra/issues)
+[![GitHub license](https://img.shields.io/github/license/ex9d/sentra?style=for-the-badge)](LICENSE)
 
 **A powerful, cross-platform desktop application for managing your Roblox accounts.**
 
@@ -79,7 +79,7 @@ Follow these steps to get Sentra up and running on your local machine for develo
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/sashaga2a24/sentra.git
+    git clone https://github.com/ex9d/sentra.git
     cd sentra
     ```
 
@@ -98,40 +98,6 @@ Follow these steps to get Sentra up and running on your local machine for develo
     ```
     This will launch the Electron application in development mode, complete with hot-reloading for both the main and renderer processes.
 
-## 📁 Project Structure
-
-```
-sentra/
-├── assets/                     # Static assets like images and icons
-├── main/                       # Electron main process source code (handles native desktop interactions)
-│   └── index.ts                # Main entry file for the Electron process
-├── preload/                    # Electron preload scripts (securely bridge main and renderer processes)
-│   └── index.ts                # Preload script for contextBridge
-├── resources/                  # Additional resources for the packaged application
-├── shared/                     # Code shared between main and renderer processes (e.g., IPC types)
-├── src/                        # React renderer process source code (the user interface)
-│   ├── App.tsx                 # Main React component
-│   ├── components/             # Reusable UI components
-│   ├── pages/                  # Application pages/views
-│   ├── store/                  # Redux Toolkit store and slices
-│   ├── styles/                 # Tailwind CSS configuration and base styles
-│   ├── hooks/                  # Custom React hooks
-│   └── index.css               # Global CSS
-├── .github/                    # GitHub specific files (e.g., workflows, templates) - not present in data, but good practice
-├── LICENSE                     # Project license (GNU General Public License v3.0)
-├── PRIVACY.md                  # Privacy policy documentation
-├── README.md                   # This README file
-├── dev-app-update.yml          # Configuration for Electron auto-updates during development
-├── electron-builder.yml        # Configuration for packaging and building the Electron application
-├── electron.vite.config.ts     # Configuration for Electron-Vite build process
-├── eslint.config.mjs           # ESLint configuration for code quality
-├── package.json                # Project metadata, scripts, and dependencies
-├── package-lock.json           # npm dependency lock file
-├── remove_comments.py          # Utility script (Python) for removing comments from files
-├── tsconfig.json               # Base TypeScript configuration
-├── tsconfig.node.json          # TypeScript configuration specific to Node.js environments (main/preload)
-└── tsconfig.web.json           # TypeScript configuration specific to web environments (renderer)
-```
 
 ## ⚙️ Configuration
 
@@ -164,7 +130,6 @@ While no `.env.example` file is provided, sensitive keys or configuration parame
 -   Write code in `src/`, `main/`, `preload/`, and `shared/` directories.
 -   Use `npm run dev` to see changes live with hot-reloading.
 -   Ensure code quality with `npm run lint` and `npm run format`.
--   For Python utilities, `remove_comments.py` can be used to process source files.
 
 ## 🧪 Testing
 
@@ -222,7 +187,7 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE) - 
 
 ## 📞 Support & Contact
 
--   🐛 Issues: Feel free to report any bugs or suggest features on the [GitHub Issues page](https://github.com/sashaga2a24/sentra/issues).
+-   🐛 Issues: Feel free to report any bugs or suggest features on the [GitHub Issues page](https://github.com/ex9d/sentra/issues).
 
 ---
 
@@ -230,7 +195,7 @@ This project is licensed under the [GNU General Public License v3.0](LICENSE) - 
 
 **⭐ Star this repo if you find it helpful!**
 
-Made with ❤️ by [sashaga2a24](https://github.com/sashaga2a24)
-Credits to : TITAN Spoofer https://github.com/dutchpsycho/TITAN-Spoofer-Byfron/tree/master (removed from project in latest version)
+Made with ❤️ by [ex9d](https://github.com/ex9d)
+Credits to : RAM,Spoofer.logic which was recoded to work with Sentra. 
 
 </div>

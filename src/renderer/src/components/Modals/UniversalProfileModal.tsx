@@ -1,42 +1,53 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react'
-import type { Account, AccountStatus } from '@renderer/types'
-import { Sheet, SheetContent, SheetHandle, SheetBody } from '@renderer/components/UI/dialogs/Sheet'
+import React, { useState, useEffect, lazy, Suspense } from "react";
+import type { Account, AccountStatus } from "@renderer/types";
+import {
+  Sheet,
+  SheetContent,
+  SheetHandle,
+  SheetBody,
+} from "@renderer/components/UI/dialogs/Sheet";
 
-const UserProfileView = lazy(() => import('@renderer/features/profile/UserProfileView'))
+const UserProfileView = lazy(
+  () => import("@renderer/features/profile/UserProfileView"),
+);
 
 interface UniversalProfileModalProps {
-  isOpen: boolean
-  onClose: () => void
-  userId: string | number | null
-  selectedAccount: Account | null // Context for making API calls (needs a cookie)
-  privacyMode?: boolean
-  initialData?: Partial<ExtendedProfile> | null // Optional immediate data
-  onJoinGame?: (placeId: number | string, jobId?: string, userId?: number | string) => void
+  isOpen: boolean;
+  onClose: () => void;
+  userId: string | number | null;
+  selectedAccount: Account | null; // Context for making API calls (needs a cookie)
+  privacyMode?: boolean;
+  initialData?: Partial<ExtendedProfile> | null; // Optional immediate data
+  onJoinGame?: (
+    placeId: number | string,
+    jobId?: string,
+    userId?: number | string,
+  ) => void;
 }
 
 export interface ExtendedProfile {
-  id: number
-  name: string // username
-  displayName: string
-  description: string
-  created: string
-  isBanned: boolean
-  externalAppDisplayName: string | null
+  id: number;
+  name: string; // username
+  displayName: string;
+  description: string;
+  created: string;
+  isBanned: boolean;
+  externalAppDisplayName: string | null;
 
   // Stats
-  followerCount: number
-  followingCount: number
-  friendCount: number
+  followerCount: number;
+  followingCount: number;
+  friendCount: number;
 
   // Extended
-  isPremium: boolean
-  isAdmin: boolean
-  avatarImageUrl: string | null // Full body render
-  headshotUrl: string | null
+  isPremium: boolean;
+  isAdmin: boolean;
+  avatarImageUrl: string | null; // Full body render
+  headshotUrl: string | null;
 
   // Status
-  status?: AccountStatus
-  lastLocation?: string
+  status?: AccountStatus;
+  lastLocation?: string;
 }
 
 const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
@@ -46,15 +57,17 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
   selectedAccount,
   privacyMode,
   initialData,
-  onJoinGame
+  onJoinGame,
 }) => {
-  const [activeUserId, setActiveUserId] = useState<string | number | null>(userId)
+  const [activeUserId, setActiveUserId] = useState<string | number | null>(
+    userId,
+  );
 
   useEffect(() => {
     if (isOpen) {
-      setActiveUserId(userId) // Reset/Update active user when modal opens or userId prop changes
+      setActiveUserId(userId); // Reset/Update active user when modal opens or userId prop changes
     }
-  }, [isOpen, userId])
+  }, [isOpen, userId]);
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose}>
@@ -62,7 +75,10 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
         <SheetHandle />
         <SheetBody>
           {activeUserId && selectedAccount?.cookie ? (
-            <div key={activeUserId?.toString()} className="h-full w-full animate-profile-swap">
+            <div
+              key={activeUserId?.toString()}
+              className="h-full w-full animate-profile-swap"
+            >
               <Suspense
                 fallback={
                   <div className="flex h-full items-center justify-center text-[var(--color-text-muted)]">
@@ -92,7 +108,7 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
                           followerCount: initialData.followerCount,
                           followingCount: initialData.followingCount,
                           isPremium: initialData.isPremium,
-                          isAdmin: initialData.isAdmin
+                          isAdmin: initialData.isAdmin,
                         }
                       : undefined
                   }
@@ -102,14 +118,14 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
           ) : (
             <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
               {selectedAccount?.cookie
-                ? 'No User Selected'
-                : 'Please select an account to view profiles'}
+                ? "No User Selected"
+                : "Please select an account to view profiles"}
             </div>
           )}
         </SheetBody>
       </SheetContent>
     </Sheet>
-  )
-}
+  );
+};
 
-export default UniversalProfileModal
+export default UniversalProfileModal;

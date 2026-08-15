@@ -1,56 +1,73 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Server, Wifi, ArrowRight, Loader2, ArrowUp, ArrowDown } from 'lucide-react'
-import * as Flags from 'country-flag-icons/react/3x2'
-import countries from 'i18n-iso-countries'
-import enLocale from 'i18n-iso-countries/langs/en.json'
-import { GameServer } from '@renderer/types'
-import { getPingColor } from '@renderer/utils/serverUtils'
-import CustomCheckbox from '@renderer/components/UI/buttons/CustomCheckbox'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { useGameServers } from '@renderer/hooks/queries/index'
-import { ErrorMessage } from '@renderer/components/UI/feedback/ErrorMessage'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { useServerStore } from '@renderer/stores/serverStore'
-import { ConfirmModal } from '@renderer/components/UI/dialogs/ConfirmModal'
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
+import {
+  Server,
+  Wifi,
+  ArrowRight,
+  Loader2,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+import * as Flags from "country-flag-icons/react/3x2";
+import countries from "i18n-iso-countries";
+import enLocale from "i18n-iso-countries/langs/en.json";
+import { GameServer } from "@renderer/types";
+import { getPingColor } from "@renderer/utils/serverUtils";
+import CustomCheckbox from "@renderer/components/UI/buttons/CustomCheckbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { useGameServers } from "@renderer/hooks/queries/index";
+import { ErrorMessage } from "@renderer/components/UI/feedback/ErrorMessage";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import { useServerStore } from "@renderer/stores/serverStore";
+import { ConfirmModal } from "@renderer/components/UI/dialogs/ConfirmModal";
 
-countries.registerLocale(enLocale)
+countries.registerLocale(enLocale);
 
 const RegionDisplay = ({ regionString }: { regionString: string }) => {
   const renderSimpleRegion = (text: string) => (
     <Tooltip>
       <TooltipTrigger asChild>
         <span
-          className={`truncate ${text === 'Queued' ? 'text-yellow-400' : ''} ${text === 'Locating...' ? 'text-blue-400' : ''}`}
+          className={`truncate ${text === "Queued" ? "text-yellow-400" : ""} ${text === "Locating..." ? "text-blue-400" : ""}`}
         >
           {text}
         </span>
       </TooltipTrigger>
       <TooltipContent>{text}</TooltipContent>
     </Tooltip>
-  )
+  );
 
   if (
     !regionString ||
-    regionString === 'Unknown' ||
-    regionString === 'Failed' ||
-    regionString === 'Full/Restricted' ||
-    regionString === 'Queued' ||
-    regionString === 'Locating...' ||
-    regionString === 'Full'
+    regionString === "Unknown" ||
+    regionString === "Failed" ||
+    regionString === "Full/Restricted" ||
+    regionString === "Queued" ||
+    regionString === "Locating..." ||
+    regionString === "Full"
   ) {
-    return renderSimpleRegion(regionString || 'Unknown')
+    return renderSimpleRegion(regionString || "Unknown");
   }
 
-  const parts = regionString.split(',')
+  const parts = regionString.split(",");
   if (parts.length < 2) {
-    return renderSimpleRegion(regionString)
+    return renderSimpleRegion(regionString);
   }
 
-  const countryCode = parts[0].trim().toUpperCase()
-  const regionName = parts.slice(1).join(',').trim()
+  const countryCode = parts[0].trim().toUpperCase();
+  const regionName = parts.slice(1).join(",").trim();
 
-  const FlagComponent = (Flags as any)[countryCode]
-  const countryName = countries.getName(countryCode, 'en') || countryCode
+  const FlagComponent = (Flags as any)[countryCode];
+  const countryName = countries.getName(countryCode, "en") || countryCode;
 
   return (
     <Tooltip>
@@ -68,29 +85,31 @@ const RegionDisplay = ({ regionString }: { regionString: string }) => {
       </TooltipTrigger>
       <TooltipContent>{`${countryName}, ${regionName}`}</TooltipContent>
     </Tooltip>
-  )
-}
+  );
+};
 
 interface ServersListProps {
-  placeId: string
-  onJoin: (jobId: string) => void
+  placeId: string;
+  onJoin: (jobId: string) => void;
 }
 
-type SortKey = 'ping' | 'playing' | 'region' | null
-type SortDirection = 'asc' | 'desc'
+type SortKey = "ping" | "playing" | "region" | null;
+type SortDirection = "asc" | "desc";
 
 const ServersList = ({ placeId, onJoin }: ServersListProps) => {
-  const [excludeFullGames, setExcludeFullGames] = useState(false)
-  const [checkingRegions, setCheckingRegions] = useState<Record<string, boolean>>({})
-  const isPreferenceLoaded = useRef(false)
-  const ipQueue = useRef<{ id: string; address: string }[]>([])
+  const [excludeFullGames, setExcludeFullGames] = useState(false);
+  const [checkingRegions, setCheckingRegions] = useState<
+    Record<string, boolean>
+  >({});
+  const isPreferenceLoaded = useRef(false);
+  const ipQueue = useRef<{ id: string; address: string }[]>([]);
 
-  const [sortKey, setSortKey] = useState<SortKey>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  const [selectedServerId, setSelectedServerId] = useState<string | null>(null)
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
 
   // Zustand Store
-  const { regions, setRegion, setRegions } = useServerStore()
+  const { regions, setRegion, setRegions } = useServerStore();
 
   // TanStack Query hooks
   const {
@@ -99,220 +118,231 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
     error: serversError,
     fetchNextPage,
     hasNextPage,
-    isFetchingNextPage
-  } = useGameServers(placeId, excludeFullGames, !!placeId)
+    isFetchingNextPage,
+  } = useGameServers(placeId, excludeFullGames, !!placeId);
 
   // Flatten pages into a single array
   const servers = useMemo(() => {
-    if (!serversData?.pages) return []
-    return serversData.pages.flatMap((page) => page.data)
-  }, [serversData])
+    if (!serversData?.pages) return [];
+    return serversData.pages.flatMap((page) => page.data);
+  }, [serversData]);
 
-  const error = serversError ? 'Failed to load servers.' : null
+  const error = serversError ? "Failed to load servers." : null;
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
-      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
-      setSortKey(key)
+      setSortKey(key);
       // Default directions: Players -> Desc, Ping -> Asc, Region -> Asc
-      if (key === 'playing') {
-        setSortDirection('desc')
+      if (key === "playing") {
+        setSortDirection("desc");
       } else {
-        setSortDirection('asc')
+        setSortDirection("asc");
       }
     }
-  }
+  };
 
   // Merge query data with store regions
   const serversWithPreservedRegions = useMemo(() => {
     return servers.map((s) => {
-      const storedRegion = regions[s.id]
+      const storedRegion = regions[s.id];
       if (storedRegion) {
-        return { ...s, region: storedRegion }
+        return { ...s, region: storedRegion };
       }
-      return s
-    })
-  }, [servers, regions])
+      return s;
+    });
+  }, [servers, regions]);
 
   const filteredServers = useMemo(() => {
-    if (!excludeFullGames) return serversWithPreservedRegions
+    if (!excludeFullGames) return serversWithPreservedRegions;
 
     return serversWithPreservedRegions.filter((s) => {
-      const region = s.region
-      const isFullByCount = s.playing >= s.maxPlayers
-      const isFullByRegion = region === 'Full' || region === 'Full/Restricted'
-      const isQueued = region === 'Queued'
+      const region = s.region;
+      const isFullByCount = s.playing >= s.maxPlayers;
+      const isFullByRegion = region === "Full" || region === "Full/Restricted";
+      const isQueued = region === "Queued";
 
-      return !(isFullByCount || isFullByRegion || isQueued)
-    })
-  }, [serversWithPreservedRegions, excludeFullGames])
+      return !(isFullByCount || isFullByRegion || isQueued);
+    });
+  }, [serversWithPreservedRegions, excludeFullGames]);
 
   const sortedServers = React.useMemo(() => {
-    if (!sortKey) return filteredServers
+    if (!sortKey) return filteredServers;
 
     return [...filteredServers].sort((a, b) => {
-      let aValue = a[sortKey]
-      let bValue = b[sortKey]
+      let aValue = a[sortKey];
+      let bValue = b[sortKey];
 
       // Handle numeric vs string comparison
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        aValue = aValue.toLowerCase()
-        bValue = bValue.toLowerCase()
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
       }
 
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
-      return 0
-    })
-  }, [filteredServers, sortKey, sortDirection])
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filteredServers, sortKey, sortDirection]);
 
   // Load saved excludeFullGames preference on mount
   useEffect(() => {
     const loadPreference = async () => {
       try {
-        const savedPreference = await window.api.getExcludeFullGames()
-        setExcludeFullGames(savedPreference)
-        isPreferenceLoaded.current = true
+        const savedPreference = await window.api.getExcludeFullGames();
+        setExcludeFullGames(savedPreference);
+        isPreferenceLoaded.current = true;
       } catch (error) {
-        console.error('Failed to load excludeFullGames preference:', error instanceof Error ? error.message : String(error))
-        isPreferenceLoaded.current = true
+        console.error(
+          "Failed to load excludeFullGames preference:",
+          error instanceof Error ? error.message : String(error),
+        );
+        isPreferenceLoaded.current = true;
       }
-    }
-    loadPreference()
-  }, [])
+    };
+    loadPreference();
+  }, []);
 
   // Save excludeFullGames preference when it changes (but not on initial load)
   useEffect(() => {
-    if (!isPreferenceLoaded.current) return
+    if (!isPreferenceLoaded.current) return;
 
     const savePreference = async () => {
       try {
-        await window.api.setExcludeFullGames(excludeFullGames)
+        await window.api.setExcludeFullGames(excludeFullGames);
       } catch (error) {
-        console.error('Failed to save excludeFullGames preference:', error instanceof Error ? error.message : String(error))
+        console.error(
+          "Failed to save excludeFullGames preference:",
+          error instanceof Error ? error.message : String(error),
+        );
       }
-    }
-    savePreference()
-  }, [excludeFullGames])
+    };
+    savePreference();
+  }, [excludeFullGames]);
 
   const checkRobloxStatus = useCallback(
     async (server: GameServer) => {
-      if (checkingRegions[server.id]) return
+      if (checkingRegions[server.id]) return;
 
-      setCheckingRegions((prev) => ({ ...prev, [server.id]: true }))
+      setCheckingRegions((prev) => ({ ...prev, [server.id]: true }));
 
       try {
-        const result = await window.api.getJoinScript(server.placeId, server.id)
+        const result = await window.api.getJoinScript(
+          server.placeId,
+          server.id,
+        );
 
         if (result.status === 22) {
-          setRegion(server.id, 'Queued')
+          setRegion(server.id, "Queued");
         } else if (result.status === 10 || result.status === 6) {
-          setRegion(server.id, 'Full')
+          setRegion(server.id, "Full");
         } else if (result.joinScript?.UdmuxEndpoints?.[0]?.Address) {
-          const address = result.joinScript.UdmuxEndpoints[0].Address
-          ipQueue.current.push({ id: server.id, address })
-          setRegion(server.id, 'Locating...')
+          const address = result.joinScript.UdmuxEndpoints[0].Address;
+          ipQueue.current.push({ id: server.id, address });
+          setRegion(server.id, "Locating...");
         } else {
-          setRegion(server.id, 'Failed')
+          setRegion(server.id, "Failed");
         }
       } catch (e) {
-        console.error('Roblox check failed', e)
-        setRegion(server.id, 'Failed')
+        console.error("Roblox check failed", e);
+        setRegion(server.id, "Failed");
       } finally {
         setCheckingRegions((prev) => {
-          const next = { ...prev }
-          delete next[server.id]
-          return next
-        })
+          const next = { ...prev };
+          delete next[server.id];
+          return next;
+        });
       }
     },
-    [setRegion, checkingRegions]
-  )
+    [setRegion, checkingRegions],
+  );
 
   const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage()
+      fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const observerRef = useRef<HTMLTableRowElement | null>(null)
+  const observerRef = useRef<HTMLTableRowElement | null>(null);
 
   // Loop 1: Dispatch Roblox Checks (High Concurrency)
   useEffect(() => {
     const candidates = filteredServers.filter(
-      (s) => s.region === 'Unknown' && !checkingRegions[s.id] && !regions[s.id] // Don't check if we already have it in store
-    )
+      (s) => s.region === "Unknown" && !checkingRegions[s.id] && !regions[s.id], // Don't check if we already have it in store
+    );
 
-    const currentChecking = Object.keys(checkingRegions).length
-    const availableSlots = 8 - currentChecking // Concurrency limit 8
+    const currentChecking = Object.keys(checkingRegions).length;
+    const availableSlots = 8 - currentChecking; // Concurrency limit 8
 
     if (availableSlots > 0 && candidates.length > 0) {
-      const toCheck = candidates.slice(0, availableSlots)
-      toCheck.forEach((s) => checkRobloxStatus(s))
+      const toCheck = candidates.slice(0, availableSlots);
+      toCheck.forEach((s) => checkRobloxStatus(s));
     }
-  }, [filteredServers, checkingRegions, checkRobloxStatus, regions])
+  }, [filteredServers, checkingRegions, checkRobloxStatus, regions]);
 
   // Loop 2: Process IP Queue (Batch)
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (ipQueue.current.length === 0) return
+      if (ipQueue.current.length === 0) return;
 
       // Take up to 100 items (ip-api batch limit)
-      const items = ipQueue.current.splice(0, 100)
-      if (items.length === 0) return
+      const items = ipQueue.current.splice(0, 100);
+      if (items.length === 0) return;
 
-      const addresses = items.map((i) => i.address)
+      const addresses = items.map((i) => i.address);
 
       try {
-        const regionMap = await window.api.getRegionsBatch(addresses)
+        const regionMap = await window.api.getRegionsBatch(addresses);
 
-        const updates: Record<string, string> = {}
+        const updates: Record<string, string> = {};
         items.forEach((item) => {
           if (regionMap[item.address]) {
-            updates[item.id] = regionMap[item.address]
+            updates[item.id] = regionMap[item.address];
           } else {
-            updates[item.id] = 'Failed'
+            updates[item.id] = "Failed";
           }
-        })
+        });
 
-        setRegions(updates)
+        setRegions(updates);
       } catch (e) {
-        console.error('Batch region update failed', e)
+        console.error("Batch region update failed", e);
         // Mark as failed
-        const updates: Record<string, string> = {}
+        const updates: Record<string, string> = {};
         items.forEach((item) => {
-          updates[item.id] = 'Failed'
-        })
-        setRegions(updates)
+          updates[item.id] = "Failed";
+        });
+        setRegions(updates);
       }
-    }, 2000)
+    }, 2000);
 
-    return () => clearInterval(interval)
-  }, [setRegions])
+    return () => clearInterval(interval);
+  }, [setRegions]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          handleLoadMore()
+          handleLoadMore();
         }
       },
-      { threshold: 0.1 }
-    )
+      { threshold: 0.1 },
+    );
 
     if (observerRef.current) {
-      observer.observe(observerRef.current)
+      observer.observe(observerRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [handleLoadMore, hasNextPage, isFetchingNextPage])
+    return () => observer.disconnect();
+  }, [handleLoadMore, hasNextPage, isFetchingNextPage]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-app-bg)]/50 rounded-lg border border-[var(--color-border)]/50 overflow-hidden">
       <div className="shrink-0 h-12 bg-[var(--color-surface)]/50 border-b border-[var(--color-border)]/50 flex items-center justify-between px-4 z-20">
         <div className="text-sm font-medium text-[var(--color-text-secondary)]">
-          {sortedServers.length > 0 ? `${sortedServers.length} Servers` : 'Server List'}
+          {sortedServers.length > 0
+            ? `${sortedServers.length} Servers`
+            : "Server List"}
         </div>
 
         <div className="flex items-center gap-4">
@@ -362,12 +392,12 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[25%]">
                       <div
-                        onClick={() => handleSort('region')}
+                        onClick={() => handleSort("region")}
                         className="flex items-center gap-2 cursor-pointer select-none text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                       >
                         Region
-                        {sortKey === 'region' &&
-                          (sortDirection === 'asc' ? (
+                        {sortKey === "region" &&
+                          (sortDirection === "asc" ? (
                             <ArrowUp size={12} />
                           ) : (
                             <ArrowDown size={12} />
@@ -376,12 +406,12 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[15%]">
                       <div
-                        onClick={() => handleSort('playing')}
+                        onClick={() => handleSort("playing")}
                         className="flex items-center gap-2 cursor-pointer select-none text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                       >
                         Players
-                        {sortKey === 'playing' &&
-                          (sortDirection === 'asc' ? (
+                        {sortKey === "playing" &&
+                          (sortDirection === "asc" ? (
                             <ArrowUp size={12} />
                           ) : (
                             <ArrowDown size={12} />
@@ -390,12 +420,12 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[15%]">
                       <div
-                        onClick={() => handleSort('ping')}
+                        onClick={() => handleSort("ping")}
                         className="flex items-center gap-2 cursor-pointer select-none text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                       >
                         Ping
-                        {sortKey === 'ping' &&
-                          (sortDirection === 'asc' ? (
+                        {sortKey === "ping" &&
+                          (sortDirection === "asc" ? (
                             <ArrowUp size={12} />
                           ) : (
                             <ArrowDown size={12} />
@@ -423,29 +453,35 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)]">
                         <div className="flex items-center gap-2">
-                          {server.region === 'Unknown' ? (
+                          {server.region === "Unknown" ? (
                             <>
                               {server.playing >= server.maxPlayers ? (
                                 <button
                                   onClick={(e) => {
-                                    e.stopPropagation()
-                                    checkRobloxStatus(server)
+                                    e.stopPropagation();
+                                    checkRobloxStatus(server);
                                   }}
                                   disabled={checkingRegions[server.id]}
                                   className="pressable px-2 py-1 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded text-xs text-[var(--color-text-secondary)] transition-colors disabled:opacity-50 flex items-center gap-1"
                                 >
                                   {checkingRegions[server.id] ? (
-                                    <Loader2 size={10} className="animate-spin" />
+                                    <Loader2
+                                      size={10}
+                                      className="animate-spin"
+                                    />
                                   ) : (
-                                    'Check'
+                                    "Check"
                                   )}
                                 </button>
                               ) : (
                                 <span className="text-[var(--color-text-muted)] text-xs flex items-center gap-1">
                                   {checkingRegions[server.id] ? (
-                                    <Loader2 size={10} className="animate-spin" />
+                                    <Loader2
+                                      size={10}
+                                      className="animate-spin"
+                                    />
                                   ) : (
-                                    '...'
+                                    "..."
                                   )}
                                 </span>
                               )}
@@ -456,13 +492,20 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-[var(--color-text-secondary)]">
-                        {server.playing}{' '}
-                        <span className="text-[var(--color-text-muted)] text-xs">/ {server.maxPlayers}</span>
+                        {server.playing}{" "}
+                        <span className="text-[var(--color-text-muted)] text-xs">
+                          / {server.maxPlayers}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Wifi size={14} className={getPingColor(server.ping)} />
-                          <span className={`text-xs font-medium ${getPingColor(server.ping)}`}>
+                          <Wifi
+                            size={14}
+                            className={getPingColor(server.ping)}
+                          />
+                          <span
+                            className={`text-xs font-medium ${getPingColor(server.ping)}`}
+                          >
                             {server.ping} ms
                           </span>
                         </div>
@@ -501,7 +544,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
         onClose={() => setSelectedServerId(null)}
         onConfirm={() => {
           if (selectedServerId) {
-            onJoin(selectedServerId)
+            onJoin(selectedServerId);
           }
         }}
         title="Join Server"
@@ -510,7 +553,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
         cancelText="Cancel"
       />
     </div>
-  )
-}
+  );
+};
 
-export default ServersList
+export default ServersList;

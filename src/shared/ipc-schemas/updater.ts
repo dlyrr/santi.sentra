@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 // ============================================================================
 // UPDATER SCHEMAS
@@ -11,40 +11,40 @@ export const updateInfoSchema = z.object({
   releaseNotes: z
     .union([z.string(), z.array(z.unknown())])
     .optional()
-    .nullable()
-})
+    .nullable(),
+});
 
 export const progressInfoSchema = z.object({
   total: z.number(),
   delta: z.number(),
   transferred: z.number(),
   percent: z.number(),
-  bytesPerSecond: z.number()
-})
+  bytesPerSecond: z.number(),
+});
 
 export const updateStatusSchema = z.enum([
-  'idle',
-  'checking',
-  'available',
-  'not-available',
-  'downloading',
-  'downloaded',
-  'error'
-])
+  "idle",
+  "checking",
+  "available",
+  "not-available",
+  "downloading",
+  "downloaded",
+  "error",
+]);
 
 export const updateStateSchema = z.object({
   status: updateStatusSchema,
   info: updateInfoSchema.nullable(),
   progress: progressInfoSchema.nullable(),
-  error: z.string().nullable()
-})
+  error: z.string().nullable(),
+});
 
 export const updateActionResultSchema = z.object({
-  success: z.boolean()
-})
+  success: z.boolean(),
+});
 
-export type UpdateInfo = z.infer<typeof updateInfoSchema>
-export type ProgressInfo = z.infer<typeof progressInfoSchema>
-export type UpdateStatus = z.infer<typeof updateStatusSchema>
-export type UpdateState = z.infer<typeof updateStateSchema>
-export type UpdateActionResult = z.infer<typeof updateActionResultSchema>
+export type UpdateInfo = z.infer<typeof updateInfoSchema>;
+export type ProgressInfo = z.infer<typeof progressInfoSchema>;
+export type UpdateStatus = z.infer<typeof updateStatusSchema>;
+export type UpdateState = z.infer<typeof updateStateSchema>;
+export type UpdateActionResult = z.infer<typeof updateActionResultSchema>;

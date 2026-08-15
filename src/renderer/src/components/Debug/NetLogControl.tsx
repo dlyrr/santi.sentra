@@ -10,92 +10,92 @@
  * - Use the IPC calls directly: window.api.getNetLogStatus(), etc.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from "react";
 
 export function NetLogControl() {
-  const [isLogging, setIsLogging] = useState(false)
-  const [logPath, setLogPath] = useState<string | null>(null)
-  const [statusMessage, setStatusMessage] = useState('')
+  const [isLogging, setIsLogging] = useState(false);
+  const [logPath, setLogPath] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
-    checkStatus()
-  }, [])
+    checkStatus();
+  }, []);
 
   const checkStatus = async () => {
     try {
-      const status = await window.api.getNetLogStatus()
-      setIsLogging(status.isLogging)
-      setLogPath(status.logPath)
+      const status = await window.api.getNetLogStatus();
+      setIsLogging(status.isLogging);
+      setLogPath(status.logPath);
     } catch (error) {
-      console.error('Failed to get net-log status:', error)
+      console.error("Failed to get net-log status:", error);
     }
-  }
+  };
 
   const handleStart = async () => {
     try {
-      const result = await window.api.startNetLog()
-      setStatusMessage(result.message)
+      const result = await window.api.startNetLog();
+      setStatusMessage(result.message);
       if (result.success) {
-        await checkStatus()
+        await checkStatus();
       }
     } catch (error) {
-      console.error('Failed to start net-log:', error)
-      setStatusMessage('Failed to start logging')
+      console.error("Failed to start net-log:", error);
+      setStatusMessage("Failed to start logging");
     }
-  }
+  };
 
   const handleStop = async () => {
     try {
-      const result = await window.api.stopNetLog()
-      setStatusMessage(result.message)
+      const result = await window.api.stopNetLog();
+      setStatusMessage(result.message);
       if (result.success) {
-        await checkStatus()
+        await checkStatus();
       }
     } catch (error) {
-      console.error('Failed to stop net-log:', error)
-      setStatusMessage('Failed to stop logging')
+      console.error("Failed to stop net-log:", error);
+      setStatusMessage("Failed to stop logging");
     }
-  }
+  };
 
   const copyPath = () => {
     if (logPath) {
-      navigator.clipboard.writeText(logPath)
-      setStatusMessage('Path copied to clipboard!')
+      navigator.clipboard.writeText(logPath);
+      setStatusMessage("Path copied to clipboard!");
     }
-  }
+  };
 
   return (
     <div
       style={{
-        padding: '20px',
-        border: '1px solid #333',
-        borderRadius: '8px',
-        backgroundColor: '#1a1a1a',
-        color: '#fff',
-        maxWidth: '600px'
+        padding: "20px",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        backgroundColor: "#1a1a1a",
+        color: "#fff",
+        maxWidth: "600px",
       }}
     >
       <h3 style={{ marginTop: 0 }}>Network Logging Control</h3>
 
-      <div style={{ marginBottom: '15px' }}>
-        <strong>Status:</strong>{' '}
-        <span style={{ color: isLogging ? '#4ade80' : '#f87171' }}>
-          {isLogging ? 'Active' : 'Inactive'}
+      <div style={{ marginBottom: "15px" }}>
+        <strong>Status:</strong>{" "}
+        <span style={{ color: isLogging ? "#4ade80" : "#f87171" }}>
+          {isLogging ? "Active" : "Inactive"}
         </span>
       </div>
 
       {logPath && (
-        <div style={{ marginBottom: '15px' }}>
+        <div style={{ marginBottom: "15px" }}>
           <strong>Log File:</strong>
           <div
             style={{
-              marginTop: '5px',
-              padding: '8px',
-              backgroundColor: '#2a2a2a',
-              borderRadius: '4px',
-              fontSize: '12px',
-              wordBreak: 'break-all',
-              fontFamily: 'monospace'
+              marginTop: "5px",
+              padding: "8px",
+              backgroundColor: "#2a2a2a",
+              borderRadius: "4px",
+              fontSize: "12px",
+              wordBreak: "break-all",
+              fontFamily: "monospace",
             }}
           >
             {logPath}
@@ -103,10 +103,10 @@ export function NetLogControl() {
           <button
             onClick={copyPath}
             style={{
-              marginTop: '5px',
-              padding: '4px 8px',
-              fontSize: '12px',
-              cursor: 'pointer'
+              marginTop: "5px",
+              padding: "4px 8px",
+              fontSize: "12px",
+              cursor: "pointer",
             }}
           >
             Copy Path
@@ -117,29 +117,29 @@ export function NetLogControl() {
       {statusMessage && (
         <div
           style={{
-            marginBottom: '15px',
-            padding: '10px',
-            backgroundColor: '#2a2a2a',
-            borderRadius: '4px',
-            fontSize: '14px'
+            marginBottom: "15px",
+            padding: "10px",
+            backgroundColor: "#2a2a2a",
+            borderRadius: "4px",
+            fontSize: "14px",
           }}
         >
           {statusMessage}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: "flex", gap: "10px" }}>
         <button
           onClick={handleStart}
           disabled={isLogging}
           style={{
-            padding: '10px 20px',
-            backgroundColor: isLogging ? '#555' : '#4ade80',
-            color: '#000',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isLogging ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold'
+            padding: "10px 20px",
+            backgroundColor: isLogging ? "#555" : "#4ade80",
+            color: "#000",
+            border: "none",
+            borderRadius: "4px",
+            cursor: isLogging ? "not-allowed" : "pointer",
+            fontWeight: "bold",
           }}
         >
           Start Logging
@@ -149,13 +149,13 @@ export function NetLogControl() {
           onClick={handleStop}
           disabled={!isLogging}
           style={{
-            padding: '10px 20px',
-            backgroundColor: !isLogging ? '#555' : '#f87171',
-            color: '#000',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: !isLogging ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold'
+            padding: "10px 20px",
+            backgroundColor: !isLogging ? "#555" : "#f87171",
+            color: "#000",
+            border: "none",
+            borderRadius: "4px",
+            cursor: !isLogging ? "not-allowed" : "pointer",
+            fontWeight: "bold",
           }}
         >
           Stop Logging
@@ -164,13 +164,13 @@ export function NetLogControl() {
         <button
           onClick={checkStatus}
           style={{
-            padding: '10px 20px',
-            backgroundColor: '#60a5fa',
-            color: '#000',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold'
+            padding: "10px 20px",
+            backgroundColor: "#60a5fa",
+            color: "#000",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontWeight: "bold",
           }}
         >
           Refresh Status
@@ -179,33 +179,35 @@ export function NetLogControl() {
 
       <div
         style={{
-          marginTop: '15px',
-          fontSize: '12px',
-          color: '#888',
-          lineHeight: '1.5'
+          marginTop: "15px",
+          fontSize: "12px",
+          color: "#888",
+          lineHeight: "1.5",
         }}
       >
-        <p style={{ margin: '5px 0' }}>
-          📝 Network logs capture detailed information about all network requests.
+        <p style={{ margin: "5px 0" }}>
+          📝 Network logs capture detailed information about all network
+          requests.
         </p>
-        <p style={{ margin: '5px 0' }}>
+        <p style={{ margin: "5px 0" }}>
           💾 Logs are saved to: <code>AppData\Roaming\sentra\net-logs\</code>
         </p>
-        <p style={{ margin: '5px 0' }}>
-          🔍 Use these logs to debug network issues, API errors, or CORS problems.
+        <p style={{ margin: "5px 0" }}>
+          🔍 Use these logs to debug network issues, API errors, or CORS
+          problems.
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 export async function exampleUsage() {
-  const status = await window.api.getNetLogStatus()
-  await window.api.getNetLogPath()
+  const status = await window.api.getNetLogStatus();
+  await window.api.getNetLogPath();
 
   if (!status.isLogging) {
-    await window.api.startNetLog()
+    await window.api.startNetLog();
   }
 
-  await window.api.stopNetLog()
+  await window.api.stopNetLog();
 }

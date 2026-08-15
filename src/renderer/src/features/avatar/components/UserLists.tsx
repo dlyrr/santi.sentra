@@ -1,22 +1,26 @@
-import React from 'react'
-import { Loader2 } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { AssetOwner, ResellerItem } from '@shared/ipc-schemas/avatar'
-import { HorizontalCarousel } from '@renderer/components/UI/navigation/HorizontalCarousel'
-import { PaginatedList } from '@renderer/components/UI/navigation/PaginatedList'
-import { UserCard } from '@renderer/components/UI/display/UserCard'
+import React from "react";
+import { Loader2 } from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import { AssetOwner, ResellerItem } from "@shared/ipc-schemas/avatar";
+import { HorizontalCarousel } from "@renderer/components/UI/navigation/HorizontalCarousel";
+import { PaginatedList } from "@renderer/components/UI/navigation/PaginatedList";
+import { UserCard } from "@renderer/components/UI/display/UserCard";
 
 // ============================================================================
 // Owners List
 // ============================================================================
 
 interface OwnersListProps {
-  owners: AssetOwner[]
-  ownersLoading: boolean
-  ownerAvatars: Map<number, string>
-  ownerNames: Map<number, string>
-  onLoadMore: () => void
-  onOwnerClick?: (userId: string | number, displayName?: string, avatarUrl?: string) => void
+  owners: AssetOwner[];
+  ownersLoading: boolean;
+  ownerAvatars: Map<number, string>;
+  ownerNames: Map<number, string>;
+  onLoadMore: () => void;
+  onOwnerClick?: (
+    userId: string | number,
+    displayName?: string,
+    avatarUrl?: string,
+  ) => void;
 }
 
 export const OwnersList: React.FC<OwnersListProps> = ({
@@ -25,36 +29,41 @@ export const OwnersList: React.FC<OwnersListProps> = ({
   ownerAvatars,
   ownerNames,
   onLoadMore,
-  onOwnerClick
+  onOwnerClick,
 }) => {
   if (ownersLoading) {
     return (
       <div className="px-4">
         <div className="flex items-center justify-center py-8">
-          <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
+          <Loader2
+            size={20}
+            className="animate-spin text-[var(--color-text-muted)]"
+          />
         </div>
       </div>
-    )
+    );
   }
 
   if (owners.length === 0) {
     return (
       <div className="px-4">
-        <div className="text-center py-6 text-[var(--color-text-muted)] text-sm">No owners found</div>
+        <div className="text-center py-6 text-[var(--color-text-muted)] text-sm">
+          No owners found
+        </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="px-4">
       <HorizontalCarousel onNearEnd={onLoadMore}>
         {owners.map((owner) => {
-          const ownerId = owner.owner?.id
+          const ownerId = owner.owner?.id;
           const ownerName =
             owner.owner?.name ||
             (ownerId ? ownerNames.get(ownerId) : undefined) ||
-            `User ${ownerId}`
-          const avatarUrl = ownerId ? ownerAvatars.get(ownerId) : undefined
+            `User ${ownerId}`;
+          const avatarUrl = ownerId ? ownerAvatars.get(ownerId) : undefined;
 
           return (
             <UserCard
@@ -67,28 +76,33 @@ export const OwnersList: React.FC<OwnersListProps> = ({
               ownedSince={owner.created}
               onClick={
                 onOwnerClick && ownerId
-                  ? () => onOwnerClick(ownerId, ownerNames.get(ownerId), ownerAvatars.get(ownerId))
+                  ? () =>
+                      onOwnerClick(
+                        ownerId,
+                        ownerNames.get(ownerId),
+                        ownerAvatars.get(ownerId),
+                      )
                   : undefined
               }
             />
-          )
+          );
         })}
       </HorizontalCarousel>
     </div>
-  )
-}
+  );
+};
 
 // ============================================================================
 // Resellers List
 // ============================================================================
 
 interface ResellersListProps {
-  resellers: ResellerItem[]
-  resellersLoading: boolean
-  resellerAvatars: Map<number, string>
-  purchasingReseller: string | null
-  onBuy: (reseller: ResellerItem) => void
-  onLoadMore: () => void
+  resellers: ResellerItem[];
+  resellersLoading: boolean;
+  resellerAvatars: Map<number, string>;
+  purchasingReseller: string | null;
+  onBuy: (reseller: ResellerItem) => void;
+  onLoadMore: () => void;
 }
 
 export const ResellersList: React.FC<ResellersListProps> = ({
@@ -97,25 +111,32 @@ export const ResellersList: React.FC<ResellersListProps> = ({
   resellerAvatars,
   purchasingReseller,
   onBuy,
-  onLoadMore
+  onLoadMore,
 }) => {
   if (resellersLoading) {
     return (
       <div className="pt-6 border-t border-[var(--color-border)]">
         <div className="flex items-center justify-center py-8">
-          <Loader2 size={20} className="animate-spin text-[var(--color-text-muted)]" />
+          <Loader2
+            size={20}
+            className="animate-spin text-[var(--color-text-muted)]"
+          />
         </div>
       </div>
-    )
+    );
   }
 
   if (resellers.length === 0) {
     return (
       <div className="pt-6 border-t border-[var(--color-border)]">
-        <h3 className="text-sm font-medium text-[var(--color-text-primary)] flex items-center gap-2 mb-4">Resellers</h3>
-        <div className="text-center py-6 text-[var(--color-text-muted)] text-sm">No resellers available</div>
+        <h3 className="text-sm font-medium text-[var(--color-text-primary)] flex items-center gap-2 mb-4">
+          Resellers
+        </h3>
+        <div className="text-center py-6 text-[var(--color-text-muted)] text-sm">
+          No resellers available
+        </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -137,60 +158,79 @@ export const ResellersList: React.FC<ResellersListProps> = ({
         ))}
       </HorizontalCarousel>
     </div>
-  )
-}
+  );
+};
 
 // ============================================================================
 // Hoarders List
 // ============================================================================
 
 interface Hoarder {
-  id?: string
-  name: string
-  quantity: number
+  id?: string;
+  name: string;
+  quantity: number;
 }
 
 interface HoardersListProps {
   hoardsData: {
-    num_hoards?: number | null
-    owner_ids?: string[] | null
-    owner_names?: string[] | null
-    quantities?: number[] | null
-  } | null
-  onOwnerClick?: (userId: string | number, displayName?: string, avatarUrl?: string) => void
+    num_hoards?: number | null;
+    owner_ids?: string[] | null;
+    owner_names?: string[] | null;
+    quantities?: number[] | null;
+  } | null;
+  onOwnerClick?: (
+    userId: string | number,
+    displayName?: string,
+    avatarUrl?: string,
+  ) => void;
 }
 
-export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerClick }) => {
-  if (!hoardsData || !hoardsData.owner_names || hoardsData.owner_names.length === 0) {
-    return null
+export const HoardersList: React.FC<HoardersListProps> = ({
+  hoardsData,
+  onOwnerClick,
+}) => {
+  if (
+    !hoardsData ||
+    !hoardsData.owner_names ||
+    hoardsData.owner_names.length === 0
+  ) {
+    return null;
   }
 
-  const { owner_ids, owner_names, quantities } = hoardsData
+  const { owner_ids, owner_names, quantities } = hoardsData;
 
   // Create combined and sorted list
   const hoarders: Hoarder[] = owner_names
     .map((name, index) => ({
       id: owner_ids?.[index],
       name,
-      quantity: quantities?.[index] || 0
+      quantity: quantities?.[index] || 0,
     }))
-    .sort((a, b) => b.quantity - a.quantity)
+    .sort((a, b) => b.quantity - a.quantity);
 
-  if (hoarders.length === 0) return null
+  if (hoarders.length === 0) return null;
 
-  const renderHoarderItem = (hoarder: Hoarder, _index: number, globalIndex: number) => (
+  const renderHoarderItem = (
+    hoarder: Hoarder,
+    _index: number,
+    globalIndex: number,
+  ) => (
     <div
       className={cn(
-        'flex items-center justify-between p-2.5 rounded-lg transition-colors',
-        'bg-[var(--color-surface-hover)]/30 hover:bg-[var(--color-surface-hover)]/50',
-        onOwnerClick && hoarder.id ? 'cursor-pointer' : ''
+        "flex items-center justify-between p-2.5 rounded-lg transition-colors",
+        "bg-[var(--color-surface-hover)]/30 hover:bg-[var(--color-surface-hover)]/50",
+        onOwnerClick && hoarder.id ? "cursor-pointer" : "",
       )}
       onClick={
-        onOwnerClick && hoarder.id ? () => onOwnerClick(hoarder.id!, hoarder.name) : undefined
+        onOwnerClick && hoarder.id
+          ? () => onOwnerClick(hoarder.id!, hoarder.name)
+          : undefined
       }
     >
       <div className="flex items-center gap-3">
-        <span className="text-[var(--color-text-muted)] text-xs font-medium pl-3">#{globalIndex + 1}</span>
+        <span className="text-[var(--color-text-muted)] text-xs font-medium pl-3">
+          #{globalIndex + 1}
+        </span>
         {onOwnerClick && hoarder.id ? (
           <span className="text-sm text-[var(--color-text-primary)] hover:text-emerald-400 transition-colors">
             {hoarder.name}
@@ -212,7 +252,7 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
         <span className="text-[var(--color-text-muted)] text-xs">copies</span>
       </div>
     </div>
-  )
+  );
 
   return (
     <PaginatedList
@@ -221,5 +261,5 @@ export const HoardersList: React.FC<HoardersListProps> = ({ hoardsData, onOwnerC
       renderItem={renderHoarderItem}
       keyExtractor={(hoarder, index) => hoarder.id || index}
     />
-  )
-}
+  );
+};

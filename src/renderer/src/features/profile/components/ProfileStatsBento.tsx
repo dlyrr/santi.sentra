@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import React, { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   Calendar,
@@ -9,78 +9,90 @@ import {
   MapPin,
   TrendingUp,
   Users,
-  Clock
-} from 'lucide-react'
-import { ProfileData } from '../hooks/useProfileData'
-import { StatRow } from './StatRow'
-import { SlidingNumber } from '@renderer/components/UI/specialized/SlidingNumber'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { formatDate, formatDateTime, formatRelativeDate } from '@renderer/utils/dateUtils'
-import { useRolimonsPlayer } from '@renderer/features/avatar/api/useRolimons'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
+  Clock,
+} from "lucide-react";
+import { ProfileData } from "../hooks/useProfileData";
+import { StatRow } from "./StatRow";
+import { SlidingNumber } from "@renderer/components/UI/specialized/SlidingNumber";
+import { formatNumber } from "@renderer/utils/numberUtils";
+import {
+  formatDate,
+  formatDateTime,
+  formatRelativeDate,
+} from "@renderer/utils/dateUtils";
+import { useRolimonsPlayer } from "@renderer/features/avatar/api/useRolimons";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
 
 interface ProfileStatsBentoProps {
-  profile: ProfileData
-  userId: number
-  pastUsernames?: string[]
+  profile: ProfileData;
+  userId: number;
+  pastUsernames?: string[];
 }
 
 const BentoCard: React.FC<
-  React.PropsWithChildren<{ title: string; className?: string; icon?: React.ReactNode }>
+  React.PropsWithChildren<{
+    title: string;
+    className?: string;
+    icon?: React.ReactNode;
+  }>
 > = ({ title, className, icon, children }) => {
   return (
     <div
-      className={`relative group bg-[var(--color-surface-strong)]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-2xl shadow-black/20 overflow-hidden transition-all duration-300 hover:border-white/10 hover:shadow-black/40 hover:-translate-y-0.5 ${className ?? ''}`}
+      className={`relative group bg-[var(--color-surface-strong)]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-2xl shadow-black/20 overflow-hidden transition-all duration-300 hover:border-white/10 hover:shadow-black/40 hover:-translate-y-0.5 ${className ?? ""}`}
     >
       {/* Subtle Glow Overlay on Hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      
+
       <h3 className="relative text-[11px] font-bold text-[var(--color-text-primary)]/40 uppercase tracking-[0.2em] flex items-center gap-2 mb-4">
         {icon}
         {title}
       </h3>
-      <div className="relative flex flex-col gap-1">
-        {children}
-      </div>
+      <div className="relative flex flex-col gap-1">{children}</div>
     </div>
-  )
-}
+  );
+};
 
 export const ProfileStatsBento: React.FC<ProfileStatsBentoProps> = ({
   profile,
   userId,
-  pastUsernames = []
+  pastUsernames = [],
 }) => {
-  const [showRelativeJoinDate, setShowRelativeJoinDate] = useState(false)
-  const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true)
+  const [showRelativeJoinDate, setShowRelativeJoinDate] = useState(false);
+  const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true);
 
   const lastOnlineDate = useMemo(() => {
-    if (rolimonsPlayer?.last_online === undefined || rolimonsPlayer?.last_online === null) {
-      return null
+    if (
+      rolimonsPlayer?.last_online === undefined ||
+      rolimonsPlayer?.last_online === null
+    ) {
+      return null;
     }
-    return new Date(rolimonsPlayer.last_online * 1000)
-  }, [rolimonsPlayer?.last_online])
+    return new Date(rolimonsPlayer.last_online * 1000);
+  }, [rolimonsPlayer?.last_online]);
 
   const filteredPastUsernames = useMemo(
     () => pastUsernames.filter((name) => !/^#+$/.test(name.trim())),
-    [pastUsernames]
-  )
+    [pastUsernames],
+  );
 
   const hasValueStats =
     (rolimonsPlayer?.value !== undefined && rolimonsPlayer.value !== null) ||
-    (rolimonsPlayer?.rap !== undefined && rolimonsPlayer.rap !== null)
+    (rolimonsPlayer?.rap !== undefined && rolimonsPlayer.rap !== null);
 
   const hasActivityStats =
     profile.placeVisits !== undefined ||
     profile.totalFavorites !== undefined ||
-    profile.concurrentPlayers !== undefined
+    profile.concurrentPlayers !== undefined;
 
   const hasAny =
-    hasValueStats || hasActivityStats || filteredPastUsernames.length > 0 || !!lastOnlineDate
+    hasValueStats ||
+    hasActivityStats ||
+    filteredPastUsernames.length > 0 ||
+    !!lastOnlineDate;
 
-  if (!hasAny) return null
+  if (!hasAny) return null;
 
-  const primaryCardSpan = hasValueStats ? 'lg:col-span-4' : 'lg:col-span-6'
+  const primaryCardSpan = hasValueStats ? "lg:col-span-4" : "lg:col-span-6";
 
   return (
     <motion.div
@@ -95,10 +107,12 @@ export const ProfileStatsBento: React.FC<ProfileStatsBentoProps> = ({
         className={primaryCardSpan}
       >
         {(() => {
-          const relative = formatRelativeDate(profile.joinDate, { fallback: '-' })
-          const absolute = formatDate(profile.joinDate, { fallback: '-' })
-          const value = showRelativeJoinDate ? relative : absolute
-          const tooltip = showRelativeJoinDate ? absolute : relative
+          const relative = formatRelativeDate(profile.joinDate, {
+            fallback: "-",
+          });
+          const absolute = formatDate(profile.joinDate, { fallback: "-" });
+          const value = showRelativeJoinDate ? relative : absolute;
+          const tooltip = showRelativeJoinDate ? absolute : relative;
           return (
             <StatRow
               icon={Calendar}
@@ -107,7 +121,7 @@ export const ProfileStatsBento: React.FC<ProfileStatsBentoProps> = ({
               onClick={() => setShowRelativeJoinDate((prev) => !prev)}
               title={tooltip}
             />
-          )
+          );
         })()}
 
         <StatRow
@@ -144,7 +158,7 @@ export const ProfileStatsBento: React.FC<ProfileStatsBentoProps> = ({
                 {formatNumber(filteredPastUsernames.length)}
               </span>
             }
-            title={filteredPastUsernames.slice(0, 20).join(', ')}
+            title={filteredPastUsernames.slice(0, 20).join(", ")}
           />
         )}
       </BentoCard>
@@ -209,19 +223,20 @@ export const ProfileStatsBento: React.FC<ProfileStatsBentoProps> = ({
           icon={<Coins size={14} className="text-[var(--color-text-muted)]" />}
           className="lg:col-span-4"
         >
-          {rolimonsPlayer?.value !== undefined && rolimonsPlayer.value !== null && (
-            <StatRow
-              icon={Coins}
-              label="Value"
-              value={
-                <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-primary)] font-semibold">
-                  {formatNumber(rolimonsPlayer.value)}
-                  <RobuxIcon className="w-3.5 h-3.5" />
-                </span>
-              }
-              title="Rolimons Value"
-            />
-          )}
+          {rolimonsPlayer?.value !== undefined &&
+            rolimonsPlayer.value !== null && (
+              <StatRow
+                icon={Coins}
+                label="Value"
+                value={
+                  <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-primary)] font-semibold">
+                    {formatNumber(rolimonsPlayer.value)}
+                    <RobuxIcon className="w-3.5 h-3.5" />
+                  </span>
+                }
+                title="Rolimons Value"
+              />
+            )}
           {rolimonsPlayer?.rap !== undefined && rolimonsPlayer.rap !== null && (
             <StatRow
               icon={TrendingUp}
@@ -238,5 +253,5 @@ export const ProfileStatsBento: React.FC<ProfileStatsBentoProps> = ({
         </BentoCard>
       )}
     </motion.div>
-  )
-}
+  );
+};

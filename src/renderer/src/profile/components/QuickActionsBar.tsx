@@ -1,54 +1,54 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Shirt, Package, Box, Copy, Check } from 'lucide-react'
+import React from "react";
+import { motion } from "framer-motion";
+import { Shirt, Package, Box, Copy, Check } from "lucide-react";
 
 interface QuickActionsBarProps {
-  onWearingClick: () => void
-  onOutfitsClick: () => void
-  onInventoryClick: () => void
-  onCopyIdClick: () => void
+  onWearingClick: () => void;
+  onOutfitsClick: () => void;
+  onInventoryClick: () => void;
+  onCopyIdClick: () => void;
 }
 
 export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
   onWearingClick,
   onOutfitsClick,
   onInventoryClick,
-  onCopyIdClick
+  onCopyIdClick,
 }) => {
-  const [copied, setCopied] = React.useState(false)
+  const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
-    onCopyIdClick()
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+    onCopyIdClick();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const actions = [
     {
       icon: Shirt,
-      label: 'Currently Wearing',
-      shortLabel: 'Wearing',
-      onClick: onWearingClick
+      label: "Currently Wearing",
+      shortLabel: "Wearing",
+      onClick: onWearingClick,
     },
     {
       icon: Package,
-      label: 'Outfits',
-      shortLabel: 'Outfits',
-      onClick: onOutfitsClick
+      label: "Outfits",
+      shortLabel: "Outfits",
+      onClick: onOutfitsClick,
     },
     {
       icon: Box,
-      label: 'Inventory',
-      shortLabel: 'Inventory',
-      onClick: onInventoryClick
+      label: "Inventory",
+      shortLabel: "Inventory",
+      onClick: onInventoryClick,
     },
     {
       icon: copied ? Check : Copy,
-      label: copied ? 'Copied!' : 'Copy User ID',
-      shortLabel: copied ? 'Copied!' : 'Copy ID',
-      onClick: handleCopy
-    }
-  ]
+      label: copied ? "Copied!" : "Copy User ID",
+      shortLabel: copied ? "Copied!" : "Copy ID",
+      onClick: handleCopy,
+    },
+  ];
 
   return (
     <motion.div
@@ -58,7 +58,7 @@ export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
       className="grid grid-cols-2 sm:grid-cols-4 gap-3"
     >
       {actions.map((action, index) => {
-        const isSuccess = action.icon === Check
+        const isSuccess = action.icon === Check;
 
         return (
           <button
@@ -80,7 +80,9 @@ export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
                   `shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ` +
                   `bg-[var(--color-surface-muted)] border border-[var(--color-border-subtle)] ` +
                   `group-hover:bg-[var(--color-surface-strong)] transition-colors ` +
-                  (isSuccess ? 'text-emerald-400' : 'text-[var(--color-text-secondary)]')
+                  (isSuccess
+                    ? "text-emerald-400"
+                    : "text-[var(--color-text-secondary)]")
                 }
               >
                 <action.icon size={18} />
@@ -93,8 +95,8 @@ export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
               </div>
             </div>
           </button>
-        )
+        );
       })}
     </motion.div>
-  )
-}
+  );
+};

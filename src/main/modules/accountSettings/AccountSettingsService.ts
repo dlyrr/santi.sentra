@@ -16,14 +16,15 @@ import {
   type GenderResponse,
   type BirthdateResponse,
   type PromotionChannelsResponse,
-  type OnlineStatusPrivacy
-} from '@shared/ipc-schemas/accountSettings'
+  type OnlineStatusPrivacy,
+} from "@shared/ipc-schemas/accountSettings";
 
-const ACCOUNT_SETTINGS_API_URL = 'https://accountsettings.roblox.com/v1'
-const ACCOUNT_INFO_API_URL = 'https://accountinformation.roblox.com/v1'
-const ROBLOX_BASE_URL = 'https://www.roblox.com'
-const USER_SETTINGS_API_URL = 'https://apis.roblox.com/user-settings-api/v1/user-settings'
-const BILLING_API_URL = 'https://billing.roblox.com/v1'
+const ACCOUNT_SETTINGS_API_URL = "https://accountsettings.roblox.com/v1";
+const ACCOUNT_INFO_API_URL = "https://accountinformation.roblox.com/v1";
+const ROBLOX_BASE_URL = "https://www.roblox.com";
+const USER_SETTINGS_API_URL =
+  "https://apis.roblox.com/user-settings-api/v1/user-settings";
+const BILLING_API_URL = "https://billing.roblox.com/v1";
 
 /**
  * Fetches CSRF token for authenticated requests
@@ -32,19 +33,22 @@ const BILLING_API_URL = 'https://billing.roblox.com/v1'
  */
 async function getCsrfToken(cookie: string): Promise<string> {
   try {
-    const response = await fetch('https://auth.roblox.com/v2/login', {
-      method: 'POST',
+    const response = await fetch("https://auth.roblox.com/v2/login", {
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json'
-      }
-    })
+        "Content-Type": "application/json",
+      },
+    });
     // The endpoint returns 403 with CSRF token in headers for security
-    const token = response.headers.get('x-csrf-token')
-    return token || ''
+    const token = response.headers.get("x-csrf-token");
+    return token || "";
   } catch (error) {
-    console.error('[AccountSettingsService] Failed to fetch CSRF token:', error)
-    return ''
+    console.error(
+      "[AccountSettingsService] Failed to fetch CSRF token:",
+      error,
+    );
+    return "";
   }
 }
 
@@ -55,55 +59,69 @@ export class AccountSettingsService {
   /**
    * Fetches the account settings JSON from /my/settings/json
    */
-  static async getAccountSettingsJson(cookie: string): Promise<AccountSettingsJson> {
+  static async getAccountSettingsJson(
+    cookie: string,
+  ): Promise<AccountSettingsJson> {
     const response = await fetch(`${ROBLOX_BASE_URL}/my/settings/json`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch account settings: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Failed to fetch account settings: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return accountSettingsJsonSchema.parse(data)
+    const data = await response.json();
+    return accountSettingsJsonSchema.parse(data);
   }
 
   /**
    * Fetches the user settings and options from /user-settings-api
    */
-  static async getUserSettingsAndOptions(cookie: string): Promise<UserSettingsAndOptions> {
-    const response = await fetch(`${USER_SETTINGS_API_URL}/settings-and-options`, {
-      method: 'GET',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+  static async getUserSettingsAndOptions(
+    cookie: string,
+  ): Promise<UserSettingsAndOptions> {
+    const response = await fetch(
+      `${USER_SETTINGS_API_URL}/settings-and-options`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          Accept: "application/json",
+        },
+      },
+    );
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch user settings: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Failed to fetch user settings: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return userSettingsAndOptionsSchema.parse(data)
+    const data = await response.json();
+    return userSettingsAndOptionsSchema.parse(data);
   }
 
   /**
    * Fetches both account settings and user settings in parallel
    */
   static async getCombinedSettings(
-    cookie: string
-  ): Promise<{ accountSettings: AccountSettingsJson; userSettings: UserSettingsAndOptions }> {
+    cookie: string,
+  ): Promise<{
+    accountSettings: AccountSettingsJson;
+    userSettings: UserSettingsAndOptions;
+  }> {
     const [accountSettings, userSettings] = await Promise.all([
       this.getAccountSettingsJson(cookie),
-      this.getUserSettingsAndOptions(cookie)
-    ])
+      this.getUserSettingsAndOptions(cookie),
+    ]);
 
-    return { accountSettings, userSettings }
+    return { accountSettings, userSettings };
   }
 
   // ============================================================================
@@ -115,24 +133,30 @@ export class AccountSettingsService {
    */
   static async updateInventoryPrivacy(
     cookie: string,
-    inventoryPrivacy: PrivacyLevel
+    inventoryPrivacy: PrivacyLevel,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
-    const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/inventory-privacy`, {
-      method: 'POST',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+    const csrfToken = await getCsrfToken(cookie);
+    const response = await fetch(
+      `${ACCOUNT_SETTINGS_API_URL}/inventory-privacy`,
+      {
+        method: "POST",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({ inventoryPrivacy }),
       },
-      body: JSON.stringify({ inventoryPrivacy })
-    })
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -140,24 +164,27 @@ export class AccountSettingsService {
    */
   static async updateTradePrivacy(
     cookie: string,
-    tradePrivacy: TradePrivacy
+    tradePrivacy: TradePrivacy,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/trade-privacy`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ tradePrivacy })
-    })
+      body: JSON.stringify({ tradePrivacy }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -165,24 +192,27 @@ export class AccountSettingsService {
    */
   static async updateTradeValue(
     cookie: string,
-    tradeValue: TradeValue
+    tradeValue: TradeValue,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/trade-value`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ tradeValue })
-    })
+      body: JSON.stringify({ tradeValue }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -190,24 +220,30 @@ export class AccountSettingsService {
    */
   static async updateAppChatPrivacy(
     cookie: string,
-    appChatPrivacy: PrivacyLevel
+    appChatPrivacy: PrivacyLevel,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
-    const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/app-chat-privacy`, {
-      method: 'POST',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+    const csrfToken = await getCsrfToken(cookie);
+    const response = await fetch(
+      `${ACCOUNT_SETTINGS_API_URL}/app-chat-privacy`,
+      {
+        method: "POST",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({ appChatPrivacy }),
       },
-      body: JSON.stringify({ appChatPrivacy })
-    })
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -215,24 +251,30 @@ export class AccountSettingsService {
    */
   static async updateGameChatPrivacy(
     cookie: string,
-    gameChatPrivacy: PrivacyLevel
+    gameChatPrivacy: PrivacyLevel,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
-    const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/game-chat-privacy`, {
-      method: 'POST',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+    const csrfToken = await getCsrfToken(cookie);
+    const response = await fetch(
+      `${ACCOUNT_SETTINGS_API_URL}/game-chat-privacy`,
+      {
+        method: "POST",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({ gameChatPrivacy }),
       },
-      body: JSON.stringify({ gameChatPrivacy })
-    })
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -240,24 +282,27 @@ export class AccountSettingsService {
    */
   static async updatePrivacy(
     cookie: string,
-    phoneDiscovery: PrivacyLevel
+    phoneDiscovery: PrivacyLevel,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/privacy`, {
-      method: 'PATCH',
+      method: "PATCH",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ phoneDiscovery })
-    })
+      body: JSON.stringify({ phoneDiscovery }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -266,24 +311,30 @@ export class AccountSettingsService {
   static async updateTheme(
     cookie: string,
     userId: number,
-    themeType: string
+    themeType: string,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
-    const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/themes/User/${userId}`, {
-      method: 'PATCH',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+    const csrfToken = await getCsrfToken(cookie);
+    const response = await fetch(
+      `${ACCOUNT_SETTINGS_API_URL}/themes/User/${userId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({ themeType }),
       },
-      body: JSON.stringify({ themeType })
-    })
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -291,24 +342,30 @@ export class AccountSettingsService {
    */
   static async updateContentRestriction(
     cookie: string,
-    contentRestrictionLevel: ContentRestrictionLevel
+    contentRestrictionLevel: ContentRestrictionLevel,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
-    const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/content-restriction`, {
-      method: 'POST',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+    const csrfToken = await getCsrfToken(cookie);
+    const response = await fetch(
+      `${ACCOUNT_SETTINGS_API_URL}/content-restriction`,
+      {
+        method: "POST",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({ contentRestrictionLevel }),
       },
-      body: JSON.stringify({ contentRestrictionLevel })
-    })
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -316,24 +373,27 @@ export class AccountSettingsService {
    */
   static async updateOnlineStatusPrivacy(
     cookie: string,
-    whoCanSeeMyOnlineStatus: OnlineStatusPrivacy
+    whoCanSeeMyOnlineStatus: OnlineStatusPrivacy,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${USER_SETTINGS_API_URL}?_rosealRequest=`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ whoCanSeeMyOnlineStatus })
-    })
+      body: JSON.stringify({ whoCanSeeMyOnlineStatus }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -341,24 +401,27 @@ export class AccountSettingsService {
    */
   static async updateWhoCanJoinMeInExperiences(
     cookie: string,
-    whoCanJoinMeInExperiences: PrivacyLevel
+    whoCanJoinMeInExperiences: PrivacyLevel,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${USER_SETTINGS_API_URL}?_rosealRequest=`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ whoCanJoinMeInExperiences })
-    })
+      body: JSON.stringify({ whoCanJoinMeInExperiences }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -366,24 +429,27 @@ export class AccountSettingsService {
    */
   static async sendVerificationEmail(
     cookie: string,
-    freeItem = false
+    freeItem = false,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/email/verify`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ freeItem })
-    })
+      body: JSON.stringify({ freeItem }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -391,51 +457,58 @@ export class AccountSettingsService {
    */
   static async getThemeTypes(cookie: string): Promise<string[]> {
     const response = await fetch(`${ACCOUNT_SETTINGS_API_URL}/themes/types`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch theme types: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Failed to fetch theme types: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return data.data || []
+    const data = await response.json();
+    return data.data || [];
   }
 
   /**
    * Redeems a promo code
    */
-  static async redeemPromoCode(cookie: string, code: string): Promise<RedeemPromoCodeResponse> {
-    const csrfToken = await getCsrfToken(cookie)
+  static async redeemPromoCode(
+    cookie: string,
+    code: string,
+  ): Promise<RedeemPromoCodeResponse> {
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${BILLING_API_URL}/promocodes/redeem`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ code })
-    })
+      body: JSON.stringify({ code }),
+    });
 
-    const data = await response.json().catch(() => ({}))
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       return {
         success: false,
         errorMsg:
-          data.errorMsg || data.message || `Error ${response.status}: ${response.statusText}`
-      }
+          data.errorMsg ||
+          data.message ||
+          `Error ${response.status}: ${response.statusText}`,
+      };
     }
 
     return {
       success: data.success ?? true,
       successMsg: data.successMsg,
-      errorMsg: data.errorMsg
-    }
+      errorMsg: data.errorMsg,
+    };
   }
 
   // ============================================================================
@@ -447,19 +520,21 @@ export class AccountSettingsService {
    */
   static async getDescription(cookie: string): Promise<DescriptionResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/description`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch description: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Failed to fetch description: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return descriptionResponseSchema.parse(data)
+    const data = await response.json();
+    return descriptionResponseSchema.parse(data);
   }
 
   /**
@@ -467,24 +542,27 @@ export class AccountSettingsService {
    */
   static async updateDescription(
     cookie: string,
-    description: string
+    description: string,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/description`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ description })
-    })
+      body: JSON.stringify({ description }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -492,19 +570,21 @@ export class AccountSettingsService {
    */
   static async getGender(cookie: string): Promise<GenderResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/gender`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch gender: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Failed to fetch gender: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return genderResponseSchema.parse(data)
+    const data = await response.json();
+    return genderResponseSchema.parse(data);
   }
 
   /**
@@ -512,24 +592,27 @@ export class AccountSettingsService {
    */
   static async updateGender(
     cookie: string,
-    gender: string
+    gender: string,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/gender`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ gender })
-    })
+      body: JSON.stringify({ gender }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -537,19 +620,21 @@ export class AccountSettingsService {
    */
   static async getBirthdate(cookie: string): Promise<BirthdateResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/birthdate`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch birthdate: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `Failed to fetch birthdate: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return birthdateResponseSchema.parse(data)
+    const data = await response.json();
+    return birthdateResponseSchema.parse(data);
   }
 
   /**
@@ -559,46 +644,51 @@ export class AccountSettingsService {
     cookie: string,
     birthMonth: number,
     birthDay: number,
-    birthYear: number
+    birthYear: number,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/birthdate`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify({ birthMonth, birthDay, birthYear })
-    })
+      body: JSON.stringify({ birthMonth, birthDay, birthYear }),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
    * Gets the user's promotion channels (social links)
    */
-  static async getPromotionChannels(cookie: string): Promise<PromotionChannelsResponse> {
+  static async getPromotionChannels(
+    cookie: string,
+  ): Promise<PromotionChannelsResponse> {
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/promotion-channels`, {
-      method: 'GET',
+      method: "GET",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        Accept: 'application/json'
-      }
-    })
+        Accept: "application/json",
+      },
+    });
 
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch promotion channels: ${response.status} ${response.statusText}`
-      )
+        `Failed to fetch promotion channels: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const data = await response.json()
-    return promotionChannelsResponseSchema.parse(data)
+    const data = await response.json();
+    return promotionChannelsResponseSchema.parse(data);
   }
 
   /**
@@ -607,29 +697,32 @@ export class AccountSettingsService {
   static async updatePromotionChannels(
     cookie: string,
     channels: {
-      facebook?: string
-      twitter?: string
-      youtube?: string
-      twitch?: string
-      promotionChannelsVisibilityPrivacy?: string
-    }
+      facebook?: string;
+      twitter?: string;
+      youtube?: string;
+      twitch?: string;
+      promotionChannelsVisibilityPrivacy?: string;
+    },
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
+    const csrfToken = await getCsrfToken(cookie);
     const response = await fetch(`${ACCOUNT_INFO_API_URL}/promotion-channels`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrfToken,
       },
-      body: JSON.stringify(channels)
-    })
+      body: JSON.stringify(channels),
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 
   /**
@@ -638,23 +731,29 @@ export class AccountSettingsService {
   static async updateDisplayName(
     cookie: string,
     userId: number,
-    newDisplayName: string
+    newDisplayName: string,
   ): Promise<{ success: boolean; error?: string }> {
-    const csrfToken = await getCsrfToken(cookie)
-    const response = await fetch(`https://users.roblox.com/v1/users/${userId}/display-names`, {
-      method: 'PATCH',
-      headers: {
-        Cookie: `.ROBLOSECURITY=${cookie}`,
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken
+    const csrfToken = await getCsrfToken(cookie);
+    const response = await fetch(
+      `https://users.roblox.com/v1/users/${userId}/display-names`,
+      {
+        method: "PATCH",
+        headers: {
+          Cookie: `.ROBLOSECURITY=${cookie}`,
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({ newDisplayName }),
       },
-      body: JSON.stringify({ newDisplayName })
-    })
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      return { success: false, error: errorData.errors?.[0]?.message || response.statusText }
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.errors?.[0]?.message || response.statusText,
+      };
     }
-    return { success: true }
+    return { success: true };
   }
 }

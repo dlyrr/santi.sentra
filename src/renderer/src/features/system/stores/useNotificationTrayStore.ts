@@ -1,57 +1,59 @@
-import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
 
 export type NotificationType =
-  | 'friend_online'
-  | 'friend_offline'
-  | 'friend_ingame'
-  | 'friend_removed'
-  | 'info'
-  | 'success'
-  | 'warning'
-  | 'error'
+  | "friend_online"
+  | "friend_offline"
+  | "friend_ingame"
+  | "friend_removed"
+  | "info"
+  | "success"
+  | "warning"
+  | "error";
 
 export interface TrayNotification {
-  id: string
-  type: NotificationType
-  title: string
-  message: string
-  timestamp: number
-  read: boolean
-  avatarUrl?: string
-  userId?: string
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  avatarUrl?: string;
+  userId?: string;
   gameInfo?: {
-    name: string
-    placeId: string
-  }
+    name: string;
+    placeId: string;
+  };
 }
 
 interface NotificationTrayState {
-  notifications: TrayNotification[]
-  isOpen: boolean
+  notifications: TrayNotification[];
+  isOpen: boolean;
   // Settings
-  notifyFriendOnline: boolean
-  notifyFriendInGame: boolean
-  notifyFriendRemoved: boolean
-  notifyServerLocation: boolean
-  maxNotifications: number
+  notifyFriendOnline: boolean;
+  notifyFriendInGame: boolean;
+  notifyFriendRemoved: boolean;
+  notifyServerLocation: boolean;
+  maxNotifications: number;
 }
 
 interface NotificationTrayActions {
-  addNotification: (notification: Omit<TrayNotification, 'id' | 'timestamp' | 'read'>) => void
-  markAsRead: (id: string) => void
-  markAllAsRead: () => void
-  removeNotification: (id: string) => void
-  clearAll: () => void
-  setIsOpen: (isOpen: boolean) => void
-  toggleOpen: () => void
-  setNotifyFriendOnline: (enabled: boolean) => void
-  setNotifyFriendInGame: (enabled: boolean) => void
-  setNotifyFriendRemoved: (enabled: boolean) => void
-  setNotifyServerLocation: (enabled: boolean) => void
+  addNotification: (
+    notification: Omit<TrayNotification, "id" | "timestamp" | "read">,
+  ) => void;
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  removeNotification: (id: string) => void;
+  clearAll: () => void;
+  setIsOpen: (isOpen: boolean) => void;
+  toggleOpen: () => void;
+  setNotifyFriendOnline: (enabled: boolean) => void;
+  setNotifyFriendInGame: (enabled: boolean) => void;
+  setNotifyFriendRemoved: (enabled: boolean) => void;
+  setNotifyServerLocation: (enabled: boolean) => void;
 }
 
-type NotificationTrayStore = NotificationTrayState & NotificationTrayActions
+type NotificationTrayStore = NotificationTrayState & NotificationTrayActions;
 
 const initialState: NotificationTrayState = {
   notifications: [],
@@ -60,8 +62,8 @@ const initialState: NotificationTrayState = {
   notifyFriendInGame: true,
   notifyFriendRemoved: true,
   notifyServerLocation: true,
-  maxNotifications: 50
-}
+  maxNotifications: 50,
+};
 
 export const useNotificationTrayStore = create<NotificationTrayStore>()(
   devtools(
@@ -70,99 +72,107 @@ export const useNotificationTrayStore = create<NotificationTrayStore>()(
         ...initialState,
 
         addNotification: (notification) => {
-          const id = `${Date.now()}-${Math.random().toString(36).substring(7)}`
+          const id = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
           const newNotification: TrayNotification = {
             ...notification,
             id,
             timestamp: Date.now(),
-            read: false
-          }
+            read: false,
+          };
 
           set(
             (state) => {
-              const updated = [newNotification, ...state.notifications]
+              const updated = [newNotification, ...state.notifications];
               // Keep only the most recent notifications
               return {
-                notifications: updated.slice(0, state.maxNotifications)
-              }
+                notifications: updated.slice(0, state.maxNotifications),
+              };
             },
             false,
-            'addNotification'
-          )
+            "addNotification",
+          );
         },
 
         markAsRead: (id) =>
           set(
             (state) => ({
               notifications: state.notifications.map((n) =>
-                n.id === id ? { ...n, read: true } : n
-              )
+                n.id === id ? { ...n, read: true } : n,
+              ),
             }),
             false,
-            'markAsRead'
+            "markAsRead",
           ),
 
         markAllAsRead: () =>
           set(
             (state) => ({
-              notifications: state.notifications.map((n) => ({ ...n, read: true }))
+              notifications: state.notifications.map((n) => ({
+                ...n,
+                read: true,
+              })),
             }),
             false,
-            'markAllAsRead'
+            "markAllAsRead",
           ),
 
         removeNotification: (id) =>
           set(
             (state) => ({
-              notifications: state.notifications.filter((n) => n.id !== id)
+              notifications: state.notifications.filter((n) => n.id !== id),
             }),
             false,
-            'removeNotification'
+            "removeNotification",
           ),
 
-        clearAll: () => set({ notifications: [] }, false, 'clearAll'),
+        clearAll: () => set({ notifications: [] }, false, "clearAll"),
 
-        setIsOpen: (isOpen) => set({ isOpen }, false, 'setIsOpen'),
+        setIsOpen: (isOpen) => set({ isOpen }, false, "setIsOpen"),
 
-        toggleOpen: () => set((state) => ({ isOpen: !state.isOpen }), false, 'toggleOpen'),
+        toggleOpen: () =>
+          set((state) => ({ isOpen: !state.isOpen }), false, "toggleOpen"),
 
         setNotifyFriendOnline: (notifyFriendOnline) =>
-          set({ notifyFriendOnline }, false, 'setNotifyFriendOnline'),
+          set({ notifyFriendOnline }, false, "setNotifyFriendOnline"),
 
         setNotifyFriendInGame: (notifyFriendInGame) =>
-          set({ notifyFriendInGame }, false, 'setNotifyFriendInGame'),
+          set({ notifyFriendInGame }, false, "setNotifyFriendInGame"),
 
         setNotifyFriendRemoved: (notifyFriendRemoved) =>
-          set({ notifyFriendRemoved }, false, 'setNotifyFriendRemoved'),
+          set({ notifyFriendRemoved }, false, "setNotifyFriendRemoved"),
 
         setNotifyServerLocation: (notifyServerLocation) =>
-          set({ notifyServerLocation }, false, 'setNotifyServerLocation')
+          set({ notifyServerLocation }, false, "setNotifyServerLocation"),
       }),
       {
-        name: 'notification-tray-storage',
+        name: "notification-tray-storage",
         partialize: (state) => ({
           notifyFriendOnline: state.notifyFriendOnline,
           notifyFriendInGame: state.notifyFriendInGame,
           notifyFriendRemoved: state.notifyFriendRemoved,
-          notifyServerLocation: state.notifyServerLocation
+          notifyServerLocation: state.notifyServerLocation,
           // Don't persist notifications - they should be fresh each session
-        })
-      }
+        }),
+      },
     ),
-    { name: 'NotificationTrayStore' }
-  )
-)
+    { name: "NotificationTrayStore" },
+  ),
+);
 
 // Selectors
-export const useNotifications = () => useNotificationTrayStore((state) => state.notifications)
+export const useNotifications = () =>
+  useNotificationTrayStore((state) => state.notifications);
 export const useUnreadCount = () =>
-  useNotificationTrayStore((state) => state.notifications.filter((n) => !n.read).length)
-export const useIsTrayOpen = () => useNotificationTrayStore((state) => state.isOpen)
+  useNotificationTrayStore(
+    (state) => state.notifications.filter((n) => !n.read).length,
+  );
+export const useIsTrayOpen = () =>
+  useNotificationTrayStore((state) => state.isOpen);
 export const useNotifyFriendOnline = () =>
-  useNotificationTrayStore((state) => state.notifyFriendOnline)
+  useNotificationTrayStore((state) => state.notifyFriendOnline);
 export const useNotifyFriendInGame = () =>
-  useNotificationTrayStore((state) => state.notifyFriendInGame)
+  useNotificationTrayStore((state) => state.notifyFriendInGame);
 export const useNotifyFriendRemoved = () =>
-  useNotificationTrayStore((state) => state.notifyFriendRemoved)
+  useNotificationTrayStore((state) => state.notifyFriendRemoved);
 export const useNotifyServerLocation = () =>
-  useNotificationTrayStore((state) => state.notifyServerLocation)
+  useNotificationTrayStore((state) => state.notifyServerLocation);

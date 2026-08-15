@@ -2,266 +2,266 @@
 // https://catalog.roblox.com/v1/categories
 
 export interface InventorySubcategory {
-  subcategory: string
-  assetTypes: string[]
-  subcategoryId: number
-  name: string
+  subcategory: string;
+  assetTypes: string[];
+  subcategoryId: number;
+  name: string;
 }
 
 export interface InventoryCategory {
-  category: string
-  assetTypes: string[]
-  categoryId: number
-  name: string
-  orderIndex: number
-  subcategories: InventorySubcategory[]
+  category: string;
+  assetTypes: string[];
+  categoryId: number;
+  name: string;
+  orderIndex: number;
+  subcategories: InventorySubcategory[];
 }
 
 // Map asset type IDs to string names used by the inventory API
 const ASSET_TYPE_MAP: Record<number, string> = {
-  2: 'TShirt',
-  8: 'Hat',
-  11: 'Shirt',
-  12: 'Pants',
-  17: 'Head',
-  18: 'Face',
-  19: 'Gear',
-  41: 'HairAccessory',
-  42: 'FaceAccessory',
-  43: 'NeckAccessory',
-  44: 'ShoulderAccessory',
-  45: 'FrontAccessory',
-  46: 'BackAccessory',
-  47: 'WaistAccessory',
-  61: 'EmoteAnimation',
-  64: 'TShirtAccessory',
-  65: 'ShirtAccessory',
-  66: 'PantsAccessory',
-  67: 'JacketAccessory',
-  68: 'SweaterAccessory',
-  69: 'ShortsAccessory',
-  72: 'DressSkirtAccessory'
-}
+  2: "TShirt",
+  8: "Hat",
+  11: "Shirt",
+  12: "Pants",
+  17: "Head",
+  18: "Face",
+  19: "Gear",
+  41: "HairAccessory",
+  42: "FaceAccessory",
+  43: "NeckAccessory",
+  44: "ShoulderAccessory",
+  45: "FrontAccessory",
+  46: "BackAccessory",
+  47: "WaistAccessory",
+  61: "EmoteAnimation",
+  64: "TShirtAccessory",
+  65: "ShirtAccessory",
+  66: "PantsAccessory",
+  67: "JacketAccessory",
+  68: "SweaterAccessory",
+  69: "ShortsAccessory",
+  72: "DressSkirtAccessory",
+};
 
 // Convert asset type IDs to string names
 const mapAssetTypeIds = (ids: number[]): string[] => {
-  return ids.map((id) => ASSET_TYPE_MAP[id]).filter(Boolean)
-}
+  return ids.map((id) => ASSET_TYPE_MAP[id]).filter(Boolean);
+};
 
 export const INVENTORY_CATEGORIES: InventoryCategory[] = [
   {
-    category: 'All',
+    category: "All",
     assetTypes: [
-      'Hat',
-      'TShirt',
-      'Shirt',
-      'Pants',
-      'Head',
-      'Face',
-      'Gear',
-      'HairAccessory',
-      'FaceAccessory',
-      'NeckAccessory',
-      'ShoulderAccessory',
-      'FrontAccessory',
-      'BackAccessory',
-      'WaistAccessory',
-      'EmoteAnimation',
-      'TShirtAccessory',
-      'ShirtAccessory',
-      'PantsAccessory',
-      'JacketAccessory',
-      'SweaterAccessory',
-      'ShortsAccessory',
-      'DressSkirtAccessory'
+      "Hat",
+      "TShirt",
+      "Shirt",
+      "Pants",
+      "Head",
+      "Face",
+      "Gear",
+      "HairAccessory",
+      "FaceAccessory",
+      "NeckAccessory",
+      "ShoulderAccessory",
+      "FrontAccessory",
+      "BackAccessory",
+      "WaistAccessory",
+      "EmoteAnimation",
+      "TShirtAccessory",
+      "ShirtAccessory",
+      "PantsAccessory",
+      "JacketAccessory",
+      "SweaterAccessory",
+      "ShortsAccessory",
+      "DressSkirtAccessory",
     ],
     categoryId: 1,
-    name: 'All Items',
+    name: "All Items",
     orderIndex: 1,
-    subcategories: []
+    subcategories: [],
   },
   {
-    category: 'Body',
+    category: "Body",
     assetTypes: mapAssetTypeIds([41, 17, 18]),
     categoryId: 18,
-    name: 'Body',
+    name: "Body",
     orderIndex: 2,
     subcategories: [
       {
-        subcategory: 'HairAccessories',
-        assetTypes: ['HairAccessory'],
+        subcategory: "HairAccessories",
+        assetTypes: ["HairAccessory"],
         subcategoryId: 20,
-        name: 'Hair'
+        name: "Hair",
       },
       {
-        subcategory: 'Heads',
-        assetTypes: ['Head'],
+        subcategory: "Heads",
+        assetTypes: ["Head"],
         subcategoryId: 15,
-        name: 'Classic Heads'
+        name: "Classic Heads",
       },
       {
-        subcategory: 'Faces',
-        assetTypes: ['Face'],
+        subcategory: "Faces",
+        assetTypes: ["Face"],
         subcategoryId: 10,
-        name: 'Classic Faces'
-      }
-    ]
+        name: "Classic Faces",
+      },
+    ],
   },
   {
-    category: 'Clothing',
+    category: "Clothing",
     assetTypes: mapAssetTypeIds([11, 2, 12, 64, 65, 68, 67, 66, 69, 72]),
     categoryId: 3,
-    name: 'Clothing',
+    name: "Clothing",
     orderIndex: 3,
     subcategories: [
       {
-        subcategory: 'TShirtAccessories',
-        assetTypes: ['TShirtAccessory'],
+        subcategory: "TShirtAccessories",
+        assetTypes: ["TShirtAccessory"],
         subcategoryId: 58,
-        name: 'T-Shirts'
+        name: "T-Shirts",
       },
       {
-        subcategory: 'ShirtAccessories',
-        assetTypes: ['ShirtAccessory'],
+        subcategory: "ShirtAccessories",
+        assetTypes: ["ShirtAccessory"],
         subcategoryId: 59,
-        name: 'Shirts'
+        name: "Shirts",
       },
       {
-        subcategory: 'SweaterAccessories',
-        assetTypes: ['SweaterAccessory'],
+        subcategory: "SweaterAccessories",
+        assetTypes: ["SweaterAccessory"],
         subcategoryId: 62,
-        name: 'Sweaters'
+        name: "Sweaters",
       },
       {
-        subcategory: 'JacketAccessories',
-        assetTypes: ['JacketAccessory'],
+        subcategory: "JacketAccessories",
+        assetTypes: ["JacketAccessory"],
         subcategoryId: 61,
-        name: 'Jackets'
+        name: "Jackets",
       },
       {
-        subcategory: 'PantsAccessories',
-        assetTypes: ['PantsAccessory'],
+        subcategory: "PantsAccessories",
+        assetTypes: ["PantsAccessory"],
         subcategoryId: 60,
-        name: 'Pants'
+        name: "Pants",
       },
       {
-        subcategory: 'ShortsAccessories',
-        assetTypes: ['ShortsAccessory'],
+        subcategory: "ShortsAccessories",
+        assetTypes: ["ShortsAccessory"],
         subcategoryId: 63,
-        name: 'Shorts'
+        name: "Shorts",
       },
       {
-        subcategory: 'DressSkirtAccessories',
-        assetTypes: ['DressSkirtAccessory'],
+        subcategory: "DressSkirtAccessories",
+        assetTypes: ["DressSkirtAccessory"],
         subcategoryId: 65,
-        name: 'Dresses & Skirts'
+        name: "Dresses & Skirts",
       },
       {
-        subcategory: 'ClassicShirts',
-        assetTypes: ['Shirt'],
+        subcategory: "ClassicShirts",
+        assetTypes: ["Shirt"],
         subcategoryId: 56,
-        name: 'Classic Shirts'
+        name: "Classic Shirts",
       },
       {
-        subcategory: 'ClassicTShirts',
-        assetTypes: ['TShirt'],
+        subcategory: "ClassicTShirts",
+        assetTypes: ["TShirt"],
         subcategoryId: 55,
-        name: 'Classic T-Shirts'
+        name: "Classic T-Shirts",
       },
       {
-        subcategory: 'ClassicPants',
-        assetTypes: ['Pants'],
+        subcategory: "ClassicPants",
+        assetTypes: ["Pants"],
         subcategoryId: 57,
-        name: 'Classic Pants'
-      }
-    ]
+        name: "Classic Pants",
+      },
+    ],
   },
   {
-    category: 'Accessories',
+    category: "Accessories",
     assetTypes: mapAssetTypeIds([8, 42, 43, 44, 45, 46, 47, 19]),
     categoryId: 11,
-    name: 'Accessories',
+    name: "Accessories",
     orderIndex: 4,
     subcategories: [
       {
-        subcategory: 'HeadAccessories',
-        assetTypes: ['Hat'],
+        subcategory: "HeadAccessories",
+        assetTypes: ["Hat"],
         subcategoryId: 54,
-        name: 'Head'
+        name: "Head",
       },
       {
-        subcategory: 'FaceAccessories',
-        assetTypes: ['FaceAccessory'],
+        subcategory: "FaceAccessories",
+        assetTypes: ["FaceAccessory"],
         subcategoryId: 21,
-        name: 'Face'
+        name: "Face",
       },
       {
-        subcategory: 'NeckAccessories',
-        assetTypes: ['NeckAccessory'],
+        subcategory: "NeckAccessories",
+        assetTypes: ["NeckAccessory"],
         subcategoryId: 22,
-        name: 'Neck'
+        name: "Neck",
       },
       {
-        subcategory: 'ShoulderAccessories',
-        assetTypes: ['ShoulderAccessory'],
+        subcategory: "ShoulderAccessories",
+        assetTypes: ["ShoulderAccessory"],
         subcategoryId: 23,
-        name: 'Shoulder'
+        name: "Shoulder",
       },
       {
-        subcategory: 'FrontAccessories',
-        assetTypes: ['FrontAccessory'],
+        subcategory: "FrontAccessories",
+        assetTypes: ["FrontAccessory"],
         subcategoryId: 24,
-        name: 'Front'
+        name: "Front",
       },
       {
-        subcategory: 'BackAccessories',
-        assetTypes: ['BackAccessory'],
+        subcategory: "BackAccessories",
+        assetTypes: ["BackAccessory"],
         subcategoryId: 25,
-        name: 'Back'
+        name: "Back",
       },
       {
-        subcategory: 'WaistAccessories',
-        assetTypes: ['WaistAccessory'],
+        subcategory: "WaistAccessories",
+        assetTypes: ["WaistAccessory"],
         subcategoryId: 26,
-        name: 'Waist'
+        name: "Waist",
       },
       {
-        subcategory: 'Gear',
-        assetTypes: ['Gear'],
+        subcategory: "Gear",
+        assetTypes: ["Gear"],
         subcategoryId: 5,
-        name: 'Gear'
-      }
-    ]
+        name: "Gear",
+      },
+    ],
   },
   {
-    category: 'AvatarAnimations',
+    category: "AvatarAnimations",
     assetTypes: mapAssetTypeIds([61]),
     categoryId: 12,
-    name: 'Animations',
+    name: "Animations",
     orderIndex: 5,
     subcategories: [
       {
-        subcategory: 'EmoteAnimations',
-        assetTypes: ['EmoteAnimation'],
+        subcategory: "EmoteAnimations",
+        assetTypes: ["EmoteAnimation"],
         subcategoryId: 39,
-        name: 'Emotes'
-      }
-    ]
+        name: "Emotes",
+      },
+    ],
   },
   {
-    category: 'GamePasses',
-    assetTypes: ['GamePass'],
+    category: "GamePasses",
+    assetTypes: ["GamePass"],
     categoryId: 98,
-    name: 'Game Passes',
+    name: "Game Passes",
     orderIndex: 6,
-    subcategories: []
+    subcategories: [],
   },
   {
-    category: 'Badges',
-    assetTypes: ['Badge'],
+    category: "Badges",
+    assetTypes: ["Badge"],
     categoryId: 99,
-    name: 'Badges',
+    name: "Badges",
     orderIndex: 7,
-    subcategories: []
-  }
-]
+    subcategories: [],
+  },
+];

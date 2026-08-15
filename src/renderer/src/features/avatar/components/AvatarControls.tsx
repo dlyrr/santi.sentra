@@ -1,18 +1,22 @@
-import React from 'react'
-import { RotateCcw, RefreshCw } from 'lucide-react'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
+import React from "react";
+import { RotateCcw, RefreshCw } from "lucide-react";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
 
 interface AvatarControlsProps {
-  onRefresh: () => void
-  onReset: () => void
-  isRendering: boolean
+  onRefresh: () => void;
+  onReset: () => void;
+  isRendering: boolean;
 }
 
 export const AvatarControls: React.FC<AvatarControlsProps> = ({
   onRefresh,
   onReset,
-  isRendering
+  isRendering,
 }) => {
   return (
     <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
@@ -44,5 +48,5 @@ export const AvatarControls: React.FC<AvatarControlsProps> = ({
         <TooltipContent>Reset Camera</TooltipContent>
       </Tooltip>
     </div>
-  )
-}
+  );
+};

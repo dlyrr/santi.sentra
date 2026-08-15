@@ -1,41 +1,42 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { cn } from '@renderer/lib/utils'
+import React from "react";
+import { motion } from "framer-motion";
+import { cn } from "@renderer/lib/utils";
 
-type EmptyStateVariant = 'default' | 'dashed' | 'minimal'
+type EmptyStateVariant = "default" | "dashed" | "minimal";
 
 interface EmptyStateProps {
-  icon?: React.ComponentType<{ size?: number; className?: string }>
-  title: string
-  description?: string
-  action?: React.ReactNode
-  variant?: EmptyStateVariant
-  className?: string
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  variant?: EmptyStateVariant;
+  className?: string;
 }
 
 const variantStyles: Record<EmptyStateVariant, string> = {
-  default: 'p-8 text-center',
-  dashed: 'p-4 text-center bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] border-dashed',
-  minimal: 'py-8 text-center'
-}
+  default: "p-8 text-center",
+  dashed:
+    "p-4 text-center bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] border-dashed",
+  minimal: "py-8 text-center",
+};
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon: Icon,
   title,
   description,
   action,
-  variant = 'default',
-  className
+  variant = "default",
+  className,
 }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className={cn(
-        'flex flex-col items-center justify-center gap-4 text-[var(--color-text-muted)]',
+        "flex flex-col items-center justify-center gap-4 text-[var(--color-text-muted)]",
         variantStyles[variant],
-        className
+        className,
       )}
     >
       {Icon && (
@@ -44,29 +45,35 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         </div>
       )}
       <div className="text-center max-w-sm">
-        <p className="text-base font-semibold text-[var(--color-text-primary)]">{title}</p>
-        {description && <p className="text-sm text-[var(--color-text-muted)] mt-1 leading-relaxed">{description}</p>}
+        <p className="text-base font-semibold text-[var(--color-text-primary)]">
+          {title}
+        </p>
+        {description && (
+          <p className="text-sm text-[var(--color-text-muted)] mt-1 leading-relaxed">
+            {description}
+          </p>
+        )}
       </div>
       {action && <div className="mt-2">{action}</div>}
     </motion.div>
-  )
-}
+  );
+};
 
 /**
  * Compact empty state for inline use (e.g., within sections)
  */
 export const EmptyStateCompact: React.FC<{
-  message: string
-  className?: string
+  message: string;
+  className?: string;
 }> = ({ message, className }) => (
   <div
     className={cn(
-      'p-4 text-center text-[var(--color-text-muted)] text-sm bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] border-dashed',
-      className
+      "p-4 text-center text-[var(--color-text-muted)] text-sm bg-[var(--color-surface-muted)] rounded-xl border border-[var(--color-border)] border-dashed",
+      className,
     )}
   >
     {message}
   </div>
-)
+);
 
-export default EmptyState
+export default EmptyState;

@@ -60,7 +60,7 @@ export class AppError extends Error {
     code: ErrorCode,
     module: string,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-    context: ErrorContext = {}
+    context: ErrorContext = {},
   ) {
     super(message);
     this.name = "AppError";
@@ -99,14 +99,14 @@ export class ValidationError extends AppError {
   constructor(
     message: string,
     context: ErrorContext = {},
-    module: string = "VALIDATION"
+    module: string = "VALIDATION",
   ) {
     super(
       message,
       ErrorCode.TRADING_INVALID_DATA,
       module,
       ErrorSeverity.LOW,
-      context
+      context,
     );
     this.name = "ValidationError";
     Object.setPrototypeOf(this, ValidationError.prototype);
@@ -120,14 +120,14 @@ export class ConfigError extends AppError {
   constructor(
     message: string,
     context: ErrorContext = {},
-    module: string = "CONFIG"
+    module: string = "CONFIG",
   ) {
     super(
       message,
       ErrorCode.CONFIGURATION_ERROR,
       module,
       ErrorSeverity.HIGH,
-      context
+      context,
     );
     this.name = "ConfigError";
     Object.setPrototypeOf(this, ConfigError.prototype);

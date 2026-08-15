@@ -1,5 +1,5 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge } from "electron";
+import { electronAPI } from "@electron-toolkit/preload";
 
 // Import consolidated API domains
 import {
@@ -28,16 +28,19 @@ import {
   watcherApi,
   macroApi,
   sniperApi,
-  generatorApi
-} from './api'
+  generatorApi,
+  tradingApi,
+  browserApi,
+  proxyMgmtApi,
+} from "./api";
 
 // Platform info
 const platform = {
-  isMac: process.platform === 'darwin',
-  isWindows: process.platform === 'win32',
-  isLinux: process.platform === 'linux',
-  platform: process.platform
-}
+  isMac: process.platform === "darwin",
+  isWindows: process.platform === "win32",
+  isLinux: process.platform === "linux",
+  platform: process.platform,
+};
 
 // Merge all domain APIs into a single api object
 const api = {
@@ -67,6 +70,9 @@ const api = {
   ...macroApi,
   ...sniperApi,
   ...generatorApi,
+  ...tradingApi,
+  ...browserApi,
+  ...proxyMgmtApi,
   // Namespace properties for organized access
   account: accountApi,
   user: usersApi,
@@ -84,23 +90,26 @@ const api = {
   watcher: watcherApi,
   macro: macroApi,
   sniper: sniperApi,
-  generator: generatorApi
-}
+  generator: generatorApi,
+  trading: tradingApi,
+  browser: browserApi,
+  proxyMgmt: proxyMgmtApi,
+};
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('platform', platform)
+    contextBridge.exposeInMainWorld("electron", electronAPI);
+    contextBridge.exposeInMainWorld("api", api);
+    contextBridge.exposeInMainWorld("platform", platform);
   } catch (error) {
-    console.error('Failed to expose APIs via contextBridge:', error)
+    console.error("Failed to expose APIs via contextBridge:", error);
   }
 } else {
   // In non-context-isolated mode, assign directly to window
-  ;(window as any).electron = electronAPI
-  ;(window as any).api = api
-  ;(window as any).platform = platform
+  (window as any).electron = electronAPI;
+  (window as any).api = api;
+  (window as any).platform = platform;
 }

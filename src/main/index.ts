@@ -1,35 +1,33 @@
 /// <reference types="electron-vite/node" />
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { join } from 'path'
-import { existsSync, readFileSync } from 'fs'
-import { getDataFile } from './utils/paths'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import iconIco from '../../resources/build/icons/win/icon.ico?asset'
-import iconIcns from '../../resources/build/icons/mac/icon.icns?asset'
+import { app, shell, BrowserWindow, ipcMain } from "electron";
+import { join } from "path";
+import { existsSync, readFileSync } from "fs";
+import { getDataFile } from "./utils/paths";
+import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import iconIco from "../../resources/build/icons/win/icon.ico?asset";
+import iconIcns from "../../resources/build/icons/mac/icon.icns?asset";
 
-const mainStart = performance.now()
+const mainStart = performance.now();
 const logPerf = (label: string) => {
-  const delta = performance.now() - mainStart
-  console.log(`[perf:main] ${label} ${delta.toFixed(1)}ms`)
-}
+  const delta = performance.now() - mainStart;
+  console.log(`[perf:main] ${label} ${delta.toFixed(1)}ms`);
+};
 
-let storageService: typeof import('./modules/system/StorageService').storageService
+let storageService: typeof import("./modules/system/StorageService").storageService;
 
 // Synchronous flag to prevent race condition - must be set before any async code
-let handlersRegistered = false
+let handlersRegistered = false;
 
 // Prevent multiple instances of the app from running (Windows-only, but harmless on other platforms)
 // This lock is essential for normal operation but can block app restart on Windows
 // We store it so we can release it during updates if needed
-let appLock: ReturnType<typeof app.requestSingleInstanceLock> | null = null
-const gotTheLock = app.requestSingleInstanceLock()
-if (!gotTheLock) {
-  app.quit()
+let appLock: ReturnType<typeof app.requestSingleInstanceLock> | null = null;
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock && process.platform === "win32") {
+  app.quit();
 } else {
-  appLock = gotTheLock
+  appLock = gotTheLock;
 }
-
-
 
 // Helper for gracefully handling app shutdown during updates
 export function gracefulShutdownForUpdate(): void {
@@ -37,17 +35,18 @@ export function gracefulShutdownForUpdate(): void {
     try {
       // Release the single instance lock to allow the updated app to start
       // Note: app.requestSingleInstanceLock() returns a lock object that is released by nullifying it
-      appLock = null
+      appLock = null;
     } catch (err) {
-      console.warn('Could not release app lock:', err)
+      console.warn("Could not release app lock:", err);
     }
   }
 }
 
-process.on('uncaughtException', (error) => {
-  if (error.message === 'write EPIPE' || (error as any).code === 'EPIPE') return
-  console.error('Uncaught exception:', error)
-})
+process.on("uncaughtException", (error) => {
+  if (error.message === "write EPIPE" || (error as any).code === "EPIPE")
+    return;
+  console.error("Uncaught exception:", error);
+});
 
 function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
@@ -55,83 +54,94 @@ function createWindow(): BrowserWindow {
     height: 900,
     show: false,
     autoHideMenuBar: true,
-    icon: process.platform === 'darwin' ? iconIcns : iconIco,
-    backgroundColor: '#111111',
-    titleBarStyle: 'hidden',
-    ...(process.platform === 'darwin'
+    icon: process.platform === "darwin" ? iconIcns : iconIco,
+    backgroundColor: "#111111",
+    titleBarStyle: "hidden",
+    ...(process.platform === "darwin"
       ? { trafficLightPosition: { x: 16, y: 16 } }
-      : { titleBarOverlay: { color: '#00000000', symbolColor: '#ffffff', height: 45 } }),
+      : {
+          titleBarOverlay: {
+            color: "#00000000",
+            symbolColor: "#ffffff",
+            height: 45,
+          },
+        }),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
-    }
-  })
+      preload: join(__dirname, "../preload/index.js"),
+      sandbox: false,
+    },
+  });
 
   // Debounce window resize saving
-  let resizeTimeout: NodeJS.Timeout | null = null
-  mainWindow.on('resized', () => {
-    if (resizeTimeout) clearTimeout(resizeTimeout)
+  let resizeTimeout: NodeJS.Timeout | null = null;
+  mainWindow.on("resized", () => {
+    if (resizeTimeout) clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       if (storageService) {
-        const [width, height] = mainWindow.getSize()
-        storageService.setWindowWidth(width)
-        storageService.setWindowHeight(height)
+        const [width, height] = mainWindow.getSize();
+        storageService.setWindowWidth(width);
+        storageService.setWindowHeight(height);
       }
-    }, 500)
-  })
+    }, 500);
+  });
 
-  mainWindow.on('ready-to-show', () => {
+  mainWindow.on("ready-to-show", () => {
     // Apply saved size non-blocking
     if (storageService) {
-      const savedWidth = storageService.getWindowWidth()
-      const savedHeight = storageService.getWindowHeight()
+      const savedWidth = storageService.getWindowWidth();
+      const savedHeight = storageService.getWindowHeight();
       if (savedWidth && savedHeight) {
-        mainWindow.setSize(savedWidth, savedHeight, true)
-        mainWindow.center()
+        mainWindow.setSize(savedWidth, savedHeight, true);
+        mainWindow.center();
       }
     }
-    mainWindow.show()
-    logPerf('ready-to-show')
-  })
+    mainWindow.show();
+    logPerf("ready-to-show");
+  });
 
-  mainWindow.webContents.once('dom-ready', () => logPerf('dom-ready'))
-  mainWindow.webContents.once('did-finish-load', () => logPerf('did-finish-load'))
+  mainWindow.webContents.once("dom-ready", () => logPerf("dom-ready"));
+  mainWindow.webContents.once("did-finish-load", () =>
+    logPerf("did-finish-load"),
+  );
 
   // Standardize console log output from renderer
-  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    // Electron passes arguments as: (event, level, message, line, sourceId)
-    console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`)
-  })
+  mainWindow.webContents.on(
+    "console-message",
+    (_event, level, message, line, sourceId) => {
+      // Electron passes arguments as: (event, level, message, line, sourceId)
+      console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
+    },
+  );
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
-  })
+    shell.openExternal(details.url);
+    return { action: "deny" };
+  });
 
   // navigation is deferred to caller so IPC handlers can be ready
-  return mainWindow
+  return mainWindow;
 }
 
 app.whenReady().then(async () => {
-  electronApp.setAppUserModelId('com.sentra.app')
-  if (process.platform === 'darwin') app.setName('sentra')
+  electronApp.setAppUserModelId("com.sentra.app");
+  if (process.platform === "darwin") app.setName("sentra");
 
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
+  app.on("browser-window-created", (_, window) => {
+    optimizer.watchWindowShortcuts(window);
+  });
 
-  const mainWindow = createWindow()
-  logPerf('window-created')
+  const mainWindow = createWindow();
+  logPerf("window-created");
 
   // Load CRITICAL modules first (needed before showing UI)
   const criticalModules = await Promise.all([
-    import('./modules/core/RobloxHandler'),
-    import('./modules/system/StorageController'),
-    import('./modules/system/StorageService'),
-    import('./modules/system/PinService'),
-    import('./modules/updater/UpdaterController'),
-    import('./modules/system/LogsController')
-  ])
+    import("./modules/core/RobloxHandler"),
+    import("./modules/system/StorageController"),
+    import("./modules/system/StorageService"),
+    import("./modules/system/PinService"),
+    import("./modules/updater/UpdaterController"),
+    import("./modules/system/LogsController"),
+  ]);
 
   const criticalLoaded = {
     registerRobloxHandlers: criticalModules[0].registerRobloxHandlers,
@@ -139,193 +149,208 @@ app.whenReady().then(async () => {
     storageService: criticalModules[2].storageService,
     pinService: criticalModules[3].pinService,
     registerUpdaterHandlers: criticalModules[4].registerUpdaterHandlers,
-    registerLogsHandlers: criticalModules[5].registerLogsHandlers
-  }
+    registerLogsHandlers: criticalModules[5].registerLogsHandlers,
+  };
 
   // Update global reference
-  storageService = criticalLoaded.storageService
+  storageService = criticalLoaded.storageService;
 
-  logPerf('critical-modules-loaded')
+  logPerf("critical-modules-loaded");
 
   // Register critical handlers
-  criticalLoaded.registerRobloxHandlers()
-  criticalLoaded.registerStorageHandlers()
-  criticalLoaded.registerLogsHandlers()
-  criticalLoaded.pinService.initialize()
-  logPerf('critical-handlers-registered')
+  criticalLoaded.registerRobloxHandlers();
+  criticalLoaded.registerStorageHandlers();
+  criticalLoaded.registerLogsHandlers();
+  criticalLoaded.pinService.initialize();
+  logPerf("critical-handlers-registered");
 
   // Resume user agent auto-swap if it was enabled
-  const { UserAgentService } = await import('./modules/auth/UserAgentService')
-  UserAgentService.resumeAutoSwapIfEnabled()
+  const { UserAgentService } = await import("./modules/auth/UserAgentService");
+  UserAgentService.resumeAutoSwapIfEnabled();
 
   // Register production module IPC handlers
-  const { registerModuleIpcHandlers } = await import('./ipc/ModuleIpcHandlers')
-  registerModuleIpcHandlers()
+  const { registerModuleIpcHandlers } = await import("./ipc/ModuleIpcHandlers");
+  registerModuleIpcHandlers();
 
   // only navigate once the critical IPC handlers are in place to avoid race conditions
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
   // Load NON-CRITICAL modules AFTER UI is displayed (deferred loading)
-  mainWindow.once('ready-to-show', async () => {
-    logPerf('ready-to-show')
-    
+  mainWindow.once("ready-to-show", async () => {
+    logPerf("ready-to-show");
+
     // Set flag SYNCHRONOUSLY to prevent both windows from registering handlers
     // This must be done before any async operations
     if (handlersRegistered) {
-      console.log('[perf:main] Handlers already registered, skipping for this window')
-      return
+      console.log(
+        "[perf:main] Handlers already registered, skipping for this window",
+      );
+      return;
     }
-    handlersRegistered = true
-    console.log('[perf:main] Locked handler registration, proceeding with setup...')
+    handlersRegistered = true;
+    console.log(
+      "[perf:main] Locked handler registration, proceeding with setup...",
+    );
 
     // Load and register non-critical modules in background
-    console.log('[perf:main] Starting deferred module loading...')
-    
+    console.log("[perf:main] Starting deferred module loading...");
+
     const nonCriticalModules = await Promise.all([
-      import('./modules/discord/DiscordRPCController'),
-      import('./modules/watcher/WatcherController'),
-      import('./modules/macro/MacroController'),
-      import('./modules/sniper/SniperController'),
-      import('./modules/generator/GeneratorController'),
-      import('./modules/system/PerformanceService')
-    ])
+      import("./modules/discord/DiscordRPCController"),
+      import("./modules/watcher/WatcherController"),
+      import("./modules/macro/MacroController"),
+      import("./modules/sniper/SniperController"),
+      import("./modules/generator/GeneratorController"),
+      import("./modules/system/PerformanceService"),
+    ]);
 
     const nonCriticalLoaded = {
-      registerDiscordRPCHandlers: nonCriticalModules[0].registerDiscordRPCHandlers,
+      registerDiscordRPCHandlers:
+        nonCriticalModules[0].registerDiscordRPCHandlers,
       registerWatcherHandlers: nonCriticalModules[1].registerWatcherHandlers,
       registerMacroHandlers: nonCriticalModules[2].registerMacroHandlers,
       registerSniperHandlers: nonCriticalModules[3].registerSniperHandlers,
-      registerGeneratorHandlers: nonCriticalModules[4].registerGeneratorHandlers,
-      performanceService: nonCriticalModules[5].PerformanceService
-    }
+      registerGeneratorHandlers:
+        nonCriticalModules[4].registerGeneratorHandlers,
+      performanceService: nonCriticalModules[5].PerformanceService,
+    };
 
-    logPerf('non-critical-modules-loaded')
+    logPerf("non-critical-modules-loaded");
 
     // Register non-critical handlers
-    console.log('[perf:main] Registering non-critical IPC handlers (one-time setup)...')
-    nonCriticalLoaded.registerDiscordRPCHandlers()
-    nonCriticalLoaded.registerWatcherHandlers(mainWindow)
-    nonCriticalLoaded.registerMacroHandlers()
-    nonCriticalLoaded.registerSniperHandlers()
-    nonCriticalLoaded.registerGeneratorHandlers()
-    nonCriticalLoaded.performanceService.init()
+    console.log(
+      "[perf:main] Registering non-critical IPC handlers (one-time setup)...",
+    );
+    nonCriticalLoaded.registerDiscordRPCHandlers();
+    nonCriticalLoaded.registerWatcherHandlers(mainWindow);
+    nonCriticalLoaded.registerMacroHandlers();
+    nonCriticalLoaded.registerSniperHandlers();
+    nonCriticalLoaded.registerGeneratorHandlers();
+    nonCriticalLoaded.performanceService.init();
 
-    logPerf('non-critical-handlers-registered')
-    console.log('[perf:main] App fully loaded and ready!')
-  })
+    logPerf("non-critical-handlers-registered");
+    console.log("[perf:main] App fully loaded and ready!");
+  });
 
-  ipcMain.handle('focus-window', () => {
+  ipcMain.handle("focus-window", () => {
     if (mainWindow) {
-      mainWindow.setAlwaysOnTop(true)
-      mainWindow.focus()
-      mainWindow.setAlwaysOnTop(false)
+      mainWindow.setAlwaysOnTop(true);
+      mainWindow.focus();
+      mainWindow.setAlwaysOnTop(false);
     }
-  })
+  });
 
-  ipcMain.handle('has-config', () => {
+  ipcMain.handle("has-config", () => {
     try {
       const configCandidates = [
-        getDataFile('config.json'),
-        join(app.getPath('userData'), 'config.json'),
-        join(app.getPath('userData'), 'Sentra', 'config.json'),
-        join(app.getPath('documents'), 'Sentra', 'config.json')
-      ]
+        getDataFile("config.json"),
+        join(app.getPath("userData"), "config.json"),
+        join(app.getPath("userData"), "Sentra", "config.json"),
+        join(app.getPath("documents"), "Sentra", "config.json"),
+      ];
 
       for (const candidate of configCandidates) {
-        if (!existsSync(candidate)) continue
+        if (!existsSync(candidate)) continue;
 
         try {
-          const content = readFileSync(candidate, 'utf-8').trim()
-          if (!content) continue
-          const parsed = JSON.parse(content)
-          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-            return true
+          const content = readFileSync(candidate, "utf-8").trim();
+          if (!content) continue;
+          const parsed = JSON.parse(content);
+          if (
+            parsed &&
+            typeof parsed === "object" &&
+            Object.keys(parsed).length > 0
+          ) {
+            return true;
           }
         } catch {
-          return true
+          return true;
         }
       }
 
-      return false
+      return false;
     } catch (error) {
-      console.error('Failed to check config existence:', error)
-      return false
+      console.error("Failed to check config existence:", error);
+      return false;
     }
-  })
+  });
 
   // DISABLED: License redeem handler - licensing system disabled
   // ipcMain.handle('license:redeem', async (_event, licenseKey: string, userPin: string) => { ... })
 
   // IPC: Reset HWID / clear license
-  // Note: reset-hwid removed — functionality requires KeyAuth subscription. Do not expose.
+  // Note: deleted because of the issues with rift
 
   // IPC: Logout / clear all config data
-  ipcMain.handle('app:logout', async () => {
+  ipcMain.handle("app:logout", async () => {
     try {
-      if (!storageService) return { success: false, message: 'Storage not initialized' }
-      storageService.clearAll()
-      return { success: true, message: null }
+      if (!storageService)
+        return { success: false, message: "Storage not initialized" };
+      storageService.clearAll();
+      return { success: true, message: null };
     } catch (err: any) {
-      return { success: false, message: err?.message ?? String(err) }
+      return { success: false, message: err?.message ?? String(err) };
     }
-  })
+  });
 
   // Get decrypted password for an account
-  ipcMain.handle('account:get-decrypted-password', async (_event, accountId: string) => {
-    try {
-      if (!storageService) return { success: false, password: '' }
-      const accounts = storageService.getAccounts()
-      const account = accounts.find((acc) => acc.id === accountId)
-      if (!account) {
-        return { success: false, password: '' }
+  ipcMain.handle(
+    "account:get-decrypted-password",
+    async (_event, accountId: string) => {
+      try {
+        if (!storageService) return { success: false, password: "" };
+        const accounts = storageService.getAccounts();
+        const account = accounts.find((acc) => acc.id === accountId);
+        if (!account) {
+          return { success: false, password: "" };
+        }
+        const decrypted = storageService.getDecryptedPassword(account.password);
+        return { success: true, password: decrypted };
+      } catch (err: any) {
+        console.error("Error getting decrypted password:", err);
+        return { success: false, password: "" };
       }
-      const decrypted = storageService.getDecryptedPassword(account.password)
-      return { success: true, password: decrypted }
-    } catch (err: any) {
-      console.error('Error getting decrypted password:', err)
-      return { success: false, password: '' }
-    }
-  })
+    },
+  );
 
   // DISABLED: License validation handler - licensing system disabled
   // ipcMain.handle('license:validate-stored', async () => { ... })
-
 
   // DISABLED: Periodic license session refresh - licensing system disabled
   // setInterval(async () => { ... }, 6 * 60 * 60 * 1000)
 
   // Register updater handlers
-  criticalLoaded.registerUpdaterHandlers(mainWindow)
+  criticalLoaded.registerUpdaterHandlers(mainWindow);
 
-  app.on('activate', function () {
+  app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) {
-      const newWindow = createWindow()
-      criticalLoaded.registerUpdaterHandlers(newWindow)
+      const newWindow = createWindow();
+      criticalLoaded.registerUpdaterHandlers(newWindow);
     } else {
       // If windows exist, just focus the first one
-      const mainWindow = BrowserWindow.getAllWindows()[0]
+      const mainWindow = BrowserWindow.getAllWindows()[0];
       if (mainWindow) {
-        mainWindow.show()
-        mainWindow.focus()
+        mainWindow.show();
+        mainWindow.focus();
       }
     }
-  })
+  });
 
   // Handle second instance attempt on Windows
-  app.on('second-instance', () => {
-    const windows = BrowserWindow.getAllWindows()
+  app.on("second-instance", () => {
+    const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
-      const mainWindow = windows[0]
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
+      const mainWindow = windows[0];
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
-  })
-})
+  });
+});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});

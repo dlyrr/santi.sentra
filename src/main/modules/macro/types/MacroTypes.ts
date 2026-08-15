@@ -85,11 +85,11 @@ export interface MacroPlaybackState {
  */
 export type MacroRecordingCallback = (
   state: MacroRecordingState,
-  event: MacroEvent
+  event: MacroEvent,
 ) => void;
 export type MacroPlaybackCallback = (
   state: MacroPlaybackState,
-  event: MacroEvent
+  event: MacroEvent,
 ) => void;
 
 /**

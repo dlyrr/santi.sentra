@@ -1,118 +1,121 @@
-import { autoUpdater, UpdateInfo, ProgressInfo } from 'electron-updater'
-import { BrowserWindow, app } from 'electron'
-import log from 'electron-log'
-import path from 'path'
-import fs from 'fs'
+import { autoUpdater, UpdateInfo, ProgressInfo } from "electron-updater";
+import { BrowserWindow, app } from "electron";
+import log from "electron-log";
+import path from "path";
+import fs from "fs";
 
 // Configure logging for auto-updater
-autoUpdater.logger = log
-autoUpdater.autoDownload = false
-autoUpdater.autoInstallOnAppQuit = true
+autoUpdater.logger = log;
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 
 function isUpdateConfigured(): boolean {
   if (!app.isPackaged) {
-    const devConfigPath = path.join(process.cwd(), 'dev-app-update.yml')
-    return fs.existsSync(devConfigPath)
+    const devConfigPath = path.join(process.cwd(), "dev-app-update.yml");
+    return fs.existsSync(devConfigPath);
   }
 
   const possiblePaths = [
-    path.join(process.resourcesPath, 'app-update.yml'),
-    path.join(process.resourcesPath, 'app.asar.unpacked', 'app-update.yml')
-  ]
+    path.join(process.resourcesPath, "app-update.yml"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "app-update.yml"),
+  ];
 
-  return possiblePaths.some((p) => fs.existsSync(p))
+  return possiblePaths.some((p) => fs.existsSync(p));
 }
 
 export type UpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'not-available'
-  | 'downloading'
-  | 'downloaded'
-  | 'error'
+  | "idle"
+  | "checking"
+  | "available"
+  | "not-available"
+  | "downloading"
+  | "downloaded"
+  | "error";
 
 export interface UpdateState {
-  status: UpdateStatus
-  info: UpdateInfo | null
-  progress: ProgressInfo | null
-  error: string | null
+  status: UpdateStatus;
+  info: UpdateInfo | null;
+  progress: ProgressInfo | null;
+  error: string | null;
 }
 
 class UpdaterService {
   private state: UpdateState = {
-    status: 'idle',
+    status: "idle",
     info: null,
     progress: null,
-    error: null
-  }
+    error: null,
+  };
 
-  private mainWindow: BrowserWindow | null = null
+  private mainWindow: BrowserWindow | null = null;
 
   constructor() {
-    this.setupEventListeners()
+    this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    autoUpdater.on('checking-for-update', () => {
-      this.updateState({ status: 'checking', error: null })
-    })
+    autoUpdater.on("checking-for-update", () => {
+      this.updateState({ status: "checking", error: null });
+    });
 
-    autoUpdater.on('update-available', (info: UpdateInfo) => {
-      this.updateState({ status: 'available', info, error: null })
-    })
+    autoUpdater.on("update-available", (info: UpdateInfo) => {
+      this.updateState({ status: "available", info, error: null });
+    });
 
-    autoUpdater.on('update-not-available', (info: UpdateInfo) => {
-      this.updateState({ status: 'not-available', info, error: null })
-    })
+    autoUpdater.on("update-not-available", (info: UpdateInfo) => {
+      this.updateState({ status: "not-available", info, error: null });
+    });
 
-    autoUpdater.on('download-progress', (progress: ProgressInfo) => {
-      this.updateState({ status: 'downloading', progress })
-    })
+    autoUpdater.on("download-progress", (progress: ProgressInfo) => {
+      this.updateState({ status: "downloading", progress });
+    });
 
-    autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
-      this.updateState({ status: 'downloaded', info, progress: null })
-      // Notify the renderer so it can show a "Restart to update" banner.
-      // Do NOT auto-quit here — that caused users to experience sudden crashes
-      // whenever an update downloaded silently in the background.
-    })
+    autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
+      this.updateState({ status: "downloaded", info, progress: null });
+    });
 
-    autoUpdater.on('error', (error: Error) => {
-      this.updateState({ status: 'error', error: error.message, progress: null })
-    })
+    autoUpdater.on("error", (error: Error) => {
+      this.updateState({
+        status: "error",
+        error: error.message,
+        progress: null,
+      });
+    });
   }
 
   private updateState(partial: Partial<UpdateState>): void {
-    this.state = { ...this.state, ...partial }
-    this.sendStatusToRenderer()
+    this.state = { ...this.state, ...partial };
+    this.sendStatusToRenderer();
   }
 
   private sendStatusToRenderer(): void {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send('updater:status', this.state)
+      this.mainWindow.webContents.send("updater:status", this.state);
     }
   }
 
   setMainWindow(window: BrowserWindow): void {
-    this.mainWindow = window
+    this.mainWindow = window;
   }
 
   async checkForUpdates(): Promise<UpdateState> {
     if (!isUpdateConfigured()) {
       this.updateState({
-        status: 'error',
-        error: 'Auto-update is not configured. Please download updates manually from GitHub.'
-      })
-      return this.state
+        status: "error",
+        error:
+          "Auto-update is not configured. Please download updates manually from GitHub.",
+      });
+      return this.state;
     }
 
     try {
-      await autoUpdater.checkForUpdates()
-      return this.state
+      await autoUpdater.checkForUpdates();
+      return this.state;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      this.updateState({ status: 'error', error: errorMessage })
-      return this.state
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      this.updateState({ status: "error", error: errorMessage });
+      return this.state;
     }
   }
 
@@ -122,54 +125,48 @@ class UpdaterService {
     // easier to use from the renderer and avoids race conditions with the
     // state machine.
     try {
-      await autoUpdater.downloadUpdate()
+      await autoUpdater.downloadUpdate();
     } catch (err) {
       // bubble the error upwards so the renderer can show a message
-      throw err
+      throw err;
     }
   }
 
   quitAndInstall(): void {
-    if (this.state.status !== 'downloaded') {
-      throw new Error('No update downloaded to install')
+    if (this.state.status !== "downloaded") {
+      throw new Error("No update downloaded to install");
     }
-    this.performQuitAndInstall()
+    this.performQuitAndInstall();
   }
 
   private performQuitAndInstall(): void {
-    // On Windows, quitAndInstall sometimes fails to restart the app after updates
-    // Ensure all windows are closed before attempting the restart
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.close()
+      this.mainWindow.close();
     }
-    
+
     // Give file system a moment to close any file handles
     setTimeout(() => {
       try {
-        // Call quitAndInstall which will stage the update and prepare the restart
-        // isForceRunAfter=false, isSilent=true
-        autoUpdater.quitAndInstall(false, true)
+        autoUpdater.quitAndInstall(false, true);
       } catch (err) {
-        console.error('[Updater] quitAndInstall failed:', err)
-        
-        // Fallback: manually quit, which should trigger the staged update install
-        // The installer will handle the restart on Windows
-        app.quit()
+        console.error("[Updater] quitAndInstall failed:", err);
+
+        app.quit();
       }
-    }, 500)
+    }, 500);
   }
 
   getState(): UpdateState {
-    return this.state
+    return this.state;
   }
 
   // For development/testing - set a custom feed URL
   setFeedURL(url: string): void {
     autoUpdater.setFeedURL({
-      provider: 'generic',
-      url
-    })
+      provider: "generic",
+      url,
+    });
   }
 }
 
-export const updaterService = new UpdaterService()
+export const updaterService = new UpdaterService();

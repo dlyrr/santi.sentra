@@ -1,47 +1,55 @@
-import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, Sparkles, Star, Package } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { RecommendationItem } from '@shared/ipc-schemas/avatar'
+import React, { useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Star,
+  Package,
+} from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import { RecommendationItem } from "@shared/ipc-schemas/avatar";
 import {
   TooltipProvider,
   Tooltip,
   TooltipContent,
-  TooltipTrigger
-} from '@renderer/components/UI/display/Tooltip'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { useHorizontalScroll } from '@renderer/hooks/useHorizontalScroll'
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
+import { formatNumber } from "@renderer/utils/numberUtils";
+import { useHorizontalScroll } from "@renderer/hooks/useHorizontalScroll";
 
 // Inline RecommendationCard component
 const RecommendationCard: React.FC<{
-  item: RecommendationItem
-  imageUrl?: string
-  onClick?: () => void
+  item: RecommendationItem;
+  imageUrl?: string;
+  onClick?: () => void;
 }> = ({ item, imageUrl, onClick }) => {
-  const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-  const isLimitedItem = item.isLimited || item.isLimitedUnique
-  const isLimitedUnique = item.isLimitedUnique
-  let displayPrice: string | number = 'Off Sale'
+  const isLimitedItem = item.isLimited || item.isLimitedUnique;
+  const isLimitedUnique = item.isLimitedUnique;
+  let displayPrice: string | number = "Off Sale";
 
   // For limited items, prioritize resale price (secondary market).
   // If resale price is unavailable, fall back to current price for limited items.
   // For regular items, use the current price or show as "Free".
   if (isLimitedItem && item.lowestResalePrice && item.lowestResalePrice > 0) {
-    displayPrice = item.lowestResalePrice
+    displayPrice = item.lowestResalePrice;
   } else if (isLimitedItem && item.lowestPrice && item.lowestPrice > 0) {
-    displayPrice = item.lowestPrice
+    displayPrice = item.lowestPrice;
   } else if (item.price != null) {
     if (item.price === 0 && !isLimitedItem) {
-      displayPrice = 'Free'
+      displayPrice = "Free";
     } else if (item.price > 0) {
-      displayPrice = item.price
+      displayPrice = item.price;
     }
   }
 
-  const isOffSale = displayPrice === 'Off Sale'
+  const isOffSale = displayPrice === "Off Sale";
   const formattedPrice =
-    typeof displayPrice === 'number' ? formatNumber(displayPrice) : displayPrice
+    typeof displayPrice === "number"
+      ? formatNumber(displayPrice)
+      : displayPrice;
 
   return (
     <div
@@ -55,7 +63,11 @@ const RecommendationCard: React.FC<{
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center justify-center w-7 h-7 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-                    <Sparkles size={13} strokeWidth={2.5} className="shrink-0" />
+                    <Sparkles
+                      size={13}
+                      strokeWidth={2.5}
+                      className="shrink-0"
+                    />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="font-bold text-xs">
@@ -67,7 +79,11 @@ const RecommendationCard: React.FC<{
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 backdrop-blur-md transition-all hover:scale-105 shadow-sm cursor-default">
-                    <Sparkles size={13} strokeWidth={2.5} className="shrink-0" />
+                    <Sparkles
+                      size={13}
+                      strokeWidth={2.5}
+                      className="shrink-0"
+                    />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="font-bold text-xs">
@@ -79,13 +95,15 @@ const RecommendationCard: React.FC<{
 
           {imageUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
+              {!imageLoaded && (
+                <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />
+              )}
               <img
                 src={imageUrl}
                 alt={item.name}
                 onLoad={() => setImageLoaded(true)}
                 className={`w-full h-full object-contain transition-all duration-500 group-hover:scale-110 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                  imageLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 loading="lazy"
               />
@@ -101,7 +119,9 @@ const RecommendationCard: React.FC<{
       <div className="flex flex-col gap-1.5 border-t border-[var(--color-border)]/50 bg-[var(--color-surface)]/30 p-2.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <h3 className="font-medium text-sm text-[var(--color-text-primary)] truncate">{item.name}</h3>
+            <h3 className="font-medium text-sm text-[var(--color-text-primary)] truncate">
+              {item.name}
+            </h3>
           </TooltipTrigger>
           <TooltipContent>{item.name}</TooltipContent>
         </Tooltip>
@@ -109,13 +129,15 @@ const RecommendationCard: React.FC<{
         <div className="flex items-center justify-between">
           <div
             className={`flex items-center gap-1 font-bold text-sm ${
-              isOffSale ? 'text-[var(--color-text-muted)]' : 'text-[var(--color-text-primary)]'
+              isOffSale
+                ? "text-[var(--color-text-muted)]"
+                : "text-[var(--color-text-primary)]"
             }`}
           >
-            {!isOffSale && displayPrice !== 'Free' && (
+            {!isOffSale && displayPrice !== "Free" && (
               <RobuxIcon className="w-3.5 h-3.5 text-[var(--color-text-primary)]" />
             )}
-            <span className={displayPrice === 'Free' ? 'text-emerald-400' : ''}>
+            <span className={displayPrice === "Free" ? "text-emerald-400" : ""}>
               {formattedPrice}
             </span>
           </div>
@@ -130,58 +152,62 @@ const RecommendationCard: React.FC<{
           )}
         </div>
 
-        <div className="text-[11px] text-[var(--color-text-muted)] truncate">{item.creatorName}</div>
+        <div className="text-[11px] text-[var(--color-text-muted)] truncate">
+          {item.creatorName}
+        </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 interface RecommendationsListProps {
-  recommendations: RecommendationItem[]
-  recommendationThumbnails: Map<number, string>
-  onItemClick: (item: RecommendationItem) => void
+  recommendations: RecommendationItem[];
+  recommendationThumbnails: Map<number, string>;
+  onItemClick: (item: RecommendationItem) => void;
 }
 
 export const RecommendationsList: React.FC<RecommendationsListProps> = ({
   recommendations,
   recommendationThumbnails,
-  onItemClick
+  onItemClick,
 }) => {
   const {
     scrollRef: carouselRef,
     canScrollLeft,
     canScrollRight,
-    scroll: scrollCarousel
-  } = useHorizontalScroll([recommendations])
+    scroll: scrollCarousel,
+  } = useHorizontalScroll([recommendations]);
 
-  if (recommendations.length === 0) return null
+  if (recommendations.length === 0) return null;
 
   return (
     <TooltipProvider>
       <div className="pt-6 border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Recommended Items</h3>
+          <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+            Recommended Items
+          </h3>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => scrollCarousel('left')}
+              onClick={() => scrollCarousel("left")}
               disabled={!canScrollLeft}
               className={cn(
-                'p-1.5 rounded-lg transition-all',
+                "p-1.5 rounded-lg transition-all",
                 canScrollLeft
-                  ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
+                  ? "bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                  : "bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed",
               )}
             >
               <ChevronLeft size={16} />
             </button>
             <button
-              onClick={() => scrollCarousel('right')}
+              onClick={() => scrollCarousel("right")}
               disabled={!canScrollRight}
               className={cn(
-                'p-1.5 rounded-lg transition-all',
+                "p-1.5 rounded-lg transition-all",
                 canScrollRight
-                  ? 'bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                  : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed'
+                  ? "bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                  : "bg-[var(--color-surface)] text-[var(--color-text-muted)] cursor-not-allowed",
               )}
             >
               <ChevronRight size={16} />
@@ -191,7 +217,7 @@ export const RecommendationsList: React.FC<RecommendationsListProps> = ({
         <div
           ref={carouselRef}
           className="flex gap-3 overflow-x-auto overflow-y-visible scrollbar-none scroll-smooth py-2 -my-2"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {recommendations.map((item) => (
             <RecommendationCard
@@ -204,5 +230,5 @@ export const RecommendationsList: React.FC<RecommendationsListProps> = ({
         </div>
       </div>
     </TooltipProvider>
-  )
-}
+  );
+};

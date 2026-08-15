@@ -1,60 +1,70 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Bell, Check } from 'lucide-react'
-import CustomCheckbox from '@renderer/components/UI/buttons/CustomCheckbox'
+import React from "react";
+import { motion } from "framer-motion";
+import { Bell, Check } from "lucide-react";
+import CustomCheckbox from "@renderer/components/UI/buttons/CustomCheckbox";
 import {
   useNotificationTrayStore,
   useNotifyFriendOnline,
   useNotifyFriendInGame,
   useNotifyFriendRemoved,
-  useNotifyServerLocation
-} from '@renderer/features/system/stores/useNotificationTrayStore'
+  useNotifyServerLocation,
+} from "@renderer/features/system/stores/useNotificationTrayStore";
 
 interface NotificationsStepProps {
-  onComplete: () => void
+  onComplete: () => void;
 }
 
-const NotificationsStep: React.FC<NotificationsStepProps> = ({ onComplete }) => {
-  const notifyFriendOnline = useNotifyFriendOnline()
-  const notifyFriendInGame = useNotifyFriendInGame()
-  const notifyFriendRemoved = useNotifyFriendRemoved()
-  const notifyServerLocation = useNotifyServerLocation()
+const NotificationsStep: React.FC<NotificationsStepProps> = ({
+  onComplete,
+}) => {
+  const notifyFriendOnline = useNotifyFriendOnline();
+  const notifyFriendInGame = useNotifyFriendInGame();
+  const notifyFriendRemoved = useNotifyFriendRemoved();
+  const notifyServerLocation = useNotifyServerLocation();
 
-  const setNotifyFriendOnline = useNotificationTrayStore((state) => state.setNotifyFriendOnline)
-  const setNotifyFriendInGame = useNotificationTrayStore((state) => state.setNotifyFriendInGame)
-  const setNotifyFriendRemoved = useNotificationTrayStore((state) => state.setNotifyFriendRemoved)
-  const setNotifyServerLocation = useNotificationTrayStore((state) => state.setNotifyServerLocation)
+  const setNotifyFriendOnline = useNotificationTrayStore(
+    (state) => state.setNotifyFriendOnline,
+  );
+  const setNotifyFriendInGame = useNotificationTrayStore(
+    (state) => state.setNotifyFriendInGame,
+  );
+  const setNotifyFriendRemoved = useNotificationTrayStore(
+    (state) => state.setNotifyFriendRemoved,
+  );
+  const setNotifyServerLocation = useNotificationTrayStore(
+    (state) => state.setNotifyServerLocation,
+  );
 
   const notifications = [
     {
-      id: 'friendOnline',
-      label: 'Friend Online Notifications',
-      description: 'Get notified when your friends come online.',
+      id: "friendOnline",
+      label: "Friend Online Notifications",
+      description: "Get notified when your friends come online.",
       checked: notifyFriendOnline,
-      onChange: () => setNotifyFriendOnline(!notifyFriendOnline)
+      onChange: () => setNotifyFriendOnline(!notifyFriendOnline),
     },
     {
-      id: 'friendInGame',
-      label: 'Friend In-Game Notifications',
-      description: 'Get notified when your friends start playing a game.',
+      id: "friendInGame",
+      label: "Friend In-Game Notifications",
+      description: "Get notified when your friends start playing a game.",
       checked: notifyFriendInGame,
-      onChange: () => setNotifyFriendInGame(!notifyFriendInGame)
+      onChange: () => setNotifyFriendInGame(!notifyFriendInGame),
     },
     {
-      id: 'friendRemoved',
-      label: 'Friend Removed Notifications',
-      description: 'Get notified when someone unfriends you.',
+      id: "friendRemoved",
+      label: "Friend Removed Notifications",
+      description: "Get notified when someone unfriends you.",
       checked: notifyFriendRemoved,
-      onChange: () => setNotifyFriendRemoved(!notifyFriendRemoved)
+      onChange: () => setNotifyFriendRemoved(!notifyFriendRemoved),
     },
     {
-      id: 'serverLocation',
-      label: 'Server Location Notifications',
-      description: 'Get notified of the server location when joining a game.',
+      id: "serverLocation",
+      label: "Server Location Notifications",
+      description: "Get notified of the server location when joining a game.",
       checked: notifyServerLocation,
-      onChange: () => setNotifyServerLocation(!notifyServerLocation)
-    }
-  ]
+      onChange: () => setNotifyServerLocation(!notifyServerLocation),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -62,7 +72,9 @@ const NotificationsStep: React.FC<NotificationsStepProps> = ({ onComplete }) => 
         <div className="w-16 h-16 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center mx-auto mb-4">
           <Bell className="w-8 h-8 text-[var(--color-text-secondary)]" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">Notifications</h3>
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
+          Notifications
+        </h3>
         <p className="text-sm text-[var(--color-text-muted)]">
           Choose which notifications you&apos;d like to receive
         </p>
@@ -79,13 +91,18 @@ const NotificationsStep: React.FC<NotificationsStepProps> = ({ onComplete }) => 
             onClick={notification.onChange}
           >
             <div className="mt-0.5">
-              <CustomCheckbox checked={notification.checked} onChange={notification.onChange} />
+              <CustomCheckbox
+                checked={notification.checked}
+                onChange={notification.onChange}
+              />
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium text-[var(--color-text-secondary)] block mb-0.5 cursor-pointer">
                 {notification.label}
               </label>
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{notification.description}</p>
+              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                {notification.description}
+              </p>
             </div>
           </motion.div>
         ))}
@@ -99,7 +116,7 @@ const NotificationsStep: React.FC<NotificationsStepProps> = ({ onComplete }) => 
         <span>Complete Setup</span>
       </button>
     </div>
-  )
-}
+  );
+};
 
-export default NotificationsStep
+export default NotificationsStep;

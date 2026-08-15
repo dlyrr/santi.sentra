@@ -3,20 +3,20 @@ productName: sentra
 directories:
   buildResources: resources/build
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - "!**/.vscode/*"
+  - "!src/*"
+  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
+  - "!{.env,.env.*,.npmrc,pnpm-lock.yaml}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 extraResources:
   # ALL resources go INSIDE the app folder for x64 Windows
-  - from: 'assets/lists/roblox_items.db'
-    to: 'assets/lists/roblox_items.db'
-  - from: 'resources/app-update.yml'
-    to: 'app-update.yml'
-  - from: 'assets/icons'
-    to: 'assets/icons'
+  - from: "assets/lists/roblox_items.db"
+    to: "assets/lists/roblox_items.db"
+  - from: "resources/app-update.yml"
+    to: "app-update.yml"
+  - from: "assets/icons"
+    to: "assets/icons"
 asar: true
 asarUnpack:
   - resources/**
@@ -27,7 +27,7 @@ win:
   icon: resources/build/icons/win/icon.ico
 nsis:
   oneClick: false
-  perMachine: true                # ensures files go to C:\Program Files
+  perMachine: true # ensures files go to C:\Program Files
   allowToChangeInstallationDirectory: true
   runAfterFinish: true
   deleteAppDataOnUninstall: false
@@ -67,5 +67,5 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
-  owner: sashaga2a24
-  repo: installer
+  owner: ex9d
+  repo: sentra

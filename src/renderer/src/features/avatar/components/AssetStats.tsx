@@ -1,80 +1,106 @@
-import React from 'react'
-import { Heart, Tag, Calendar, Sparkles, TrendingUp, Clock, LucideIcon } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { AssetDetails } from '@shared/ipc-schemas/avatar'
-import { SalesItem } from '@renderer/utils/salesData'
-import { formatDate, formatDateTime } from '@renderer/utils/dateUtils'
-import { ASSET_TYPE_NAMES } from '../utils/categoryUtils'
-import { cn } from '@renderer/lib/utils'
+import React from "react";
+import {
+  Heart,
+  Tag,
+  Calendar,
+  Sparkles,
+  TrendingUp,
+  Clock,
+  LucideIcon,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { AssetDetails } from "@shared/ipc-schemas/avatar";
+import { SalesItem } from "@renderer/utils/salesData";
+import { formatDate, formatDateTime } from "@renderer/utils/dateUtils";
+import { ASSET_TYPE_NAMES } from "../utils/categoryUtils";
+import { cn } from "@renderer/lib/utils";
 
 interface PrimaryStat {
-  icon: LucideIcon
-  label: string
-  value: string
-  color: 'emerald' | 'rose' | 'amber'
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  color: "emerald" | "rose" | "amber";
 }
 
 interface AssetStatsProps {
-  details: AssetDetails
-  salesData: SalesItem | null
+  details: AssetDetails;
+  salesData: SalesItem | null;
 }
 
-export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) => {
+export const AssetStats: React.FC<AssetStatsProps> = ({
+  details,
+  salesData,
+}) => {
   // Resolve asset type name - ASSET_TYPE_NAMES already includes fallback handling
-  const assetTypeId = details.AssetTypeId || details.assetType
-  const assetTypeName = assetTypeId ? ASSET_TYPE_NAMES[assetTypeId] : undefined
+  const assetTypeId = details.AssetTypeId || details.assetType;
+  const assetTypeName = assetTypeId ? ASSET_TYPE_NAMES[assetTypeId] : undefined;
 
-  const isLimited = details.isLimited || details.isLimitedUnique
+  const isLimited = details.isLimited || details.isLimitedUnique;
 
   // Collect all stats into arrays for better layout control
-  const primaryStats: PrimaryStat[] = []
+  const primaryStats: PrimaryStat[] = [];
 
   // Primary stats (always shown, highlighted)
   if (salesData) {
     primaryStats.push({
       icon: TrendingUp,
-      label: 'Sales',
+      label: "Sales",
       value: salesData.sales.toLocaleString(),
-      color: 'emerald'
-    })
+      color: "emerald",
+    });
   } else if (details.sales !== undefined && details.sales > 0) {
     primaryStats.push({
       icon: TrendingUp,
-      label: 'Sales',
+      label: "Sales",
       value: details.sales.toLocaleString(),
-      color: 'emerald'
-    })
+      color: "emerald",
+    });
   }
 
   primaryStats.push({
     icon: Heart,
-    label: 'Favorites',
-    value: details.favoriteCount?.toLocaleString() ?? '0',
-    color: 'rose'
-  })
+    label: "Favorites",
+    value: details.favoriteCount?.toLocaleString() ?? "0",
+    color: "rose",
+  });
 
   // Limited stock
-  if (isLimited && details.totalQuantity !== undefined && (details.remaining ?? 0) > 1) {
+  if (
+    isLimited &&
+    details.totalQuantity !== undefined &&
+    (details.remaining ?? 0) > 1
+  ) {
     primaryStats.push({
       icon: Sparkles,
-      label: 'Stock',
+      label: "Stock",
       value: `${(details.remaining ?? 0).toLocaleString()} / ${details.totalQuantity.toLocaleString()}`,
-      color: 'amber'
-    })
+      color: "amber",
+    });
   }
 
   const colorClasses = {
-    emerald: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-    rose: 'bg-rose-500/10 border-rose-500/20 text-rose-400',
-    amber: 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-  }
+    emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+    rose: "bg-rose-500/10 border-rose-500/20 text-rose-400",
+    amber: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+  };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Statistics</h3>
+      <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+        Statistics
+      </h3>
 
       {/* Primary Stats */}
-      <div className={cn('grid gap-3', primaryStats.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
+      <div
+        className={cn(
+          "grid gap-3",
+          primaryStats.length === 2 ? "grid-cols-2" : "grid-cols-3",
+        )}
+      >
         {primaryStats.map((stat, index) => (
           <div
             key={index}
@@ -82,7 +108,9 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
           >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon size={14} className="opacity-80" />
-              <span className="text-xs font-medium opacity-80">{stat.label}</span>
+              <span className="text-xs font-medium opacity-80">
+                {stat.label}
+              </span>
             </div>
             <div className="text-xl font-bold tracking-tight">{stat.value}</div>
           </div>
@@ -95,27 +123,33 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
           <Tag size={12} className="text-[var(--color-text-muted)]" />
           <span className="text-xs text-[var(--color-text-muted)]">Type</span>
           <span className="text-sm font-medium text-[var(--color-text-primary)]">
-            {assetTypeName || details.itemType || 'Asset'}
+            {assetTypeName || details.itemType || "Asset"}
           </span>
         </div>
 
         {/* Non-limited remaining */}
-        {!isLimited && details.remaining !== undefined && details.remaining > 0 && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50">
-            <Tag size={12} className="text-[var(--color-text-muted)]" />
-            <span className="text-xs text-[var(--color-text-muted)]">Remaining</span>
-            <span className="text-sm font-medium text-[var(--color-text-primary)]">
-              {details.remaining.toLocaleString()}
-            </span>
-          </div>
-        )}
+        {!isLimited &&
+          details.remaining !== undefined &&
+          details.remaining > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50">
+              <Tag size={12} className="text-[var(--color-text-muted)]" />
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Remaining
+              </span>
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                {details.remaining.toLocaleString()}
+              </span>
+            </div>
+          )}
 
         {/* Date stats */}
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50 cursor-default">
               <Calendar size={12} className="text-[var(--color-text-muted)]" />
-              <span className="text-xs text-[var(--color-text-muted)]">Created</span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Created
+              </span>
               <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 {formatDate(details.created)}
               </span>
@@ -128,7 +162,9 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50 cursor-default">
               <Clock size={12} className="text-[var(--color-text-muted)]" />
-              <span className="text-xs text-[var(--color-text-muted)]">Updated</span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Updated
+              </span>
               <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 {formatDate(details.updated)}
               </span>
@@ -138,5 +174,5 @@ export const AssetStats: React.FC<AssetStatsProps> = ({ details, salesData }) =>
         </Tooltip>
       </div>
     </div>
-  )
-}
+  );
+};

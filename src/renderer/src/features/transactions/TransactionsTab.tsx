@@ -14,7 +14,8 @@ import {
   Clock,
   ChevronRight,
   Users,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from 'lucide-react'
 import { Account } from '@renderer/types'
 import {
@@ -28,10 +29,10 @@ import { Button } from '@renderer/components/UI/buttons/Button'
 import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
 import { TixIcon } from '@renderer/components/UI/icons/TixIcon'
 import { formatNumber } from '@renderer/utils/numberUtils'
-import { 
-  useBatchTransactionTypes, 
-  useBatchTransactions, 
-  useBatchTransactionTotals 
+import {
+  useBatchTransactionTypes,
+  useBatchTransactions,
+  useBatchTransactionTotals
 } from './api/useTransactions'
 import {
   useSelectedTransactionType,
@@ -41,6 +42,7 @@ import {
 } from './stores/useTransactionsStore'
 import UniversalProfileModal from '@renderer/components/Modals/UniversalProfileModal'
 import GroupDetailsModal from '@renderer/features/groups/Modals/GroupDetailsModal'
+import { TransactionsToolbar } from './components/TransactionsToolbar'
 import type {
   TransactionTypeEnum,
   Transaction,
@@ -125,8 +127,8 @@ interface TransactionRowProps {
 }
 
 const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
-  const isPositive = transaction.currency.amount > 0
-  const isTickets = transaction.currency.type === 'Tickets'
+  const isPositive = (transaction.currency?.amount ?? 0) > 0
+  const isTickets = transaction.currency?.type === 'Tickets'
   const colorClass = isTickets ? 'text-[#cc9e71]' : isPositive ? 'text-emerald-400' : 'text-red-400'
   const detailsName = transaction.details?.name || '—'
 
@@ -134,7 +136,7 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
     <tr className="hover:bg-[var(--color-surface-hover)]/30 transition-colors border-b border-[var(--color-border)]/50 last:border-0">
       <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
         <div className="flex items-center gap-2">
-          {new Date(transaction.created).toLocaleDateString('en-US', {
+          {new Date(transaction.created ?? Date.now()).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
@@ -159,27 +161,31 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
         </Tooltip>
       </td>
       <td className="py-3 px-4 text-sm">
-        <button
-          onClick={() => onAgentClick(transaction.agent)}
-          className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline transition-colors flex items-center gap-1.5"
-        >
-          {transaction.agent.type === 'Group' ? (
-            <Users size={14} className="text-[var(--color-text-muted)]" />
-          ) : (
-            <User size={14} className="text-[var(--color-text-muted)]" />
-          )}
-          {transaction.agent.name}
-        </button>
+        {transaction.agent ? (
+          <button
+            onClick={() => onAgentClick(transaction.agent)}
+            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline transition-colors flex items-center gap-1.5"
+          >
+            {transaction.agent.type === 'Group' ? (
+              <Users size={14} className="text-[var(--color-text-muted)]" />
+            ) : (
+              <User size={14} className="text-[var(--color-text-muted)]" />
+            )}
+            {transaction.agent.name}
+          </button>
+        ) : (
+          <span className="text-[var(--color-text-secondary)]">—</span>
+        )}
       </td>
       <td className={`py-3 px-4 text-sm text-right font-mono ${colorClass}`}>
         <div className="flex items-center justify-end gap-1.5">
-          {transaction.currency.type === 'Robux' && <RobuxIcon className="w-3.5 h-3.5" />}
+          {transaction.currency?.type === 'Robux' && <RobuxIcon className="w-3.5 h-3.5" />}
           {isTickets && <TixIcon className="w-4 h-4" />}
           <span>
             {isPositive ? '+' : ''}
-            {formatNumber(transaction.currency.amount)}
+            {formatNumber(transaction.currency?.amount ?? 0)}
           </span>
-          {transaction.currency.type !== 'Robux' && !isTickets && (
+          {transaction.currency?.type && transaction.currency.type !== 'Robux' && !isTickets && (
             <span className="text-[var(--color-text-muted)] text-xs ml-1">{transaction.currency.type}</span>
           )}
         </div>
@@ -563,143 +569,22 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
-        {/* Toolbar */}
-        <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <ArrowRightLeft size={22} className="text-[var(--color-text-secondary)]" />
-              Transactions
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Time Frame Dropdown - only shown for summary view */}
-            {selectedType === 'all' && (
-              <div className="relative" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => {
-                    setIsTimeFrameDropdownOpen(!isTimeFrameDropdownOpen)
-                    setIsTypeDropdownOpen(false)
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors"
-                >
-                  <Calendar size={16} className="text-[var(--color-text-muted)]" />
-                  <span>
-                    {TIME_FRAME_OPTIONS.find((o) => o.value === timeFrame)?.label || 'This Month'}
-                  </span>
-                  <ChevronDown
-                    size={14}
-                    className={`text-[var(--color-text-muted)] transition-transform ${isTimeFrameDropdownOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {isTimeFrameDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      className="absolute right-0 mt-2 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-xl z-50 overflow-hidden"
-                    >
-                      <div className="p-1">
-                        {TIME_FRAME_OPTIONS.map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              setTimeFrame(option.value)
-                              setIsTimeFrameDropdownOpen(false)
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
-                              timeFrame === option.value
-                                ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
-            {/* Transaction Type Dropdown */}
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  setIsTypeDropdownOpen(!isTypeDropdownOpen)
-                  setIsTimeFrameDropdownOpen(false)
-                }}
-                className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors min-w-[180px]"
-              >
-                <span className="flex-1 text-left">{TRANSACTION_TYPE_LABELS[selectedType]}</span>
-                <ChevronDown
-                  size={14}
-                  className={`text-[var(--color-text-muted)] transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {isTypeDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    className="absolute right-0 mt-2 w-64 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-xl z-50 overflow-hidden max-h-[400px] overflow-y-auto scrollbar-thin"
-                  >
-                    <div className="p-1">
-                      <button
-                        onClick={() => {
-                          setSelectedType('all')
-                          setIsTypeDropdownOpen(false)
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
-                          selectedType === 'all'
-                            ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
-                        }`}
-                      >
-                        All Transactions (Summary)
-                      </button>
-
-                      <div className="h-px bg-[var(--color-surface-hover)] my-1" />
-
-                      {availableTypes.map((type) => (
-                        <button
-                          key={type}
-                          onClick={() => {
-                            setSelectedType(type)
-                            setIsTypeDropdownOpen(false)
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
-                            selectedType === type
-                              ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
-                          }`}
-                        >
-                          {TRANSACTION_TYPE_LABELS[type]}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="h-6 w-[1px] bg-[var(--color-surface-hover)]" />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefresh}
-              className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            >
-              <RefreshCw size={16} />
-            </Button>
-          </div>
-        </div>
+        {/* Transactions Toolbar */}
+        <TransactionsToolbar
+          searchQuery={''}
+          onSearchChange={(query) => {
+            // Search is not yet implemented in the new toolbar
+            // TODO: Connect to the search functionality
+          }}
+          timeFrame={timeFrame}
+          onTimeFrameChange={setTimeFrame}
+          selectedType={selectedType}
+          onTransactionTypeChange={setSelectedType}
+          transactionTypeLabels={TRANSACTION_TYPE_LABELS}
+          totalCount={transactions.length}
+          isLoading={isLoadingTransactions || isLoadingTotals}
+          onRefresh={handleRefresh}
+        />
 
 
         {/* Content */}

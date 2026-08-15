@@ -1,24 +1,28 @@
-import React, { useState, memo } from 'react'
-import { Account } from '@renderer/types'
-import UserProfileView from './UserProfileView'
-import UniversalProfileModal from '@renderer/components/Modals/UniversalProfileModal'
+import React, { useState, memo } from "react";
+import { Account } from "@renderer/types";
+import UserProfileView from "./UserProfileView";
+import UniversalProfileModal from "@renderer/components/Modals/UniversalProfileModal";
 
 interface ProfileTabProps {
-  account: Account
-  privacyMode: boolean
-  onJoinGame?: (placeId: number | string, jobId?: string, userId?: number | string) => void
+  account: Account;
+  privacyMode: boolean;
+  onJoinGame?: (
+    placeId: number | string,
+    jobId?: string,
+    userId?: number | string,
+  ) => void;
 }
 
 const ProfileTab: React.FC<ProfileTabProps> = memo(
   ({ account, privacyMode, onJoinGame }) => {
-    const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
     if (!account.userId || !account.cookie) {
       return (
         <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] bg-[var(--color-surface)]">
           Account data missing
         </div>
-      )
+      );
     }
 
     return (
@@ -44,7 +48,7 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
             isAdmin: account.isAdmin,
             totalFavorites: account.totalFavorites,
             concurrentPlayers: account.concurrentPlayers,
-            groupMemberCount: account.groupMemberCount
+            groupMemberCount: account.groupMemberCount,
           }}
           onJoinGame={onJoinGame}
         />
@@ -57,7 +61,7 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
           onJoinGame={onJoinGame}
         />
       </div>
-    )
+    );
   },
   (prevProps, nextProps) => {
     // Only re-render if the account ID or cookie changed
@@ -66,8 +70,8 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
       prevProps.account.cookie === nextProps.account.cookie &&
       prevProps.onJoinGame === nextProps.onJoinGame &&
       prevProps.privacyMode === nextProps.privacyMode
-    )
-  }
-)
+    );
+  },
+);
 
-export default ProfileTab
+export default ProfileTab;

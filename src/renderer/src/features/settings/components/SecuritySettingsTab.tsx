@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Lock, Globe, RotateCcw, Zap, Sliders, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Section, SettingsCard, ToggleRow } from './SharedComponents'
+import { BentoCard, BentoToggle, SectionDivider, PageHeader } from './SharedComponents'
 import BackupIcon from '../../../components/UI/icons/BackupIcon'
 import { Account, Settings } from '../../../types'
 import { useSetAppUnlocked } from '../../../stores/useUIStore'
@@ -487,18 +487,13 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="pb-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">Security</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1.5 leading-relaxed">Manage access controls, account backups, and advanced configurations.</p>
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
+          <PageHeader
+            title="Security"
+            description="Manage access controls, account backups, and advanced configurations."
+          />
 
-          {/* Access Control */}
-          <div className="col-span-2 flex items-center gap-3 pt-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Access Control</span>
-            <div className="flex-1 h-px bg-[var(--color-border)]" />
-          </div>
+          <SectionDivider label="Access Control" />
 
           {/* PIN Lock — full width */}
           <div className="col-span-2 relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
@@ -520,13 +515,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                   : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] border border-[var(--color-border-strong)]'
                 }`}
               >
-                {settings.pinCode ? (
-                  <>
-                    <Lock size={14} /> PIN Enabled — Manage
-                  </>
-                ) : (
-                  'Set Up PIN'
-                )}
+                {settings.pinCode ? (<><Lock size={14} /> PIN Enabled — Manage</>) : ('Set Up PIN')}
               </button>
             </div>
             {settings.pinCode && (
@@ -536,113 +525,68 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
             )}
           </div>
 
-          {/* Tools */}
-          <div className="col-span-2 flex items-center gap-3 pt-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Backup & Restore</span>
-            <div className="flex-1 h-px bg-[var(--color-border)]" />
-          </div>
+          <SectionDivider label="Backup & Restore" />
 
-          {/* Backup */}
-          <div className="relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
-            <div className="flex items-center gap-3 mb-4 z-10 relative">
-              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] group-hover:text-[var(--accent-color)] transition-colors shrink-0">
-                <BackupIcon size={16} />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">Backup Accounts</h4>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">Create an encrypted backup of all your accounts.</p>
-              </div>
-            </div>
-            <div className="mt-auto pt-4 border-t border-[var(--color-border)] z-10 relative">
-              <button
-                onClick={() => { setIsBackupDialogOpen(true); setBackupStep('pin'); setBackupPin(Array(6).fill('')); setBackupPinConfirm(Array(6).fill('')) }}
-                className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
-              >
-                <BackupIcon size={14} />
-                Create Backup
-              </button>
-            </div>
-          </div>
+          <BentoCard
+            icon={<BackupIcon size={16} />}
+            title="Backup Accounts"
+            description="Create an encrypted backup of all your accounts."
+          >
+            <button
+              onClick={() => { setIsBackupDialogOpen(true); setBackupStep('pin'); setBackupPin(Array(6).fill('')); setBackupPinConfirm(Array(6).fill('')) }}
+              className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
+            >
+              <BackupIcon size={14} />
+              Create Backup
+            </button>
+          </BentoCard>
 
-          {/* Restore */}
-          <div className="relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
-            <div className="flex items-center gap-3 mb-4 z-10 relative">
-              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] group-hover:text-[var(--accent-color)] transition-colors shrink-0">
-                <RotateCcw size={16} />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">Restore Accounts</h4>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">Restore accounts from an existing backup file.</p>
-              </div>
-            </div>
-            <div className="mt-auto pt-4 border-t border-[var(--color-border)] z-10 relative">
-              <button
-                onClick={() => { setIsRestoreDialogOpen(true); setRestoreStep('pin'); setRestorePin(Array(6).fill('')); setRestoreBackupPin(Array(6).fill('')); setSelectedBackupFile(null) }}
-                className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
-              >
-                <RotateCcw size={14} />
-                Load Backup
-              </button>
-            </div>
-          </div>
+          <BentoCard
+            icon={<RotateCcw size={16} />}
+            title="Restore Accounts"
+            description="Restore accounts from an existing backup file."
+          >
+            <button
+              onClick={() => { setIsRestoreDialogOpen(true); setRestoreStep('pin'); setRestorePin(Array(6).fill('')); setRestoreBackupPin(Array(6).fill('')); setSelectedBackupFile(null) }}
+              className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
+            >
+              <RotateCcw size={14} />
+              Load Backup
+            </button>
+          </BentoCard>
 
-          {/* Advanced */}
-          <div className="col-span-2 flex items-center gap-3 pt-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--color-text-muted)]">Advanced Features</span>
-            <div className="flex-1 h-px bg-[var(--color-border)]" />
-          </div>
+          <SectionDivider label="Advanced Features" />
 
-          {/* User Agent */}
-          <div className="relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
-            <div className="flex items-center gap-3 mb-4 z-10 relative">
-              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] group-hover:text-[var(--accent-color)] transition-colors shrink-0">
-                <Globe size={16} />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">User Agent</h4>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                  {isAutoSwapEnabled ? `Auto-rotating every ${autoSwapInterval}m` : `Static — Agent #${userAgentIndex + 1}`}
-                </p>
-              </div>
-            </div>
-            <div className="mt-auto pt-4 border-t border-[var(--color-border)] z-10 relative">
-              <button
-                onClick={() => setIsUserAgentModalOpen(true)}
-                className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
-              >
-                <Globe size={14} />
-                Configure
-              </button>
-            </div>
-          </div>
+          <BentoCard
+            icon={<Globe size={16} />}
+            title="User Agent"
+            description={isAutoSwapEnabled ? `Auto-rotating every ${autoSwapInterval}m` : `Static — Agent #${userAgentIndex + 1}`}
+          >
+            <button
+              onClick={() => setIsUserAgentModalOpen(true)}
+              className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
+            >
+              <Globe size={14} />
+              Configure
+            </button>
+          </BentoCard>
 
-          {/* Multiple Instances */}
-          <div className="relative overflow-hidden group rounded-xl border border-amber-500/20 hover:border-amber-500/40 bg-[var(--color-surface)] transition-all duration-300 flex flex-col p-5">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
-            <div className="flex items-center gap-3 mb-4 z-10 relative">
-              <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-hover)] border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-                <Zap size={16} />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">Multi-Instance</h4>
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">Launch multiple Roblox clients at once.{isMac ? ' (Experimental on macOS)' : ''}</p>
-              </div>
-            </div>
-            <div className="mt-auto pt-4 border-t border-[var(--color-border)] z-10 relative flex items-center justify-between">
+          <BentoCard
+            icon={<Zap size={16} />}
+            title="Multi-Instance"
+            description={`Launch multiple Roblox clients at once.${isMac ? ' (Experimental on macOS)' : ''}`}
+            accent="warning"
+          >
+            <div className="flex items-center justify-between">
               <span className="text-[10px] text-amber-500/80 font-medium">⚠ May violate Roblox ToS</span>
-              <button
-                onClick={() => onUpdateSettings({ allowMultipleInstances: !settings.allowMultipleInstances })}
-                className={`relative w-11 h-6 rounded-full border transition-all duration-300 ${settings.allowMultipleInstances ? 'bg-amber-500 border-amber-500' : 'bg-[var(--color-surface-hover)] border-[var(--color-border)]'}`}
-              >
-                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${settings.allowMultipleInstances ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
+              <BentoToggle
+                checked={settings.allowMultipleInstances}
+                onChange={() => onUpdateSettings({ allowMultipleInstances: !settings.allowMultipleInstances })}
+              />
             </div>
-          </div>
+          </BentoCard>
 
-          {/* Roblox Advanced Settings */}
+          {/* Roblox Advanced Settings — full width */}
           <div className="col-span-2 relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
             <div className="flex items-center justify-between z-10 relative">
@@ -664,7 +608,6 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
               </button>
             </div>
           </div>
-
         </div>
       </motion.div>
 

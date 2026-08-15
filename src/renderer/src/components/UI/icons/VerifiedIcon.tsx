@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 
 interface VerifiedIconProps extends React.SVGProps<SVGSVGElement> {}
 
@@ -33,7 +33,7 @@ const VerifiedIcon: React.FC<VerifiedIconProps> = (props) => {
         </clipPath>
       </defs>
     </svg>
-  )
-}
+  );
+};
 
-export default VerifiedIcon
+export default VerifiedIcon;

@@ -1,25 +1,25 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useRolimonsData } from '../../avatar/api/useRolimons'
-import { LimitedSearchResult } from '../stores/useCommandPaletteStore'
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useRolimonsData } from "../../avatar/api/useRolimons";
+import { LimitedSearchResult } from "../stores/useCommandPaletteStore";
 import {
   searchService,
   RolimonsSearchResult,
   CatalogItem,
-  ExportedIndexData
-} from '../workers/searchService'
+  ExportedIndexData,
+} from "../workers/searchService";
 
-export { type CatalogItem, type RolimonsSearchResult }
+export { type CatalogItem, type RolimonsSearchResult };
 
-const CATALOG_INDEX_STORAGE_KEY = 'sentra_catalog_search_index'
+const CATALOG_INDEX_STORAGE_KEY = "sentra_catalog_search_index";
 
 /**
  * Compute a simple hash for items to detect changes
  */
 function computeItemsHash(items: CatalogItem[]): string {
-  if (items.length === 0) return 'empty'
-  const first = items[0]?.AssetId ?? 0
-  const last = items[items.length - 1]?.AssetId ?? 0
-  return `v1_${items.length}_${first}_${last}`
+  if (items.length === 0) return "empty";
+  const first = items[0]?.AssetId ?? 0;
+  const last = items[items.length - 1]?.AssetId ?? 0;
+  return `v1_${items.length}_${first}_${last}`;
 }
 
 /**
@@ -27,12 +27,12 @@ function computeItemsHash(items: CatalogItem[]): string {
  */
 function loadPersistedIndex(): ExportedIndexData | null {
   try {
-    const stored = localStorage.getItem(CATALOG_INDEX_STORAGE_KEY)
-    if (!stored) return null
-    return JSON.parse(stored) as ExportedIndexData
+    const stored = localStorage.getItem(CATALOG_INDEX_STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as ExportedIndexData;
   } catch (err) {
-    console.warn('[useCatalogSearch] Failed to load persisted index:', err)
-    return null
+    console.warn("[useCatalogSearch] Failed to load persisted index:", err);
+    return null;
   }
 }
 
@@ -41,14 +41,14 @@ function loadPersistedIndex(): ExportedIndexData | null {
  */
 function savePersistedIndex(data: ExportedIndexData): void {
   try {
-    localStorage.setItem(CATALOG_INDEX_STORAGE_KEY, JSON.stringify(data))
+    localStorage.setItem(CATALOG_INDEX_STORAGE_KEY, JSON.stringify(data));
   } catch (err) {
-    console.warn('[useCatalogSearch] Failed to persist index:', err)
+    console.warn("[useCatalogSearch] Failed to persist index:", err);
   }
 }
 
-let catalogInitStarted = false
-let rolimonsInitStarted = false
+let catalogInitStarted = false;
+let rolimonsInitStarted = false;
 
 /**
  * Initialize catalog search index at app startup.
@@ -56,85 +56,107 @@ let rolimonsInitStarted = false
  * before the command palette is ever opened, preventing lag on first open.
  */
 export function initCatalogSearchIndex(): void {
-  if (catalogInitStarted) return
-  catalogInitStarted = true
+  if (catalogInitStarted) return;
+  catalogInitStarted = true;
 
   const scheduleIdle =
-    typeof window !== 'undefined' && 'requestIdleCallback' in window
+    typeof window !== "undefined" && "requestIdleCallback" in window
       ? (cb: IdleRequestCallback) => (window as any).requestIdleCallback(cb)
       : (cb: IdleRequestCallback) =>
-          setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 } as IdleDeadline), 0)
+          setTimeout(
+            () =>
+              cb({
+                didTimeout: false,
+                timeRemaining: () => 50,
+              } as IdleDeadline),
+            0,
+          );
 
   const initCatalog = async () => {
     try {
-      const persistedIndex = loadPersistedIndex()
+      const persistedIndex = loadPersistedIndex();
       if (persistedIndex) {
-        console.log('[CatalogSearch] Loading persisted index...')
-        const imported = await searchService.importCatalogIndex(persistedIndex)
+        console.log("[CatalogSearch] Loading persisted index...");
+        const imported = await searchService.importCatalogIndex(persistedIndex);
         if (imported) {
-          console.log('[CatalogSearch] Successfully loaded persisted index')
-          return
+          console.log("[CatalogSearch] Successfully loaded persisted index");
+          return;
         }
-        console.log('[CatalogSearch] Failed to import persisted index, rebuilding...')
+        console.log(
+          "[CatalogSearch] Failed to import persisted index, rebuilding...",
+        );
       }
 
       // Load prebuilt index from main-process worker to avoid blocking main thread
       try {
-        const exported = await window.api.getCatalogIndexExport()
-        const imported = await searchService.importCatalogIndex(exported)
+        const exported = await window.api.getCatalogIndexExport();
+        const imported = await searchService.importCatalogIndex(exported);
         if (imported) {
-          savePersistedIndex(exported)
-          console.log('[CatalogSearch] Loaded catalog index from main worker')
-          return
+          savePersistedIndex(exported);
+          console.log("[CatalogSearch] Loaded catalog index from main worker");
+          return;
         }
-        console.warn('[CatalogSearch] Failed to import main worker index, falling back')
+        console.warn(
+          "[CatalogSearch] Failed to import main worker index, falling back",
+        );
       } catch (workerErr) {
-        console.warn('[CatalogSearch] Failed to fetch catalog index export:', workerErr)
+        console.warn(
+          "[CatalogSearch] Failed to fetch catalog index export:",
+          workerErr,
+        );
       }
 
       // Fallback: check main process DB status first; if DB is absent but downloading or errored,
       // avoid repeatedly attempting to build the index in the renderer which can cause errors.
       try {
-        const dbStatus = await (window as any).api.getCatalogDbStatus()
+        const dbStatus = await (window as any).api.getCatalogDbStatus();
         if (dbStatus.downloading) {
-          console.warn('[CatalogSearch] Catalog DB is downloading in main process; skipping renderer build')
-          return
+          console.warn(
+            "[CatalogSearch] Catalog DB is downloading in main process; skipping renderer build",
+          );
+          return;
         }
         if (dbStatus.error) {
-          console.warn('[CatalogSearch] Catalog DB has error in main process; skipping renderer build:', dbStatus.error)
-          return
+          console.warn(
+            "[CatalogSearch] Catalog DB has error in main process; skipping renderer build:",
+            dbStatus.error,
+          );
+          return;
         }
       } catch (statusErr) {
-        console.warn('[CatalogSearch] Failed to query catalog DB status, proceeding with fallback build', statusErr)
+        console.warn(
+          "[CatalogSearch] Failed to query catalog DB status, proceeding with fallback build",
+          statusErr,
+        );
       }
 
-      console.log('[CatalogSearch] Building new catalog index in renderer...')
-      const items = await window.api.getAllCatalogItems()
-      const currentHash = computeItemsHash(items)
-      searchService.initCatalog(items)
+      console.log("[CatalogSearch] Building new catalog index in renderer...");
+      const items = await window.api.getAllCatalogItems();
+      const currentHash = computeItemsHash(items);
+      searchService.initCatalog(items);
 
       const checkAndExport = () => {
-        const currentStatus = searchService.getStatus()
+        const currentStatus = searchService.getStatus();
         if (currentStatus.catalogReady) {
           searchService.exportCatalogIndex(currentHash).then((exportedData) => {
             if (exportedData) {
-              savePersistedIndex(exportedData)
-              console.log('[CatalogSearch] Index persisted for future use')
+              savePersistedIndex(exportedData);
+              console.log("[CatalogSearch] Index persisted for future use");
             }
-          })
+          });
         } else {
-          setTimeout(checkAndExport, 100)
+          setTimeout(checkAndExport, 100);
         }
-      }
-      checkAndExport()
+      };
+      checkAndExport();
     } catch (error) {
-      console.error('[CatalogSearch] Error initializing catalog:', error)
+      console.error("[CatalogSearch] Error initializing catalog:", error);
     }
-  }
+  };
 
   scheduleIdle(() => {
-    void initCatalog()
-  })
+    void initCatalog();
+  });
 }
 
 /**
@@ -142,49 +164,54 @@ export function initCatalogSearchIndex(): void {
  * Indexing is done in a web worker to keep the main thread responsive.
  */
 export function useLimitedsSearch(options: { maxResults?: number } = {}) {
-  const { maxResults = 50 } = options
-  const { data: rolimonsData, isLoading: rolimonsLoading, error } = useRolimonsData()
+  const { maxResults = 50 } = options;
+  const {
+    data: rolimonsData,
+    isLoading: rolimonsLoading,
+    error,
+  } = useRolimonsData();
 
   const [status, setStatus] = useState({
     catalogReady: false,
     rolimonsReady: false,
     catalogCount: 0,
-    rolimonsCount: 0
-  })
+    rolimonsCount: 0,
+  });
 
-  const [results, setResults] = useState<LimitedSearchResult[]>([])
-  const latestQuery = useRef<string>('')
-
-  useEffect(() => {
-    const unsubscribe = searchService.onStatusChange(setStatus)
-    return unsubscribe
-  }, [])
+  const [results, setResults] = useState<LimitedSearchResult[]>([]);
+  const latestQuery = useRef<string>("");
 
   useEffect(() => {
-    if (rolimonsInitStarted || !rolimonsData?.items || status.rolimonsReady) return
-    rolimonsInitStarted = true
-    searchService.initRolimons(rolimonsData.items)
-  }, [rolimonsData, status.rolimonsReady])
+    const unsubscribe = searchService.onStatusChange(setStatus);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (rolimonsInitStarted || !rolimonsData?.items || status.rolimonsReady)
+      return;
+    rolimonsInitStarted = true;
+    searchService.initRolimons(rolimonsData.items);
+  }, [rolimonsData, status.rolimonsReady]);
 
   const resetSearch = useCallback(() => {
-    latestQuery.current = ''
-    setResults([])
-  }, [])
+    latestQuery.current = "";
+    setResults([]);
+  }, []);
 
   const searchLimiteds = useCallback(
     (query: string): void => {
       if (!query.trim()) {
-        latestQuery.current = ''
-        setResults([])
-        return
+        latestQuery.current = "";
+        setResults([]);
+        return;
       }
 
-      latestQuery.current = query
+      latestQuery.current = query;
 
       searchService.searchRolimons(query, maxResults).then((searchResults) => {
         if (latestQuery.current === query) {
           const converted = searchResults.map((item) => ({
-            type: 'limited' as const,
+            type: "limited" as const,
             id: item.id,
             name: item.name,
             acronym: item.acronym,
@@ -196,14 +223,14 @@ export function useLimitedsSearch(options: { maxResults?: number } = {}) {
             trendLabel: item.trendLabel,
             isProjected: item.isProjected,
             isHyped: item.isHyped,
-            isRare: item.isRare
-          }))
-          setResults(converted)
+            isRare: item.isRare,
+          }));
+          setResults(converted);
         }
-      })
+      });
     },
-    [maxResults]
-  )
+    [maxResults],
+  );
 
   return {
     searchLimiteds,
@@ -211,58 +238,58 @@ export function useLimitedsSearch(options: { maxResults?: number } = {}) {
     results,
     isLoading: rolimonsLoading || !status.rolimonsReady,
     error,
-    itemCount: status.rolimonsCount
-  }
+    itemCount: status.rolimonsCount,
+  };
 }
 
 /**
  * Hook for catalog items search
  */
 export function useCatalogSearch(options: { maxResults?: number } = {}) {
-  const { maxResults = 50 } = options
+  const { maxResults = 50 } = options;
 
   const [status, setStatus] = useState({
     catalogReady: false,
     rolimonsReady: false,
     catalogCount: 0,
-    rolimonsCount: 0
-  })
+    rolimonsCount: 0,
+  });
 
-  const [results, setResults] = useState<CatalogItem[]>([])
-  const latestQuery = useRef<string>('')
-
-  useEffect(() => {
-    const unsubscribe = searchService.onStatusChange(setStatus)
-    return unsubscribe
-  }, [])
+  const [results, setResults] = useState<CatalogItem[]>([]);
+  const latestQuery = useRef<string>("");
 
   useEffect(() => {
-    initCatalogSearchIndex()
-  }, [])
+    const unsubscribe = searchService.onStatusChange(setStatus);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    initCatalogSearchIndex();
+  }, []);
 
   const resetSearch = useCallback(() => {
-    latestQuery.current = ''
-    setResults([])
-  }, [])
+    latestQuery.current = "";
+    setResults([]);
+  }, []);
 
   const searchCatalog = useCallback(
     (query: string): void => {
       if (!query.trim()) {
-        latestQuery.current = ''
-        setResults([])
-        return
+        latestQuery.current = "";
+        setResults([]);
+        return;
       }
 
-      latestQuery.current = query
+      latestQuery.current = query;
 
       searchService.searchCatalog(query, maxResults).then((searchResults) => {
         if (latestQuery.current === query) {
-          setResults(searchResults)
+          setResults(searchResults);
         }
-      })
+      });
     },
-    [maxResults]
-  )
+    [maxResults],
+  );
 
   return {
     searchCatalog,
@@ -270,8 +297,8 @@ export function useCatalogSearch(options: { maxResults?: number } = {}) {
     results,
     isLoading: !status.catalogReady,
     itemCount: status.catalogCount,
-    isReady: status.catalogReady
-  }
+    isReady: status.catalogReady,
+  };
 }
 
 /**
@@ -279,22 +306,22 @@ export function useCatalogSearch(options: { maxResults?: number } = {}) {
  * Kept for backwards compatibility
  */
 export function useAllLimiteds() {
-  const { data: rolimonsData, isLoading } = useRolimonsData()
+  const { data: rolimonsData, isLoading } = useRolimonsData();
 
   const allLimiteds = rolimonsData?.items
     ? Object.entries(rolimonsData.items)
         .map(([idStr, data]) => {
-          const id = parseInt(idStr, 10)
-          const arr = data as unknown[]
-          const demand = (arr[5] as number) ?? -1
-          const trend = (arr[6] as number) ?? -1
-          const value = arr[3] as number
+          const id = parseInt(idStr, 10);
+          const arr = data as unknown[];
+          const demand = (arr[5] as number) ?? -1;
+          const trend = (arr[6] as number) ?? -1;
+          const value = arr[3] as number;
 
           return {
-            type: 'limited' as const,
+            type: "limited" as const,
             id,
-            name: (arr[0] as string) || '',
-            acronym: (arr[1] as string) || '',
+            name: (arr[0] as string) || "",
+            acronym: (arr[1] as string) || "",
             rap: (arr[2] as number) || 0,
             value: value === -1 ? null : value,
             demand,
@@ -303,42 +330,42 @@ export function useAllLimiteds() {
             trendLabel: getTrendLabel(trend),
             isProjected: arr[7] === 1,
             isHyped: arr[8] === 1,
-            isRare: arr[9] === 1
-          }
+            isRare: arr[9] === 1,
+          };
         })
         .sort((a, b) => {
-          const aVal = a.value ?? a.rap
-          const bVal = b.value ?? b.rap
-          return bVal - aVal
+          const aVal = a.value ?? a.rap;
+          const bVal = b.value ?? b.rap;
+          return bVal - aVal;
         })
-    : []
+    : [];
 
   return {
     allLimiteds,
-    isLoading
-  }
+    isLoading,
+  };
 }
 
 function getDemandLabel(demand: number): string {
   const labels: Record<number, string> = {
-    [-1]: 'None',
-    0: 'Terrible',
-    1: 'Low',
-    2: 'Normal',
-    3: 'High',
-    4: 'Amazing'
-  }
-  return labels[demand] || 'Unknown'
+    [-1]: "None",
+    0: "Terrible",
+    1: "Low",
+    2: "Normal",
+    3: "High",
+    4: "Amazing",
+  };
+  return labels[demand] || "Unknown";
 }
 
 function getTrendLabel(trend: number): string {
   const labels: Record<number, string> = {
-    [-1]: 'None',
-    0: 'Lowering',
-    1: 'Unstable',
-    2: 'Stable',
-    3: 'Raising',
-    4: 'Fluctuating'
-  }
-  return labels[trend] || 'Unknown'
+    [-1]: "None",
+    0: "Lowering",
+    1: "Unstable",
+    2: "Stable",
+    3: "Raising",
+    4: "Fluctuating",
+  };
+  return labels[trend] || "Unknown";
 }

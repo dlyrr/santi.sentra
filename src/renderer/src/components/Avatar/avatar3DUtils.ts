@@ -1,157 +1,163 @@
-import * as THREE from 'three'
-import { spawn, move } from 'multithreading'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
+import * as THREE from "three";
+import { spawn, move } from "multithreading";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
 export type SerializedMesh = {
-  type: 'Mesh'
-  name: string
+  type: "Mesh";
+  name: string;
   geometry: {
-    position: Float32Array
-    normal: Float32Array | null
-    uv: Float32Array | null
-    index: Uint16Array | Uint32Array | null
-  }
-  materialName: string
-}
+    position: Float32Array;
+    normal: Float32Array | null;
+    uv: Float32Array | null;
+    index: Uint16Array | Uint32Array | null;
+  };
+  materialName: string;
+};
 
 export type SerializedGroup = {
-  type: 'Group'
-  name: string
-  children: SerializedObject[]
-}
+  type: "Group";
+  name: string;
+  children: SerializedObject[];
+};
 
-export type SerializedObject = SerializedMesh | SerializedGroup
+export type SerializedObject = SerializedMesh | SerializedGroup;
 
-const textureLoader = new THREE.TextureLoader()
+const textureLoader = new THREE.TextureLoader();
 
 export const hashToServer = (hash: string) => {
-  let i = 31
+  let i = 31;
   for (const c of hash) {
-    i ^= c.charCodeAt(0)
+    i ^= c.charCodeAt(0);
   }
-  return i % 8
-}
+  return i % 8;
+};
 
 const buildMaterialMap = async (mtlText: string) => {
-  const materialMap: Record<string, THREE.MeshStandardMaterial> = {}
-  let currentMaterialName: string | null = null
-  const lines = mtlText.split(/\r?\n/)
+  const materialMap: Record<string, THREE.MeshStandardMaterial> = {};
+  let currentMaterialName: string | null = null;
+  const lines = mtlText.split(/\r?\n/);
 
-  const texturePromises: Promise<void>[] = []
-  const textureCache: Record<string, THREE.Texture> = {}
+  const texturePromises: Promise<void>[] = [];
+  const textureCache: Record<string, THREE.Texture> = {};
   // Do not store blobUrls here to immediately revoke; they must live until disposal
   // so three.js can lazily upload them to the GPU on the first render frame.
 
   for (const line of lines) {
-    const trimmedLine = line.trim()
-    if (trimmedLine.startsWith('newmtl ')) {
-      currentMaterialName = trimmedLine.substring(7).trim()
-    } else if (currentMaterialName && trimmedLine.startsWith('map_Kd ')) {
-      const matName = currentMaterialName
-      const parts = trimmedLine.split(/\s+/)
-      const textureHash = parts[parts.length - 1]
-      if (!textureHash) continue
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("newmtl ")) {
+      currentMaterialName = trimmedLine.substring(7).trim();
+    } else if (currentMaterialName && trimmedLine.startsWith("map_Kd ")) {
+      const matName = currentMaterialName;
+      const parts = trimmedLine.split(/\s+/);
+      const textureHash = parts[parts.length - 1];
+      if (!textureHash) continue;
 
       const promise = new Promise<void>((resolve) => {
-        const cached = textureCache[textureHash]
+        const cached = textureCache[textureHash];
         if (cached) {
           materialMap[matName] = new THREE.MeshStandardMaterial({
             map: cached,
             metalness: 0.1,
             roughness: 0.8,
-            alphaTest: 0.5
-          })
-          resolve()
-          return
+            alphaTest: 0.5,
+          });
+          resolve();
+          return;
         }
 
-        const textureUrl = textureHash.startsWith('http://') || textureHash.startsWith('https://') 
-          ? textureHash 
-          : `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`
+        const textureUrl =
+          textureHash.startsWith("http://") ||
+          textureHash.startsWith("https://")
+            ? textureHash
+            : `https://t${hashToServer(textureHash)}.rbxcdn.com/${textureHash}`;
 
-        let currentBlobUrl: string | null = null
+        let currentBlobUrl: string | null = null;
 
         // Use fetch() + Blob URL to bypass Electron CORS/tainted-canvas restrictions.
         // THREE.TextureLoader uses <img crossOrigin="anonymous"> which requires
         // the CDN to return CORS headers — fetching as a blob avoids this entirely.
         fetch(textureUrl)
           .then((res) => {
-            if (!res.ok) throw new Error(`Texture fetch failed: ${res.status}`)
-            return res.blob()
+            if (!res.ok) throw new Error(`Texture fetch failed: ${res.status}`);
+            return res.blob();
           })
           .then(
             (blob) =>
               new Promise<THREE.Texture>((resolveTex, rejectTex) => {
-                currentBlobUrl = URL.createObjectURL(blob)
-                textureLoader.load(currentBlobUrl, resolveTex, undefined, rejectTex)
-              })
+                currentBlobUrl = URL.createObjectURL(blob);
+                textureLoader.load(
+                  currentBlobUrl,
+                  resolveTex,
+                  undefined,
+                  rejectTex,
+                );
+              }),
           )
           .then((tex) => {
-            tex.flipY = true
-            tex.colorSpace = THREE.SRGBColorSpace
+            tex.flipY = true;
+            tex.colorSpace = THREE.SRGBColorSpace;
             // Store the blob URL on the texture so it can be revoked upon disposal
             if (currentBlobUrl) {
-              tex.userData = { blobUrl: currentBlobUrl }
+              tex.userData = { blobUrl: currentBlobUrl };
             }
-            textureCache[textureHash] = tex
+            textureCache[textureHash] = tex;
             materialMap[matName] = new THREE.MeshStandardMaterial({
               map: tex,
               metalness: 0.1,
               roughness: 0.8,
-              alphaTest: 0.5
-            })
-            resolve()
+              alphaTest: 0.5,
+            });
+            resolve();
           })
           .catch((err) => {
-            console.error('Failed to load texture for material', matName, err)
+            console.error("Failed to load texture for material", matName, err);
             // Texture failed — material stays without a map, resolve so rendering isn't blocked
-            resolve()
-          })
-      })
+            resolve();
+          });
+      });
 
-      texturePromises.push(promise)
+      texturePromises.push(promise);
     }
   }
 
-  await Promise.all(texturePromises)
+  await Promise.all(texturePromises);
 
-  return materialMap
-}
-
+  return materialMap;
+};
 
 export const dispose3DObject = (obj: THREE.Object3D | null) => {
-  if (!obj) return
+  if (!obj) return;
   obj.traverse((child: any) => {
     if (child.isMesh) {
-      child.geometry?.dispose()
+      child.geometry?.dispose();
       const materials = Array.isArray(child.material)
         ? child.material
         : child.material
           ? [child.material]
-          : []
+          : [];
       materials.forEach((material: any) => {
         if (material.map) {
           if (material.map.userData?.blobUrl) {
-            URL.revokeObjectURL(material.map.userData.blobUrl)
+            URL.revokeObjectURL(material.map.userData.blobUrl);
           }
-          material.map.dispose()
+          material.map.dispose();
         }
-        material.dispose?.()
-      })
+        material.dispose?.();
+      });
     }
-  })
-}
+  });
+};
 
 // Legacy alias for backward compatibility
-export const disposeAvatarObject = dispose3DObject
+export const disposeAvatarObject = dispose3DObject;
 
-export type ObjectType = 'avatar' | 'asset'
+export type ObjectType = "avatar" | "asset";
 
 interface Load3DObjectOptions {
-  type: ObjectType
-  id: string | number
-  cookie: string
-  objectName?: string
+  type: ObjectType;
+  id: string | number;
+  cookie: string;
+  objectName?: string;
 }
 
 /**
@@ -161,61 +167,73 @@ interface Load3DObjectOptions {
 const fetchManifestUrl = async (
   type: ObjectType,
   id: string | number,
-  cookie: string
+  cookie: string,
 ): Promise<string> => {
-  if (type === 'avatar') {
-    const result = await window.api.getAvatar3DManifest(cookie, id)
-    if (result.state === 'Pending' || result.state === 'InReview') {
-      throw new Error(`Thumbnail ${result.state.toLowerCase()}`)
+  if (type === "avatar") {
+    const result = await window.api.getAvatar3DManifest(cookie, id);
+    if (result.state === "Pending" || result.state === "InReview") {
+      throw new Error(`Thumbnail ${result.state.toLowerCase()}`);
     }
     if (!result.imageUrl) {
-      throw new Error('Thumbnail not ready')
+      throw new Error("Thumbnail not ready");
     }
-    return result.imageUrl
+    return result.imageUrl;
   } else {
-    const result = await window.api.getAsset3DManifest(cookie, id)
-    return result.imageUrl
+    const result = await window.api.getAsset3DManifest(cookie, id);
+    return result.imageUrl;
   }
-}
+};
 
 const reconstructObject = (data: SerializedObject): THREE.Object3D => {
-  if (data.type === 'Mesh') {
-    const meshData = data as SerializedMesh
-    const geometry = new THREE.BufferGeometry()
+  if (data.type === "Mesh") {
+    const meshData = data as SerializedMesh;
+    const geometry = new THREE.BufferGeometry();
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(meshData.geometry.position, 3))
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(meshData.geometry.position, 3),
+    );
     if (meshData.geometry.normal) {
-      geometry.setAttribute('normal', new THREE.BufferAttribute(meshData.geometry.normal, 3))
+      geometry.setAttribute(
+        "normal",
+        new THREE.BufferAttribute(meshData.geometry.normal, 3),
+      );
     }
     if (meshData.geometry.uv) {
-      geometry.setAttribute('uv', new THREE.BufferAttribute(meshData.geometry.uv, 2))
+      geometry.setAttribute(
+        "uv",
+        new THREE.BufferAttribute(meshData.geometry.uv, 2),
+      );
     }
     if (meshData.geometry.index) {
-      geometry.setIndex(new THREE.BufferAttribute(meshData.geometry.index, 1))
+      geometry.setIndex(new THREE.BufferAttribute(meshData.geometry.index, 1));
     }
 
-    const material = new THREE.MeshStandardMaterial({ name: meshData.materialName })
-    const mesh = new THREE.Mesh(geometry, material)
-    mesh.name = meshData.name
-    mesh.castShadow = true
-    mesh.receiveShadow = true
-    return mesh
+    const material = new THREE.MeshStandardMaterial({
+      name: meshData.materialName,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = meshData.name;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
   } else {
-    const groupData = data as SerializedGroup
-    const group = new THREE.Group()
-    group.name = groupData.name
-    groupData.children.forEach((child) => group.add(reconstructObject(child)))
-    return group
+    const groupData = data as SerializedGroup;
+    const group = new THREE.Group();
+    group.name = groupData.name;
+    groupData.children.forEach((child) => group.add(reconstructObject(child)));
+    return group;
   }
-}
+};
 
 const loadFromManifest = async (
   manifestUrl: string,
-  objectName: string
+  objectName: string,
 ): Promise<THREE.Object3D> => {
-  const manifestResponse = await fetch(manifestUrl)
-  if (!manifestResponse.ok) throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`)
-  const manifest = await manifestResponse.json()
+  const manifestResponse = await fetch(manifestUrl);
+  if (!manifestResponse.ok)
+    throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`);
+  const manifest = await manifestResponse.json();
 
   // Manifest formats vary. Support several shapes:
   // - { mtl: '<hash>', obj: '<hash>' }
@@ -223,189 +241,206 @@ const loadFromManifest = async (
   // - { mtl: { hash: '<hash>' } , obj: { hash: '<hash>' } }
   // - { mtl: '<url>', obj: '<url>' }
   const resolveField = (val: any): string | null => {
-    if (!val) return null
-    if (typeof val === 'string') return val
-    if (typeof val === 'object') {
-      if (typeof val.hash === 'string') return val.hash
-      if (typeof val.url === 'string') return val.url
+    if (!val) return null;
+    if (typeof val === "string") return val;
+    if (typeof val === "object") {
+      if (typeof val.hash === "string") return val.hash;
+      if (typeof val.url === "string") return val.url;
     }
-    return null
-  }
+    return null;
+  };
 
   const mtlVal =
-    resolveField(manifest.mtl) || resolveField(manifest.mtlHash) || resolveField(manifest.material)
-  const objVal = resolveField(manifest.obj) || resolveField(manifest.objHash) || resolveField(manifest.object)
+    resolveField(manifest.mtl) ||
+    resolveField(manifest.mtlHash) ||
+    resolveField(manifest.material);
+  const objVal =
+    resolveField(manifest.obj) ||
+    resolveField(manifest.objHash) ||
+    resolveField(manifest.object);
 
-  if (!mtlVal || !objVal) throw new Error('MTL or OBJ hash missing in manifest.')
+  if (!mtlVal || !objVal)
+    throw new Error("MTL or OBJ hash missing in manifest.");
 
   const makeUrl = (val: string) => {
-    if (val.startsWith('http')) return val
-    return `https://t${hashToServer(val)}.rbxcdn.com/${val}`
-  }
+    if (val.startsWith("http")) return val;
+    return `https://t${hashToServer(val)}.rbxcdn.com/${val}`;
+  };
 
-  const mtlUrl = makeUrl(mtlVal)
-  const objUrl = makeUrl(objVal)
+  const mtlUrl = makeUrl(mtlVal);
+  const objUrl = makeUrl(objVal);
 
-  const mtlTextResponse = await fetch(mtlUrl)
-  if (!mtlTextResponse.ok) throw new Error(`Failed to load MTL: ${mtlTextResponse.status}`)
-  const mtlText = await mtlTextResponse.text()
+  const mtlTextResponse = await fetch(mtlUrl);
+  if (!mtlTextResponse.ok)
+    throw new Error(`Failed to load MTL: ${mtlTextResponse.status}`);
+  const mtlText = await mtlTextResponse.text();
 
-  const materialMap = await buildMaterialMap(mtlText)
+  const materialMap = await buildMaterialMap(mtlText);
 
-  const objTextResponse = await fetch(objUrl)
-  if (!objTextResponse.ok) throw new Error(`Failed to load OBJ: ${objTextResponse.status}`)
-  const objText = await objTextResponse.text()
+  const objTextResponse = await fetch(objUrl);
+  if (!objTextResponse.ok)
+    throw new Error(`Failed to load OBJ: ${objTextResponse.status}`);
+  const objText = await objTextResponse.text();
   // Attempt to parse OBJ in a worker for performance. If worker bundling
   // fails in production (Vite runtime helpers missing), fallback to
   // parsing on the main thread so 3D still functions.
 
   const parseObjAndCenterMain = (objText: string) => {
-    const loader = new OBJLoader()
-    const object = loader.parse(objText)
+    const loader = new OBJLoader();
+    const object = loader.parse(objText);
 
     // Center
-    const box = new THREE.Box3().setFromObject(object)
-    const center = new THREE.Vector3()
-    box.getCenter(center)
+    const box = new THREE.Box3().setFromObject(object);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
 
     // Translate geometries
     const translateGeometry = (geometry: THREE.BufferGeometry) => {
-      geometry.translate(-center.x, -center.y, -center.z)
-    }
+      geometry.translate(-center.x, -center.y, -center.z);
+    };
 
     const serialize = (obj: THREE.Object3D): any => {
       if ((obj as any).isMesh) {
-        const mesh = obj as THREE.Mesh
-        const geo = mesh.geometry
+        const mesh = obj as THREE.Mesh;
+        const geo = mesh.geometry;
 
-        translateGeometry(geo)
+        translateGeometry(geo);
 
-        let index: Uint16Array | Uint32Array | null = null
+        let index: Uint16Array | Uint32Array | null = null;
         if (geo.index) {
-          index = geo.index.array as Uint16Array | Uint32Array
+          index = geo.index.array as Uint16Array | Uint32Array;
         }
 
         return {
-          type: 'Mesh',
+          type: "Mesh",
           name: mesh.name,
           geometry: {
             position: geo.attributes.position.array as Float32Array,
-            normal: geo.attributes.normal ? (geo.attributes.normal.array as Float32Array) : null,
-            uv: geo.attributes.uv ? (geo.attributes.uv.array as Float32Array) : null,
-            index
+            normal: geo.attributes.normal
+              ? (geo.attributes.normal.array as Float32Array)
+              : null,
+            uv: geo.attributes.uv
+              ? (geo.attributes.uv.array as Float32Array)
+              : null,
+            index,
           },
           materialName: Array.isArray(mesh.material)
             ? mesh.material[0].name
-            : (mesh.material as THREE.Material).name
-        }
+            : (mesh.material as THREE.Material).name,
+        };
       } else {
         return {
-          type: 'Group',
+          type: "Group",
           name: obj.name,
-          children: obj.children.map(serialize)
-        }
+          children: obj.children.map(serialize),
+        };
       }
-    }
+    };
 
-    return serialize(object)
-  }
+    return serialize(object);
+  };
 
-  let resultValue: any = null
+  let resultValue: any = null;
 
   try {
     const handle = spawn(move(objText), async (text) => {
-      const THREE = await import('three')
-      const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js')
+      const THREE = await import("three");
+      const { OBJLoader } =
+        await import("three/examples/jsm/loaders/OBJLoader.js");
 
       const parseObjAndCenter = (objText: string) => {
-        const loader = new OBJLoader()
-        const object = loader.parse(objText)
+        const loader = new OBJLoader();
+        const object = loader.parse(objText);
 
-        const box = new THREE.Box3().setFromObject(object)
-        const center = new THREE.Vector3()
-        box.getCenter(center)
+        const box = new THREE.Box3().setFromObject(object);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
 
         const translateGeometry = (geometry: THREE.BufferGeometry) => {
-          geometry.translate(-center.x, -center.y, -center.z)
-        }
+          geometry.translate(-center.x, -center.y, -center.z);
+        };
 
         const serialize = (obj: THREE.Object3D): any => {
           if ((obj as any).isMesh) {
-            const mesh = obj as THREE.Mesh
-            const geo = mesh.geometry
+            const mesh = obj as THREE.Mesh;
+            const geo = mesh.geometry;
 
-            translateGeometry(geo)
+            translateGeometry(geo);
 
-            let index: Uint16Array | Uint32Array | null = null
+            let index: Uint16Array | Uint32Array | null = null;
             if (geo.index) {
-              index = geo.index.array as Uint16Array | Uint32Array
+              index = geo.index.array as Uint16Array | Uint32Array;
             }
 
             return {
-              type: 'Mesh',
+              type: "Mesh",
               name: mesh.name,
               geometry: {
                 position: geo.attributes.position.array as Float32Array,
-                normal: geo.attributes.normal ? (geo.attributes.normal.array as Float32Array) : null,
-                uv: geo.attributes.uv ? (geo.attributes.uv.array as Float32Array) : null,
-                index
+                normal: geo.attributes.normal
+                  ? (geo.attributes.normal.array as Float32Array)
+                  : null,
+                uv: geo.attributes.uv
+                  ? (geo.attributes.uv.array as Float32Array)
+                  : null,
+                index,
               },
               materialName: Array.isArray(mesh.material)
                 ? mesh.material[0].name
-                : (mesh.material as THREE.Material).name
-            }
+                : (mesh.material as THREE.Material).name,
+            };
           } else {
             return {
-              type: 'Group',
+              type: "Group",
               name: obj.name,
-              children: obj.children.map(serialize)
-            }
+              children: obj.children.map(serialize),
+            };
           }
-        }
+        };
 
-        return serialize(object)
-      }
+        return serialize(object);
+      };
 
-      return parseObjAndCenter(text)
-    })
+      return parseObjAndCenter(text);
+    });
 
-    const joinResult = await handle.join()
+    const joinResult = await handle.join();
     if (joinResult.ok) {
-      resultValue = joinResult.value
+      resultValue = joinResult.value;
     } else {
       // If worker failed, fallback to main-thread parser
-      resultValue = parseObjAndCenterMain(objText)
+      resultValue = parseObjAndCenterMain(objText);
     }
   } catch (err: any) {
     // Common production failure is __vitePreload not defined — detect and fallback
-    resultValue = parseObjAndCenterMain(objText)
+    resultValue = parseObjAndCenterMain(objText);
   }
 
-  const object = reconstructObject(resultValue)
-  object.name = objectName
+  const object = reconstructObject(resultValue);
+  object.name = objectName;
 
   object.traverse((child: any) => {
     if (child.isMesh) {
-      child.castShadow = true
-      child.receiveShadow = true
-      const requestedMaterialName = child.material?.name || null
+      child.castShadow = true;
+      child.receiveShadow = true;
+      const requestedMaterialName = child.material?.name || null;
       if (requestedMaterialName && materialMap[requestedMaterialName]) {
-        child.material = materialMap[requestedMaterialName]
+        child.material = materialMap[requestedMaterialName];
       } else {
-        const firstMatKey = Object.keys(materialMap)[0]
+        const firstMatKey = Object.keys(materialMap)[0];
         if (firstMatKey) {
-          child.material = materialMap[firstMatKey].clone()
+          child.material = materialMap[firstMatKey].clone();
         }
       }
     }
-  })
+  });
 
   // Geometry is already centered by worker logic
-  object.position.set(0, 0, 0)
-  object.rotation.y = Math.PI
+  object.position.set(0, 0, 0);
+  object.rotation.y = Math.PI;
 
-  return object
-}
+  return object;
+};
 
 /**
  * Universal 3D object loader - works for both avatars and assets
@@ -415,28 +450,28 @@ export const load3DObject = async ({
   type,
   id,
   cookie,
-  objectName
+  objectName,
 }: Load3DObjectOptions): Promise<THREE.Object3D> => {
-  const name = objectName || `${type}_${id}`
-  const manifestUrl = await fetchManifestUrl(type, id, cookie)
-  return loadFromManifest(manifestUrl, name)
-}
+  const name = objectName || `${type}_${id}`;
+  const manifestUrl = await fetchManifestUrl(type, id, cookie);
+  return loadFromManifest(manifestUrl, name);
+};
 
 /**
  * Load a 3D object directly from a manifest URL
  */
 export const load3DObjectFromUrl = async (
   manifestUrl: string,
-  objectName: string = '3d_object'
+  objectName: string = "3d_object",
 ): Promise<THREE.Object3D> => {
-  return loadFromManifest(manifestUrl, objectName)
-}
+  return loadFromManifest(manifestUrl, objectName);
+};
 
 // Legacy interface for backward compatibility
 interface LoadAvatarOptions {
-  userId: string
-  cookie: string
-  objectName?: string
+  userId: string;
+  cookie: string;
+  objectName?: string;
 }
 
 /**
@@ -445,10 +480,10 @@ interface LoadAvatarOptions {
 export const loadAvatarObject = async ({
   userId,
   cookie,
-  objectName = 'avatar'
+  objectName = "avatar",
 }: LoadAvatarOptions) => {
-  return load3DObject({ type: 'avatar', id: userId, cookie, objectName })
-}
+  return load3DObject({ type: "avatar", id: userId, cookie, objectName });
+};
 
 /**
  * Load an asset's 3D model
@@ -457,7 +492,7 @@ export const loadAvatarObject = async ({
 export const loadAssetObject = async (
   assetId: number | string,
   cookie: string,
-  objectName?: string
+  objectName?: string,
 ) => {
-  return load3DObject({ type: 'asset', id: assetId, cookie, objectName })
-}
+  return load3DObject({ type: "asset", id: assetId, cookie, objectName });
+};

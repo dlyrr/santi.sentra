@@ -1,42 +1,43 @@
-import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, ChevronLeft, Users } from 'lucide-react'
-import { SkeletonUserRow } from '@renderer/components/UI/display/SkeletonGrid'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { useHorizontalScroll } from '@renderer/hooks/useHorizontalScroll'
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronRight, ChevronLeft, Users } from "lucide-react";
+import { SkeletonUserRow } from "@renderer/components/UI/display/SkeletonGrid";
+import { formatNumber } from "@renderer/utils/numberUtils";
+import { useHorizontalScroll } from "@renderer/hooks/useHorizontalScroll";
 
 interface Group {
-  id: number
-  name: string
-  memberCount: number
+  id: number;
+  name: string;
+  memberCount: number;
 }
 
 interface Role {
-  name: string
+  name: string;
 }
 
 interface GroupItem {
-  group: Group
-  role: Role
-  thumbnail: string
+  group: Group;
+  role: Role;
+  thumbnail: string;
 }
 
 interface GroupsSectionProps {
-  groups: GroupItem[]
-  isLoading: boolean
-  groupMemberCount: number
-  onSelectGroup?: (groupId: number) => void
+  groups: GroupItem[];
+  isLoading: boolean;
+  groupMemberCount: number;
+  onSelectGroup?: (groupId: number) => void;
 }
 
 export const GroupsSection: React.FC<GroupsSectionProps> = ({
   groups,
   isLoading,
   groupMemberCount: _groupMemberCount,
-  onSelectGroup
+  onSelectGroup,
 }) => {
-  const { scrollRef, canScrollLeft, canScrollRight, scroll } = useHorizontalScroll([groups])
+  const { scrollRef, canScrollLeft, canScrollRight, scroll } =
+    useHorizontalScroll([groups]);
 
-  if (!isLoading && groups.length === 0) return null
+  if (!isLoading && groups.length === 0) return null;
 
   return (
     <motion.div
@@ -60,11 +61,14 @@ export const GroupsSection: React.FC<GroupsSectionProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
-              onClick={() => scroll('left')}
+              onClick={() => scroll("left")}
               className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)] rounded-full shadow-lg transition-colors border border-[var(--color-border)]"
               aria-label="Scroll left"
             >
-              <ChevronLeft size={24} className="text-[var(--color-text-primary)]" />
+              <ChevronLeft
+                size={24}
+                className="text-[var(--color-text-primary)]"
+              />
             </motion.button>
           )}
         </AnimatePresence>
@@ -76,11 +80,14 @@ export const GroupsSection: React.FC<GroupsSectionProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
-              onClick={() => scroll('right')}
+              onClick={() => scroll("right")}
               className="absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)] rounded-full shadow-lg transition-colors border border-[var(--color-border)]"
               aria-label="Scroll right"
             >
-              <ChevronRight size={24} className="text-[var(--color-text-primary)]" />
+              <ChevronRight
+                size={24}
+                className="text-[var(--color-text-primary)]"
+              />
             </motion.button>
           )}
         </AnimatePresence>
@@ -92,14 +99,17 @@ export const GroupsSection: React.FC<GroupsSectionProps> = ({
         {canScrollRight && (
           <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[var(--color-surface-strong)] to-transparent z-10 pointer-events-none" />
         )}
-        <div ref={scrollRef} className="overflow-x-auto pb-2 pt-2 scrollbar-hide">
+        <div
+          ref={scrollRef}
+          className="overflow-x-auto pb-2 pt-2 scrollbar-hide"
+        >
           <div className="flex gap-4 pl-3 pr-3">
             {isLoading ? (
               <SkeletonUserRow count={5} variant="group" />
             ) : groups.length > 0 ? (
               groups.map((groupItem, index) => {
-                const group = groupItem.group
-                const role = groupItem.role
+                const group = groupItem.group;
+                const role = groupItem.role;
                 return (
                   <motion.div
                     key={group.id}
@@ -131,11 +141,13 @@ export const GroupsSection: React.FC<GroupsSectionProps> = ({
                       </div>
                       <div className="flex items-center justify-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] mt-0.5">
                         <Users size={14} />
-                        <span className="truncate">{formatNumber(group.memberCount)} Members</span>
+                        <span className="truncate">
+                          {formatNumber(group.memberCount)} Members
+                        </span>
                       </div>
                     </div>
                   </motion.div>
-                )
+                );
               })
             ) : (
               <div className="text-[var(--color-text-muted)] text-sm py-4 pl-2">
@@ -146,5 +158,5 @@ export const GroupsSection: React.FC<GroupsSectionProps> = ({
         </div>
       </div>
     </motion.div>
-  )
-}
+  );
+};

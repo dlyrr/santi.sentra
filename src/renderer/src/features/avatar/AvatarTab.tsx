@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { User } from 'lucide-react'
 import { Account } from '@renderer/types'
 import AccessoryContextMenu from './UI/AccessoryContextMenu'
 import RenameOutfitModal from './Modals/RenameOutfitModal'
 import ConfirmModal from '@renderer/components/UI/dialogs/ConfirmModal'
 import AccessoryDetailsModal from './Modals/AccessoryDetailsModal'
 import { useNotification } from '@renderer/features/system/stores/useSnackbarStore'
+import { Box } from 'lucide-react';
+import { Button } from '@renderer/components/UI/buttons/Button';
 import { useAvatarRenderResize } from '@renderer/hooks/useAvatarRenderResize'
 import {
   useCurrentAvatar,
@@ -325,24 +326,23 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
   // Multi-account bulk mode — no reset gate, go straight to editor
 
   return (
-    <div className="flex h-full flex-col p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
-            <User className="h-6 w-6 text-[var(--accent-color)]" />
-            Avatar
-          </h1>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-            {selectedIds.size >= 2
-              ? 'Bulk mode active'
-              : 'View and modify your Roblox avatar appearance'}
-          </p>
+    <div className="flex h-full flex-col">
+      {/* Compact Toolbar */}
+      <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
+        <div className="flex items-center gap-4 shrink-0">
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)] leading-none">Avatar</h1>
+          {isBulkMode && (
+            <span className="flex items-center justify-center px-2 py-0.5 rounded-md bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+              Bulk
+            </span>
+          )}
         </div>
-        {selectedIds.size >= 2 && (
-          <button
+        {isBulkMode && (
+          <Button
+            variant="destructive"
+            size="sm"
             disabled={isResettingBulk}
             onClick={async () => {
-              if (!confirm('Are you sure you want to reset all selected avatars to their default appearance?')) return
               setIsResettingBulk(true)
               try {
                 for (const account of selectedAccounts) {
@@ -350,7 +350,7 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
                     await window.api.setWearingAssets(account.cookie, [])
                   }
                 }
-                showNotification(`Reset ${selectedAccounts.length} avatars to default successfully`, 'success')
+                showNotification(`Reset ${selectedAccounts.length} avatars to default`, 'success')
               } catch (err) {
                 console.error(err)
                 showNotification('Failed to reset all avatars', 'error')
@@ -358,10 +358,10 @@ const AvatarTab: React.FC<AvatarTabProps> = ({ account }) => {
                 setIsResettingBulk(false)
               }
             }}
-            className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors text-sm font-medium"
+            className="gap-2 h-9 px-3"
           >
-            {isResettingBulk ? 'Resetting...' : 'Reset All'}
-          </button>
+            <span className="text-sm font-semibold">Reset All</span>
+          </Button>
         )}
       </div>
 

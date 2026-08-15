@@ -3,42 +3,40 @@
  * Integrates theme selection with the matching circles visual
  */
 
-import React, { useCallback } from 'react'
-import { Palette, Moon, Sun } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { useSettingsManager } from '@renderer/hooks/queries'
-import { ThemeCirclesGrid, DEFAULT_THEME_CIRCLES } from '@renderer/components/UI/theme/ThemeCircles'
-import { applyTint } from '@renderer/theme/theme'
-import { TintPreference } from '@renderer/types'
+import React, { useCallback } from "react";
+import { Palette, Moon, Sun } from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { useSettingsManager } from "@renderer/hooks/queries";
+import {
+  ThemeCirclesGrid,
+  DEFAULT_THEME_CIRCLES,
+} from "@renderer/components/UI/theme/ThemeCircles";
+import { applyTint } from "@renderer/theme/theme";
+import { TintPreference } from "@renderer/types";
 
 /**
  * Theme Settings Component
  */
-export const ThemeSettings: React.FC<{ className?: string }> = ({ className }) => {
-  const { settings, updateSettings } = useSettingsManager()
+export const ThemeSettings: React.FC<{ className?: string }> = ({
+  className,
+}) => {
+  const { settings, updateSettings } = useSettingsManager();
+
+    const tint = settings?.tint ?? "neutral";
+
   
-  const theme = settings?.theme ?? 'dark'
-  const tint = settings?.tint ?? 'neutral'
-
-  const handleThemeChange = useCallback(
-    (newTheme: 'dark' | 'light') => {
-      updateSettings({ theme: newTheme })
-    },
-    [updateSettings]
-  )
-
   const handleTintChange = useCallback(
     (tintId: string) => {
-      const newTint = tintId as TintPreference
-      updateSettings({ tint: newTint })
-      applyTint(theme === 'system' ? 'dark' : theme, newTint)
+      const newTint = tintId as TintPreference;
+      updateSettings({ tint: newTint });
+      applyTint("dark", newTint);
     },
-    [theme, updateSettings]
-  )
+    [updateSettings],
+  );
 
   return (
-    <div className={cn('flex flex-col gap-6 p-4', className)}>
+    <div className={cn("flex flex-col gap-6 p-4", className)}>
       {/* Color Tint Section with Theme Circles */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
@@ -65,35 +63,34 @@ export const ThemeSettings: React.FC<{ className?: string }> = ({ className }) =
         </p>
       </div>
     </div>
-  )
-}
+  );
+};
 
 /**
  * Minimal Theme Selector (for quick access)
  */
 export const QuickThemeSelector: React.FC<{
-  className?: string
-  showLabels?: boolean
+  className?: string;
+  showLabels?: boolean;
 }> = ({ className, showLabels = false }) => {
-  const { settings, updateSettings } = useSettingsManager()
-  
-  const theme = settings?.theme ?? 'dark'
-  const tint = settings?.tint ?? 'neutral'
+  const { settings, updateSettings } = useSettingsManager();
+
+    const tint = settings?.tint ?? "neutral";
 
   const handleTintChange = useCallback(
     (tintId: string) => {
-      const newTint = tintId as TintPreference
-      updateSettings({ tint: newTint })
-      applyTint(theme === 'system' ? 'dark' : theme, newTint)
+      const newTint = tintId as TintPreference;
+      updateSettings({ tint: newTint });
+      applyTint("dark", newTint);
     },
-    [theme, updateSettings]
-  )
+    [updateSettings],
+  );
 
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-2 p-2 bg-[var(--color-surface-hover)]/50 rounded-lg border border-[var(--color-border-strong)]/50',
-        className
+        "inline-flex items-center gap-2 p-2 bg-[var(--color-surface-hover)]/50 rounded-lg border border-[var(--color-border-strong)]/50",
+        className,
       )}
     >
       {DEFAULT_THEME_CIRCLES.map((option) => (
@@ -101,10 +98,10 @@ export const QuickThemeSelector: React.FC<{
           key={option.id}
           onClick={() => handleTintChange(option.id)}
           className={cn(
-            'relative flex flex-col items-center gap-1 p-1 rounded transition-all duration-200',
+            "relative flex flex-col items-center gap-1 p-1 rounded transition-all duration-200",
             tint === option.id
-              ? 'bg-[var(--color-surface-hover)]/50 scale-105'
-              : 'opacity-60 hover:opacity-100'
+              ? "bg-[var(--color-surface-hover)]/50 scale-105"
+              : "opacity-60 hover:opacity-100",
           )}
           title={option.label}
         >
@@ -113,13 +110,13 @@ export const QuickThemeSelector: React.FC<{
             <div
               className="w-3 h-3 rounded-full shadow-sm"
               style={{
-                background: `linear-gradient(135deg, ${option.color} 0%, ${option.gradientColor} 100%)`
+                background: `linear-gradient(135deg, ${option.color} 0%, ${option.gradientColor} 100%)`,
               }}
             />
             <div
               className="w-3 h-3 rounded-full shadow-sm"
               style={{
-                background: `linear-gradient(135deg, ${option.color} 0%, ${option.gradientColor} 100%)`
+                background: `linear-gradient(135deg, ${option.color} 0%, ${option.gradientColor} 100%)`,
               }}
             />
           </div>
@@ -136,5 +133,5 @@ export const QuickThemeSelector: React.FC<{
         </button>
       ))}
     </div>
-  )
-}
+  );
+};

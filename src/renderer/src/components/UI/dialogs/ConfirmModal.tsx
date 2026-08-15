@@ -1,6 +1,6 @@
-import React from 'react'
-import { AlertTriangle } from 'lucide-react'
-import { Button } from '@renderer/components/UI/buttons/Button'
+import React from "react";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@renderer/components/UI/buttons/Button";
 import {
   Dialog,
   DialogContent,
@@ -8,18 +8,18 @@ import {
   DialogTitle,
   DialogClose,
   DialogBody,
-  DialogFooter
-} from '@renderer/components/UI/dialogs/Dialog'
+  DialogFooter,
+} from "@renderer/components/UI/dialogs/Dialog";
 
 interface ConfirmModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: () => void
-  title: string
-  message: string
-  confirmText?: string
-  cancelText?: string
-  isDangerous?: boolean
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  isDangerous?: boolean;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -28,9 +28,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  isDangerous = false
+  confirmText = "Confirm",
+  cancelText = "Cancel",
+  isDangerous = false,
 }) => {
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -38,7 +38,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[var(--color-surface)] rounded-lg">
-              <AlertTriangle className="text-[var(--color-text-secondary)]" size={20} />
+              <AlertTriangle
+                className="text-[var(--color-text-secondary)]"
+                size={20}
+              />
             </div>
             <DialogTitle className="pl-0">{title}</DialogTitle>
           </div>
@@ -46,7 +49,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </DialogHeader>
 
         <DialogBody>
-          <p className="text-[var(--color-text-secondary)] text-base leading-relaxed">{message}</p>
+          <p className="text-[var(--color-text-secondary)] text-base leading-relaxed">
+            {message}
+          </p>
 
           <DialogFooter>
             <Button
@@ -57,10 +62,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               {cancelText}
             </Button>
             <Button
-              variant={isDangerous ? 'destructive' : 'default'}
+              variant={isDangerous ? "destructive" : "default"}
               onClick={() => {
-                onConfirm()
-                onClose()
+                onConfirm();
+                onClose();
               }}
               className="flex-1 h-auto py-3"
             >
@@ -70,7 +75,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </DialogBody>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default ConfirmModal
+export default ConfirmModal;

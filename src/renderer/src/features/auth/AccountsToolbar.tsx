@@ -74,9 +74,12 @@ const AccountsToolbar = ({
   }, [])
 
   return (
-    <div className="shrink-0 h-[64px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] flex items-center justify-between px-5 gap-4 z-20">
-      {/* Left: Select All + Title + Add Account + counts */}
-      <div className="flex items-center gap-3 shrink-0">
+    <div className="shrink-0 h-[64px] bg-[var(--color-surface)] border-b border-[var(--color-border)] flex items-center justify-between px-6 gap-4 z-20">
+      {/* Left: Title + Select All + counts */}
+      <div className="flex items-center gap-4 shrink-0">
+        <h1 className="text-lg font-bold text-[var(--color-text-primary)] leading-none tracking-tight">Accounts</h1>
+        <div className="w-px h-4 bg-[var(--color-border)]" />
+        
         {onToggleSelectAll && (
           <div className="ml-0.5">
             <CustomCheckbox
@@ -86,9 +89,8 @@ const AccountsToolbar = ({
             />
           </div>
         )}
-        <h1 className="text-base font-bold text-[var(--color-text-primary)]">Accounts</h1>
 
-        <div className="flex items-center gap-1.5 ml-1">
+        <div className="flex items-center gap-1.5">
           {/* Account count */}
           <span className="flex items-center justify-center px-2 py-0.5 rounded-md bg-[var(--color-surface-muted)] border border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-text-muted)]">
             {selectedCount > 0 ? selectedCount : filteredAccountsCount}
@@ -113,7 +115,7 @@ const AccountsToolbar = ({
           <div className="flex items-center gap-1.5 mr-2 shrink-0">
             {isValidating ? (
               <div className="flex flex-col gap-1 shrink-0">
-                <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-emerald-500/40 bg-emerald-900/30 min-w-[200px] relative overflow-hidden">
+                <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 backdrop-blur-md min-w-[200px] relative overflow-hidden shadow-[inset_0_0_12px_rgba(16,185,129,0.1)]">
                   <AnimatePresence>
                     {validationProgress && (
                       <motion.div
@@ -137,7 +139,7 @@ const AccountsToolbar = ({
                 </div>
               </div>
             ) : (
-              <Button variant="outline" onClick={onValidateAccountsClick} className="gap-2 h-9 px-3 shrink-0 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10">
+              <Button variant="outline" onClick={onValidateAccountsClick} className="gap-2 h-9 px-3 shrink-0 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:shadow-[0_0_12px_rgba(16,185,129,0.15)] transition-shadow duration-200">
                 <Wifi size={16} />
                 <span className="text-sm">Validate All</span>
               </Button>
@@ -146,7 +148,7 @@ const AccountsToolbar = ({
         )}
 
         {/* Add Account */}
-        <Button variant="default" onClick={onAddAccount} className="gap-2 h-9 px-3 shrink-0 mr-1">
+        <Button variant="default" onClick={onAddAccount} className="gap-2 h-9 px-3 shrink-0 mr-1 shadow-sm hover:shadow-[0_0_12px_var(--accent-color-ring)] transition-shadow duration-200">
           <UserPlus size={16} />
           <span className="text-sm font-semibold">Add Account</span>
         </Button>

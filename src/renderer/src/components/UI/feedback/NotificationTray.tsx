@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
   X,
@@ -13,144 +13,144 @@ import {
   AlertTriangle,
   CheckCircle,
   AlertCircle,
-  UserMinus
-} from 'lucide-react'
-import { Avatar, AvatarImage, AvatarFallback } from '../display/Avatar'
+  UserMinus,
+} from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "../display/Avatar";
 import {
   useNotificationTrayStore,
   useNotifications,
   useUnreadCount,
   useIsTrayOpen,
   TrayNotification,
-  NotificationType
-} from '@renderer/stores/useNotificationTrayStore'
+  NotificationType,
+} from "@renderer/stores/useNotificationTrayStore";
 
 // Format relative time (e.g., "2m ago", "1h ago")
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now()
-  const diff = now - timestamp
+  const now = Date.now();
+  const diff = now - timestamp;
 
   // Handle negative diff (future timestamps due to clock skew or incorrect data)
   if (diff < 0) {
-    return 'In the future'
+    return "In the future";
   }
 
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-  if (seconds < 60) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
-  return new Date(timestamp).toLocaleDateString()
-}
+  if (seconds < 60) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString();
+};
 
 // Get icon and color for notification type
 const getNotificationStyle = (type: NotificationType) => {
   switch (type) {
-    case 'friend_online':
+    case "friend_online":
       return {
         icon: LogIn,
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-500/10',
-        border: 'border-emerald-500/20'
-      }
-    case 'friend_offline':
+        color: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+      };
+    case "friend_offline":
       return {
         icon: LogOut,
-        color: 'text-[var(--color-text-secondary)]',
-        bg: 'bg-[var(--color-surface-muted)]',
-        border: 'border-[var(--color-border)]'
-      }
-    case 'friend_ingame':
+        color: "text-[var(--color-text-secondary)]",
+        bg: "bg-[var(--color-surface-muted)]",
+        border: "border-[var(--color-border)]",
+      };
+    case "friend_ingame":
       return {
         icon: Gamepad2,
-        color: 'text-[var(--accent-color)]',
-        bg: 'bg-[var(--accent-color-faint)]',
-        border: 'border-[var(--accent-color-border)]'
-      }
-    case 'friend_removed':
+        color: "text-[var(--accent-color)]",
+        bg: "bg-[var(--accent-color-faint)]",
+        border: "border-[var(--accent-color-border)]",
+      };
+    case "friend_removed":
       return {
         icon: UserMinus,
-        color: 'text-red-400',
-        bg: 'bg-red-500/10',
-        border: 'border-red-500/20'
-      }
-    case 'success':
+        color: "text-red-400",
+        bg: "bg-red-500/10",
+        border: "border-red-500/20",
+      };
+    case "success":
       return {
         icon: CheckCircle,
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-500/10',
-        border: 'border-emerald-500/20'
-      }
-    case 'warning':
+        color: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+      };
+    case "warning":
       return {
         icon: AlertTriangle,
-        color: 'text-yellow-400',
-        bg: 'bg-yellow-500/10',
-        border: 'border-yellow-500/20'
-      }
-    case 'error':
+        color: "text-yellow-400",
+        bg: "bg-yellow-500/10",
+        border: "border-yellow-500/20",
+      };
+    case "error":
       return {
         icon: AlertCircle,
-        color: 'text-red-400',
-        bg: 'bg-red-500/10',
-        border: 'border-red-500/20'
-      }
-    case 'info':
+        color: "text-red-400",
+        bg: "bg-red-500/10",
+        border: "border-red-500/20",
+      };
+    case "info":
     default:
       return {
         icon: Info,
-        color: 'text-[var(--accent-color)]',
-        bg: 'bg-[var(--accent-color-faint)]',
-        border: 'border-[var(--accent-color-border)]'
-      }
+        color: "text-[var(--accent-color)]",
+        bg: "bg-[var(--accent-color-faint)]",
+        border: "border-[var(--accent-color-border)]",
+      };
   }
-}
+};
 
 interface NotificationTrayProps {
-  onOpenUserProfile?: (userId: string) => void
+  onOpenUserProfile?: (userId: string) => void;
 }
 
 interface NotificationItemProps {
-  notification: TrayNotification
-  onRemove: (id: string) => void
-  onOpenProfile?: (userId: string) => void
+  notification: TrayNotification;
+  onRemove: (id: string) => void;
+  onOpenProfile?: (userId: string) => void;
 }
 
 const NotificationItem: React.FC<NotificationItemProps> = ({
   notification,
   onRemove,
-  onOpenProfile
+  onOpenProfile,
 }) => {
-  const style = getNotificationStyle(notification.type)
-  const Icon = style.icon
-  const isUserNotification = Boolean(notification.userId && onOpenProfile)
+  const style = getNotificationStyle(notification.type);
+  const Icon = style.icon;
+  const isUserNotification = Boolean(notification.userId && onOpenProfile);
 
   const handleOpenProfile = () => {
-    if (!notification.userId || !onOpenProfile) return
-    onOpenProfile(notification.userId)
-  }
+    if (!notification.userId || !onOpenProfile) return;
+    onOpenProfile(notification.userId);
+  };
 
   // Color code based on notification type
   const getTitleColor = () => {
     switch (notification.type) {
-      case 'friend_online':
-        return 'text-[var(--color-text-primary)]'
-      case 'friend_ingame':
-        return 'text-[var(--color-text-primary)]'
-      case 'friend_removed':
-        return 'text-red-400'
+      case "friend_online":
+        return "text-[var(--color-text-primary)]";
+      case "friend_ingame":
+        return "text-[var(--color-text-primary)]";
+      case "friend_removed":
+        return "text-red-400";
       default:
-        return 'text-[var(--color-text-primary)]'
+        return "text-[var(--color-text-primary)]";
     }
-  }
+  };
 
   return (
     <motion.div
-      role={isUserNotification ? 'button' : undefined}
+      role={isUserNotification ? "button" : undefined}
       tabIndex={isUserNotification ? 0 : undefined}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -160,22 +160,22 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         relative p-3 rounded-lg border transition-all group
         ${
           notification.read
-            ? 'bg-[var(--color-surface-muted)] border-[var(--color-border-subtle)] opacity-70'
-            : 'bg-[var(--color-surface-strong)] border-[var(--color-border)]'
+            ? "bg-[var(--color-surface-muted)] border-[var(--color-border-subtle)] opacity-70"
+            : "bg-[var(--color-surface-strong)] border-[var(--color-border)]"
         }
         ${
           isUserNotification
-            ? 'cursor-pointer hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]'
-            : ''
+            ? "cursor-pointer hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+            : ""
         }
       `}
       onClick={isUserNotification ? handleOpenProfile : undefined}
       onKeyDown={
         isUserNotification
           ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                handleOpenProfile()
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleOpenProfile();
               }
             }
           : undefined
@@ -199,7 +199,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 h-5">
-            <p className={`text-sm font-medium truncate flex-1 ${getTitleColor()}`}>
+            <p
+              className={`text-sm font-medium truncate flex-1 ${getTitleColor()}`}
+            >
               {notification.title}
             </p>
             {/* Container */}
@@ -211,8 +213,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               {/* Dismiss button */}
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onRemove(notification.id)
+                  e.stopPropagation();
+                  onRemove(notification.id);
                 }}
                 className="absolute right-0 top-0 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto p-1 rounded hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-all duration-200 flex items-center justify-center"
                 title="Dismiss"
@@ -235,17 +237,20 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         </div>
       </div>
     </motion.div>
-  )
-}
+  );
+};
 
-const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }) => {
-  const notifications = useNotifications()
-  const unreadCount = useUnreadCount()
-  const isOpen = useIsTrayOpen()
-  const { setIsOpen, markAllAsRead, removeNotification, clearAll } = useNotificationTrayStore()
+const NotificationTray: React.FC<NotificationTrayProps> = ({
+  onOpenUserProfile,
+}) => {
+  const notifications = useNotifications();
+  const unreadCount = useUnreadCount();
+  const isOpen = useIsTrayOpen();
+  const { setIsOpen, markAllAsRead, removeNotification, clearAll } =
+    useNotificationTrayStore();
 
-  const trayRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const trayRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -256,34 +261,34 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false)
+        setIsOpen(false);
       }
-    }
+    };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen, setIsOpen])
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, setIsOpen]);
 
   // Close on escape
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false)
+      if (event.key === "Escape" && isOpen) {
+        setIsOpen(false);
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, setIsOpen])
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, setIsOpen]);
 
   const handleOpenProfile = onOpenUserProfile
     ? (userId: string) => {
-        onOpenUserProfile(userId)
-        setIsOpen(false)
+        onOpenUserProfile(userId);
+        setIsOpen(false);
       }
-    : undefined
+    : undefined;
 
   return (
     <div className="relative z-50">
@@ -291,15 +296,15 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
       <button
         ref={buttonRef}
         onClick={(e) => {
-          e.stopPropagation()
-          setIsOpen(!isOpen)
+          e.stopPropagation();
+          setIsOpen(!isOpen);
         }}
         className={`
-          relative p-2 rounded-[var(--control-radius)] transition-all
+          relative w-10 h-10 flex items-center justify-center rounded-[var(--control-radius)] transition-all
           ${
             isOpen
-              ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
+              ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
           }
         `}
         title="Notifications"
@@ -314,7 +319,7 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
               exit={{ scale: 0 }}
               className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent-color)] text-[10px] font-bold text-[var(--accent-color-foreground)] flex items-center justify-center pointer-events-none"
             >
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadCount > 99 ? "99+" : unreadCount}
             </motion.div>
           )}
         </AnimatePresence>
@@ -328,11 +333,11 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-96 max-h-[500px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl overflow-hidden z-[100]"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute right-0 top-full mt-2 w-96 max-h-[500px] liquid-glass rounded-[var(--menu-radius)] shadow-2xl overflow-hidden z-[100]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-strong)]/90 backdrop-blur-sm sticky top-0 z-10">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/20 backdrop-blur-sm sticky top-0 z-10">
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-[var(--color-text-muted)]" />
                 <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
@@ -386,7 +391,9 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
                   >
                     <Bell className="h-10 w-10 mb-3 opacity-30" />
                     <p className="text-sm">No notifications</p>
-                    <p className="text-xs mt-1 opacity-60">You&apos;re all caught up!</p>
+                    <p className="text-xs mt-1 opacity-60">
+                      You&apos;re all caught up!
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -395,8 +402,8 @@ const NotificationTray: React.FC<NotificationTrayProps> = ({ onOpenUserProfile }
         )}
       </AnimatePresence>
     </div>
-  )
-}
+  );
+};
 
-export default NotificationTray
-export { NotificationTray }
+export default NotificationTray;
+export { NotificationTray };

@@ -153,8 +153,8 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
     }
 
     if (this.mouseMoveTimeout) {
-      clearTimeout(this.mouseMoveTimeout)
-      this.mouseMoveTimeout = undefined
+      clearTimeout(this.mouseMoveTimeout);
+      this.mouseMoveTimeout = undefined;
     }
   }
 
@@ -195,10 +195,7 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
   private handleKeyEvent = (event: KeyboardEvent): void => {
     if (!this.state.isRecording || !this.config.captureKeyboard) return;
 
-    if (
-      this.config.ignoreKeys &&
-      this.config.ignoreKeys.includes(event.key)
-    ) {
+    if (this.config.ignoreKeys && this.config.ignoreKeys.includes(event.key)) {
       return;
     }
 

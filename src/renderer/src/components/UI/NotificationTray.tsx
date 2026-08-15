@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Virtuoso } from 'react-virtuoso'
+import React, { useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Virtuoso } from "react-virtuoso";
 import {
   Bell,
   X,
@@ -14,119 +14,122 @@ import {
   AlertTriangle,
   CheckCircle,
   AlertCircle,
-  UserMinus
-} from 'lucide-react'
-import { Avatar, AvatarImage, AvatarFallback } from './display/Avatar'
+  UserMinus,
+} from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "./display/Avatar";
 import {
   useNotificationTrayStore,
   useNotifications,
   useUnreadCount,
   useIsTrayOpen,
   TrayNotification,
-  NotificationType
-} from '../../features/system/stores/useNotificationTrayStore'
+  NotificationType,
+} from "../../features/system/stores/useNotificationTrayStore";
 
 // Format relative time (e.g., "2m ago", "1h ago")
 const formatRelativeTime = (timestamp: number): string => {
-  const now = Date.now()
-  const diff = now - timestamp
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-  if (seconds < 60) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
-  if (days < 7) return `${days}d ago`
-  return new Date(timestamp).toLocaleDateString()
-}
+  if (seconds < 60) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString();
+};
 
 // Get icon and color for notification type
 const getNotificationStyle = (type: NotificationType) => {
   switch (type) {
-    case 'friend_online':
+    case "friend_online":
       return {
         icon: LogIn,
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-500/10',
-        border: 'border-emerald-500/20'
-      }
-    case 'friend_offline':
+        color: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+      };
+    case "friend_offline":
       return {
         icon: LogOut,
-        color: 'text-[var(--color-text-secondary)]',
-        bg: 'bg-[var(--color-surface-muted)]',
-        border: 'border-[var(--color-border)]'
-      }
-    case 'friend_ingame':
+        color: "text-[var(--color-text-secondary)]",
+        bg: "bg-[var(--color-surface-muted)]",
+        border: "border-[var(--color-border)]",
+      };
+    case "friend_ingame":
       return {
         icon: Gamepad2,
-        color: 'text-[var(--accent-color)]',
-        bg: 'bg-[var(--accent-color-faint)]',
-        border: 'border-[var(--accent-color-border)]'
-      }
-    case 'friend_removed':
+        color: "text-[var(--accent-color)]",
+        bg: "bg-[var(--accent-color-faint)]",
+        border: "border-[var(--accent-color-border)]",
+      };
+    case "friend_removed":
       return {
         icon: UserMinus,
-        color: 'text-red-400',
-        bg: 'bg-red-500/10',
-        border: 'border-red-500/20'
-      }
-    case 'success':
+        color: "text-red-400",
+        bg: "bg-red-500/10",
+        border: "border-red-500/20",
+      };
+    case "success":
       return {
         icon: CheckCircle,
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-500/10',
-        border: 'border-emerald-500/20'
-      }
-    case 'warning':
+        color: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+        border: "border-emerald-500/20",
+      };
+    case "warning":
       return {
         icon: AlertTriangle,
-        color: 'text-yellow-400',
-        bg: 'bg-yellow-500/10',
-        border: 'border-yellow-500/20'
-      }
-    case 'error':
+        color: "text-yellow-400",
+        bg: "bg-yellow-500/10",
+        border: "border-yellow-500/20",
+      };
+    case "error":
       return {
         icon: AlertCircle,
-        color: 'text-red-400',
-        bg: 'bg-red-500/10',
-        border: 'border-red-500/20'
-      }
-    case 'info':
+        color: "text-red-400",
+        bg: "bg-red-500/10",
+        border: "border-red-500/20",
+      };
+    case "info":
     default:
       return {
         icon: Info,
-        color: 'text-[var(--accent-color)]',
-        bg: 'bg-[var(--accent-color-faint)]',
-        border: 'border-[var(--accent-color-border)]'
-      }
+        color: "text-[var(--accent-color)]",
+        bg: "bg-[var(--accent-color-faint)]",
+        border: "border-[var(--accent-color-border)]",
+      };
   }
-}
+};
 
 interface NotificationItemProps {
-  notification: TrayNotification
-  onRemove: (id: string) => void
+  notification: TrayNotification;
+  onRemove: (id: string) => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRemove }) => {
-  const style = getNotificationStyle(notification.type)
-  const Icon = style.icon
+const NotificationItem: React.FC<NotificationItemProps> = ({
+  notification,
+  onRemove,
+}) => {
+  const style = getNotificationStyle(notification.type);
+  const Icon = style.icon;
 
   // Color code based on notification type
   const getTitleColor = () => {
     switch (notification.type) {
-      case 'friend_online':
-        return 'text-[var(--color-text-primary)]'
-      case 'friend_ingame':
-        return 'text-[var(--color-text-primary)]'
-      case 'friend_removed':
-        return 'text-red-400'
+      case "friend_online":
+        return "text-[var(--color-text-primary)]";
+      case "friend_ingame":
+        return "text-[var(--color-text-primary)]";
+      case "friend_removed":
+        return "text-red-400";
       default:
-        return 'text-[var(--color-text-primary)]'
+        return "text-[var(--color-text-primary)]";
     }
-  }
+  };
 
   return (
     <motion.div
@@ -136,7 +139,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
       transition={{ duration: 0.2 }}
       className={`
         relative p-3 rounded-lg border transition-all group
-        ${notification.read ? 'bg-[var(--color-surface)]/30 border-[var(--color-border)]/30 opacity-60' : 'bg-[var(--color-surface-hover)]/50 border-[var(--color-border-strong)]/50'}
+        ${notification.read ? "bg-[var(--color-surface)]/30 border-[var(--color-border)]/30 opacity-60" : "bg-[var(--color-surface-hover)]/50 border-[var(--color-border-strong)]/50"}
       `}
     >
       <div className="flex gap-3">
@@ -157,7 +160,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 h-5">
-            <p className={`text-sm font-medium truncate flex-1 ${getTitleColor()}`}>
+            <p
+              className={`text-sm font-medium truncate flex-1 ${getTitleColor()}`}
+            >
               {notification.title}
             </p>
             <div className="relative shrink-0 h-5">
@@ -168,8 +173,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
               {/* Dismiss button */}
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  onRemove(notification.id)
+                  e.stopPropagation();
+                  onRemove(notification.id);
                 }}
                 className="absolute right-0 top-0 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 pointer-events-none group-hover:pointer-events-auto p-1 rounded hover:bg-[var(--color-surface-hover)]/50 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-all duration-200 flex items-center justify-center"
                 title="Dismiss"
@@ -178,7 +183,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
               </button>
             </div>
           </div>
-          <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{notification.message}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">
+            {notification.message}
+          </p>
           {notification.gameInfo && (
             <div className="flex items-center gap-1.5 mt-1.5">
               <Gamepad2 className="h-3 w-3 text-emerald-400" />
@@ -190,17 +197,18 @@ const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onRem
         </div>
       </div>
     </motion.div>
-  )
-}
+  );
+};
 
 const NotificationTray: React.FC = () => {
-  const notifications = useNotifications()
-  const unreadCount = useUnreadCount()
-  const isOpen = useIsTrayOpen()
-  const { setIsOpen, markAllAsRead, removeNotification, clearAll } = useNotificationTrayStore()
+  const notifications = useNotifications();
+  const unreadCount = useUnreadCount();
+  const isOpen = useIsTrayOpen();
+  const { setIsOpen, markAllAsRead, removeNotification, clearAll } =
+    useNotificationTrayStore();
 
-  const trayRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+  const trayRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -211,27 +219,27 @@ const NotificationTray: React.FC = () => {
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false)
+        setIsOpen(false);
       }
-    }
+    };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isOpen, setIsOpen])
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, setIsOpen]);
 
   // Close on escape
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
-        setIsOpen(false)
+      if (event.key === "Escape" && isOpen) {
+        setIsOpen(false);
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, setIsOpen])
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, setIsOpen]);
 
   return (
     <div className="relative z-50">
@@ -239,12 +247,12 @@ const NotificationTray: React.FC = () => {
       <button
         ref={buttonRef}
         onClick={(e) => {
-          e.stopPropagation()
-          setIsOpen(!isOpen)
+          e.stopPropagation();
+          setIsOpen(!isOpen);
         }}
         className={`
           relative p-2 rounded-[var(--control-radius)] transition-all
-          ${isOpen ? 'bg-[var(--color-surface-hover)]/50 text-[var(--color-text-primary)]' : 'hover:bg-[var(--color-surface-hover)]/50 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}
+          ${isOpen ? "bg-[var(--color-surface-hover)]/50 text-[var(--color-text-primary)]" : "hover:bg-[var(--color-surface-hover)]/50 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}
         `}
         title="Notifications"
       >
@@ -258,7 +266,7 @@ const NotificationTray: React.FC = () => {
               exit={{ scale: 0 }}
               className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--accent-color)] text-[10px] font-bold text-[var(--accent-color-foreground)] flex items-center justify-center pointer-events-none"
             >
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {unreadCount > 99 ? "99+" : unreadCount}
             </motion.div>
           )}
         </AnimatePresence>
@@ -279,9 +287,13 @@ const NotificationTray: React.FC = () => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-sm sticky top-0 z-10">
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-[var(--color-text-secondary)]" />
-                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Notifications</h3>
+                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Notifications
+                </h3>
                 {unreadCount > 0 && (
-                  <span className="text-xs text-[var(--color-text-muted)]">({unreadCount} unread)</span>
+                  <span className="text-xs text-[var(--color-text-muted)]">
+                    ({unreadCount} unread)
+                  </span>
                 )}
               </div>
               <div className="flex items-center gap-1">
@@ -326,7 +338,9 @@ const NotificationTray: React.FC = () => {
                 <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-muted)]">
                   <Bell className="h-10 w-10 mb-3 opacity-30" />
                   <p className="text-sm">No notifications</p>
-                  <p className="text-xs mt-1 opacity-60">You&apos;re all caught up!</p>
+                  <p className="text-xs mt-1 opacity-60">
+                    You&apos;re all caught up!
+                  </p>
                 </div>
               )}
             </div>
@@ -334,8 +348,8 @@ const NotificationTray: React.FC = () => {
         )}
       </AnimatePresence>
     </div>
-  )
-}
+  );
+};
 
-export default NotificationTray
-export { NotificationTray }
+export default NotificationTray;
+export { NotificationTray };

@@ -1,25 +1,25 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from "react";
 
 export interface RobloxSettings {
-  defaultPhysicsEngine: 'Terrain' | 'Legacy'
-  enableOptimizations: boolean
-  memoryLimit: number
-  useDirectX12: boolean
-  lowEndGraphics: boolean
-  disableDualChannelAudio: boolean
-  antiAfkEnabled: boolean
-  renameWindowsEnabled: boolean
-  framerateCapEnabled: boolean
-  framerateCapValue: number
-  optimizeRamEnabled: boolean
-  ramOptimizeLimit: number
-  headlessModeEnabled: boolean
-  timeoutRelaunchEnabled: boolean
-  timeoutRelaunchSeconds: number
+  defaultPhysicsEngine: "Terrain" | "Legacy";
+  enableOptimizations: boolean;
+  memoryLimit: number;
+  useDirectX12: boolean;
+  lowEndGraphics: boolean;
+  disableDualChannelAudio: boolean;
+  antiAfkEnabled: boolean;
+  renameWindowsEnabled: boolean;
+  framerateCapEnabled: boolean;
+  framerateCapValue: number;
+  optimizeRamEnabled: boolean;
+  ramOptimizeLimit: number;
+  headlessModeEnabled: boolean;
+  timeoutRelaunchEnabled: boolean;
+  timeoutRelaunchSeconds: number;
 }
 
 const DEFAULT_SETTINGS: RobloxSettings = {
-  defaultPhysicsEngine: 'Terrain',
+  defaultPhysicsEngine: "Terrain",
   enableOptimizations: false,
   memoryLimit: 0,
   useDirectX12: false,
@@ -33,27 +33,27 @@ const DEFAULT_SETTINGS: RobloxSettings = {
   ramOptimizeLimit: 500,
   headlessModeEnabled: false,
   timeoutRelaunchEnabled: false,
-  timeoutRelaunchSeconds: 3600
-}
+  timeoutRelaunchSeconds: 3600,
+};
 
 /**
  * useRobloxSettings - Custom hook for managing Roblox settings state and API interactions
  */
 export function useRobloxSettings() {
-  const [settings, setSettings] = useState<RobloxSettings>(DEFAULT_SETTINGS)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [settings, setSettings] = useState<RobloxSettings>(DEFAULT_SETTINGS);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load settings on mount
   useEffect(() => {
-    loadSettings()
-  }, [])
+    loadSettings();
+  }, []);
 
   const loadSettings = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const loaded = await window.api.getRobloxSettings()
+      const loaded = await window.api.getRobloxSettings();
       setSettings({
         defaultPhysicsEngine: loaded.defaultPhysicsEngine,
         enableOptimizations: loaded.enableOptimizations,
@@ -69,36 +69,41 @@ export function useRobloxSettings() {
         ramOptimizeLimit: loaded.ramOptimizeLimit,
         headlessModeEnabled: loaded.headlessModeEnabled,
         timeoutRelaunchEnabled: loaded.timeoutRelaunchEnabled,
-        timeoutRelaunchSeconds: loaded.timeoutRelaunchSeconds
-      })
+        timeoutRelaunchSeconds: loaded.timeoutRelaunchSeconds,
+      });
     } catch (err) {
-      console.error('[useRobloxSettings] Failed to load settings:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load settings')
+      console.error("[useRobloxSettings] Failed to load settings:", err);
+      setError(err instanceof Error ? err.message : "Failed to load settings");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
-  const updateSettings = useCallback(async (newSettings: Partial<RobloxSettings>) => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      await window.api.setRobloxSettings(newSettings)
-      setSettings((prev) => ({ ...prev, ...newSettings }))
-    } catch (err) {
-      console.error('[useRobloxSettings] Failed to update settings:', err)
-      setError(err instanceof Error ? err.message : 'Failed to save settings')
-      throw err
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const updateSettings = useCallback(
+    async (newSettings: Partial<RobloxSettings>) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        await window.api.setRobloxSettings(newSettings);
+        setSettings((prev) => ({ ...prev, ...newSettings }));
+      } catch (err) {
+        console.error("[useRobloxSettings] Failed to update settings:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to save settings",
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   return {
     settings,
     isLoading,
     error,
     updateSettings,
-    resetSettings: loadSettings
-  }
+    resetSettings: loadSettings,
+  };
 }

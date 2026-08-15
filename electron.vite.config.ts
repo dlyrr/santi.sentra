@@ -1,59 +1,59 @@
-import { resolve } from 'path'
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import pkg from './package.json'
+import { resolve } from "path";
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import pkg from "./package.json";
 
 const sharedAliases = {
-  '@renderer': resolve('src/renderer/src'),
-  '@main': resolve('src/main'),
-  '@preload': resolve('src/preload'),
-  '@shared': resolve('src/shared'),
-  '@assets': resolve('assets')
-}
+  "@renderer": resolve("src/renderer/src"),
+  "@main": resolve("src/main"),
+  "@preload": resolve("src/preload"),
+  "@shared": resolve("src/shared"),
+  "@assets": resolve("assets"),
+};
 
 export default defineConfig({
   main: {
     resolve: {
-      alias: { ...sharedAliases }
+      alias: { ...sharedAliases },
     },
     plugins: [
       externalizeDepsPlugin({
         // Explicitly externalize koffi and other potential native deps
-        exclude: []
-      })
+        exclude: [],
+      }),
     ],
     build: {
       rollupOptions: {
-        external: ['koffi', 'better-sqlite3']
-      }
-    }
+        external: ["koffi", "better-sqlite3"],
+      },
+    },
   },
   preload: {
     resolve: {
-      alias: { ...sharedAliases }
+      alias: { ...sharedAliases },
     },
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
   },
   renderer: {
     resolve: {
-      alias: { ...sharedAliases }
+      alias: { ...sharedAliases },
     },
     define: {
-      __APP_VERSION__: JSON.stringify(pkg.version)
+      __APP_VERSION__: JSON.stringify(pkg.version),
     },
-    assetsInclude: ['**/*.dds'], // Include DDS files as assets
+    assetsInclude: ["**/*.dds"], // Include DDS files as assets
     plugins: [react(), tailwindcss()],
     worker: {
-      format: 'es'
+      format: "es",
     },
     optimizeDeps: {
-      exclude: ['multithreading']
+      exclude: ["multithreading"],
     },
     build: {
       commonjsOptions: {
-        exclude: [/node_modules\/multithreading\//]
-      }
-    }
-  }
-})
+        exclude: [/node_modules\/multithreading\//],
+      },
+    },
+  },
+});

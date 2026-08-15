@@ -1,1 +1,1 @@
-export { default } from './InventoryTab'
+export { default } from "./InventoryTab";

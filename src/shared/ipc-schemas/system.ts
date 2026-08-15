@@ -1,7 +1,7 @@
-import { z } from 'zod'
-import { BinaryType } from '../../renderer/src/types'
-import { LOCKED_SIDEBAR_TABS, SIDEBAR_TAB_IDS } from '../navigation'
-import { accountSchema } from './user'
+import { z } from "zod";
+import { BinaryType } from "../../renderer/src/types";
+import { LOCKED_SIDEBAR_TABS, SIDEBAR_TAB_IDS } from "../navigation";
+import { accountSchema } from "./user";
 
 // ============================================================================
 // UPDATE & INSTALL SCHEMAS
@@ -9,13 +9,13 @@ import { accountSchema } from './user'
 
 export const updateCheckSchema = z.object({
   hasUpdate: z.boolean(),
-  latestVersion: z.string()
-})
+  latestVersion: z.string(),
+});
 
-export type UpdateCheck = z.infer<typeof updateCheckSchema>
+export type UpdateCheck = z.infer<typeof updateCheckSchema>;
 
-export const fflagsSchema = z.record(z.string(), z.unknown())
-export type FFlags = z.infer<typeof fflagsSchema>
+export const fflagsSchema = z.record(z.string(), z.unknown());
+export type FFlags = z.infer<typeof fflagsSchema>;
 
 export const robloxInstallationSchema = z
   .object({
@@ -26,17 +26,17 @@ export const robloxInstallationSchema = z
     channel: z.string(),
     path: z.string(),
     lastUpdated: z.string(),
-    status: z.enum(['Ready', 'Updating', 'Error'])
+    status: z.enum(["Ready", "Updating", "Error"]),
   })
   .transform((data) => ({
     ...data,
-    binaryType: data.binaryType as BinaryType
-  }))
+    binaryType: data.binaryType as BinaryType,
+  }));
 
-export const robloxInstallationsSchema = z.array(robloxInstallationSchema)
+export const robloxInstallationsSchema = z.array(robloxInstallationSchema);
 
-import type { RobloxInstallation as RobloxInstallationType } from '../../renderer/src/types'
-export type RobloxInstallation = RobloxInstallationType
+import type { RobloxInstallation as RobloxInstallationType } from "../../renderer/src/types";
+export type RobloxInstallation = RobloxInstallationType;
 
 // ============================================================================
 // DETECTED INSTALLATIONS SCHEMA
@@ -45,92 +45,100 @@ export type RobloxInstallation = RobloxInstallationType
 export const detectedInstallationSchema = z.object({
   path: z.string(),
   version: z.string(),
-  binaryType: z.enum(['WindowsPlayer', 'WindowsStudio', 'MacPlayer', 'MacStudio']),
-  exePath: z.string()
-})
+  binaryType: z.enum([
+    "WindowsPlayer",
+    "WindowsStudio",
+    "MacPlayer",
+    "MacStudio",
+  ]),
+  exePath: z.string(),
+});
 
-export const detectedInstallationsSchema = z.array(detectedInstallationSchema)
+export const detectedInstallationsSchema = z.array(detectedInstallationSchema);
 
-export type DetectedInstallation = z.infer<typeof detectedInstallationSchema>
+export type DetectedInstallation = z.infer<typeof detectedInstallationSchema>;
 
 // ============================================================================
 // SETTINGS SCHEMAS
 // ============================================================================
 
-const nullableIdentifierSchema = z.union([z.string().min(1), z.null()])
-const optionalPathSchema = z.union([z.string().min(1), z.null()]).optional()
-const accentColorSchema = z.string().regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/)
-const sidebarTabIdEnum = z.enum(SIDEBAR_TAB_IDS)
-const themePreferenceSchema = z.enum(['system', 'dark', 'light'])
-const tintPreferenceSchema = z.enum(['neutral', 'cool', 'warm', 'forest', 'twilight'])
+const nullableIdentifierSchema = z.union([z.string().min(1), z.null()]);
+const optionalPathSchema = z.union([z.string().min(1), z.null()]).optional();
+const accentColorSchema = z
+  .string()
+  .regex(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/);
+const sidebarTabIdSchema = z.string();
+const tintPreferenceSchema = z.enum([
+  "neutral",
+  "cool",
+  "warm",
+  "forest",
+  "twilight",
+]);
 const sidebarHiddenTabsSchema = z
-  .array(sidebarTabIdEnum)
-  .refine((tabs) => tabs.every((tab) => !LOCKED_SIDEBAR_TABS.includes(tab)), {
-    message: 'Locked tabs cannot be hidden'
-  })
+  .array(sidebarTabIdSchema)
+  .refine((tabs) => tabs.every((tab) => !LOCKED_SIDEBAR_TABS.includes(tab as any)), {
+    message: "Locked tabs cannot be hidden",
+  });
 const pinCodeSchema = z.union([
-  z.literal('SET'),
+  z.literal("SET"),
   z
     .string()
     .length(6)
     .regex(/^\d{6}$/),
-  z.null()
-])
+  z.null(),
+]);
 
 export const settingsSchema = z.object({
   primaryAccountId: nullableIdentifierSchema,
   allowMultipleInstances: z.boolean(),
+  multiInstanceMethod: z.enum(["mutex", "handle64"]).default("mutex"),
   defaultInstallationPath: optionalPathSchema,
   accentColor: accentColorSchema,
   useDynamicAccentColor: z.boolean(),
-  theme: themePreferenceSchema,
   tint: tintPreferenceSchema,
-  customTheme: z.string().optional(),
   showSidebarProfileCard: z.boolean(),
   privacyMode: z.boolean(),
-  sidebarTabOrder: z.array(sidebarTabIdEnum),
+  sidebarTabOrder: z.array(sidebarTabIdSchema),
   sidebarHiddenTabs: sidebarHiddenTabsSchema,
   pinCode: pinCodeSchema,
-  browserWindowWidth: z.number().nullable().optional(),
-  browserWindowHeight: z.number().nullable().optional(),
   showReturnPageButton: z.boolean().optional(),
+
+  catalogViewMode: z.string().optional(),
+  inventoryViewMode: z.string().optional(),
+  uiDensity: z.string().optional(),
+  motionSpeed: z.string().optional(),
   
-  // Performance & Utility Settings
-  antiAfkEnabled: z.boolean().optional(),
-  renameWindowsEnabled: z.boolean().optional(),
-  framerateCapEnabled: z.boolean().optional(),
-  framerateCapValue: z.number().optional(),
-  optimizeRamEnabled: z.boolean().optional(),
-  ramOptimizeLimit: z.number().optional()
-})
+  isSidebarCollapsed: z.boolean().optional(),
+  navLayout: z.enum(["sidebar", "topbar"]).optional(),
+});
 
 export const settingsPatchSchema = z.object({
   primaryAccountId: nullableIdentifierSchema.optional(),
   allowMultipleInstances: z.boolean().optional(),
+  multiInstanceMethod: z.enum(["mutex", "handle64"]).optional(),
   defaultInstallationPath: optionalPathSchema,
   accentColor: accentColorSchema.optional(),
   useDynamicAccentColor: z.boolean().optional(),
-  theme: themePreferenceSchema.optional(),
   tint: tintPreferenceSchema.optional(),
-  customTheme: z.string().optional(),
   showSidebarProfileCard: z.boolean().optional(),
   privacyMode: z.boolean().optional(),
-  sidebarTabOrder: z.array(sidebarTabIdEnum).optional(),
+  sidebarTabOrder: z.array(sidebarTabIdSchema).optional(),
   sidebarHiddenTabs: sidebarHiddenTabsSchema.optional(),
   pinCode: pinCodeSchema.optional(),
-  browserWindowWidth: z.number().nullable().optional(),
-  browserWindowHeight: z.number().nullable().optional(),
   showReturnPageButton: z.boolean().optional(),
-  antiAfkEnabled: z.boolean().optional(),
-  renameWindowsEnabled: z.boolean().optional(),
-  framerateCapEnabled: z.boolean().optional(),
-  framerateCapValue: z.number().optional(),
-  optimizeRamEnabled: z.boolean().optional(),
-  ramOptimizeLimit: z.number().optional()
-})
 
-export type SettingsSnapshot = z.infer<typeof settingsSchema>
-export type SettingsPatch = z.infer<typeof settingsPatchSchema>
+  catalogViewMode: z.string().optional(),
+  inventoryViewMode: z.string().optional(),
+  uiDensity: z.string().optional(),
+  motionSpeed: z.string().optional(),
+  
+  isSidebarCollapsed: z.boolean().optional(),
+  navLayout: z.enum(["sidebar", "topbar"]).optional(),
+});
+
+export type SettingsSnapshot = z.infer<typeof settingsSchema>;
+export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
 
 // ============================================================================
 // LOGS SCHEMAS
@@ -147,10 +155,10 @@ export const logMetadataSchema = z.object({
   jobId: z.string().optional(),
   universeId: z.string().optional(),
   placeId: z.string().optional(),
-  serverIp: z.string().optional()
-})
+  serverIp: z.string().optional(),
+});
 
-export type LogMetadata = z.infer<typeof logMetadataSchema>
+export type LogMetadata = z.infer<typeof logMetadataSchema>;
 
 // ============================================================================
 // NET-LOG SCHEMAS
@@ -158,23 +166,23 @@ export type LogMetadata = z.infer<typeof logMetadataSchema>
 
 export const netLogStatusSchema = z.object({
   isLogging: z.boolean(),
-  logPath: z.string().nullable()
-})
+  logPath: z.string().nullable(),
+});
 
 export const netLogStopResponseSchema = z.object({
   success: z.boolean(),
-  message: z.string()
-})
+  message: z.string(),
+});
 
 export const netLogStartResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  path: z.string().optional()
-})
+  path: z.string().optional(),
+});
 
-export type NetLogStatus = z.infer<typeof netLogStatusSchema>
-export type NetLogStopResponse = z.infer<typeof netLogStopResponseSchema>
-export type NetLogStartResponse = z.infer<typeof netLogStartResponseSchema>
+export type NetLogStatus = z.infer<typeof netLogStatusSchema>;
+export type NetLogStopResponse = z.infer<typeof netLogStopResponseSchema>;
+export type NetLogStartResponse = z.infer<typeof netLogStartResponseSchema>;
 
 // ============================================================================
 // PIN SCHEMAS
@@ -185,26 +193,26 @@ export const pinVerifyResultSchema = z.object({
   locked: z.boolean(),
   remainingAttempts: z.number(),
   lockoutSeconds: z.number().optional(),
-  accounts: z.array(accountSchema).optional()
-})
+  accounts: z.array(accountSchema).optional(),
+});
 
 export const pinSetResultSchema = z.object({
   success: z.boolean(),
   error: z.string().optional(),
   locked: z.boolean().optional(),
   lockoutSeconds: z.number().optional(),
-  remainingAttempts: z.number().optional()
-})
+  remainingAttempts: z.number().optional(),
+});
 
 export const pinLockoutStatusSchema = z.object({
   locked: z.boolean(),
   lockoutSeconds: z.number().optional(),
-  remainingAttempts: z.number()
-})
+  remainingAttempts: z.number(),
+});
 
-export type PinVerifyResult = z.infer<typeof pinVerifyResultSchema>
-export type PinSetResult = z.infer<typeof pinSetResultSchema>
-export type PinLockoutStatus = z.infer<typeof pinLockoutStatusSchema>
+export type PinVerifyResult = z.infer<typeof pinVerifyResultSchema>;
+export type PinSetResult = z.infer<typeof pinSetResultSchema>;
+export type PinLockoutStatus = z.infer<typeof pinLockoutStatusSchema>;
 
 // ============================================================================
 // CATALOG DATABASE SCHEMAS
@@ -214,13 +222,15 @@ export const catalogDbStatusSchema = z.object({
   exists: z.boolean(),
   downloading: z.boolean(),
   error: z.string().nullable(),
-  path: z.string()
-})
+  path: z.string(),
+});
 
 export const catalogDbDownloadResultSchema = z.object({
   success: z.boolean(),
-  error: z.string().optional()
-})
+  error: z.string().optional(),
+});
 
-export type CatalogDbStatus = z.infer<typeof catalogDbStatusSchema>
-export type CatalogDbDownloadResult = z.infer<typeof catalogDbDownloadResultSchema>
+export type CatalogDbStatus = z.infer<typeof catalogDbStatusSchema>;
+export type CatalogDbDownloadResult = z.infer<
+  typeof catalogDbDownloadResultSchema
+>;

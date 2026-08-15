@@ -1,23 +1,27 @@
-import React from 'react'
-import { Sparkles, TrendingUp, Flame, Star, Music, User } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { AssetDetails, RecommendationItem, ResellerItem } from '@shared/ipc-schemas/avatar'
-import { SalesItem } from '@renderer/utils/salesData'
-import { linkify } from '@renderer/utils/linkify'
-import { AssetStats } from './AssetStats'
-import { AssetPricing } from './AssetPricing'
-import { RecommendationsList } from './RecommendationsList'
-import { ResellersList } from './UserLists'
-import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
+import React from "react";
+import { Sparkles, TrendingUp, Flame, Star, Music, User } from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import {
+  AssetDetails,
+  RecommendationItem,
+  ResellerItem,
+} from "@shared/ipc-schemas/avatar";
+import { SalesItem } from "@renderer/utils/salesData";
+import { linkify } from "@renderer/utils/linkify";
+import { AssetStats } from "./AssetStats";
+import { AssetPricing } from "./AssetPricing";
+import { RecommendationsList } from "./RecommendationsList";
+import { ResellersList } from "./UserLists";
+import VerifiedIcon from "@renderer/components/UI/icons/VerifiedIcon";
 
 // Sound Hat IDs
-const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696]
+const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696];
 
 // Inline AssetMetadata component
 const AssetMetadata: React.FC<{
-  details: AssetDetails
-  creatorAvatarUrl: string | null
-  onCreatorClick?: () => void
+  details: AssetDetails;
+  creatorAvatarUrl: string | null;
+  onCreatorClick?: () => void;
 }> = ({ details, creatorAvatarUrl, onCreatorClick }) => (
   <div>
     <div className="flex items-center gap-2 text-[var(--color-text-secondary)] min-w-0">
@@ -26,9 +30,9 @@ const AssetMetadata: React.FC<{
           src={creatorAvatarUrl}
           alt={details.creatorName}
           className={cn(
-            'w-7 h-7 rounded-full shrink-0 object-cover',
-            details.creatorType === 'User' &&
-              'cursor-pointer hover:ring-2 hover:ring-white/30 transition-all'
+            "w-7 h-7 rounded-full shrink-0 object-cover",
+            details.creatorType === "User" &&
+              "cursor-pointer hover:ring-2 hover:ring-white/30 transition-all",
           )}
           onClick={onCreatorClick}
         />
@@ -36,12 +40,14 @@ const AssetMetadata: React.FC<{
         <User size={16} className="shrink-0" />
       )}
       <span className="truncate">
-        Created by{' '}
+        Created by{" "}
         <span
           className={cn(
-            'inline-flex items-center gap-1 font-semibold',
-            details.creatorHasVerifiedBadge ? 'text-[#3385ff]' : 'text-[var(--color-text-primary)]',
-            details.creatorType === 'User' && 'hover:underline cursor-pointer'
+            "inline-flex items-center gap-1 font-semibold",
+            details.creatorHasVerifiedBadge
+              ? "text-[#3385ff]"
+              : "text-[var(--color-text-primary)]",
+            details.creatorType === "User" && "hover:underline cursor-pointer",
           )}
           onClick={onCreatorClick}
         >
@@ -51,47 +57,49 @@ const AssetMetadata: React.FC<{
           )}
         </span>
       </span>
-      {details.creatorType === 'Group' && (
+      {details.creatorType === "Group" && (
         <span className="px-1.5 py-0.5 text-[10px] bg-[var(--color-surface-hover)] rounded text-[var(--color-text-secondary)] shrink-0">
           GROUP
         </span>
       )}
     </div>
   </div>
-)
+);
 
 // Inline AssetDescription component
-const AssetDescription: React.FC<{ description: string | null | undefined }> = ({
-  description
-}) => (
+const AssetDescription: React.FC<{
+  description: string | null | undefined;
+}> = ({ description }) => (
   <div className="space-y-2">
-    <h3 className="text-sm font-medium text-[var(--color-text-primary)]">Description</h3>
+    <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+      Description
+    </h3>
     <div className="p-4 bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 rounded-xl text-sm text-[var(--color-text-secondary)] whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto scrollbar-thin">
-      {description ? linkify(description) : 'No description available.'}
+      {description ? linkify(description) : "No description available."}
     </div>
   </div>
-)
+);
 
 interface AssetInfoTabProps {
-  details: AssetDetails
-  currentAssetId: number | null
-  creatorAvatarUrl: string | null
-  salesData: SalesItem | null
-  rolimonsItem: any
-  recommendations: RecommendationItem[]
-  recommendationThumbnails: Map<number, string>
-  resellers: ResellerItem[]
-  resellersLoading: boolean
-  resellerAvatars: Map<number, string>
-  purchasingReseller: string | null
-  onBuyReseller: (reseller: ResellerItem) => void
-  onLoadMoreResellers: () => void
-  onCreatorClick: () => void
-  onRecommendationClick: (item: RecommendationItem) => void
-  onPurchaseSuccess?: (details: AssetDetails, price: number | string) => void
-  onPurchaseError?: (error: string) => void
-  cookie?: string
-  userId?: string
+  details: AssetDetails;
+  currentAssetId: number | null;
+  creatorAvatarUrl: string | null;
+  salesData: SalesItem | null;
+  rolimonsItem: any;
+  recommendations: RecommendationItem[];
+  recommendationThumbnails: Map<number, string>;
+  resellers: ResellerItem[];
+  resellersLoading: boolean;
+  resellerAvatars: Map<number, string>;
+  purchasingReseller: string | null;
+  onBuyReseller: (reseller: ResellerItem) => void;
+  onLoadMoreResellers: () => void;
+  onCreatorClick: () => void;
+  onRecommendationClick: (item: RecommendationItem) => void;
+  onPurchaseSuccess?: (details: AssetDetails, price: number | string) => void;
+  onPurchaseError?: (error: string) => void;
+  cookie?: string;
+  userId?: string;
 }
 
 export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
@@ -113,15 +121,17 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
   onPurchaseSuccess,
   onPurchaseError,
   cookie,
-  userId
+  userId,
 }) => {
-  const isLimited = details.isLimited || details.isLimitedUnique
+  const isLimited = details.isLimited || details.isLimitedUnique;
   return (
     <>
       <div className="flex flex-col gap-2">
         <div>
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">{details.name}</h1>
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+              {details.name}
+            </h1>
             <div className="flex flex-wrap gap-2 items-center">
               {details.isLimited && !details.isLimitedUnique && (
                 <span className="px-2 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded text-xs font-medium flex items-center gap-1">
@@ -158,12 +168,12 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
                   PBR
                 </span>
               )}
-              {details.itemStatus?.includes('New') && (
+              {details.itemStatus?.includes("New") && (
                 <span className="px-2 py-1 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded text-xs font-medium">
                   New
                 </span>
               )}
-              {details.itemStatus?.includes('Sale') && (
+              {details.itemStatus?.includes("Sale") && (
                 <span className="px-2 py-1 bg-red-500/10 text-red-500 border border-red-500/20 rounded text-xs font-medium">
                   Sale
                 </span>
@@ -210,5 +220,5 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
         onItemClick={onRecommendationClick}
       />
     </>
-  )
-}
+  );
+};

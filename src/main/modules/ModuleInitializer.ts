@@ -1,15 +1,15 @@
 /**
  * Module Initializer - Setup and initialization for all modules
- * 
+ *
  * This file provides a simple way to initialize all modules in one place
  * and make them available throughout the application.
  */
 
-import { Logger, ConsoleLogHandler, LogLevel } from './shared/index';
+import { Logger, ConsoleLogHandler, LogLevel } from "./shared/index";
 // import { MacroServiceFactory } from './macro'; // Disabled
 // import { ConfigManager } from './shared/index'; // Unused
-import { TradingAnalyzerFactory } from './trading';
-import { BrowserAutomationServiceFactory } from './browser';
+import { TradingAnalyzerFactory } from "./trading";
+import { BrowserAutomationServiceFactory } from "./browser";
 
 const ProxyManagerFactory = {
   create: (_config?: unknown) => null,
@@ -20,7 +20,7 @@ const ProxyManagerFactory = {
  */
 export function initializeModules(config?: {
   enableLogging?: boolean;
-  logLevel?: LogLevel | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+  logLevel?: LogLevel | "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
   tradingConfig?: any;
   proxyConfig?: any;
 }) {
@@ -31,8 +31,8 @@ export function initializeModules(config?: {
     Logger.setMinLevel(level);
   }
 
-  const logger = new Logger('ModuleInitializer');
-  logger.info('Initializing application modules');
+  const logger = new Logger("ModuleInitializer");
+  logger.info("Initializing application modules");
 
   // Initialize services with singletons
   const modules = {
@@ -42,7 +42,7 @@ export function initializeModules(config?: {
     proxy: ProxyManagerFactory.create(config?.proxyConfig || {}),
   };
 
-  logger.info('All modules initialized successfully');
+  logger.info("All modules initialized successfully");
 
   return modules;
 }
@@ -63,6 +63,6 @@ export function getModules() {
  * Export all module types for convenient importing
  */
 // export * from './macro'; // Disabled
-export * from './trading';
-export * from './browser';
-export * from './shared';
+export * from "./trading";
+export * from "./browser";
+export * from "./shared";

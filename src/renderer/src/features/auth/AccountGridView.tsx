@@ -78,6 +78,7 @@ const AccountGridView = ({
             <Card
               key={account.id}
               selected={isSelected}
+              variant="account"
               draggable={!!onMoveAccount}
               onDragStart={(e) => handleDragStart(e, account.id)}
               onDragEnd={handleDragEnd}
@@ -86,83 +87,83 @@ const AccountGridView = ({
               onClick={() => onToggleSelect(account.id)}
               onContextMenu={(e) => onMenuOpen(e, account.id)}
               className={[
-                'relative group cursor-pointer overflow-hidden',
+                'relative group cursor-pointer flex flex-col h-[230px]',
                 'transition-[transform,box-shadow,border-color,background-color] duration-150',
                 'hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:-translate-y-0.5',
-                isSelected
-                  ? 'border-[var(--accent-color-border)] shadow-[0_0_0_1px_var(--accent-color-border),0_2px_16px_var(--accent-color-ring)]'
-                  : '',
                 '[&[data-dragging]]:opacity-50 [&[data-dragging]]:scale-95'
               ].join(' ')}
             >
               {/* Gradient overlay on selected */}
               {isSelected && (
-                <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color-faint)] to-transparent pointer-events-none z-0 rounded-xl" />
+                <div className="absolute inset-0 bg-[var(--accent-color-faint)] pointer-events-none z-0" />
               )}
 
-              {/* Top row: info + checkbox */}
-              <div className="relative z-10 flex items-center justify-between px-2.5 pt-2.5 pb-0">
-                <Button
-                  variant="ghost"
-                  size="iconSm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onInfoOpen(e, account)
-                  }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 rounded-md h-6 w-6"
-                >
-                  <Info size={12} />
-                </Button>
-                <div onClick={(e) => e.stopPropagation()}>
+              {/* Invalid Cookie Banner */}
+              {account.cookieInvalid && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-red-500 z-30" />
+              )}
+
+              {/* Top Avatar Zone */}
+              <div className="relative h-24 w-full bg-[var(--color-surface-hover)] border-b border-[var(--color-border-subtle)] shrink-0 overflow-hidden">
+                <img
+                  src={account.avatarUrl}
+                  alt=""
+                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                  style={privacyMode ? { filter: 'blur(16px)' } : { objectPosition: 'center 20%' }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-transparent to-transparent opacity-90" />
+                
+                {/* Floating controls */}
+                <div className="absolute top-2 right-2 z-20" onClick={(e) => e.stopPropagation()}>
                   <CustomCheckbox
                     checked={isSelected}
                     onChange={() => onToggleSelect(account.id)}
                   />
                 </div>
+                
+                <Button
+                  variant="ghost"
+                  size="iconSm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onInfoOpen(e, account);
+                  }}
+                  className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg h-7 w-7 bg-black/40 hover:bg-black/60 z-20 text-white backdrop-blur-sm"
+                >
+                  <Info size={14} />
+                </Button>
+                
+                {/* Status Dot */}
+                <span
+                  className={[
+                    'absolute bottom-2 right-2 w-3.5 h-3.5 border-[2.5px] rounded-full z-20',
+                    getStatusBorderColor(account.status),
+                    getStatusColor(account.status),
+                    account.status === 'Online' || account.status === 'In-Game' || account.status === 'In Studio'
+                      ? 'status-dot-pulse'
+                      : ''
+                  ].join(' ')}
+                  style={{ borderColor: 'var(--color-surface)' }}
+                />
               </div>
 
-              {/* Avatar + identity */}
-              <div className="relative z-10 flex flex-col items-center text-center px-2.5 pt-2 pb-3">
-                <div className="relative mb-2">
-                  <Avatar
-                    className="w-11 h-11 ring-2 ring-[var(--color-surface)] shadow-sm"
-                    style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                  >
-                    <AvatarImage src={account.avatarUrl} alt="" />
-                    <AvatarFallback className="text-xs font-bold">
-                      {account.displayName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  {/* Status dot */}
-                  <span
-                    className={[
-                      'absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 rounded-full',
-                      getStatusBorderColor(account.status),
-                      getStatusColor(account.status),
-                      account.status === 'Online' || account.status === 'In-Game' || account.status === 'In Studio'
-                        ? 'status-dot-pulse'
-                        : ''
-                    ].join(' ')}
-                    style={{ borderColor: 'var(--color-surface)' }}
-                  />
-                </div>
-
-                {/* Display name + age + premium */}
-                <div className="flex items-center gap-1 mb-0.5 w-full justify-center">
+              {/* Identity & Status */}
+              <div className="relative z-10 flex flex-col flex-1 px-3 pt-2 pb-3">
+                <div className="flex items-center gap-1 mb-0.5 w-full">
                   <h3
-                    className="text-xs font-bold truncate max-w-[90px] text-[var(--color-text-primary)]"
+                    className="text-[13px] font-bold truncate text-[var(--color-text-primary)] tracking-tight"
                     title={account.displayName}
                   >
                     {account.displayName}
                   </h3>
                   {account.isPremium && (
-                    <span className="ml-0.5 inline-flex items-center justify-center rounded-[4px] border border-amber-400/25 bg-amber-500/10 px-0.5 py-[1px]">
+                    <span className="shrink-0 inline-flex items-center justify-center rounded-[4px] border border-amber-400/25 bg-amber-500/10 px-0.5 py-[1px]">
                       <Star size={10} className="text-amber-300 shrink-0 select-none fill-current" />
                     </span>
                   )}
                   {age && (
                     <span
-                      className="shrink-0 text-[8px] font-bold text-[var(--color-text-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-1 leading-4"
+                      className="shrink-0 text-[9px] font-bold text-[var(--color-text-muted)] bg-[var(--color-surface-muted)] border border-[var(--color-border-subtle)] rounded px-1 ml-auto leading-4"
                       title={`${age} years old`}
                     >
                       {age}y
@@ -170,52 +171,53 @@ const AccountGridView = ({
                   )}
                 </div>
 
-                {account.cookieInvalid && (
-                  <span className="text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 mb-0.5">
-                    Invalid Cookie
-                  </span>
-                )}
-
                 <p
-                  className="text-[10px] text-[var(--color-text-muted)] mb-1.5 truncate w-full"
+                  className="text-[11px] text-[var(--color-text-muted)] mb-2 truncate w-full"
                   style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                 >
                   @{account.username}
                 </p>
 
-                {/* Status */}
-                <div className="mb-2">
-                  <StatusBadge status={account.status} />
-                  {voiceBanInfo?.[account.id] && (
-                    <span className="text-[9px] text-red-400 block text-center mt-0.5">
-                      {voiceBanInfo[account.id].message}
+                <div className="mt-auto">
+                  {account.cookieInvalid && (
+                    <span className="text-[10px] font-bold text-red-500 flex items-center gap-1 mb-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Invalid Cookie
                     </span>
                   )}
-                </div>
+                  
+                  <div className="mb-2.5">
+                    <StatusBadge status={account.status} />
+                    {voiceBanInfo?.[account.id] && (
+                      <span className="text-[9px] text-red-400 block mt-1 leading-tight">
+                        {voiceBanInfo[account.id].message}
+                      </span>
+                    )}
+                  </div>
 
-                {/* Bottom strip */}
-                <div className="w-full pt-2 border-t border-[var(--color-border)] flex items-center justify-between text-[10px]">
-                  {account.robuxBalance > 0 ? (
-                    <div className="flex items-center gap-0.5">
-                      <RobuxIcon className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                  {/* Bottom strip */}
+                  <div className="w-full pt-2.5 border-t border-[var(--color-border-subtle)] flex items-center justify-between text-[11px]">
+                    {account.robuxBalance > 0 ? (
+                      <div className="flex items-center gap-1">
+                        <RobuxIcon className="w-3 h-3 text-emerald-400 shrink-0" />
+                        <span
+                          className="font-semibold text-[var(--color-text-primary)]"
+                          style={privacyMode ? { filter: 'blur(16px)' } : undefined}
+                        >
+                          {formatNumber(account.robuxBalance)}
+                        </span>
+                      </div>
+                    ) : (
                       <span
-                        className="font-semibold text-[var(--color-text-primary)]"
+                        className="text-[var(--color-text-muted)] font-mono truncate max-w-[60px]"
                         style={privacyMode ? { filter: 'blur(16px)' } : undefined}
                       >
-                        {formatNumber(account.robuxBalance)}
+                        {account.userId}
                       </span>
+                    )}
+                    <div className="flex items-center gap-1 text-[var(--color-text-muted)]">
+                      <Clock size={10} strokeWidth={2} />
+                      <span>{timeAgo(account.lastActive)}</span>
                     </div>
-                  ) : (
-                    <span
-                      className="text-[var(--color-text-muted)] font-mono truncate max-w-[60px]"
-                      style={privacyMode ? { filter: 'blur(16px)' } : undefined}
-                    >
-                      {account.userId}
-                    </span>
-                  )}
-                  <div className="flex items-center gap-0.5 text-[var(--color-text-muted)]">
-                    <Clock size={9} strokeWidth={2} />
-                    <span>{timeAgo(account.lastActive)}</span>
                   </div>
                 </div>
               </div>

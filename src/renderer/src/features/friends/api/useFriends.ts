@@ -1,19 +1,26 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { queryKeys } from '../../../../../shared/queryKeys'
-import { Account, Friend } from '@renderer/types'
-import { mapPresenceToStatus } from '@renderer/utils/statusUtils'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "../../../../../shared/queryKeys";
+import { Account, Friend } from "@renderer/types";
+import { mapPresenceToStatus } from "@renderer/utils/statusUtils";
 
 // Fetch friends list
-export function useFriends(account: Account | null, options?: { forceRefresh?: boolean }) {
-  const accountId = account?.id
-  const cookie = account?.cookie
-  const userId = account?.userId ? parseInt(account.userId) : undefined
+export function useFriends(
+  account: Account | null,
+  options?: { forceRefresh?: boolean },
+) {
+  const accountId = account?.id;
+  const cookie = account?.cookie;
+  const userId = account?.userId ? parseInt(account.userId) : undefined;
 
   return useQuery({
-    queryKey: queryKeys.friends.list(accountId || ''),
+    queryKey: queryKeys.friends.list(accountId || ""),
     queryFn: async (): Promise<Friend[]> => {
-      if (!cookie) return []
-      const fetchedFriends = await window.api.getFriends(cookie, userId, options?.forceRefresh)
+      if (!cookie) return [];
+      const fetchedFriends = await window.api.getFriends(
+        cookie,
+        userId,
+        options?.forceRefresh,
+      );
 
       return fetchedFriends.map((f: any) => ({
         id: f.id,
@@ -26,17 +33,17 @@ export function useFriends(account: Account | null, options?: { forceRefresh?: b
         description: f.description,
         gameActivity: f.placeId
           ? {
-              name: f.lastLocation || 'Unknown Game',
+              name: f.lastLocation || "Unknown Game",
               placeId: f.placeId.toString(),
-              jobId: f.gameId
+              jobId: f.gameId,
             }
-          : undefined
-      }))
+          : undefined,
+      }));
     },
     enabled: !!cookie && !!accountId,
     staleTime: 60 * 1000, // 60 seconds
-    refetchInterval: 60 * 1000 // Poll every 60 seconds for presence updates
-  })
+    refetchInterval: 60 * 1000, // Poll every 60 seconds for presence updates
+  });
 }
 
 // NOTE: This hook has been disabled to prevent duplicate polling.
@@ -67,86 +74,96 @@ export function useFriendStatuses(
 
 // Fetch friend requests
 export function useFriendRequests(account: Account | null) {
-  const cookie = account?.cookie
-  const accountId = account?.id
+  const cookie = account?.cookie;
+  const accountId = account?.id;
 
   return useQuery({
-    queryKey: queryKeys.friends.requests(accountId || ''),
+    queryKey: queryKeys.friends.requests(accountId || ""),
     queryFn: () => window.api.getFriendRequests(cookie!),
     enabled: !!cookie && !!accountId,
-    staleTime: 120 * 1000
-  })
+    staleTime: 120 * 1000,
+  });
 }
 
 // Send friend request mutation
 export function useSendFriendRequest(account: Account | null) {
-  const queryClient = useQueryClient()
-  const cookie = account?.cookie
+  const queryClient = useQueryClient();
+  const cookie = account?.cookie;
 
   return useMutation({
     mutationFn: (targetUserId: number) => {
-      if (!cookie) throw new Error('No cookie available')
-      return window.api.sendFriendRequest(cookie, targetUserId)
+      if (!cookie) throw new Error("No cookie available");
+      return window.api.sendFriendRequest(cookie, targetUserId);
     },
     onSuccess: () => {
       if (account?.id) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.friends.list(account.id) })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.friends.list(account.id),
+        });
       }
-    }
-  })
+    },
+  });
 }
 
 // Accept friend request mutation
 export function useAcceptFriendRequest(account: Account | null) {
-  const queryClient = useQueryClient()
-  const cookie = account?.cookie
+  const queryClient = useQueryClient();
+  const cookie = account?.cookie;
 
   return useMutation({
     mutationFn: (requesterUserId: number) => {
-      if (!cookie) throw new Error('No cookie available')
-      return window.api.acceptFriendRequest(cookie, requesterUserId)
+      if (!cookie) throw new Error("No cookie available");
+      return window.api.acceptFriendRequest(cookie, requesterUserId);
     },
     onSuccess: () => {
       if (account?.id) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.friends.list(account.id) })
-        queryClient.invalidateQueries({ queryKey: queryKeys.friends.requests(account.id) })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.friends.list(account.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.friends.requests(account.id),
+        });
       }
-    }
-  })
+    },
+  });
 }
 
 // Decline friend request mutation
 export function useDeclineFriendRequest(account: Account | null) {
-  const queryClient = useQueryClient()
-  const cookie = account?.cookie
+  const queryClient = useQueryClient();
+  const cookie = account?.cookie;
 
   return useMutation({
     mutationFn: (requesterUserId: number) => {
-      if (!cookie) throw new Error('No cookie available')
-      return window.api.declineFriendRequest(cookie, requesterUserId)
+      if (!cookie) throw new Error("No cookie available");
+      return window.api.declineFriendRequest(cookie, requesterUserId);
     },
     onSuccess: () => {
       if (account?.id) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.friends.requests(account.id) })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.friends.requests(account.id),
+        });
       }
-    }
-  })
+    },
+  });
 }
 
 // Unfriend mutation
 export function useUnfriend(account: Account | null) {
-  const queryClient = useQueryClient()
-  const cookie = account?.cookie
+  const queryClient = useQueryClient();
+  const cookie = account?.cookie;
 
   return useMutation({
     mutationFn: (targetUserId: number) => {
-      if (!cookie) throw new Error('No cookie available')
-      return window.api.unfriend(cookie, targetUserId)
+      if (!cookie) throw new Error("No cookie available");
+      return window.api.unfriend(cookie, targetUserId);
     },
     onSuccess: () => {
       if (account?.id) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.friends.list(account.id) })
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.friends.list(account.id),
+        });
       }
-    }
-  })
+    },
+  });
 }

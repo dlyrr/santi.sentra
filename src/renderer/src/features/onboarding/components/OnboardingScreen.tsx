@@ -1,61 +1,79 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, User, Download, Lock, Bell, Sparkles, LucideIcon } from 'lucide-react'
-import { useOnboardingStore, OnboardingStep, useIsFirstLaunch } from '../stores/useOnboardingStore'
-import appIcon from '../../../../../../resources/build/icons/png/512x512.png'
-import AddAccountStep from './AddAccountStep'
-import PinSetupStep from './PinSetupStep'
-import InstallationStep from './InstallationStep'
-import NotificationsStep from './NotificationsStep'
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  ChevronRight,
+  User,
+  Download,
+  Lock,
+  Bell,
+  Sparkles,
+  LucideIcon,
+} from "lucide-react";
+import {
+  useOnboardingStore,
+  OnboardingStep,
+  useIsFirstLaunch,
+} from "../stores/useOnboardingStore";
+import appIcon from "../../../../../../resources/build/icons/png/512x512.png";
+import AddAccountStep from "./AddAccountStep";
+import PinSetupStep from "./PinSetupStep";
+import InstallationStep from "./InstallationStep";
+import NotificationsStep from "./NotificationsStep";
 
 const STEPS: { id: OnboardingStep; label: string; icon: LucideIcon }[] = [
-  { id: 'welcome', label: 'Welcome', icon: Sparkles },
+  { id: "welcome", label: "Welcome", icon: Sparkles },
   // { id: 'license', label: 'License', icon: Lock }, // DISABLED: Licensing system disabled
-  { id: 'account', label: 'Account', icon: User },
-  { id: 'pin', label: 'Security', icon: Lock },
-  { id: 'installation', label: 'Install', icon: Download },
-  { id: 'notifications', label: 'Notifications', icon: Bell }
-]
+  { id: "account", label: "Account", icon: User },
+  { id: "pin", label: "Security", icon: Lock },
+  { id: "installation", label: "Install", icon: Download },
+  { id: "notifications", label: "Notifications", icon: Bell },
+];
 
 const OnboardingScreen: React.FC = () => {
-  const { currentStep, setCurrentStep, skipStep, completeOnboarding, initializeFirstLaunch } = useOnboardingStore()
-  const isFirstLaunch = useIsFirstLaunch()
-  const [showWelcomeContent, setShowWelcomeContent] = useState(false)
+  const {
+    currentStep,
+    setCurrentStep,
+    skipStep,
+    completeOnboarding,
+    initializeFirstLaunch,
+  } = useOnboardingStore();
+  const isFirstLaunch = useIsFirstLaunch();
+  const [showWelcomeContent, setShowWelcomeContent] = useState(false);
 
   useEffect(() => {
-    window.api.focusWindow()
-    initializeFirstLaunch()
-  }, [initializeFirstLaunch])
+    window.api.focusWindow();
+    initializeFirstLaunch();
+  }, [initializeFirstLaunch]);
 
   useEffect(() => {
-    if (currentStep === 'welcome') {
+    if (currentStep === "welcome") {
       // Show content immediately on first launch, delay on subsequent launches
-      const delay = isFirstLaunch ? 0 : 1500
-      const timer = setTimeout(() => setShowWelcomeContent(true), delay)
-      return () => clearTimeout(timer)
+      const delay = isFirstLaunch ? 0 : 1500;
+      const timer = setTimeout(() => setShowWelcomeContent(true), delay);
+      return () => clearTimeout(timer);
     }
-    return undefined
-  }, [currentStep, isFirstLaunch])
+    return undefined;
+  }, [currentStep, isFirstLaunch]);
 
-  const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep)
+  const currentStepIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   const goToNextStep = () => {
-    const nextIndex = currentStepIndex + 1
+    const nextIndex = currentStepIndex + 1;
     if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex].id)
+      setCurrentStep(STEPS[nextIndex].id);
     } else {
-      completeOnboarding()
+      completeOnboarding();
     }
-  }
+  };
 
   const handleSkip = (step: OnboardingStep) => {
-    skipStep(step)
-    goToNextStep()
-  }
+    skipStep(step);
+    goToNextStep();
+  };
 
   const handleComplete = () => {
-    goToNextStep()
-  }
+    goToNextStep();
+  };
 
   return (
     <motion.div
@@ -72,18 +90,18 @@ const OnboardingScreen: React.FC = () => {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute w-[600px] h-[600px] rounded-full bg-[var(--accent-color)]/5 blur-3xl"
-          initial={{ x: '-50%', y: '-50%', top: '50%', left: '50%' }}
+          initial={{ x: "-50%", y: "-50%", top: "50%", left: "50%" }}
           animate={{
             scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3]
+            opacity: [0.3, 0.5, 0.3],
           }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
       {/* Progress indicator - only show after welcome */}
       <AnimatePresence>
-        {currentStep !== 'welcome' && (
+        {currentStep !== "welcome" && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -92,19 +110,19 @@ const OnboardingScreen: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               {STEPS.slice(1).map((step, index) => {
-                const stepIndex = index + 1 // Offset by 1 since we skip welcome
-                const isActive = currentStep === step.id
-                const isCompleted = currentStepIndex > stepIndex
+                const stepIndex = index + 1; // Offset by 1 since we skip welcome
+                const isActive = currentStep === step.id;
+                const isCompleted = currentStepIndex > stepIndex;
 
                 return (
                   <React.Fragment key={step.id}>
                     <motion.div
                       className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors ${
                         isActive
-                          ? 'border-[var(--accent-color)] bg-[var(--accent-color)]/20 text-[var(--accent-color)]'
+                          ? "border-[var(--accent-color)] bg-[var(--accent-color)]/20 text-[var(--accent-color)]"
                           : isCompleted
-                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-500'
-                            : 'border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+                            ? "border-emerald-500 bg-emerald-500/20 text-emerald-500"
+                            : "border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
                       }`}
                       whileHover={{ scale: 1.1 }}
                     >
@@ -113,12 +131,14 @@ const OnboardingScreen: React.FC = () => {
                     {index < STEPS.length - 2 && (
                       <div
                         className={`w-8 h-0.5 transition-colors ${
-                          isCompleted ? 'bg-emerald-500' : 'bg-[var(--color-surface-hover)]'
+                          isCompleted
+                            ? "bg-emerald-500"
+                            : "bg-[var(--color-surface-hover)]"
                         }`}
                       />
                     )}
                   </React.Fragment>
-                )
+                );
               })}
             </div>
           </motion.div>
@@ -129,7 +149,7 @@ const OnboardingScreen: React.FC = () => {
       <div className="relative z-10 w-full max-w-md px-6 min-h-screen flex items-center justify-center">
         <AnimatePresence mode="wait">
           {/* Welcome Step */}
-          {currentStep === 'welcome' && (
+          {currentStep === "welcome" && (
             <motion.div
               key="welcome"
               initial={{ opacity: 0, y: 20 }}
@@ -144,10 +164,10 @@ const OnboardingScreen: React.FC = () => {
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{
-                  type: 'spring',
+                  type: "spring",
                   stiffness: 200,
                   damping: 20,
-                  delay: 0.2
+                  delay: 0.2,
                 }}
               >
                 <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl shadow-[var(--accent-color)]/30">
@@ -191,9 +211,12 @@ const OnboardingScreen: React.FC = () => {
                   >
                     <div className="space-y-3">
                       {[
-                        { icon: User, text: 'Manage multiple Roblox accounts' },
-                        { icon: Download, text: 'Control your Roblox versions' },
-                        { icon: Lock, text: 'Keep your accounts secure' }
+                        { icon: User, text: "Manage multiple Roblox accounts" },
+                        {
+                          icon: Download,
+                          text: "Control your Roblox versions",
+                        },
+                        { icon: Lock, text: "Keep your accounts secure" },
                       ].map((item, index) => (
                         <motion.div
                           key={index}
@@ -203,7 +226,10 @@ const OnboardingScreen: React.FC = () => {
                           className="flex items-center gap-3 text-[var(--color-text-secondary)]"
                         >
                           <div className="w-8 h-8 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
-                            <item.icon size={16} className="text-[var(--accent-color)]" />
+                            <item.icon
+                              size={16}
+                              className="text-[var(--accent-color)]"
+                            />
                           </div>
                           <span className="text-sm">{item.text}</span>
                         </motion.div>
@@ -232,7 +258,7 @@ const OnboardingScreen: React.FC = () => {
           {/* License step removed - licensing system disabled */}
 
           {/* PIN Step */}
-          {currentStep === 'pin' && (
+          {currentStep === "pin" && (
             <motion.div
               key="pin"
               initial={{ opacity: 0, x: 50 }}
@@ -246,7 +272,7 @@ const OnboardingScreen: React.FC = () => {
           )}
 
           {/* Account Step */}
-          {currentStep === 'account' && (
+          {currentStep === "account" && (
             <motion.div
               key="account"
               initial={{ opacity: 0, x: 50 }}
@@ -257,13 +283,13 @@ const OnboardingScreen: React.FC = () => {
             >
               <AddAccountStep
                 onAccountAdded={handleComplete}
-                onSkip={() => handleSkip('account')}
+                onSkip={() => handleSkip("account")}
               />
             </motion.div>
           )}
 
           {/* Installation Step */}
-          {currentStep === 'installation' && (
+          {currentStep === "installation" && (
             <motion.div
               key="installation"
               initial={{ opacity: 0, x: 50 }}
@@ -274,13 +300,13 @@ const OnboardingScreen: React.FC = () => {
             >
               <InstallationStep
                 onComplete={handleComplete}
-                onSkip={() => handleSkip('installation')}
+                onSkip={() => handleSkip("installation")}
               />
             </motion.div>
           )}
 
           {/* Notifications Step */}
-          {currentStep === 'notifications' && (
+          {currentStep === "notifications" && (
             <motion.div
               key="notifications"
               initial={{ opacity: 0, x: 50 }}
@@ -298,13 +324,13 @@ const OnboardingScreen: React.FC = () => {
       {/* Titlebar drag region */}
       <div
         className="absolute top-0 left-0 right-0 h-[45px]"
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       />
     </motion.div>
-  )
-}
+  );
+};
 
 // DISABLED: LicenseStep function removed - licensing system disabled
 // function LicenseStep({ onComplete }: { onComplete: () => void }) { ... }
 
-export default OnboardingScreen
+export default OnboardingScreen;

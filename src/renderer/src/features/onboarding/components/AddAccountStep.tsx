@@ -1,97 +1,105 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Cookie, LogIn, Loader2, Check, AlertTriangle } from 'lucide-react'
-import { Tabs } from '@renderer/components/UI/navigation/Tabs'
-import { Account, AccountStatus } from '@renderer/types'
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Cookie, LogIn, Loader2, Check, AlertTriangle } from "lucide-react";
+import { Tabs } from "@renderer/components/UI/navigation/Tabs";
+import { Account, AccountStatus } from "@renderer/types";
 
 interface AddAccountStepProps {
-  onAccountAdded: () => void
-  onSkip: () => void
+  onAccountAdded: () => void;
+  onSkip: () => void;
 }
 
 const requestRobloxLoginCookie = async (): Promise<string> => {
-  return window.api.openRobloxLoginWindow()
-}
+  return window.api.openRobloxLoginWindow();
+};
 
-const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip }) => {
-  const [method, setMethod] = useState<'cookie' | 'browser'>('browser')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+const AddAccountStep: React.FC<AddAccountStepProps> = ({
+  onAccountAdded,
+  onSkip,
+}) => {
+  const [method, setMethod] = useState<"cookie" | "browser">("browser");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   // Cookie method state
-  const [cookie, setCookie] = useState('')
-  const [isCookieBlurred, setIsCookieBlurred] = useState(true)
+  const [cookie, setCookie] = useState("");
+  const [isCookieBlurred, setIsCookieBlurred] = useState(true);
 
   React.useEffect(() => {
-    if (method === 'browser') {
-      setError(null)
+    if (method === "browser") {
+      setError(null);
     }
-  }, [method])
+  }, [method]);
 
   const handleBrowserLogin = async () => {
-    if (isLoading) return
-    setError(null)
-    setIsLoading(true)
+    if (isLoading) return;
+    setError(null);
+    setIsLoading(true);
     try {
-      const cookieValue = await requestRobloxLoginCookie()
-      await addAccountFromCookie(cookieValue)
+      const cookieValue = await requestRobloxLoginCookie();
+      await addAccountFromCookie(cookieValue);
     } catch (err: any) {
-      console.error('Browser login failed:', err)
-      if (err.message === 'LOGIN_WINDOW_CLOSED') {
-        setError('Login window closed before completing sign-in.')
+      console.error("Browser login failed:", err);
+      if (err.message === "LOGIN_WINDOW_CLOSED") {
+        setError("Login window closed before completing sign-in.");
       } else {
-        setError('Failed to capture the Roblox session.')
+        setError("Failed to capture the Roblox session.");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleCookieSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!cookie.trim() || isLoading) return
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault();
+    if (!cookie.trim() || isLoading) return;
+    setIsLoading(true);
+    setError(null);
     try {
-      await addAccountFromCookie(cookie)
+      await addAccountFromCookie(cookie);
     } catch {
-      setError('Failed to add account. Please check the cookie.')
+      setError("Failed to add account. Please check the cookie.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const addAccountFromCookie = async (cookieValue: string) => {
-    const trimmed = cookieValue.trim()
+    const trimmed = cookieValue.trim();
     // Note: This is a known Roblox cookie prefix. If it changes, this will need to be updated.
     // Consider centralizing this as a constant if used in multiple places.
     const expectedStart =
-      '_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_'
+      "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_";
 
-    let actualCookieValue = trimmed
-    const match = trimmed.match(/\.ROBLOSECURITY=([^;]+)/)
-    if (match) actualCookieValue = match[1]
+    let actualCookieValue = trimmed;
+    const match = trimmed.match(/\.ROBLOSECURITY=([^;]+)/);
+    if (match) actualCookieValue = match[1];
 
     if (!actualCookieValue.startsWith(expectedStart)) {
-      throw new Error('Invalid cookie format')
+      throw new Error("Invalid cookie format");
     }
 
-    const data = await window.api.validateCookie(cookieValue)
-    const avatarUrl = await window.api.getAvatarUrl(data.id.toString())
+    const data = await window.api.validateCookie(cookieValue);
+    const avatarUrl = await window.api.getAvatarUrl(data.id.toString());
 
-    let isPremium = false
+    let isPremium = false;
     try {
-      const details = await window.api.getExtendedUserDetails(actualCookieValue, Number(data.id))
-      isPremium = details?.isPremium ?? false
+      const details = await window.api.getExtendedUserDetails(
+        actualCookieValue,
+        Number(data.id),
+      );
+      isPremium = details?.isPremium ?? false;
     } catch (error) {
-      console.warn('Failed to fetch premium status during onboarding:', error)
+      console.warn("Failed to fetch premium status during onboarding:", error);
     }
 
     // Get existing accounts to check for duplicates
-    const existingAccounts = await window.api.getAccounts()
-    if (existingAccounts.some((acc: Account) => acc.id === data.id.toString())) {
-      throw new Error('Account already added')
+    const existingAccounts = await window.api.getAccounts();
+    if (
+      existingAccounts.some((acc: Account) => acc.id === data.id.toString())
+    ) {
+      throw new Error("Account already added");
     }
 
     // Create the new account
@@ -104,22 +112,22 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
       status: AccountStatus.Offline,
       avatarUrl: avatarUrl,
       isPremium,
-      lastActive: '',
+      lastActive: "",
       robuxBalance: 0,
       friendCount: 0,
       followerCount: 0,
       followingCount: 0,
-      notes: ''
-    }
+      notes: "",
+    };
 
     // Save all accounts including the new one
-    await window.api.saveAccounts([...existingAccounts, newAccount])
+    await window.api.saveAccounts([...existingAccounts, newAccount]);
 
-    setSuccess(true)
+    setSuccess(true);
     setTimeout(() => {
-      onAccountAdded()
-    }, 500)
-  }
+      onAccountAdded();
+    }, 500);
+  };
 
   if (success) {
     return (
@@ -131,28 +139,37 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 20,
+            delay: 0.1,
+          }}
           className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-6"
         >
           <Check className="w-10 h-10 text-emerald-500" />
         </motion.div>
-        <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Account Added!</h3>
-        <p className="text-[var(--color-text-secondary)] text-sm">Continuing to next step...</p>
+        <h3 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">
+          Account Added!
+        </h3>
+        <p className="text-[var(--color-text-secondary)] text-sm">
+          Continuing to next step...
+        </p>
       </motion.div>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
       <Tabs
         tabs={[
-          { id: 'cookie', label: 'Cookie', icon: Cookie },
-          { id: 'browser', label: 'Login / Code', icon: LogIn }
+          { id: "cookie", label: "Cookie", icon: Cookie },
+          { id: "browser", label: "Login / Code", icon: LogIn },
         ]}
         activeTab={method}
         onTabChange={(tabId) => {
-          setError(null)
-          setMethod(tabId as 'cookie' | 'browser')
+          setError(null);
+          setMethod(tabId as "cookie" | "browser");
         }}
         layoutId="onboardingAddAccountTab"
         tabClassName="pressable"
@@ -160,7 +177,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
       />
 
       <AnimatePresence mode="wait">
-        {method === 'cookie' && (
+        {method === "cookie" && (
           <motion.div
             key="cookie"
             initial={{ opacity: 0, y: 10 }}
@@ -169,15 +186,22 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
           >
             <form onSubmit={handleCookieSubmit} className="space-y-4">
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex gap-3 items-start">
-                <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={18} />
+                <AlertTriangle
+                  className="text-yellow-500 shrink-0 mt-0.5"
+                  size={18}
+                />
                 <p className="text-sm text-yellow-200/80 leading-relaxed">
-                  Your security is important. Cookies are processed locally and encrypted.
+                  Your security is important. Cookies are processed locally and
+                  encrypted.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="cookieInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
+                  <label
+                    htmlFor="cookieInput"
+                    className="text-sm font-medium text-[var(--color-text-secondary)]"
+                  >
                     .ROBLOSECURITY Cookie
                   </label>
                   <button
@@ -185,7 +209,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
                     onClick={() => setIsCookieBlurred((prev) => !prev)}
                     className="pressable text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
                   >
-                    {isCookieBlurred ? 'Show' : 'Hide'}
+                    {isCookieBlurred ? "Show" : "Hide"}
                   </button>
                 </div>
                 <textarea
@@ -197,27 +221,33 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
                   className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all min-h-[100px] resize-none font-mono disabled:opacity-50"
                   style={
                     isCookieBlurred
-                      ? ({ WebkitTextSecurity: 'disc' } as React.CSSProperties)
+                      ? ({ WebkitTextSecurity: "disc" } as React.CSSProperties)
                       : undefined
                   }
                 />
               </div>
 
-              {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+              {error && (
+                <p className="text-sm text-red-400 text-center">{error}</p>
+              )}
 
               <button
                 type="submit"
                 disabled={!cookie.trim() || isLoading}
                 className="pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Cookie size={18} />}
-                <span>{isLoading ? 'Importing...' : 'Import Account'}</span>
+                {isLoading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Cookie size={18} />
+                )}
+                <span>{isLoading ? "Importing..." : "Import Account"}</span>
               </button>
             </form>
           </motion.div>
         )}
 
-        {method === 'browser' && (
+        {method === "browser" && (
           <motion.div
             key="browser"
             initial={{ opacity: 0, y: 10 }}
@@ -227,17 +257,24 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
           >
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 text-sm text-blue-100/90">
               <p>
-                We&apos;ll open the official Roblox login page inside a sandboxed window. The
-                session cookie will be captured securely.
+                We&apos;ll open the official Roblox login page inside a
+                sandboxed window. The session cookie will be captured securely.
               </p>
             </div>
 
             <div className="space-y-2 text-sm text-[var(--color-text-secondary)]">
-              <p className="text-[var(--color-text-secondary)] font-medium">How it works</p>
+              <p className="text-[var(--color-text-secondary)] font-medium">
+                How it works
+              </p>
               <ul className="list-decimal list-inside space-y-1">
-                <li>Click &quot;Open Roblox Login&quot; to launch the official page.</li>
+                <li>
+                  Click &quot;Open Roblox Login&quot; to launch the official
+                  page.
+                </li>
                 <li>Sign in inside the new window.</li>
-                <li>Once Roblox finishes, we import the account automatically.</li>
+                <li>
+                  Once Roblox finishes, we import the account automatically.
+                </li>
               </ul>
             </div>
 
@@ -253,8 +290,14 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
               disabled={isLoading}
               className="pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
-              <span>{isLoading ? 'Waiting on Roblox...' : 'Open Roblox Login'}</span>
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <LogIn size={18} />
+              )}
+              <span>
+                {isLoading ? "Waiting on Roblox..." : "Open Roblox Login"}
+              </span>
             </button>
           </motion.div>
         )}
@@ -269,7 +312,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({ onAccountAdded, onSkip 
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AddAccountStep
+export default AddAccountStep;

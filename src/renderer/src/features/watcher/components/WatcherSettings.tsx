@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react'
-import { X, Save } from 'lucide-react'
-import { WatcherConfig } from '../hooks/useWatcher'
+import { useState, useCallback } from "react";
+import { X, Save } from "lucide-react";
+import { WatcherConfig } from "../hooks/useWatcher";
 
 interface WatcherSettingsProps {
-  config: WatcherConfig
-  onConfigChange: (config: Partial<WatcherConfig>) => Promise<void>
-  onClose: () => void
+  config: WatcherConfig;
+  onConfigChange: (config: Partial<WatcherConfig>) => Promise<void>;
+  onClose: () => void;
 }
 
 /**
@@ -14,34 +14,34 @@ interface WatcherSettingsProps {
 export default function WatcherSettings({
   config,
   onConfigChange,
-  onClose
+  onClose,
 }: WatcherSettingsProps) {
-  const [localConfig, setLocalConfig] = useState(config)
-  const [isSaving, setIsSaving] = useState(false)
+  const [localConfig, setLocalConfig] = useState(config);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleChange = useCallback((key: keyof WatcherConfig, value: any) => {
     setLocalConfig((prev) => ({
       ...prev,
-      [key]: value
-    }))
-  }, [])
+      [key]: value,
+    }));
+  }, []);
 
   const handleSave = useCallback(async () => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      await onConfigChange(localConfig)
-      onClose()
+      await onConfigChange(localConfig);
+      onClose();
     } catch (error) {
-      console.error('[WatcherSettings] Error saving config:', error)
+      console.error("[WatcherSettings] Error saving config:", error);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }, [localConfig, onConfigChange, onClose])
+  }, [localConfig, onConfigChange, onClose]);
 
   const handleCancel = useCallback(() => {
-    setLocalConfig(config)
-    onClose()
-  }, [config, onClose])
+    setLocalConfig(config);
+    onClose();
+  }, [config, onClose]);
 
   return (
     <div className="p-4 space-y-4">
@@ -62,7 +62,7 @@ export default function WatcherSettings({
             type="checkbox"
             id="autoRestart"
             checked={localConfig.autoRestart}
-            onChange={(e) => handleChange('autoRestart', e.target.checked)}
+            onChange={(e) => handleChange("autoRestart", e.target.checked)}
             className="w-5 h-5 rounded accent-[var(--accent-color)] cursor-pointer"
           />
           <label htmlFor="autoRestart" className="cursor-pointer flex-1">
@@ -83,23 +83,29 @@ export default function WatcherSettings({
             min="1"
             max="120"
             value={localConfig.restartDelaySeconds}
-            onChange={(e) => handleChange('restartDelaySeconds', parseInt(e.target.value, 10))}
+            onChange={(e) =>
+              handleChange("restartDelaySeconds", parseInt(e.target.value, 10))
+            }
             className="w-full px-3 py-2 border border-[var(--color-border)] rounded-lg bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
           />
           <p className="text-xs text-[var(--color-text-muted)] mt-1">
             Wait this many seconds before restarting a crashed client
           </p>
         </div>
-
-
       </div>
 
       {/* Info Box */}
       <div className="p-3 bg-[var(--color-surface-strong)] rounded-lg border border-[var(--color-border)]">
         <p className="text-xs text-[var(--color-text-muted)]">
-          <strong>Crash Detection:</strong> The watcher monitors Roblox log files for indicators like
-          <code className="bg-[var(--color-surface)] px-1 mx-0.5 rounded">destroyLuaApp</code>,
-          <code className="bg-[var(--color-surface)] px-1 mx-0.5 rounded">HttpError</code>{' '}
+          <strong>Crash Detection:</strong> The watcher monitors Roblox log
+          files for indicators like
+          <code className="bg-[var(--color-surface)] px-1 mx-0.5 rounded">
+            destroyLuaApp
+          </code>
+          ,
+          <code className="bg-[var(--color-surface)] px-1 mx-0.5 rounded">
+            HttpError
+          </code>{" "}
           and process status changes.
         </p>
       </div>
@@ -119,9 +125,9 @@ export default function WatcherSettings({
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--accent-color)] text-[var(--accent-color-foreground)] hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {isSaving ? 'Saving...' : 'Save Settings'}
+          {isSaving ? "Saving..." : "Save Settings"}
         </button>
       </div>
     </div>
-  )
+  );
 }

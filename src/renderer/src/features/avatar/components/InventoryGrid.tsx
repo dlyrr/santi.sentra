@@ -1,59 +1,64 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Search, Box, Check, Star, Loader2, Users } from 'lucide-react'
-import { SkeletonInventoryCard } from '@renderer/components/UI/display/SkeletonCard'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import FavoriteParticles from '@renderer/components/UI/specialized/FavoriteParticles'
-import SkinColorEditor from '../UI/SkinColorEditor'
-import BodyScaleEditor from '../UI/BodyScaleEditor'
-import type { Account } from '@renderer/types'
-import type { MainCategory } from '../utils/categoryUtils'
+import React, { useRef, useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Search, Box, Check, Star, Loader2, Users } from "lucide-react";
+import { SkeletonInventoryCard } from "@renderer/components/UI/display/SkeletonCard";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import FavoriteParticles from "@renderer/components/UI/specialized/FavoriteParticles";
+import SkinColorEditor from "../UI/SkinColorEditor";
+import BodyScaleEditor from "../UI/BodyScaleEditor";
+import type { Account } from "@renderer/types";
+import type { MainCategory } from "../utils/categoryUtils";
 
 interface InventoryItem {
-  id: number
-  name: string
-  type: string
-  imageUrl: string
-  ownershipCount?: number
+  id: number;
+  name: string;
+  type: string;
+  imageUrl: string;
+  ownershipCount?: number;
 }
 
 interface TruncatedTextProps {
-  text: string
-  className?: string
+  text: string;
+  className?: string;
 }
 
 const TruncatedText: React.FC<TruncatedTextProps> = ({ text, className }) => {
-  const textRef = useRef<HTMLDivElement>(null)
-  const [isTruncated, setIsTruncated] = useState(false)
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
 
   useEffect(() => {
-    const element = textRef.current
-    if (!element) return
+    const element = textRef.current;
+    if (!element) return;
 
     const checkTruncation = () => {
       setIsTruncated(
-        element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth
-      )
-    }
+        element.scrollHeight > element.clientHeight ||
+          element.scrollWidth > element.clientWidth,
+      );
+    };
 
-    checkTruncation()
+    checkTruncation();
 
-    const resizeObserver = new ResizeObserver(checkTruncation)
-    resizeObserver.observe(element)
+    const resizeObserver = new ResizeObserver(checkTruncation);
+    resizeObserver.observe(element);
 
     return () => {
-      resizeObserver.disconnect()
-    }
-  }, [text])
+      resizeObserver.disconnect();
+    };
+  }, [text]);
 
   const content = (
     <div ref={textRef} className={className}>
       {text}
     </div>
-  )
+  );
 
   if (!isTruncated) {
-    return content
+    return content;
   }
 
   return (
@@ -61,28 +66,28 @@ const TruncatedText: React.FC<TruncatedTextProps> = ({ text, className }) => {
       <TooltipTrigger asChild>{content}</TooltipTrigger>
       <TooltipContent>{text}</TooltipContent>
     </Tooltip>
-  )
-}
+  );
+};
 
 interface InventoryGridProps {
-  account: Account
-  filteredItems: InventoryItem[]
-  isLoading: boolean
-  isUpdatingAvatar: boolean
-  loadingItemId: number | null
-  equippedIds: Set<number>
-  favoriteIds: Set<number>
-  favoriteBurstKeys: Record<number, number>
-  mainCategory: MainCategory
-  subCategory: string
-  currentBodyColors: any
-  currentScales: any
-  currentAvatarType: any
-  onItemClick: (itemId: number) => void
-  onItemContextMenu: (e: React.MouseEvent, item: InventoryItem) => void
-  onUpdate: () => void
-  scrollPosition: number
-  onScroll: (scrollTop: number) => void
+  account: Account;
+  filteredItems: InventoryItem[];
+  isLoading: boolean;
+  isUpdatingAvatar: boolean;
+  loadingItemId: number | null;
+  equippedIds: Set<number>;
+  favoriteIds: Set<number>;
+  favoriteBurstKeys: Record<number, number>;
+  mainCategory: MainCategory;
+  subCategory: string;
+  currentBodyColors: any;
+  currentScales: any;
+  currentAvatarType: any;
+  onItemClick: (itemId: number) => void;
+  onItemContextMenu: (e: React.MouseEvent, item: InventoryItem) => void;
+  onUpdate: () => void;
+  scrollPosition: number;
+  onScroll: (scrollTop: number) => void;
 }
 
 export const InventoryGrid: React.FC<InventoryGridProps> = ({
@@ -102,22 +107,22 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
   onItemContextMenu,
   onUpdate,
   scrollPosition,
-  onScroll
+  onScroll,
 }) => {
-  const inventoryGridRef = useRef<HTMLDivElement>(null)
+  const inventoryGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!inventoryGridRef.current || scrollPosition <= 0 || isLoading) {
-      return
+      return;
     }
     // Add a small delay to allow content to render fully
     const timer = setTimeout(() => {
       if (inventoryGridRef.current) {
-        inventoryGridRef.current.scrollTop = scrollPosition
+        inventoryGridRef.current.scrollTop = scrollPosition;
       }
-    }, 50)
-    return () => clearTimeout(timer)
-  }, [isLoading, scrollPosition])
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [isLoading, scrollPosition]);
 
   return (
     <div
@@ -125,13 +130,13 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
       className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-[var(--color-app-bg)] relative"
       onScroll={(e) => onScroll(e.currentTarget.scrollTop)}
     >
-      {mainCategory === 'Body' && subCategory === 'Skin' ? (
+      {mainCategory === "Body" && subCategory === "Skin" ? (
         <SkinColorEditor
           account={account}
           currentBodyColors={currentBodyColors}
           onUpdate={onUpdate}
         />
-      ) : mainCategory === 'Body' && subCategory === 'Scale' ? (
+      ) : mainCategory === "Body" && subCategory === "Scale" ? (
         <BodyScaleEditor
           account={account}
           currentScales={currentScales}
@@ -148,9 +153,9 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 gap-3">
           {filteredItems.length > 0 ? (
             filteredItems.map((item, index) => {
-              const isEquipped = equippedIds.has(item.id)
-              const isFavorite = favoriteIds.has(item.id)
-              const isItemLoading = loadingItemId === item.id
+              const isEquipped = equippedIds.has(item.id);
+              const isFavorite = favoriteIds.has(item.id);
+              const isItemLoading = loadingItemId === item.id;
               return (
                 <div key={item.id}>
                   <motion.div
@@ -161,18 +166,23 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                     onContextMenu={(e) => onItemContextMenu(e, item)}
                     className={`group relative aspect-square bg-[var(--color-surface-hover)] border rounded-xl cursor-pointer transition-all overflow-hidden hover:shadow-lg isolate ${
                       isItemLoading
-                        ? 'border-blue-500 ring-1 ring-blue-500/50'
+                        ? "border-blue-500 ring-1 ring-blue-500/50"
                         : isEquipped
-                          ? 'border-emerald-500 ring-1 ring-emerald-500/50'
-                          : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
+                          ? "border-emerald-500 ring-1 ring-emerald-500/50"
+                          : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]"
                     }`}
                   >
                     {/* Loading Overlay */}
                     {isItemLoading && (
                       <div className="absolute inset-0 z-30 bg-[var(--color-surface)]/70 backdrop-blur-sm flex items-center justify-center">
                         <div className="flex flex-col items-center gap-2">
-                          <Loader2 size={24} className="text-blue-400 animate-spin" />
-                          <span className="text-xs text-blue-400 font-medium">Updating...</span>
+                          <Loader2
+                            size={24}
+                            className="text-blue-400 animate-spin"
+                          />
+                          <span className="text-xs text-blue-400 font-medium">
+                            Updating...
+                          </span>
                         </div>
                       </div>
                     )}
@@ -181,7 +191,10 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                     {item.ownershipCount !== undefined && (
                       <div className="absolute top-2 left-2 z-20">
                         <div className="px-2 py-0.5 rounded-full bg-[var(--color-surface)]/80 backdrop-blur-sm border border-[var(--color-border-strong)]/50 text-[10px] font-bold text-[var(--color-text-secondary)] shadow-sm flex items-center gap-1">
-                          <Users size={10} className="text-[var(--color-text-secondary)]" />
+                          <Users
+                            size={10}
+                            className="text-[var(--color-text-secondary)]"
+                          />
                           {item.ownershipCount}x
                         </div>
                       </div>
@@ -210,7 +223,11 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                     {/* Favorite Indicator */}
                     {isFavorite && (
                       <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[var(--color-surface)]/80 flex items-center justify-center text-yellow-400 shadow-sm z-10 pointer-events-none relative overflow-visible">
-                        <Star size={18} className="fill-current" style={{ strokeWidth: 0 }} />
+                        <Star
+                          size={18}
+                          className="fill-current"
+                          style={{ strokeWidth: 0 }}
+                        />
                         <FavoriteParticles
                           active={!!favoriteBurstKeys[item.id]}
                           color={[251, 191, 36]}
@@ -222,8 +239,8 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                     <div
                       className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
                         isEquipped
-                          ? 'bg-emerald-500 text-[var(--color-text-primary)] scale-100'
-                          : 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] group-hover:bg-[var(--color-surface-hover)] group-hover:text-[var(--color-text-secondary)] scale-0 group-hover:scale-100'
+                          ? "bg-emerald-500 text-[var(--color-text-primary)] scale-100"
+                          : "bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] group-hover:bg-[var(--color-surface-hover)] group-hover:text-[var(--color-text-secondary)] scale-0 group-hover:scale-100"
                       }`}
                     >
                       <Check size={14} strokeWidth={3} />
@@ -235,7 +252,7 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                         className="absolute inset-0 pointer-events-none"
                         style={{
                           background:
-                            'linear-gradient(180deg, rgba(8,8,8,0) 0%, rgba(8,8,8,0.12) 35%, rgba(8,8,8,0.65) 100%)'
+                            "linear-gradient(180deg, rgba(8,8,8,0) 0%, rgba(8,8,8,0.12) 35%, rgba(8,8,8,0.65) 100%)",
                         }}
                       />
                       <div className="relative p-3">
@@ -247,14 +264,16 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
                     </div>
                   </motion.div>
                 </div>
-              )
+              );
             })
           ) : (
             <div className="col-span-full flex flex-col items-center justify-center py-20 text-[var(--color-text-muted)]">
               <div className="w-16 h-16 bg-[var(--color-surface)] rounded-full flex items-center justify-center mb-4">
                 <Search size={24} className="opacity-40" />
               </div>
-              <p className="text-sm font-medium text-[var(--color-text-secondary)]">No items found</p>
+              <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                No items found
+              </p>
               <p className="text-xs mt-1 text-[var(--color-text-muted)]">
                 Try changing categories or search terms.
               </p>
@@ -263,5 +282,5 @@ export const InventoryGrid: React.FC<InventoryGridProps> = ({
         </div>
       )}
     </div>
-  )
-}
+  );
+};

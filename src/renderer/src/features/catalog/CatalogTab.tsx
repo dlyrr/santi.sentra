@@ -58,6 +58,7 @@ import { useCatalogViewMode, useSetCatalogViewMode } from '@renderer/stores/useV
 import CatalogItemContextMenu from './CatalogItemContextMenu'
 import { CatalogFilterSidebar } from './CatalogFilterSidebar'
 import { CatalogActiveFilters } from './CatalogActiveFilters'
+import { CatalogToolbar } from './CatalogToolbar'
 
 const SORT_OPTIONS: DropdownOption[] = [
   { value: '0', label: 'Relevance' },
@@ -147,7 +148,7 @@ const CatalogSearchBar = forwardRef<CatalogSearchBarRef, CatalogSearchBarProps>(
             >
               {suggestions.map((suggestion, index) => (
                 <button
-                  key={index}
+                  key={`${suggestion ?? 'suggestion'}-${index}`}
                   className="w-full text-left px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-colors truncate"
                   onClick={() => {
                     setQuery(suggestion)
@@ -457,51 +458,19 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
 
         <div className="flex-1 flex flex-col min-w-0">
           {/* Toolbar */}
-          <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
-            <div className="flex items-center gap-4 flex-1">
-              <h1 className="text-xl font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-                Catalog
-                {isBulkMode && (
-                  <span className="bg-blue-600/20 text-blue-400 text-xs px-2 py-1 rounded-md border border-blue-500/30 font-medium">
-                    Bulk Mode
-                  </span>
-                )}
-              </h1>
-
-              {/* Sort */}
-              <CustomDropdown
-                options={SORT_OPTIONS}
-                value={sortType}
-                onChange={setSortType}
-                placeholder="Sort By"
-                className="w-44"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <CatalogSearchBar ref={searchBarRef} onSearch={setAppliedSearchQuery} />
-
-              <div className="h-6 w-[1px] bg-[var(--color-surface-hover)] mx-1" />
-
-              {/* View Mode Toggle */}
-              <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
-                <button
-                  onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
-                  title="Default View"
-                >
-                  <Grid2X2 size={18} />
-                </button>
-                <button
-                  onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
-                  title="Compact View"
-                >
-                  <Grid3X3 size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
+          <CatalogToolbar
+            searchQuery={appliedSearchQuery}
+            onSearchChange={setAppliedSearchQuery}
+            sortType={sortType}
+            setSortType={setSortType}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            isBulkMode={isBulkMode}
+            appliedMinPrice={appliedMinPrice}
+            appliedMaxPrice={appliedMaxPrice}
+            appliedCreatorName={appliedCreatorName}
+            hasActiveFilters={hasActiveFilters}
+          />
 
           {/* Active Filters Chips */}
           <CatalogActiveFilters
@@ -544,7 +513,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
                 >
                   {Array.from({ length: 20 }).map((_, i) => (
                     <div
-                      key={i}
+                      key={`loading-skel-${i}`}
                       className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden"
                     >
                       <SkeletonSquareCard showBorder={false} />
@@ -590,7 +559,7 @@ const CatalogTab = ({ onItemSelect, onCreatorSelect, cookie }: CatalogTabProps) 
                       const item = items[index]
                       return (
                         <CatalogItemCard
-                          key={`${item.id}-${index}`}
+                          key={`${item.id ?? 'item'}-${index}`}
                           item={item}
                           thumbnailUrl={thumbnails[item.id]}
                           index={index}

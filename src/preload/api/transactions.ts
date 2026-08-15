@@ -1,5 +1,5 @@
-import { invoke } from './invoke'
-import * as S from '../../shared/ipc-schemas'
+import { invoke } from "./invoke";
+import * as S from "../../shared/ipc-schemas";
 
 // ============================================================================
 // TRANSACTIONS API
@@ -7,23 +7,28 @@ import * as S from '../../shared/ipc-schemas'
 
 export const transactionsApi = {
   getTransactionTypes: (cookie: string) =>
-    invoke('get-transaction-types', S.transactionTypesSchema, cookie),
+    invoke("get-transaction-types", S.transactionTypesSchema, cookie),
 
   getTransactions: (
     cookie: string,
     transactionType: S.TransactionTypeEnum,
     cursor?: string,
-    limit?: number
+    limit?: number,
   ) =>
     invoke(
-      'get-transactions',
+      "get-transactions",
       S.transactionsResponseSchema,
       cookie,
       transactionType,
       cursor,
-      limit
+      limit,
     ),
 
   getTransactionTotals: (cookie: string, timeFrame?: S.TransactionTimeFrame) =>
-    invoke('get-transaction-totals', S.transactionTotalsSchema, cookie, timeFrame)
-}
+    invoke(
+      "get-transaction-totals",
+      S.transactionTotalsSchema,
+      cookie,
+      timeFrame,
+    ),
+};

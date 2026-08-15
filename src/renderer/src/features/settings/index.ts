@@ -1,1 +1,1 @@
-export { default } from './SettingsTab'
+export { default } from "./SettingsTab";

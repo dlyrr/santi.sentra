@@ -1,18 +1,30 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Box, Laptop, MoreHorizontal, Play, Monitor, RefreshCw, Settings } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { BinaryType } from '@renderer/types'
-import { UnifiedInstallation } from '../types'
+import React from "react";
+import { motion } from "framer-motion";
+import {
+  Box,
+  Laptop,
+  MoreHorizontal,
+  Play,
+  Monitor,
+  RefreshCw,
+  Settings,
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { BinaryType } from "@renderer/types";
+import { UnifiedInstallation } from "../types";
 
 interface InstallationCardProps {
-  install: UnifiedInstallation
-  index: number
-  isVerifying: boolean
-  installProgress: { status: string; percent: number; detail: string }
-  onLaunch: (install: UnifiedInstallation) => void
-  onSettings: (install: UnifiedInstallation) => void
-  onContextMenu: (e: React.MouseEvent, install: UnifiedInstallation) => void
+  install: UnifiedInstallation;
+  index: number;
+  isVerifying: boolean;
+  installProgress: { status: string; percent: number; detail: string };
+  onLaunch: (install: UnifiedInstallation) => void;
+  onSettings: (install: UnifiedInstallation) => void;
+  onContextMenu: (e: React.MouseEvent, install: UnifiedInstallation) => void;
 }
 
 export const InstallationCard: React.FC<InstallationCardProps> = ({
@@ -22,10 +34,11 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
   installProgress,
   onLaunch,
   onSettings,
-  onContextMenu
+  onContextMenu,
 }) => {
   const isStudio =
-    install.binaryType === BinaryType.WindowsStudio || install.binaryType === BinaryType.MacStudio
+    install.binaryType === BinaryType.WindowsStudio ||
+    install.binaryType === BinaryType.MacStudio;
 
   return (
     <motion.div
@@ -40,14 +53,18 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div
               className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                isStudio ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'
+                isStudio
+                  ? "bg-blue-500/10 text-blue-400"
+                  : "bg-emerald-500/10 text-emerald-400"
               }`}
             >
               {isStudio ? <Box size={20} /> : <Laptop size={20} />}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-[var(--color-text-primary)] truncate">{install.name}</h3>
+                <h3 className="font-semibold text-[var(--color-text-primary)] truncate">
+                  {install.name}
+                </h3>
                 {install.isSystem && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -61,7 +78,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
                 )}
               </div>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                {isStudio ? 'Studio' : 'Player'} • {install.channel}
+                {isStudio ? "Studio" : "Player"} • {install.channel}
               </p>
             </div>
           </div>
@@ -69,8 +86,8 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
           {/* Action Button */}
           <button
             onClick={(e) => {
-              e.stopPropagation()
-              onContextMenu(e, install)
+              e.stopPropagation();
+              onContextMenu(e, install);
             }}
             className="pressable p-1.5 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors opacity-0 group-hover:opacity-100"
           >
@@ -84,14 +101,16 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${
-              install.status === 'Ready'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                : install.status === 'Updating'
-                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 'bg-red-500/10 text-red-400 border-red-500/20'
+              install.status === "Ready"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : install.status === "Updating"
+                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                  : "bg-red-500/10 text-red-400 border-red-500/20"
             }`}
           >
-            {install.status === 'Updating' && <RefreshCw size={8} className="animate-spin" />}
+            {install.status === "Updating" && (
+              <RefreshCw size={8} className="animate-spin" />
+            )}
             {install.status}
           </span>
           <Tooltip>
@@ -140,5 +159,5 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
         </button>
       </div>
     </motion.div>
-  )
-}
+  );
+};

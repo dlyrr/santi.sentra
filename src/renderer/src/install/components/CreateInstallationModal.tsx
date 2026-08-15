@@ -1,65 +1,79 @@
-import React, { useState } from 'react'
-import { HardDrive, Loader2, Box, Laptop, FolderOpen, X } from 'lucide-react'
+import React, { useState } from "react";
+import { HardDrive, Loader2, Box, Laptop, FolderOpen, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogBody
-} from '@renderer/components/UI/dialogs/Dialog'
-import CustomDropdown from '@renderer/components/UI/menus/CustomDropdown'
-import { BinaryType } from '@renderer/types'
-import { getApiType } from '../stores/useInstallationsStore'
+  DialogBody,
+} from "@renderer/components/UI/dialogs/Dialog";
+import CustomDropdown from "@renderer/components/UI/menus/CustomDropdown";
+import { BinaryType } from "@renderer/types";
+import { getApiType } from "../stores/useInstallationsStore";
 
 interface CreateInstallationModalProps {
-  isOpen: boolean
-  onClose: () => void
-  isMac: boolean
-  history: Record<string, string[]>
-  isInstalling: boolean
-  installProgress: { status: string; percent: number; detail: string }
-  onCreate: (name: string, type: BinaryType, version: string, channel: string, customPath?: string) => void
+  isOpen: boolean;
+  onClose: () => void;
+  isMac: boolean;
+  history: Record<string, string[]>;
+  isInstalling: boolean;
+  installProgress: { status: string; percent: number; detail: string };
+  onCreate: (
+    name: string,
+    type: BinaryType,
+    version: string,
+    channel: string,
+    customPath?: string,
+  ) => void;
 }
 
-export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = ({
+export const CreateInstallationModal: React.FC<
+  CreateInstallationModalProps
+> = ({
   isOpen,
   onClose,
   isMac,
   history,
   isInstalling,
   installProgress,
-  onCreate
+  onCreate,
 }) => {
-  const [newName, setNewName] = useState('')
+  const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<BinaryType>(
-    isMac ? BinaryType.MacPlayer : BinaryType.WindowsPlayer
-  )
-  const [newVersion, setNewVersion] = useState('')
-  const [newChannel, setNewChannel] = useState('live')
-  const [customPath, setCustomPath] = useState('')
+    isMac ? BinaryType.MacPlayer : BinaryType.WindowsPlayer,
+  );
+  const [newVersion, setNewVersion] = useState("");
+  const [newChannel, setNewChannel] = useState("live");
+  const [customPath, setCustomPath] = useState("");
 
-  const availableVersions = history[getApiType(newType)] || []
+  const availableVersions = history[getApiType(newType)] || [];
 
   const handleChoosePath = async () => {
-    const path = await window.api.pickBackupFile()
+    const path = await window.api.pickBackupFile();
     if (path) {
-      setCustomPath(path)
+      setCustomPath(path);
     }
-  }
+  };
 
   const handleClearPath = () => {
-    setCustomPath('')
-  }
+    setCustomPath("");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onCreate(newName, newType, newVersion || availableVersions[0], newChannel, customPath || undefined)
-  }
+    e.preventDefault();
+    onCreate(
+      newName,
+      newType,
+      newVersion || availableVersions[0],
+      newChannel,
+      customPath || undefined,
+    );
+  };
 
   const binaryTypeOptions = isMac
     ? [BinaryType.MacPlayer, BinaryType.MacStudio]
-    : [BinaryType.WindowsPlayer, BinaryType.WindowsStudio]
+    : [BinaryType.WindowsPlayer, BinaryType.WindowsStudio];
 
   return (
     <Dialog isOpen={isOpen} onClose={() => !isInstalling && onClose()}>
@@ -71,7 +85,9 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
         <DialogBody>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Name</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                Name
+              </label>
               <input
                 type="text"
                 required
@@ -83,15 +99,18 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Type</label>
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                Type
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 {binaryTypeOptions.map((type) => {
                   const isStudio =
-                    type === BinaryType.WindowsStudio || type === BinaryType.MacStudio
-                  const isSelected = newType === type
+                    type === BinaryType.WindowsStudio ||
+                    type === BinaryType.MacStudio;
+                  const isSelected = newType === type;
                   const selectedClasses = isStudio
-                    ? 'bg-blue-500/10 border-blue-500/50 text-blue-400'
-                    : 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
+                    ? "bg-blue-500/10 border-blue-500/50 text-blue-400"
+                    : "bg-emerald-500/10 border-emerald-500/50 text-emerald-400";
                   return (
                     <button
                       key={type}
@@ -100,38 +119,47 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
                       className={`pressable flex items-center gap-3 p-3 rounded-lg border transition-all ${
                         isSelected
                           ? selectedClasses
-                          : 'bg-[var(--color-app-bg)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                          : "bg-[var(--color-app-bg)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                       }`}
                     >
                       {isStudio ? <Box size={20} /> : <Laptop size={20} />}
-                      <span className="text-sm font-medium">{isStudio ? 'Studio' : 'Player'}</span>
+                      <span className="text-sm font-medium">
+                        {isStudio ? "Studio" : "Player"}
+                      </span>
                     </button>
-                  )
+                  );
                 })}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Version</label>
+                <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                  Version
+                </label>
                 <CustomDropdown
                   options={
                     availableVersions.length > 0
                       ? availableVersions.map((v) => ({
                           value: v,
                           label: v,
-                          subLabel: v === availableVersions[0] ? '(Latest)' : undefined
+                          subLabel:
+                            v === availableVersions[0] ? "(Latest)" : undefined,
                         }))
-                      : [{ value: '', label: 'Loading...' }]
+                      : [{ value: "", label: "Loading..." }]
                   }
                   value={newVersion}
                   onChange={setNewVersion}
-                  placeholder={availableVersions.length > 0 ? 'Latest' : 'Loading...'}
+                  placeholder={
+                    availableVersions.length > 0 ? "Latest" : "Loading..."
+                  }
                   buttonClassName="bg-[var(--color-surface-muted)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] rounded-lg px-4 py-2.5 text-[var(--color-text-primary)] text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-app-bg)]"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Channel</label>
+                <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                  Channel
+                </label>
                 <input
                   type="text"
                   value={newChannel}
@@ -144,9 +172,14 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
 
             {/* Installation Path Selection */}
             <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
-              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">Import Accounts</label>
-              <p className="text-xs text-[var(--color-text-muted)] mb-2">Optionally import accounts from a backup file during installation</p>
-              
+              <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
+                Import Accounts
+              </label>
+              <p className="text-xs text-[var(--color-text-muted)] mb-2">
+                Optionally import accounts from a backup file during
+                installation
+              </p>
+
               {!customPath ? (
                 <button
                   type="button"
@@ -159,7 +192,10 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               ) : (
                 <div className="p-3 rounded-lg bg-[var(--color-surface-muted)] border border-[var(--color-border)]/50 flex items-center justify-between">
                   <div className="flex-1 text-sm truncate text-[var(--color-text-secondary)] flex items-center gap-2">
-                    <FolderOpen size={14} className="text-[var(--accent-color)] flex-shrink-0" />
+                    <FolderOpen
+                      size={14}
+                      className="text-[var(--accent-color)] flex-shrink-0"
+                    />
                     <span className="truncate">{customPath}</span>
                   </div>
                   <button
@@ -178,7 +214,7 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
               type="submit"
               disabled={isInstalling || !newName}
               className={`pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold rounded-lg transition-all border border-[var(--accent-color-border)] shadow-[0_10px_30px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed ${
-                isInstalling ? 'py-4' : 'py-3'
+                isInstalling ? "py-4" : "py-3"
               }`}
             >
               {isInstalling ? (
@@ -207,5 +243,5 @@ export const CreateInstallationModal: React.FC<CreateInstallationModalProps> = (
         </DialogBody>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};

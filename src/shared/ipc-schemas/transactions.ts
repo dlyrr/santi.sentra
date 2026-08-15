@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 // ============================================================================
 // TRANSACTION TYPES SCHEMAS
@@ -25,10 +25,10 @@ export const transactionTypesSchema = z.object({
   HasSubscriptionsRevsharePayout: z.boolean(),
   HasGroupSubscriptionsRevsharePayout: z.boolean(),
   HasPublishingAdvanceRebates: z.boolean(),
-  HasLicensingPayment: z.boolean()
-})
+  HasLicensingPayment: z.boolean(),
+});
 
-export type TransactionTypes = z.infer<typeof transactionTypesSchema>
+export type TransactionTypes = z.infer<typeof transactionTypesSchema>;
 
 // ============================================================================
 // TRANSACTION SCHEMAS
@@ -37,19 +37,19 @@ export type TransactionTypes = z.infer<typeof transactionTypesSchema>
 export const transactionAgentSchema = z.object({
   id: z.number(),
   type: z.string(),
-  name: z.string()
-})
+  name: z.string(),
+});
 
 export const transactionDetailsSchema = z.object({
   id: z.number().optional(),
   name: z.string(),
-  type: z.string()
-})
+  type: z.string(),
+});
 
 export const transactionCurrencySchema = z.object({
   amount: z.number(),
-  type: z.string()
-})
+  type: z.string(),
+});
 
 export const transactionSchema = z.object({
   id: z.number(),
@@ -60,18 +60,18 @@ export const transactionSchema = z.object({
   agent: transactionAgentSchema,
   details: transactionDetailsSchema.nullable(),
   currency: transactionCurrencySchema,
-  purchaseToken: z.string().nullable()
-})
+  purchaseToken: z.string().nullable(),
+});
 
-export type Transaction = z.infer<typeof transactionSchema>
+export type Transaction = z.infer<typeof transactionSchema>;
 
 export const transactionsResponseSchema = z.object({
   previousPageCursor: z.string().nullable(),
   nextPageCursor: z.string().nullable(),
-  data: z.array(transactionSchema)
-})
+  data: z.array(transactionSchema),
+});
 
-export type TransactionsResponse = z.infer<typeof transactionsResponseSchema>
+export type TransactionsResponse = z.infer<typeof transactionsResponseSchema>;
 
 // ============================================================================
 // TRANSACTION TOTALS SCHEMA (from /transaction-totals API)
@@ -104,39 +104,44 @@ export const transactionTotalsSchema = z.object({
   publishingAdvanceRebatesTotal: z.number(),
   affiliatePayoutTotal: z.number(),
   licensingPaymentTotal: z.number(),
-  licensingPaymentClawbackOutgoingTotal: z.number()
-})
+  licensingPaymentClawbackOutgoingTotal: z.number(),
+});
 
-export type TransactionTotals = z.infer<typeof transactionTotalsSchema>
+export type TransactionTotals = z.infer<typeof transactionTotalsSchema>;
 
 // Time frame options for the totals API
-export const transactionTimeFrameSchema = z.enum(['Day', 'Week', 'Month', 'Year'])
+export const transactionTimeFrameSchema = z.enum([
+  "Day",
+  "Week",
+  "Month",
+  "Year",
+]);
 
-export type TransactionTimeFrame = z.infer<typeof transactionTimeFrameSchema>
+export type TransactionTimeFrame = z.infer<typeof transactionTimeFrameSchema>;
 
 // Transaction type enum for API
 export const transactionTypeEnumSchema = z.enum([
-  'Purchase',
-  'Sale',
-  'AffiliatePayout',
-  'AffiliateSale',
-  'GroupPayout',
-  'CurrencyPurchase',
-  'TradeRobux',
-  'PremiumStipend',
-  'EngagementPayout',
-  'GroupEngagementPayout',
-  'AdSpend',
-  'DevEx',
-  'PendingRobux',
-  'IndividualToGroup',
-  'CSAdjustment',
-  'AdsRevsharePayout',
-  'GroupAdsRevsharePayout',
-  'SubscriptionsRevsharePayout',
-  'GroupSubscriptionsRevsharePayout',
-  'PublishingAdvanceRebates',
-  'LicensingPayment'
-])
+  "Purchase",
+  "Sale",
+  "AffiliatePayout",
+  "AffiliateSale",
+  "GroupPayout",
+  "CurrencyPurchase",
+  "TradeRobux",
+  "PremiumStipend",
+  "EngagementPayout",
+  "GroupEngagementPayout",
+  "AdSpend",
+  "DevEx",
+  "PendingRobux",
+  "IndividualToGroup",
+  "CSAdjustment",
+  "AdsRevsharePayout",
+  "GroupAdsRevsharePayout",
+  "SubscriptionsRevsharePayout",
+  "GroupSubscriptionsRevsharePayout",
+  "PublishingAdvanceRebates",
+  "LicensingPayment",
+]);
 
-export type TransactionTypeEnum = z.infer<typeof transactionTypeEnumSchema>
+export type TransactionTypeEnum = z.infer<typeof transactionTypeEnumSchema>;

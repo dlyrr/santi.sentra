@@ -1,5 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Shirt,
   Package,
@@ -11,55 +17,59 @@ import {
   TrendingUp,
   Flame,
   Star,
-  Music
-} from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { Account } from '@renderer/types'
-import UserListModal from '@renderer/components/Modals/UserListModal'
-import AccessoryDetailsModal from '@renderer/features/avatar/Modals/AccessoryDetailsModal'
-import PlayerInventorySheet from '@renderer/features/inventory/Modals/PlayerInventorySheet'
+  Music,
+} from "lucide-react";
+import { createPortal } from "react-dom";
+import { Account } from "@renderer/types";
+import UserListModal from "@renderer/components/Modals/UserListModal";
+import AccessoryDetailsModal from "@renderer/features/avatar/Modals/AccessoryDetailsModal";
+import PlayerInventorySheet from "@renderer/features/inventory/Modals/PlayerInventorySheet";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogBody
-} from '@renderer/components/UI/dialogs/Dialog'
-import { SkeletonSquareGrid } from '@renderer/components/UI/display/SkeletonGrid'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@renderer/components/UI/display/Tooltip'
+  DialogBody,
+} from "@renderer/components/UI/dialogs/Dialog";
+import { SkeletonSquareGrid } from "@renderer/components/UI/display/SkeletonGrid";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@renderer/components/UI/display/Tooltip";
 import {
   useUserGroups,
   useUserCollections,
   useUserExperienceBadges as useExperienceBadges,
   useUserWearing as useUserWearingItems,
   useUserProfilePlatform,
-  useUserRobloxBadges
-} from '@renderer/hooks/queries'
-import { useUserProfileOutfits } from './hooks/useUserProfileOutfits'
-import { useProfileData } from './hooks/useProfileData'
-import { useFriendStatuses } from './hooks/useFriendStatuses'
-import { ProfileHeader } from './components/ProfileHeader'
-import { ProfileStatsBento } from './components/ProfileStatsBento'
-import { FriendsSection } from './components/FriendsSection'
-import { GroupsSection } from './components/GroupsSection'
-import GroupDetailsModal from '@renderer/features/groups/Modals/GroupDetailsModal'
-import { CollectionsSection } from './components/CollectionsSection'
-import { BadgesSection } from './components/BadgesSection'
-import { ExpandedAvatarModal } from './components/ExpandedAvatarModal'
-import { TruncatedTextWithTooltip } from './components/TruncatedTextWithTooltip'
-import { ProfileFloatingToolbar } from './components/ProfileFloatingToolbar'
-import { useRolimonsItem } from '@renderer/hooks/queries'
+  useUserRobloxBadges,
+} from "@renderer/hooks/queries";
+import { useUserProfileOutfits } from "./hooks/useUserProfileOutfits";
+import { useProfileData } from "./hooks/useProfileData";
+import { useFriendStatuses } from "./hooks/useFriendStatuses";
+import { ProfileHeader } from "./components/ProfileHeader";
+import { ProfileStatsBento } from "./components/ProfileStatsBento";
+import { FriendsSection } from "./components/FriendsSection";
+import { GroupsSection } from "./components/GroupsSection";
+import GroupDetailsModal from "@renderer/features/groups/Modals/GroupDetailsModal";
+import { CollectionsSection } from "./components/CollectionsSection";
+import { BadgesSection } from "./components/BadgesSection";
+import { ExpandedAvatarModal } from "./components/ExpandedAvatarModal";
+import { TruncatedTextWithTooltip } from "./components/TruncatedTextWithTooltip";
+import { ProfileFloatingToolbar } from "./components/ProfileFloatingToolbar";
+import { useRolimonsItem } from "@renderer/hooks/queries";
 
-const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696]
+const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696];
 
 const ItemTagBadges: React.FC<{ assetId: number }> = ({ assetId }) => {
-  const rolimonsItem = useRolimonsItem(assetId)
-  const isLimited = !!rolimonsItem
-  const isSoundHat = SOUND_HAT_IDS.includes(assetId)
+  const rolimonsItem = useRolimonsItem(assetId);
+  const isLimited = !!rolimonsItem;
+  const isSoundHat = SOUND_HAT_IDS.includes(assetId);
 
-  if (!isLimited && !isSoundHat) return null
+  if (!isLimited && !isSoundHat) return null;
 
   return (
     <div className="absolute flex flex-col gap-1.5 z-20 top-2 left-2">
@@ -124,36 +134,40 @@ const ItemTagBadges: React.FC<{ assetId: number }> = ({ assetId }) => {
         </Tooltip>
       )}
     </div>
-  )
-}
+  );
+};
 
 export interface ProfileViewProps {
-  userId: string | number
-  requestCookie: string
-  accountUserId?: string | number
-  privacyMode?: boolean
+  userId: string | number;
+  requestCookie: string;
+  accountUserId?: string | number;
+  privacyMode?: boolean;
   initialData?: {
-    displayName?: string
-    username?: string
-    avatarUrl?: string
-    status?: any
-    notes?: string
-    joinDate?: string
-    placeVisits?: number
-    friendCount?: number
-    followerCount?: number
-    followingCount?: number
-    isPremium?: boolean
-    isAdmin?: boolean
-    totalFavorites?: number
-    concurrentPlayers?: number
-    groupMemberCount?: number
-  }
-  isOwnAccount?: boolean
-  onClose?: () => void
-  showCloseButton?: boolean
-  onSelectProfile?: (userId: number) => void
-  onJoinGame?: (placeId: number | string, jobId?: string, userId?: number | string) => void
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string;
+    status?: any;
+    notes?: string;
+    joinDate?: string;
+    placeVisits?: number;
+    friendCount?: number;
+    followerCount?: number;
+    followingCount?: number;
+    isPremium?: boolean;
+    isAdmin?: boolean;
+    totalFavorites?: number;
+    concurrentPlayers?: number;
+    groupMemberCount?: number;
+  };
+  isOwnAccount?: boolean;
+  onClose?: () => void;
+  showCloseButton?: boolean;
+  onSelectProfile?: (userId: number) => void;
+  onJoinGame?: (
+    placeId: number | string,
+    jobId?: string,
+    userId?: number | string,
+  ) => void;
 }
 
 const UserProfileView: React.FC<ProfileViewProps> = ({
@@ -166,121 +180,127 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
   onClose,
   showCloseButton = false,
   onSelectProfile,
-  onJoinGame
+  onJoinGame,
 }) => {
-  const [isWearingOpen, setIsWearingOpen] = useState(false)
-  const [isOutfitsOpen, setIsOutfitsOpen] = useState(false)
+  const [isWearingOpen, setIsWearingOpen] = useState(false);
+  const [isOutfitsOpen, setIsOutfitsOpen] = useState(false);
   const [selectedAccessory, setSelectedAccessory] = useState<{
-    id: number
-    name: string
-    imageUrl: string
-  } | null>(null)
-  const [isAvatarExpanded, setIsAvatarExpanded] = useState(false)
+    id: number;
+    name: string;
+    imageUrl: string;
+  } | null>(null);
+  const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
   const [userListModal, setUserListModal] = useState<{
-    isOpen: boolean
-    type: 'friends' | 'followers' | 'following'
-    title: string
+    isOpen: boolean;
+    type: "friends" | "followers" | "following";
+    title: string;
   }>({
     isOpen: false,
-    type: 'friends',
-    title: ''
-  })
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
-  const contextMenuRef = useRef<HTMLDivElement>(null)
-  const [isInventoryOpen, setIsInventoryOpen] = useState(false)
+    type: "friends",
+    title: "",
+  });
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [selectedOutfit, setSelectedOutfit] = useState<{
-    id: number
-    name: string
-    imageUrl: string
-  } | null>(null)
+    id: number;
+    name: string;
+    imageUrl: string;
+  } | null>(null);
   const [outfitDetails, setOutfitDetails] = useState<{
-    assets: Array<{ id: number; name: string; imageUrl: string }>
-  } | null>(null)
-  const [outfitDetailsLoading, setOutfitDetailsLoading] = useState(false)
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
+    assets: Array<{ id: number; name: string; imageUrl: string }>;
+  } | null>(null);
+  const [outfitDetailsLoading, setOutfitDetailsLoading] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
-  const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId
+  const userIdNum = typeof userId === "string" ? parseInt(userId, 10) : userId;
   const accountUserIdNum =
-    typeof accountUserId === 'string'
+    typeof accountUserId === "string"
       ? parseInt(accountUserId)
-      : typeof accountUserId === 'number'
+      : typeof accountUserId === "number"
         ? accountUserId
-        : null
+        : null;
 
-  const blurIdentity = !!privacyMode && accountUserIdNum != null && accountUserIdNum === userIdNum
+  const blurIdentity =
+    !!privacyMode && accountUserIdNum != null && accountUserIdNum === userIdNum;
 
-  const { profile } = useProfileData({ userId: userIdNum, requestCookie, initialData })
-  const { sortedFriends } = useFriendStatuses(userIdNum, requestCookie)
-  const { data: profilePlatform } = useUserProfilePlatform(userIdNum, requestCookie)
-
-  const { data: groups = [], isLoading: isLoadingGroups } = useUserGroups(userIdNum)
-  const { data: collections = [], isLoading: isLoadingCollections } = useUserCollections(
-    userIdNum,
-    requestCookie
-  )
-  const { data: robloxBadges = [], isLoading: isLoadingRobloxBadges } = useUserRobloxBadges(
-    userIdNum,
-    requestCookie
-  )
-  const { data: experienceBadges = [], isLoading: isLoadingExperienceBadges } = useExperienceBadges(
-    userIdNum,
-    requestCookie
-  )
-  const { data: wearingItems = [], isLoading: wearingLoading } = useUserWearingItems(
+  const { profile } = useProfileData({
+    userId: userIdNum,
+    requestCookie,
+    initialData,
+  });
+  const { sortedFriends } = useFriendStatuses(userIdNum, requestCookie);
+  const { data: profilePlatform } = useUserProfilePlatform(
     userIdNum,
     requestCookie,
-    isWearingOpen
-  )
-  const { data: outfits = [], isLoading: outfitsLoading } = useUserProfileOutfits(
-    userIdNum,
-    requestCookie,
-    isOutfitsOpen
-  )
+  );
 
-  const pastUsernames = profilePlatform?.nameHistory ?? []
+  const { data: groups = [], isLoading: isLoadingGroups } =
+    useUserGroups(userIdNum);
+  const { data: collections = [], isLoading: isLoadingCollections } =
+    useUserCollections(userIdNum, requestCookie);
+  const { data: robloxBadges = [], isLoading: isLoadingRobloxBadges } =
+    useUserRobloxBadges(userIdNum, requestCookie);
+  const { data: experienceBadges = [], isLoading: isLoadingExperienceBadges } =
+    useExperienceBadges(userIdNum, requestCookie);
+  const { data: wearingItems = [], isLoading: wearingLoading } =
+    useUserWearingItems(userIdNum, requestCookie, isWearingOpen);
+  const { data: outfits = [], isLoading: outfitsLoading } =
+    useUserProfileOutfits(userIdNum, requestCookie, isOutfitsOpen);
+
+  const pastUsernames = profilePlatform?.nameHistory ?? [];
   const profileWithGroupCount = useMemo(
     () => ({
       ...profile,
-      groupMemberCount: groups.length || profile.groupMemberCount || 0
+      groupMemberCount: groups.length || profile.groupMemberCount || 0,
     }),
-    [profile, groups.length]
-  )
+    [profile, groups.length],
+  );
 
   const loading =
-    isLoadingGroups || isLoadingCollections || isLoadingRobloxBadges || isLoadingExperienceBadges
+    isLoadingGroups ||
+    isLoadingCollections ||
+    isLoadingRobloxBadges ||
+    isLoadingExperienceBadges;
 
-  const rawDescription = profile.notes?.trim() || ''
-  const hasRawDescription = rawDescription.length > 0
+  const rawDescription = profile.notes?.trim() || "";
+  const hasRawDescription = rawDescription.length > 0;
 
   useEffect(() => {
-    setContextMenu(null)
-  }, [userId])
+    setContextMenu(null);
+  }, [userId]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY })
-  }, [])
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  }, []);
 
   const handleCopyUserId = useCallback(() => {
-    navigator.clipboard.writeText(userId.toString())
-    setContextMenu(null)
-  }, [userId])
+    navigator.clipboard.writeText(userId.toString());
+    setContextMenu(null);
+  }, [userId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
-        setContextMenu(null)
+      if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(event.target as Node)
+      ) {
+        setContextMenu(null);
       }
-    }
+    };
 
     if (contextMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [contextMenu])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [contextMenu]);
 
   return (
     <div
@@ -298,8 +318,12 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
             onAvatarClick={() => setIsAvatarExpanded(true)}
             blurIdentity={blurIdentity}
             onSocialStatClick={(type) => {
-              const titles = { friends: 'Friends', followers: 'Followers', following: 'Following' }
-              setUserListModal({ isOpen: true, type, title: titles[type] })
+              const titles = {
+                friends: "Friends",
+                followers: "Followers",
+                following: "Following",
+              };
+              setUserListModal({ isOpen: true, type, title: titles[type] });
             }}
             hasRawDescription={hasRawDescription}
             rawDescription={rawDescription}
@@ -318,7 +342,11 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
               isLoading={loading}
               friendCount={profile.friendCount ?? sortedFriends.length}
               onViewAll={() =>
-                setUserListModal({ isOpen: true, type: 'friends', title: 'Friends' })
+                setUserListModal({
+                  isOpen: true,
+                  type: "friends",
+                  title: "Friends",
+                })
               }
               onSelectProfile={onSelectProfile}
             />
@@ -359,7 +387,10 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 pl-0">
               <div className="p-2 bg-[var(--color-surface-hover)] rounded-lg border border-[var(--color-border-subtle)]">
-                <Shirt size={20} className="text-[var(--color-text-secondary)]" />
+                <Shirt
+                  size={20}
+                  className="text-[var(--color-text-secondary)]"
+                />
               </div>
               <div className="flex flex-col">
                 <span>Currently Wearing</span>
@@ -393,13 +424,16 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                       key={item.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.3) }}
+                      transition={{
+                        duration: 0.2,
+                        delay: Math.min(index * 0.02, 0.3),
+                      }}
                       className="group relative aspect-square bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:shadow-lg"
                       onClick={() =>
                         setSelectedAccessory({
                           id: item.id,
                           name: item.name,
-                          imageUrl: item.imageUrl
+                          imageUrl: item.imageUrl,
                         })
                       }
                     >
@@ -417,7 +451,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           className="absolute inset-0 pointer-events-none"
                           style={{
                             background:
-                              'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)'
+                              "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)",
                           }}
                         />
                         <div className="relative px-2 py-2">
@@ -447,7 +481,10 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 pl-0">
               <div className="p-2 bg-[var(--color-surface-hover)] rounded-lg border border-[var(--color-border-subtle)]">
-                <Package size={20} className="text-[var(--color-text-secondary)]" />
+                <Package
+                  size={20}
+                  className="text-[var(--color-text-secondary)]"
+                />
               </div>
               <div className="flex flex-col">
                 <span>Outfits</span>
@@ -481,42 +518,51 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                       key={outfit.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.3) }}
+                      transition={{
+                        duration: 0.2,
+                        delay: Math.min(index * 0.02, 0.3),
+                      }}
                       className="group relative aspect-square bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:shadow-lg"
                       onClick={async () => {
                         setSelectedOutfit({
                           id: outfit.id,
                           name: outfit.name,
-                          imageUrl: outfit.imageUrl
-                        })
-                        setOutfitDetailsLoading(true)
-                        setOutfitDetails(null)
+                          imageUrl: outfit.imageUrl,
+                        });
+                        setOutfitDetailsLoading(true);
+                        setOutfitDetails(null);
                         try {
                           const details = await window.api.getOutfitDetails(
                             requestCookie,
-                            outfit.id
-                          )
+                            outfit.id,
+                          );
                           if (details && details.assets) {
-                            const assetIds = details.assets.map((a: any) => a.id)
-                            const thumbnails = await window.api.getBatchThumbnails(
-                              assetIds,
-                              'Asset'
-                            )
+                            const assetIds = details.assets.map(
+                              (a: any) => a.id,
+                            );
+                            const thumbnails =
+                              await window.api.getBatchThumbnails(
+                                assetIds,
+                                "Asset",
+                              );
                             const thumbMap = new Map(
-                              thumbnails.data.map((t: any) => [t.targetId, t.imageUrl])
-                            )
+                              thumbnails.data.map((t: any) => [
+                                t.targetId,
+                                t.imageUrl,
+                              ]),
+                            );
                             setOutfitDetails({
                               assets: details.assets.map((asset: any) => ({
                                 id: asset.id,
                                 name: asset.name,
-                                imageUrl: thumbMap.get(asset.id) || ''
-                              }))
-                            })
+                                imageUrl: thumbMap.get(asset.id) || "",
+                              })),
+                            });
                           }
                         } catch (err) {
-                          console.error('Failed to load outfit details:', err)
+                          console.error("Failed to load outfit details:", err);
                         } finally {
-                          setOutfitDetailsLoading(false)
+                          setOutfitDetailsLoading(false);
                         }
                       }}
                     >
@@ -540,7 +586,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           className="absolute inset-0 pointer-events-none"
                           style={{
                             background:
-                              'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 100%)'
+                              "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 100%)",
                           }}
                         />
                         <div className="relative px-2 py-2">
@@ -568,8 +614,8 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
       <Dialog
         isOpen={!!selectedOutfit}
         onClose={() => {
-          setSelectedOutfit(null)
-          setOutfitDetails(null)
+          setSelectedOutfit(null);
+          setOutfitDetails(null);
         }}
       >
         <DialogContent className="max-w-3xl bg-[var(--color-surface-strong)] border border-[var(--color-border)]">
@@ -577,15 +623,20 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
             <DialogTitle className="flex items-center gap-3 pl-0">
               <button
                 onClick={() => {
-                  setSelectedOutfit(null)
-                  setOutfitDetails(null)
+                  setSelectedOutfit(null);
+                  setOutfitDetails(null);
                 }}
                 className="p-2 bg-[var(--color-surface-hover)] rounded-lg border border-[var(--color-border-subtle)] hover:bg-[var(--color-surface-muted)] transition-colors"
               >
-                <ArrowLeft size={20} className="text-[var(--color-text-secondary)]" />
+                <ArrowLeft
+                  size={20}
+                  className="text-[var(--color-text-secondary)]"
+                />
               </button>
               <div className="flex flex-col">
-                <span className="line-clamp-1">{selectedOutfit?.name || 'Outfit'}</span>
+                <span className="line-clamp-1">
+                  {selectedOutfit?.name || "Outfit"}
+                </span>
                 {!outfitDetailsLoading && outfitDetails && (
                   <span className="text-xs font-normal text-[var(--color-text-muted)]">
                     {outfitDetails.assets.length} items
@@ -599,7 +650,10 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
             <AnimatePresence mode="wait">
               {outfitDetailsLoading ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 size={24} className="text-[var(--color-text-muted)] animate-spin" />
+                  <Loader2
+                    size={24}
+                    className="text-[var(--color-text-muted)] animate-spin"
+                  />
                 </div>
               ) : outfitDetails && outfitDetails.assets.length > 0 ? (
                 <motion.div
@@ -615,13 +669,16 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                       key={item.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ duration: 0.2, delay: Math.min(index * 0.02, 0.3) }}
+                      transition={{
+                        duration: 0.2,
+                        delay: Math.min(index * 0.02, 0.3),
+                      }}
                       className="group relative aspect-square bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-strong)] hover:shadow-lg"
                       onClick={() =>
                         setSelectedAccessory({
                           id: item.id,
                           name: item.name,
-                          imageUrl: item.imageUrl
+                          imageUrl: item.imageUrl,
                         })
                       }
                     >
@@ -638,7 +695,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           className="absolute inset-0 pointer-events-none"
                           style={{
                             background:
-                              'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)'
+                              "linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)",
                           }}
                         />
                         <div className="relative px-2 py-2">
@@ -671,8 +728,8 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
         userId={userId}
         requestCookie={requestCookie}
         onSelectUser={(id) => {
-          setUserListModal((prev) => ({ ...prev, isOpen: false }))
-          onSelectProfile?.(id)
+          setUserListModal((prev) => ({ ...prev, isOpen: false }));
+          onSelectProfile?.(id);
         }}
       />
 
@@ -683,14 +740,14 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
         account={
           {
             cookie: requestCookie,
-            userId: accountUserId || (isOwnAccount ? userId : undefined)
+            userId: accountUserId || (isOwnAccount ? userId : undefined),
           } as Account
         }
         initialData={
           selectedAccessory
             ? {
                 name: selectedAccessory.name,
-                imageUrl: selectedAccessory.imageUrl
+                imageUrl: selectedAccessory.imageUrl,
               }
             : undefined
         }
@@ -712,18 +769,18 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
               initial={{ opacity: 0, y: 8, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
               className="fixed z-[100] w-52 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden"
               style={{
                 top: Math.min(contextMenu.y, window.innerHeight - 220),
-                left: Math.min(contextMenu.x, window.innerWidth - 220)
+                left: Math.min(contextMenu.x, window.innerWidth - 220),
               }}
             >
               <div className="p-1.5">
                 <button
                   onClick={() => {
-                    setIsWearingOpen(true)
-                    setContextMenu(null)
+                    setIsWearingOpen(true);
+                    setContextMenu(null);
                   }}
                   className="pressable w-full text-left px-3 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] flex items-center gap-2.5 rounded-lg transition-colors"
                 >
@@ -732,8 +789,8 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    setIsOutfitsOpen(true)
-                    setContextMenu(null)
+                    setIsOutfitsOpen(true);
+                    setContextMenu(null);
                   }}
                   className="pressable w-full text-left px-3 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] flex items-center gap-2.5 rounded-lg transition-colors"
                 >
@@ -742,8 +799,8 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    setIsInventoryOpen(true)
-                    setContextMenu(null)
+                    setIsInventoryOpen(true);
+                    setContextMenu(null);
                   }}
                   className="pressable w-full text-left px-3 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] flex items-center gap-2.5 rounded-lg transition-colors"
                 >
@@ -759,9 +816,9 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                     <Copy size={16} />
                     <span className="font-medium">Copy User ID</span>
                   </span>
-                  <span 
+                  <span
                     className="text-xs text-[var(--color-text-muted)] font-mono"
-                    style={blurIdentity ? { filter: 'blur(16px)' } : undefined}
+                    style={blurIdentity ? { filter: "blur(16px)" } : undefined}
                   >
                     {userIdNum}
                   </span>
@@ -773,7 +830,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
               </div>
             </motion.div>
           </AnimatePresence>,
-          document.body
+          document.body,
         )}
 
       <PlayerInventorySheet
@@ -793,7 +850,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
         onViewProfile={onSelectProfile}
       />
     </div>
-  )
-}
+  );
+};
 
-export default UserProfileView
+export default UserProfileView;

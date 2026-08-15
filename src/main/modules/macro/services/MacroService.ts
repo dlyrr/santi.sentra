@@ -6,7 +6,11 @@
 import { promises as fs } from "fs";
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
-import { AppError, ErrorCode, ErrorSeverity } from "../../shared/error/AppError";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+} from "../../shared/error/AppError";
 import {
   Macro,
   MacroRecorderConfig,
@@ -44,7 +48,7 @@ export class MacroService extends EventEmitter implements IMacroService {
         ErrorCode.MACRO_RECORD_ERROR,
         "MacroService",
         ErrorSeverity.MEDIUM,
-        { error }
+        { error },
       );
       this.logger.error("Failed to start recording", error as Error);
       throw appError;
@@ -67,14 +71,14 @@ export class MacroService extends EventEmitter implements IMacroService {
    */
   public async playMacro(
     macro: Macro,
-    config?: MacroPlaybackConfig
+    config?: MacroPlaybackConfig,
   ): Promise<MacroPlaybackResult> {
     try {
       if (!this.validateMacro(macro)) {
         throw new AppError(
           "Invalid macro format",
           ErrorCode.MACRO_INVALID_FORMAT,
-          "MacroService"
+          "MacroService",
         );
       }
 
@@ -87,7 +91,7 @@ export class MacroService extends EventEmitter implements IMacroService {
         ErrorCode.MACRO_PLAYBACK_ERROR,
         "MacroService",
         ErrorSeverity.MEDIUM,
-        { error }
+        { error },
       );
       this.logger.error("Failed to play macro", error as Error);
       throw appError;
@@ -103,7 +107,7 @@ export class MacroService extends EventEmitter implements IMacroService {
         throw new AppError(
           "Invalid macro format",
           ErrorCode.MACRO_INVALID_FORMAT,
-          "MacroService"
+          "MacroService",
         );
       }
 
@@ -117,7 +121,7 @@ export class MacroService extends EventEmitter implements IMacroService {
         ErrorCode.MACRO_FILE_ERROR,
         "MacroService",
         ErrorSeverity.MEDIUM,
-        { filePath, error }
+        { filePath, error },
       );
       this.logger.error("Failed to save macro", error as Error, {
         filePath,
@@ -140,7 +144,7 @@ export class MacroService extends EventEmitter implements IMacroService {
           ErrorCode.MACRO_INVALID_FORMAT,
           "MacroService",
           ErrorSeverity.MEDIUM,
-          { filePath }
+          { filePath },
         );
       }
 
@@ -153,7 +157,7 @@ export class MacroService extends EventEmitter implements IMacroService {
         ErrorCode.MACRO_FILE_ERROR,
         "MacroService",
         ErrorSeverity.MEDIUM,
-        { filePath, error }
+        { filePath, error },
       );
       this.logger.error("Failed to load macro", error as Error, {
         filePath,
@@ -213,32 +217,24 @@ export class MacroService extends EventEmitter implements IMacroService {
         event.type &&
         ["mouse", "keyboard"].includes(event.type) &&
         typeof event.action === "string" &&
-        typeof event.timestamp === "number"
+        typeof event.timestamp === "number",
     );
   }
 
   private setupEventForwarding(): void {
-    this.recorder.on("recordingStarted", () =>
-      this.emit("recordingStarted")
-    );
+    this.recorder.on("recordingStarted", () => this.emit("recordingStarted"));
     this.recorder.on("recordingStopped", (macro: Macro) =>
-      this.emit("recordingStopped", macro)
+      this.emit("recordingStopped", macro),
     );
     this.recorder.on("eventRecorded", (event) =>
-      this.emit("eventRecorded", event)
+      this.emit("eventRecorded", event),
     );
 
-    this.player.on("playbackStarted", () =>
-      this.emit("playbackStarted")
-    );
-    this.player.on("playbackCompleted", () =>
-      this.emit("playbackCompleted")
-    );
-    this.player.on("eventPlayed", (event) =>
-      this.emit("eventPlayed", event)
-    );
+    this.player.on("playbackStarted", () => this.emit("playbackStarted"));
+    this.player.on("playbackCompleted", () => this.emit("playbackCompleted"));
+    this.player.on("eventPlayed", (event) => this.emit("eventPlayed", event));
     this.player.on("playbackError", (error) =>
-      this.emit("playbackError", error)
+      this.emit("playbackError", error),
     );
   }
 }

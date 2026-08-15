@@ -1,72 +1,83 @@
-import React, { useState, useEffect } from 'react'
-import { UserPlus, Loader2, AlertCircle } from 'lucide-react'
-import { Account } from '@renderer/types'
-import { useNotification } from '@renderer/features/system/stores/useSnackbarStore'
-import { Dialog, DialogContent, DialogClose } from '@renderer/components/UI/dialogs/Dialog'
+import React, { useState, useEffect } from "react";
+import { UserPlus, Loader2, AlertCircle } from "lucide-react";
+import { Account } from "@renderer/types";
+import { useNotification } from "@renderer/features/system/stores/useSnackbarStore";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@renderer/components/UI/dialogs/Dialog";
 
 interface AddFriendModalProps {
-  isOpen: boolean
-  onClose: () => void
-  selectedAccount: Account | null
-  onFriendRequestSent?: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  selectedAccount: Account | null;
+  onFriendRequestSent?: () => void;
 }
 
 const AddFriendModal: React.FC<AddFriendModalProps> = ({
   isOpen,
   onClose,
   selectedAccount,
-  onFriendRequestSent
+  onFriendRequestSent,
 }) => {
-  const [isLoading, setIsLoading] = useState(false)
-  const [username, setUsername] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const { showNotification } = useNotification()
+  const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(false)
-      setUsername('')
-      setError(null)
+      setIsLoading(false);
+      setUsername("");
+      setError(null);
     }
-  }, [isOpen])
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!username.trim() || isLoading || !selectedAccount?.cookie) return
+    e.preventDefault();
+    if (!username.trim() || isLoading || !selectedAccount?.cookie) return;
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const userData = await window.api.getUserByUsername(username.trim())
+      const userData = await window.api.getUserByUsername(username.trim());
       if (!userData) {
-        setError('User not found.')
-        setIsLoading(false)
-        return
+        setError("User not found.");
+        setIsLoading(false);
+        return;
       }
 
-      const result = await window.api.sendFriendRequest(selectedAccount.cookie, userData.id)
+      const result = await window.api.sendFriendRequest(
+        selectedAccount.cookie,
+        userData.id,
+      );
 
       if (result.success) {
-        showNotification(`Friend request sent to ${userData.displayName}!`, 'success')
-        setUsername('')
-        onFriendRequestSent?.()
-        onClose()
+        showNotification(
+          `Friend request sent to ${userData.displayName}!`,
+          "success",
+        );
+        setUsername("");
+        onFriendRequestSent?.();
+        onClose();
       } else if (result.isCaptchaRequired) {
-        setError('Captcha required. Please try again later.')
+        setError("Captcha required. Please try again later.");
       } else {
-        setError('Failed to send friend request.')
+        setError("Failed to send friend request.");
       }
     } catch (err: any) {
-      console.error('Failed to send friend request:', err)
+      console.error("Failed to send friend request:", err);
       const errorMessage =
-        err.message || 'Failed to send friend request. Please check the username and try again.'
-      setError(errorMessage)
-      showNotification(errorMessage, 'error')
+        err.message ||
+        "Failed to send friend request. Please check the username and try again.";
+      setError(errorMessage);
+      showNotification(errorMessage, "error");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -74,11 +85,18 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[var(--color-surface)] rounded-lg">
-              <UserPlus size={20} className="text-[var(--color-text-secondary)]" />
+              <UserPlus
+                size={20}
+                className="text-[var(--color-text-secondary)]"
+              />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Add Friend</h3>
-              <p className="text-sm text-[var(--color-text-muted)]">Send a friend request</p>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                Add Friend
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Send a friend request
+              </p>
             </div>
           </div>
           <DialogClose disabled={isLoading} />
@@ -94,7 +112,10 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
 
           {!selectedAccount && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 flex gap-3 items-start">
-              <AlertCircle className="text-yellow-500 shrink-0 mt-0.5" size={18} />
+              <AlertCircle
+                className="text-yellow-500 shrink-0 mt-0.5"
+                size={18}
+              />
               <p className="text-sm text-yellow-200/80 leading-relaxed">
                 Please select an account first.
               </p>
@@ -102,7 +123,10 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
           )}
 
           <div className="space-y-2">
-            <label htmlFor="usernameInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
+            <label
+              htmlFor="usernameInput"
+              className="text-sm font-medium text-[var(--color-text-secondary)]"
+            >
               Username
             </label>
             <input
@@ -110,8 +134,8 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
               type="text"
               value={username}
               onChange={(e) => {
-                setUsername(e.target.value)
-                setError(null)
+                setUsername(e.target.value);
+                setError(null);
               }}
               disabled={isLoading || !selectedAccount}
               placeholder="Enter player username..."
@@ -134,14 +158,18 @@ const AddFriendModal: React.FC<AddFriendModalProps> = ({
               disabled={!username.trim() || isLoading || !selectedAccount}
               className="pressable flex-[2] flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
-              <span>{isLoading ? 'Sending...' : 'Send Request'}</span>
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <UserPlus size={18} />
+              )}
+              <span>{isLoading ? "Sending..." : "Send Request"}</span>
             </button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default AddFriendModal
+export default AddFriendModal;

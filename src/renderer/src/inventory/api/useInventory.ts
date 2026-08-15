@@ -1,31 +1,36 @@
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
-import { useEffect, useMemo } from 'react'
-import { queryKeys } from '@shared/queryKeys'
-import { InventoryPage } from '@shared/ipc-schemas/avatar'
-import { useInventoryStore } from '../stores/useInventoryStore'
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { queryKeys } from "@shared/queryKeys";
+import { InventoryPage } from "@shared/ipc-schemas/avatar";
+import { useInventoryStore } from "../stores/useInventoryStore";
 
 export interface UseInventoryV2Params {
-  cookie: string | undefined
-  userId: number | undefined
-  assetTypes: string[]
-  sortOrder?: 'Asc' | 'Desc'
-  limit?: number
-  enabled?: boolean
+  cookie: string | undefined;
+  userId: number | undefined;
+  assetTypes: string[];
+  sortOrder?: "Asc" | "Desc";
+  limit?: number;
+  enabled?: boolean;
 }
 
 export function useInventoryV2({
   cookie,
   userId,
   assetTypes,
-  sortOrder = 'Desc',
+  sortOrder = "Desc",
   limit = 100,
-  enabled = true
+  enabled = true,
 }: UseInventoryV2Params) {
   return useInfiniteQuery({
-    queryKey: queryKeys.inventory.v2(cookie || '', userId || 0, assetTypes, sortOrder),
+    queryKey: queryKeys.inventory.v2(
+      cookie || "",
+      userId || 0,
+      assetTypes,
+      sortOrder,
+    ),
     queryFn: async ({ pageParam }): Promise<InventoryPage> => {
       if (!cookie || !userId) {
-        return { previousPageCursor: null, nextPageCursor: null, data: [] }
+        return { previousPageCursor: null, nextPageCursor: null, data: [] };
       }
 
       const result = await window.api.getInventoryV2(
@@ -34,31 +39,36 @@ export function useInventoryV2({
         assetTypes,
         pageParam as string | undefined,
         limit,
-        sortOrder
-      )
+        sortOrder,
+      );
 
-      return result
+      return result;
     },
     enabled: enabled && !!cookie && !!userId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextPageCursor || undefined,
-    staleTime: 60 * 1000 // 1 minute
-  })
+    staleTime: 60 * 1000, // 1 minute
+  });
 }
 
 export function useInventoryV2SinglePage({
   cookie,
   userId,
   assetTypes,
-  sortOrder = 'Desc',
+  sortOrder = "Desc",
   limit = 100,
-  enabled = true
+  enabled = true,
 }: UseInventoryV2Params) {
   return useQuery({
-    queryKey: queryKeys.inventory.v2(cookie || '', userId || 0, assetTypes, sortOrder),
+    queryKey: queryKeys.inventory.v2(
+      cookie || "",
+      userId || 0,
+      assetTypes,
+      sortOrder,
+    ),
     queryFn: async (): Promise<InventoryPage> => {
       if (!cookie || !userId) {
-        return { previousPageCursor: null, nextPageCursor: null, data: [] }
+        return { previousPageCursor: null, nextPageCursor: null, data: [] };
       }
 
       return await window.api.getInventoryV2(
@@ -67,12 +77,12 @@ export function useInventoryV2SinglePage({
         assetTypes,
         undefined,
         limit,
-        sortOrder
-      )
+        sortOrder,
+      );
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 60 * 1000 // 1 minute
-  })
+    staleTime: 60 * 1000, // 1 minute
+  });
 }
 
 /**
@@ -80,63 +90,89 @@ export function useInventoryV2SinglePage({
  * Uses zustand store for persistent cache and react-query for fetching
  */
 export function useInventoryThumbnails(assetIds: number[], enabled = true) {
-  const thumbnails = useInventoryStore((state) => state.thumbnails)
-  const setThumbnails = useInventoryStore((state) => state.setThumbnails)
-  const markAsFetched = useInventoryStore((state) => state.markAsFetched)
-  const fetchedIds = useInventoryStore((state) => state.fetchedIds)
+  const thumbnails = useInventoryStore((state) => state.thumbnails);
+  const setThumbnails = useInventoryStore((state) => state.setThumbnails);
+  const markAsFetched = useInventoryStore((state) => state.markAsFetched);
+  const fetchedIds = useInventoryStore((state) => state.fetchedIds);
 
   // Filter out IDs we already have or have attempted to fetch
   const missingIds = useMemo(() => {
-    return assetIds.filter((id) => thumbnails[id] === undefined && !fetchedIds.has(id))
-  }, [assetIds, thumbnails, fetchedIds])
+    return assetIds.filter(
+      (id) => thumbnails[id] === undefined && !fetchedIds.has(id),
+    );
+  }, [assetIds, thumbnails, fetchedIds]);
 
   // Sort for stable query key
-  const sortedMissingIds = useMemo(() => [...missingIds].sort((a, b) => a - b), [missingIds])
+  const sortedMissingIds = useMemo(
+    () => [...missingIds].sort((a, b) => a - b),
+    [missingIds],
+  );
 
   const query = useQuery({
     queryKey: queryKeys.inventory.thumbnails(sortedMissingIds),
     queryFn: async () => {
-      if (sortedMissingIds.length === 0) return {}
+      if (sortedMissingIds.length === 0) return {};
 
       try {
-        const result = await window.api.getBatchThumbnails(sortedMissingIds, 'Asset')
-        const newThumbnails: Record<number, string> = {}
+        const result = await window.api.getBatchThumbnails(
+          sortedMissingIds,
+          "Asset",
+        );
+        const newThumbnails: Record<number, string> = {};
 
-        result.data.forEach((thumb: { targetId: number; state: string; imageUrl: string | null; requestId?: string | undefined }) => {
-          if (thumb.imageUrl) {
-            newThumbnails[thumb.targetId] = thumb.imageUrl
-          }
-        })
+        result.data.forEach(
+          (thumb: {
+            targetId: number;
+            state: string;
+            imageUrl: string | null;
+            requestId?: string | undefined;
+          }) => {
+            if (thumb.imageUrl) {
+              newThumbnails[thumb.targetId] = thumb.imageUrl;
+            }
+          },
+        );
 
-        return newThumbnails
+        return newThumbnails;
       } catch (error) {
-        console.error('Failed to fetch inventory thumbnails:', error instanceof Error ? error.message : String(error))
-        throw error
+        console.error(
+          "Failed to fetch inventory thumbnails:",
+          error instanceof Error ? error.message : String(error),
+        );
+        throw error;
       }
     },
     enabled: enabled && sortedMissingIds.length > 0,
     staleTime: Infinity, // Thumbnails don't change
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 5000)
-  })
+    retryDelay: (attemptIndex) =>
+      Math.min(1000 * Math.pow(2, attemptIndex), 5000),
+  });
 
   // Sync fetched thumbnails to zustand store
   useEffect(() => {
     if (query.data && Object.keys(query.data).length > 0) {
-      setThumbnails(query.data)
+      setThumbnails(query.data);
     }
     // Mark IDs as fetched regardless of result (to prevent re-fetching failures)
     if (query.isSuccess || query.isError) {
       if (sortedMissingIds.length > 0) {
-        markAsFetched(sortedMissingIds)
+        markAsFetched(sortedMissingIds);
       }
     }
-  }, [query.data, query.isSuccess, query.isError, sortedMissingIds, setThumbnails, markAsFetched])
+  }, [
+    query.data,
+    query.isSuccess,
+    query.isError,
+    sortedMissingIds,
+    setThumbnails,
+    markAsFetched,
+  ]);
 
   return {
     thumbnails,
     isLoading: query.isLoading,
-    error: query.error
-  }
+    error: query.error,
+  };
 }

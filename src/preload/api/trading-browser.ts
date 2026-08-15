@@ -2,98 +2,98 @@
  * Browser Automation Module API - Expose browser automation to renderer process
  */
 
-import { invoke } from './invoke'
-import { z } from 'zod'
+import { invoke } from "./invoke";
+import { z } from "zod";
 
 export const browserApi = {
   launch: (options?: any) =>
     invoke(
-      'browser:launch',
+      "browser:launch",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      options
+      options,
     ),
 
   navigate: (url: string, options?: any) =>
     invoke(
-      'browser:navigate',
+      "browser:navigate",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
       url,
-      options
+      options,
     ),
 
   fillForm: (formConfig: any) =>
     invoke(
-      'browser:fill-form',
+      "browser:fill-form",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      formConfig
+      formConfig,
     ),
 
   executeAutomation: (navigationConfig: any, formConfig: any) =>
     invoke(
-      'browser:execute-automation',
+      "browser:execute-automation",
       z.object({
         success: z.boolean(),
         result: z.any().optional(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
       navigationConfig,
-      formConfig
+      formConfig,
     ),
 
   waitForUserInteraction: (timeout?: number) =>
     invoke(
-      'browser:wait-for-user',
+      "browser:wait-for-user",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      timeout
+      timeout,
     ),
 
   completeUserInteraction: () =>
     invoke(
-      'browser:complete-user',
+      "browser:complete-user",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
-      })
+        error: z.string().optional(),
+      }),
     ),
 
   screenshot: (path?: string) =>
     invoke(
-      'browser:screenshot',
+      "browser:screenshot",
       z.object({
         success: z.boolean(),
         buffer: z.any().optional(),
-        error: z.string().optional()
+        error: z.string().optional(),
       }),
-      path
+      path,
     ),
 
   close: () =>
     invoke(
-      'browser:close',
+      "browser:close",
       z.object({
         success: z.boolean(),
-        error: z.string().optional()
-      })
+        error: z.string().optional(),
+      }),
     ),
 
   isAutomating: () =>
     invoke(
-      'browser:is-automating',
+      "browser:is-automating",
       z.object({
         success: z.boolean(),
-        isAutomating: z.boolean().optional()
-      })
-    )
-}
+        isAutomating: z.boolean().optional(),
+      }),
+    ),
+};

@@ -1,7 +1,7 @@
 // Prediction algorithm removed - no longer exporting prediction-related functions
 
 // Export ChartDataPoint type from chartUtils since it's used by other components
-export type { ChartDataPoint } from './chartUtils'
+export type { ChartDataPoint } from "./chartUtils";
 
 export {
   // Types
@@ -25,8 +25,8 @@ export {
 
   // Export utilities
   exportChartAsCSV,
-  exportChartAsPNG
-} from './chartUtils'
+  exportChartAsPNG,
+} from "./chartUtils";
 
 export {
   // UI Components
@@ -37,5 +37,5 @@ export {
   StatisticsPanel,
   ChartLegend,
   ChartTooltip,
-  StatsToggle
-} from './ChartComponents'
+  StatsToggle,
+} from "./ChartComponents";

@@ -1,24 +1,33 @@
-import { useState, useEffect, useMemo, useRef, useCallback, CSSProperties } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Star, Gamepad2, ThumbsUp, Play, X } from 'lucide-react'
-import { Game } from '@renderer/types'
-import GameContextMenu from './UI/GameContextMenu'
-import { useNotification } from '@renderer/features/system/stores/useSnackbarStore'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { SearchInput } from '@renderer/components/UI/inputs/SearchInput'
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+  CSSProperties,
+} from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Users, Star, Gamepad2, ThumbsUp, Play, X } from "lucide-react";
+import { Game } from "@renderer/types";
+import GameContextMenu from "./UI/GameContextMenu";
+import { useNotification } from "@renderer/features/system/stores/useSnackbarStore";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { SearchInput } from "@renderer/components/UI/inputs/SearchInput";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-  TooltipProvider
-} from '@renderer/components/UI/display/Tooltip'
-import CustomDropdown, { DropdownOption } from '@renderer/components/UI/menus/CustomDropdown'
-import { HorizontalCarousel } from '@renderer/components/UI/navigation/HorizontalCarousel'
-import { SkeletonGameGrid } from '@renderer/components/UI/display/SkeletonGrid'
-import FavoriteParticles from '@renderer/components/UI/specialized/FavoriteParticles'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
-import { formatNumber } from '@renderer/utils/numberUtils'
+  TooltipProvider,
+} from "@renderer/components/UI/display/Tooltip";
+import CustomDropdown, {
+  DropdownOption,
+} from "@renderer/components/UI/menus/CustomDropdown";
+import { HorizontalCarousel } from "@renderer/components/UI/navigation/HorizontalCarousel";
+import { SkeletonGameGrid } from "@renderer/components/UI/display/SkeletonGrid";
+import FavoriteParticles from "@renderer/components/UI/specialized/FavoriteParticles";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import VerifiedIcon from "@renderer/components/UI/icons/VerifiedIcon";
+import { formatNumber } from "@renderer/utils/numberUtils";
 import {
   useGameSorts,
   useGamesInSort,
@@ -27,46 +36,54 @@ import {
   useFavoriteGames,
   useRecentlyPlayedGames,
   useAddFavoriteGame,
-  useRemoveFavoriteGame
-} from '@renderer/hooks/queries'
-import { useOpenModal } from '@renderer/stores/useUIStore'
-import { useSelectedIds } from '@renderer/stores/useSelectionStore'
+  useRemoveFavoriteGame,
+} from "@renderer/hooks/queries";
+import { useOpenModal } from "@renderer/stores/useUIStore";
+import { useSelectedIds } from "@renderer/stores/useSelectionStore";
 
 interface GamesTabProps {
-  onGameSelect: (game: Game) => void
+  onGameSelect: (game: Game) => void;
 }
 
 const gridStyle: CSSProperties = {
-  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))'
-}
+  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+};
 
-const TruncatedTitle = ({ text, className }: { text: string; className?: string }) => {
-  const textRef = useRef<HTMLHeadingElement>(null)
-  const [isTruncated, setIsTruncated] = useState(false)
+const TruncatedTitle = ({
+  text,
+  className,
+}: {
+  text: string;
+  className?: string;
+}) => {
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
 
   useEffect(() => {
     const checkTruncation = () => {
       if (textRef.current) {
-        setIsTruncated(textRef.current.scrollWidth > textRef.current.clientWidth)
+        setIsTruncated(
+          textRef.current.scrollWidth > textRef.current.clientWidth,
+        );
       }
-    }
+    };
 
-    checkTruncation()
+    checkTruncation();
     // Add small delay to allow layout to settle
-    const timer = setTimeout(checkTruncation, 100)
+    const timer = setTimeout(checkTruncation, 100);
 
-    window.addEventListener('resize', checkTruncation)
+    window.addEventListener("resize", checkTruncation);
     return () => {
-      window.removeEventListener('resize', checkTruncation)
-      clearTimeout(timer)
-    }
-  }, [text])
+      window.removeEventListener("resize", checkTruncation);
+      clearTimeout(timer);
+    };
+  }, [text]);
 
   const titleElement = (
     <h3 ref={textRef} className={className}>
       {text}
     </h3>
-  )
+  );
 
   if (isTruncated) {
     return (
@@ -74,19 +91,19 @@ const TruncatedTitle = ({ text, className }: { text: string; className?: string 
         <TooltipTrigger asChild>{titleElement}</TooltipTrigger>
         <TooltipContent>{text}</TooltipContent>
       </Tooltip>
-    )
+    );
   }
 
-  return titleElement
-}
+  return titleElement;
+};
 
 interface GameCardProps {
-  game: Game
-  onGameSelect: (game: Game) => void
-  onContextMenu: (e: React.MouseEvent, game: Game) => void
-  formatPlayerCount: (num: number) => string
-  isFavorite: boolean
-  favoriteBurst: boolean
+  game: Game;
+  onGameSelect: (game: Game) => void;
+  onContextMenu: (e: React.MouseEvent, game: Game) => void;
+  formatPlayerCount: (num: number) => string;
+  isFavorite: boolean;
+  favoriteBurst: boolean;
 }
 
 const GameCard = ({
@@ -95,113 +112,128 @@ const GameCard = ({
   onContextMenu,
   formatPlayerCount,
   isFavorite,
-  favoriteBurst
+  favoriteBurst,
 }: GameCardProps) => {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const imageRef = useRef<HTMLImageElement>(null)
-  const mediaRef = useRef<HTMLDivElement>(null)
-  const rafRef = useRef<number | null>(null)
-  const isHoveredRef = useRef(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const [hasImageError, setHasImageError] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const isHoveredRef = useRef(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
 
-  const targetTransform = useRef({ x: 0, y: 0, scale: 1 })
-  const currentTransform = useRef({ x: 0, y: 0, scale: 1 })
+  const targetTransform = useRef({ x: 0, y: 0, scale: 1 });
+  const currentTransform = useRef({ x: 0, y: 0, scale: 1 });
 
-  const PARALLAX_INTENSITY = 0.01 // Max translate percentage of width/height
-  const HOVER_SCALE = 1.05
-  const SMOOTHING = 0.12
-  const EPSILON = 0.001
+  const PARALLAX_INTENSITY = 0.01; // Max translate percentage of width/height
+  const HOVER_SCALE = 1.05;
+  const SMOOTHING = 0.12;
+  const EPSILON = 0.001;
 
   const applyTransform = () => {
-    if (!mediaRef.current) return
-    const { x, y, scale } = currentTransform.current
-    const transform = `translate(${x * 100}%, ${y * 100}%) scale(${scale})`
+    if (!mediaRef.current) return;
+    const { x, y, scale } = currentTransform.current;
+    const transform = `translate(${x * 100}%, ${y * 100}%) scale(${scale})`;
     if (mediaRef.current) {
-      mediaRef.current.style.transform = transform
+      mediaRef.current.style.transform = transform;
     }
-  }
+  };
 
   const animate = () => {
     if (!imageRef.current) {
-      rafRef.current = null
-      return
+      rafRef.current = null;
+      return;
     }
 
-    const { x: targetX, y: targetY, scale: targetScale } = targetTransform.current
-    const { x, y, scale } = currentTransform.current
+    const {
+      x: targetX,
+      y: targetY,
+      scale: targetScale,
+    } = targetTransform.current;
+    const { x, y, scale } = currentTransform.current;
 
-    const nextX = x + (targetX - x) * SMOOTHING
-    const nextY = y + (targetY - y) * SMOOTHING
-    const nextScale = scale + (targetScale - scale) * SMOOTHING
+    const nextX = x + (targetX - x) * SMOOTHING;
+    const nextY = y + (targetY - y) * SMOOTHING;
+    const nextScale = scale + (targetScale - scale) * SMOOTHING;
 
-    currentTransform.current = { x: nextX, y: nextY, scale: nextScale }
-    applyTransform()
+    currentTransform.current = { x: nextX, y: nextY, scale: nextScale };
+    applyTransform();
 
     const isSettled =
       Math.abs(nextX - targetX) < EPSILON &&
       Math.abs(nextY - targetY) < EPSILON &&
-      Math.abs(nextScale - targetScale) < EPSILON
+      Math.abs(nextScale - targetScale) < EPSILON;
 
     if (!isSettled) {
-      rafRef.current = requestAnimationFrame(animate)
-      return
+      rafRef.current = requestAnimationFrame(animate);
+      return;
     }
 
-    currentTransform.current = { ...targetTransform.current }
-    applyTransform()
-    rafRef.current = null
-  }
+    currentTransform.current = { ...targetTransform.current };
+    applyTransform();
+    rafRef.current = null;
+  };
 
   const startAnimation = () => {
-    if (rafRef.current !== null) return
-    rafRef.current = requestAnimationFrame(animate)
-  }
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(animate);
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current || !imageRef.current || !isHoveredRef.current) return
+    if (!cardRef.current || !imageRef.current || !isHoveredRef.current) return;
 
-    const rect = cardRef.current.getBoundingClientRect()
-    const relativeX = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1)
-    const relativeY = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1)
+    const rect = cardRef.current.getBoundingClientRect();
+    const relativeX = Math.min(
+      Math.max((e.clientX - rect.left) / rect.width, 0),
+      1,
+    );
+    const relativeY = Math.min(
+      Math.max((e.clientY - rect.top) / rect.height, 0),
+      1,
+    );
 
-    targetTransform.current.x = (relativeX - 0.5) * 2 * PARALLAX_INTENSITY
-    targetTransform.current.y = (relativeY - 0.5) * 2 * PARALLAX_INTENSITY
+    targetTransform.current.x = (relativeX - 0.5) * 2 * PARALLAX_INTENSITY;
+    targetTransform.current.y = (relativeY - 0.5) * 2 * PARALLAX_INTENSITY;
 
-    startAnimation()
-  }
+    startAnimation();
+  };
 
   const handleMouseEnter = () => {
-    isHoveredRef.current = true
-    targetTransform.current = { ...targetTransform.current, scale: HOVER_SCALE, x: 0, y: 0 }
-    startAnimation()
-  }
+    isHoveredRef.current = true;
+    targetTransform.current = {
+      ...targetTransform.current,
+      scale: HOVER_SCALE,
+      x: 0,
+      y: 0,
+    };
+    startAnimation();
+  };
 
   const handleMouseLeave = () => {
-    isHoveredRef.current = false
-    targetTransform.current = { x: 0, y: 0, scale: 1 }
-    startAnimation()
-  }
+    isHoveredRef.current = false;
+    targetTransform.current = { x: 0, y: 0, scale: 1 };
+    startAnimation();
+  };
 
   useEffect(() => {
     return () => {
       if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current)
+        cancelAnimationFrame(rafRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Reset image loaded state when game changes
   useEffect(() => {
-    setImageLoaded(false)
-    setHasImageError(false)
+    setImageLoaded(false);
+    setHasImageError(false);
 
     // Handle cached images that may already be loaded
-    const img = imageRef.current
+    const img = imageRef.current;
     if (img && img.complete && img.naturalWidth > 0) {
-      setImageLoaded(true)
+      setImageLoaded(true);
     }
-  }, [game.thumbnailUrl])
+  }, [game.thumbnailUrl]);
 
   return (
     <div
@@ -217,13 +249,23 @@ const GameCard = ({
         {isFavorite && (
           <div className="absolute top-3 left-3 z-10 pointer-events-none">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-500/90 to-amber-600/90 flex items-center justify-center text-[var(--color-text-primary)] shadow-lg shadow-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 relative overflow-visible">
-              <Star size={16} className="fill-current" style={{ strokeWidth: 0 }} />
-              <FavoriteParticles active={favoriteBurst} color={[251, 191, 36]} />
+              <Star
+                size={16}
+                className="fill-current"
+                style={{ strokeWidth: 0 }}
+              />
+              <FavoriteParticles
+                active={favoriteBurst}
+                color={[251, 191, 36]}
+              />
             </div>
           </div>
         )}
         {game.thumbnailUrl && !hasImageError ? (
-          <div ref={mediaRef} className="absolute inset-0 will-change-transform">
+          <div
+            ref={mediaRef}
+            className="absolute inset-0 will-change-transform"
+          >
             {!imageLoaded && (
               <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-neutral-700/50 to-transparent" />
@@ -235,16 +277,16 @@ const GameCard = ({
               alt={game.name}
               onLoad={() => setImageLoaded(true)}
               onError={() => {
-                setHasImageError(true)
-                setImageLoaded(true)
+                setHasImageError(true);
+                setImageLoaded(true);
               }}
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
                 opacity: imageLoaded ? 1 : 0,
-                transition: 'opacity 0.4s ease-out'
+                transition: "opacity 0.4s ease-out",
               }}
               className="absolute inset-0 backface-hidden"
               loading="lazy"
@@ -253,7 +295,7 @@ const GameCard = ({
               className="absolute inset-0 pointer-events-none translate-z-0"
               style={{
                 background:
-                  'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.9) 100%)'
+                  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0.9) 100%)",
               }}
             ></div>
           </div>
@@ -271,7 +313,7 @@ const GameCard = ({
             <span>by</span>
             <span
               className={`truncate flex items-center gap-1 ${
-                game.creatorHasVerifiedBadge ? 'text-[#3385ff]' : ''
+                game.creatorHasVerifiedBadge ? "text-[#3385ff]" : ""
               }`}
             >
               {game.creatorName}
@@ -287,13 +329,19 @@ const GameCard = ({
           <TooltipTrigger asChild>
             <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
               <Users size={14} />
-              <span className="font-semibold">{formatPlayerCount(game.playing)}</span>
+              <span className="font-semibold">
+                {formatPlayerCount(game.playing)}
+              </span>
             </div>
           </TooltipTrigger>
           <TooltipContent>
             <div className="text-center">
-              <div className="font-semibold">{game.playing.toLocaleString()}</div>
-              <div className="text-xs text-[var(--color-text-secondary)]">playing now</div>
+              <div className="font-semibold">
+                {game.playing.toLocaleString()}
+              </div>
+              <div className="text-xs text-[var(--color-text-secondary)]">
+                playing now
+              </div>
             </div>
           </TooltipContent>
         </Tooltip>
@@ -304,18 +352,20 @@ const GameCard = ({
                 (game.likes + game.dislikes > 0
                   ? (game.likes / (game.likes + game.dislikes)) * 100
                   : 0) >= 80
-                  ? 'text-green-400'
+                  ? "text-green-400"
                   : (game.likes + game.dislikes > 0
                         ? (game.likes / (game.likes + game.dislikes)) * 100
                         : 0) >= 50
-                    ? 'text-yellow-400'
-                    : 'text-[var(--color-text-secondary)]'
+                    ? "text-yellow-400"
+                    : "text-[var(--color-text-secondary)]"
               }`}
             >
               <ThumbsUp size={14} />
               <span className="font-semibold">
                 {game.likes + game.dislikes > 0
-                  ? ((game.likes / (game.likes + game.dislikes)) * 100).toFixed(0)
+                  ? ((game.likes / (game.likes + game.dislikes)) * 100).toFixed(
+                      0,
+                    )
                   : 0}
                 %
               </span>
@@ -323,7 +373,9 @@ const GameCard = ({
           </TooltipTrigger>
           <TooltipContent>
             <div className="text-center">
-              <div className="font-semibold">{game.likes.toLocaleString()} likes</div>
+              <div className="font-semibold">
+                {game.likes.toLocaleString()} likes
+              </div>
               <div className="text-xs text-[var(--color-text-secondary)]">
                 {game.dislikes.toLocaleString()} dislikes
               </div>
@@ -332,8 +384,8 @@ const GameCard = ({
         </Tooltip>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const GameCardSkeleton = () => (
   <div className="w-[220px] shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-app-bg)]/60 overflow-hidden animate-pulse">
@@ -347,171 +399,179 @@ const GameCardSkeleton = () => (
       </div>
     </div>
   </div>
-)
+);
 
 const GamesTab = ({ onGameSelect }: GamesTabProps) => {
-  const { showNotification } = useNotification()
-  const openModal = useOpenModal()
-  const selectedIds = useSelectedIds()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
-  const [selectedSortId, setSelectedSortId] = useState<string | null>(null)
+  const { showNotification } = useNotification();
+  const openModal = useOpenModal();
+  const selectedIds = useSelectedIds();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [selectedSortId, setSelectedSortId] = useState<string | null>(null);
 
-  const [favoriteGameBurstKeys, setFavoriteGameBurstKeys] = useState<Record<string, number>>({})
-  const favoriteGameBurstTimeouts = useRef<Map<string, number>>(new Map())
+  const [favoriteGameBurstKeys, setFavoriteGameBurstKeys] = useState<
+    Record<string, number>
+  >({});
+  const favoriteGameBurstTimeouts = useRef<Map<string, number>>(new Map());
   const [activeContextMenu, setActiveContextMenu] = useState<{
-    id: string
-    placeId?: string
-    universeId?: string
-    isFavorite: boolean
-    x: number
-    y: number
-  } | null>(null)
+    id: string;
+    placeId?: string;
+    universeId?: string;
+    isFavorite: boolean;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Generate a session ID once per mount
-  const [sessionId] = useState(() => self.crypto.randomUUID())
+  const [sessionId] = useState(() => self.crypto.randomUUID());
 
   // TanStack Query hooks
-  const { data: sorts = [] } = useGameSorts(sessionId)
-  const { data: favorites = [] } = useFavoriteGames()
+  const { data: sorts = [] } = useGameSorts(sessionId);
+  const { data: favorites = [] } = useFavoriteGames();
 
-  const addFavoriteMutation = useAddFavoriteGame()
-  const removeFavoriteMutation = useRemoveFavoriteGame()
+  const addFavoriteMutation = useAddFavoriteGame();
+  const removeFavoriteMutation = useRemoveFavoriteGame();
 
   // Determine which query to use based on mode
-  const isSearchMode = debouncedSearchQuery.trim().length > 0
+  const isSearchMode = debouncedSearchQuery.trim().length > 0;
 
   // Games in sort (default mode)
   const { data: sortGames = [], isLoading: isSortLoading } = useGamesInSort(
     !isSearchMode ? selectedSortId : null,
-    sessionId
-  )
+    sessionId,
+  );
 
   // Search results
   const { data: searchGames = [], isLoading: isSearchLoading } = useSearchGames(
     debouncedSearchQuery,
-    sessionId
-  )
+    sessionId,
+  );
 
   // Favorite games
-  const { data: favoriteGames = [], isLoading: isFavoritesLoading } = useGamesByPlaceIds(favorites)
+  const { data: favoriteGames = [], isLoading: isFavoritesLoading } =
+    useGamesByPlaceIds(favorites);
 
   // Recently played games (requires at least one stored account with a cookie)
   const { data: recentlyPlayedGames = [], isLoading: isRecentLoading } =
-    useRecentlyPlayedGames(sessionId)
+    useRecentlyPlayedGames(sessionId);
 
   // Compute final games list
   const games = useMemo(() => {
     if (isSearchMode) {
-      return searchGames
+      return searchGames;
     }
-    return sortGames
-  }, [isSearchMode, searchGames, sortGames])
+    return sortGames;
+  }, [isSearchMode, searchGames, sortGames]);
 
-  const isRecommendedLoading = isSearchMode ? isSearchLoading : isSortLoading
+  const isRecommendedLoading = isSearchMode ? isSearchLoading : isSortLoading;
 
   const sortOptions: DropdownOption[] = useMemo(() => {
     return sorts.map((sort) => ({
       value: sort.token,
-      label: sort.displayName || sort.name
-    }))
-  }, [sorts])
+      label: sort.displayName || sort.name,
+    }));
+  }, [sorts]);
 
   // Auto-select first sort when sorts load
   useEffect(() => {
     if (sorts.length > 0 && !selectedSortId && !searchQuery) {
       const popularSort = sorts.find(
         (s) =>
-          s.name.toLowerCase().includes('popular') ||
-          s.name.toLowerCase().includes('trending') ||
-          s.token.toLowerCase().includes('popular') ||
-          s.token.toLowerCase().includes('trending')
-      )
-      setSelectedSortId(popularSort ? popularSort.token : sorts[0].token)
+          s.name.toLowerCase().includes("popular") ||
+          s.name.toLowerCase().includes("trending") ||
+          s.token.toLowerCase().includes("popular") ||
+          s.token.toLowerCase().includes("trending"),
+      );
+      setSelectedSortId(popularSort ? popularSort.token : sorts[0].token);
     }
-  }, [sorts, selectedSortId, searchQuery])
+  }, [sorts, selectedSortId, searchQuery]);
 
   const triggerGameFavoriteBurst = (placeId: string) => {
     setFavoriteGameBurstKeys((prev) => ({
       ...prev,
-      [placeId]: (prev[placeId] ?? 0) + 1
-    }))
+      [placeId]: (prev[placeId] ?? 0) + 1,
+    }));
 
-    const existingTimeout = favoriteGameBurstTimeouts.current.get(placeId)
+    const existingTimeout = favoriteGameBurstTimeouts.current.get(placeId);
     if (existingTimeout) {
-      clearTimeout(existingTimeout)
+      clearTimeout(existingTimeout);
     }
 
     const timeoutId = window.setTimeout(() => {
       setFavoriteGameBurstKeys((prev) => {
-        const { [placeId]: _, ...rest } = prev
-        return rest
-      })
-      favoriteGameBurstTimeouts.current.delete(placeId)
-    }, 900)
+        const { [placeId]: _, ...rest } = prev;
+        return rest;
+      });
+      favoriteGameBurstTimeouts.current.delete(placeId);
+    }, 900);
 
-    favoriteGameBurstTimeouts.current.set(placeId, timeoutId)
-  }
+    favoriteGameBurstTimeouts.current.set(placeId, timeoutId);
+  };
 
   useEffect(() => {
-    const timeouts = favoriteGameBurstTimeouts.current
+    const timeouts = favoriteGameBurstTimeouts.current;
     return () => {
-      timeouts.forEach((timeoutId) => clearTimeout(timeoutId))
-      timeouts.clear()
-    }
-  }, [])
+      timeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      timeouts.clear();
+    };
+  }, []);
 
   const handleFavorite = async (placeId: string) => {
     try {
       if (favorites.includes(placeId)) {
-        await removeFavoriteMutation.mutateAsync(placeId)
-        showNotification('Removed from favorites', 'success')
+        await removeFavoriteMutation.mutateAsync(placeId);
+        showNotification("Removed from favorites", "success");
       } else {
-        await addFavoriteMutation.mutateAsync(placeId)
-        triggerGameFavoriteBurst(placeId)
-        showNotification('Added to favorites', 'success')
+        await addFavoriteMutation.mutateAsync(placeId);
+        triggerGameFavoriteBurst(placeId);
+        showNotification("Added to favorites", "success");
       }
     } catch (error) {
-      console.error('Failed to update favorites:', error instanceof Error ? error.message : String(error))
-      showNotification('Failed to update favorites', 'error')
+      console.error(
+        "Failed to update favorites:",
+        error instanceof Error ? error.message : String(error),
+      );
+      showNotification("Failed to update favorites", "error");
     }
-  }
+  };
 
   const handleCopyPlaceId = (placeId: string) => {
-    navigator.clipboard.writeText(placeId)
-    showNotification('Place ID copied to clipboard', 'success')
-  }
+    navigator.clipboard.writeText(placeId);
+    showNotification("Place ID copied to clipboard", "success");
+  };
 
   const handleCopyUniverseId = (universeId: string) => {
-    navigator.clipboard.writeText(universeId)
-    showNotification('Universe ID copied to clipboard', 'success')
-  }
+    navigator.clipboard.writeText(universeId);
+    showNotification("Universe ID copied to clipboard", "success");
+  };
 
   // Handle debounce of search query
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 300)
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
 
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Clear search handler
   const handleClearSearch = useCallback(() => {
-    setSearchQuery('')
-    setDebouncedSearchQuery('')
-  }, [])
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+  }, []);
 
-  const formatPlayerCount = (num: number) => formatNumber(num)
+  const formatPlayerCount = (num: number) => formatNumber(num);
 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-[var(--color-surface)]">
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Games</h1>
+            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+              Games
+            </h1>
             <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
-              {isRecommendedLoading ? '...' : games.length.toLocaleString()}
+              {isRecommendedLoading ? "..." : games.length.toLocaleString()}
             </span>
           </div>
 
@@ -523,7 +583,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                   <Button
                     variant="default"
                     size="default"
-                    onClick={() => openModal('join')}
+                    onClick={() => openModal("join")}
                     className="gap-2 bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] border-[var(--accent-color-border)] shadow-[0_0_20px_var(--accent-color-shadow)]"
                   >
                     <Play size={16} fill="currentColor" />
@@ -532,7 +592,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                 </TooltipTrigger>
                 <TooltipContent>
                   Launch game with {selectedIds.size} selected account
-                  {selectedIds.size !== 1 ? 's' : ''}
+                  {selectedIds.size !== 1 ? "s" : ""}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -609,27 +669,32 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                       }
                     >
                       {favoriteGames.map((game, index) => (
-                        <div key={game.id || `fav-${index}`} className="w-[220px] shrink-0">
+                        <div
+                          key={game.id && game.id !== "null" ? `fav-${game.id}` : `fav-idx-${index}`}
+                          className="w-[220px] shrink-0"
+                        >
                           <GameCard
                             game={game}
                             onGameSelect={onGameSelect}
                             onContextMenu={(e, currentGame) => {
-                              e.preventDefault()
+                              e.preventDefault();
                               setActiveContextMenu({
                                 id: currentGame.id,
                                 placeId: currentGame.placeId,
                                 universeId: currentGame.universeId,
                                 isFavorite: Boolean(
-                                  currentGame.placeId && favorites.includes(currentGame.placeId)
+                                  currentGame.placeId &&
+                                  favorites.includes(currentGame.placeId),
                                 ),
                                 x: e.clientX,
-                                y: e.clientY
-                              })
+                                y: e.clientY,
+                              });
                             }}
                             formatPlayerCount={formatPlayerCount}
                             isFavorite={true}
                             favoriteBurst={Boolean(
-                              game.placeId && favoriteGameBurstKeys[game.placeId]
+                              game.placeId &&
+                              favoriteGameBurstKeys[game.placeId],
                             )}
                           />
                         </div>
@@ -661,27 +726,34 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                       }
                     >
                       {recentlyPlayedGames.map((game, index) => (
-                        <div key={game.id || `recent-${index}`} className="w-[220px] shrink-0">
+                        <div
+                          key={game.id && game.id !== "null" ? `recent-${game.id}` : `recent-idx-${index}`}
+                          className="w-[220px] shrink-0"
+                        >
                           <GameCard
                             game={game}
                             onGameSelect={onGameSelect}
                             onContextMenu={(e, currentGame) => {
-                              e.preventDefault()
+                              e.preventDefault();
                               setActiveContextMenu({
                                 id: currentGame.id,
                                 placeId: currentGame.placeId,
                                 universeId: currentGame.universeId,
                                 isFavorite: Boolean(
-                                  currentGame.placeId && favorites.includes(currentGame.placeId)
+                                  currentGame.placeId &&
+                                  favorites.includes(currentGame.placeId),
                                 ),
                                 x: e.clientX,
-                                y: e.clientY
-                              })
+                                y: e.clientY,
+                              });
                             }}
                             formatPlayerCount={formatPlayerCount}
-                            isFavorite={Boolean(game.placeId && favorites.includes(game.placeId))}
+                            isFavorite={Boolean(
+                              game.placeId && favorites.includes(game.placeId),
+                            )}
                             favoriteBurst={Boolean(
-                              game.placeId && favoriteGameBurstKeys[game.placeId]
+                              game.placeId &&
+                              favoriteGameBurstKeys[game.placeId],
                             )}
                           />
                         </div>
@@ -697,7 +769,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                    {isSearchMode ? 'Results' : 'Recommended'}
+                    {isSearchMode ? "Results" : "Recommended"}
                   </h2>
                   {!isRecommendedLoading && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
@@ -721,7 +793,11 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                     <EmptyState
                       icon={Gamepad2}
                       title="No games found"
-                      description={searchQuery ? 'Try adjusting your search terms' : undefined}
+                      description={
+                        searchQuery
+                          ? "Try adjusting your search terms"
+                          : undefined
+                      }
                       variant="minimal"
                     />
                   </motion.div>
@@ -735,25 +811,30 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                   >
                     {games.map((game, index) => (
                       <GameCard
-                        key={game.id || `game-${index}`}
+                        key={game.id && game.id !== "null" ? game.id : `game-idx-${index}`}
                         game={game}
                         onGameSelect={onGameSelect}
                         onContextMenu={(e, currentGame) => {
-                          e.preventDefault()
+                          e.preventDefault();
                           setActiveContextMenu({
                             id: currentGame.id,
                             placeId: currentGame.placeId,
                             universeId: currentGame.universeId,
                             isFavorite: Boolean(
-                              currentGame.placeId && favorites.includes(currentGame.placeId)
+                              currentGame.placeId &&
+                              favorites.includes(currentGame.placeId),
                             ),
                             x: e.clientX,
-                            y: e.clientY
-                          })
+                            y: e.clientY,
+                          });
                         }}
                         formatPlayerCount={formatPlayerCount}
-                        isFavorite={Boolean(game.placeId && favorites.includes(game.placeId))}
-                        favoriteBurst={Boolean(game.placeId && favoriteGameBurstKeys[game.placeId])}
+                        isFavorite={Boolean(
+                          game.placeId && favorites.includes(game.placeId),
+                        )}
+                        favoriteBurst={Boolean(
+                          game.placeId && favoriteGameBurstKeys[game.placeId],
+                        )}
                       />
                     ))}
                   </motion.div>
@@ -772,7 +853,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
         />
       </div>
     </TooltipProvider>
-  )
-}
+  );
+};
 
-export default GamesTab
+export default GamesTab;

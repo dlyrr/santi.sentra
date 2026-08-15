@@ -1,28 +1,33 @@
-import React, { useState } from 'react'
-import { X, Play, User, MapPin, Briefcase, LogIn } from 'lucide-react'
-import { JoinMethod, JoinConfig } from '../../types'
-import { Dialog, DialogContent } from '../UI/dialogs/Dialog'
+import React, { useState } from "react";
+import { X, Play, User, MapPin, Briefcase, LogIn } from "lucide-react";
+import { JoinMethod, JoinConfig } from "../../types";
+import { Dialog, DialogContent } from "../UI/dialogs/Dialog";
 
 export interface JoinModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onLaunch: (config: JoinConfig) => void
-  selectedCount: number
+  isOpen: boolean;
+  onClose: () => void;
+  onLaunch: (config: JoinConfig) => void;
+  selectedCount: number;
 }
 
-const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, selectedCount }) => {
-  const [method, setMethod] = useState<JoinMethod>(JoinMethod.Username)
-  const [target, setTarget] = useState('')
-  const [placeId, setPlaceId] = useState('')
+const JoinModal: React.FC<JoinModalProps> = ({
+  isOpen,
+  onClose,
+  onLaunch,
+  selectedCount,
+}) => {
+  const [method, setMethod] = useState<JoinMethod>(JoinMethod.Username);
+  const [target, setTarget] = useState("");
+  const [placeId, setPlaceId] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    let finalTarget = target
+    e.preventDefault();
+    let finalTarget = target;
     if (method === JoinMethod.JobId) {
-      finalTarget = `${placeId.trim()}:${target.trim()}`
+      finalTarget = `${placeId.trim()}:${target.trim()}`;
     }
-    onLaunch({ method, target: finalTarget })
-  }
+    onLaunch({ method, target: finalTarget });
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -34,9 +39,11 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
               <LogIn className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Launch Options</h3>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                Launch Options
+              </h3>
               <p className="text-sm text-[var(--color-text-muted)]">
-                {selectedCount} selected account{selectedCount !== 1 ? 's' : ''}
+                {selectedCount} selected account{selectedCount !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -52,15 +59,17 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Method Selection */}
           <div className="space-y-3">
-            <label className="block text-base font-medium text-[var(--color-text-secondary)]">Join Method</label>
+            <label className="block text-base font-medium text-[var(--color-text-secondary)]">
+              Join Method
+            </label>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setMethod(JoinMethod.Username)}
                 className={`pressable flex flex-col items-center justify-center gap-2 p-3 rounded border transition-all ${
                   method === JoinMethod.Username
-                    ? 'bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]'
-                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]'
+                    ? "bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
                 }`}
               >
                 <User size={24} />
@@ -72,8 +81,8 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                 onClick={() => setMethod(JoinMethod.PlaceId)}
                 className={`pressable flex flex-col items-center justify-center gap-2 p-3 rounded border transition-all ${
                   method === JoinMethod.PlaceId
-                    ? 'bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]'
-                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]'
+                    ? "bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
                 }`}
               >
                 <MapPin size={24} />
@@ -85,8 +94,8 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                 onClick={() => setMethod(JoinMethod.JobId)}
                 className={`pressable flex flex-col items-center justify-center gap-2 p-3 rounded border transition-all ${
                   method === JoinMethod.JobId
-                    ? 'bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]'
-                    : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]'
+                    ? "bg-[var(--accent-color)] border-[var(--accent-color-border)] text-[var(--accent-color-foreground)] shadow-[0_5px_20px_var(--accent-color-shadow)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
                 }`}
               >
                 <Briefcase size={24} />
@@ -140,15 +149,19 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
                   htmlFor="targetInput"
                   className="block text-base font-medium text-[var(--color-text-secondary)] pb-2"
                 >
-                  {method === JoinMethod.Username && 'Target Username'}
-                  {method === JoinMethod.PlaceId && 'Game Place ID'}
+                  {method === JoinMethod.Username && "Target Username"}
+                  {method === JoinMethod.PlaceId && "Game Place ID"}
                 </label>
                 <input
                   id="targetInput"
                   type="text"
                   value={target}
                   onChange={(e) => setTarget(e.target.value)}
-                  placeholder={method === JoinMethod.Username ? 'e.g. Builderman' : 'e.g. 1818'}
+                  placeholder={
+                    method === JoinMethod.Username
+                      ? "e.g. Builderman"
+                      : "e.g. 1818"
+                  }
                   className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all"
                   required
                 />
@@ -161,7 +174,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
             <button
               type="submit"
               disabled={!target || (method === JoinMethod.JobId && !placeId)}
-              className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] text-md font-bold py-3 rounded shadow-lg shadow-[0_10px_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] text-md font-bold h-10 rounded shadow-lg shadow-[0_10px_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={16} fill="currentColor" />
               <span>Launch Game</span>
@@ -170,7 +183,7 @@ const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose, onLaunch, select
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default JoinModal
+export default JoinModal;

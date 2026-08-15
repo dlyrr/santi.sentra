@@ -1,21 +1,21 @@
-import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Settings, RotateCcw, Timer, Sparkles, Sliders } from 'lucide-react'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import CustomCheckbox from '@renderer/components/UI/buttons/CustomCheckbox'
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Settings, RotateCcw, Timer, Sparkles, Sliders } from "lucide-react";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import CustomCheckbox from "@renderer/components/UI/buttons/CustomCheckbox";
 
 interface SniperSettingsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  sessionId: boolean
-  loopEnabled: boolean
-  setLoopEnabled: (val: boolean) => void
-  loopCount: number
-  setLoopCount: (val: number) => void
-  checkInterval: number
-  setCheckInterval: (val: number) => void
-  autoGenerate: boolean
-  setAutoGenerate: (val: boolean) => void
+  isOpen: boolean;
+  onClose: () => void;
+  sessionId: boolean;
+  loopEnabled: boolean;
+  setLoopEnabled: (val: boolean) => void;
+  loopCount: number;
+  setLoopCount: (val: number) => void;
+  checkInterval: number;
+  setCheckInterval: (val: number) => void;
+  autoGenerate: boolean;
+  setAutoGenerate: (val: boolean) => void;
 }
 
 export const SniperSettingsModal = ({
@@ -29,7 +29,7 @@ export const SniperSettingsModal = ({
   checkInterval,
   setCheckInterval,
   autoGenerate,
-  setAutoGenerate
+  setAutoGenerate,
 }: SniperSettingsModalProps) => {
   return (
     <AnimatePresence>
@@ -43,17 +43,16 @@ export const SniperSettingsModal = ({
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
           />
-          
+
           {/* Modal Card */}
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: 10 }}
-            transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+            transition={{ type: "spring", damping: 24, stiffness: 280 }}
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 p-4"
           >
             <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
-              
               {/* Header Container */}
               <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3.5 bg-[var(--color-surface-strong)]/20">
                 <h2 className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
@@ -70,7 +69,6 @@ export const SniperSettingsModal = ({
 
               {/* Form Config Body */}
               <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                
                 {/* Loop Parameter Toggler */}
                 <div className="space-y-2">
                   <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/40 px-3 py-2.5 transition-colors hover:border-indigo-500/20">
@@ -78,19 +76,19 @@ export const SniperSettingsModal = ({
                       <RotateCcw size={13} className="text-purple-400" />
                       Loop Scanning Pipeline
                     </span>
-                    <CustomCheckbox 
-                      checked={loopEnabled} 
-                      onChange={() => setLoopEnabled(!loopEnabled)} 
-                      disabled={sessionId} 
+                    <CustomCheckbox
+                      checked={loopEnabled}
+                      onChange={() => setLoopEnabled(!loopEnabled)}
+                      disabled={sessionId}
                     />
                   </label>
                 </div>
 
                 {/* Conditional Loop Counter Row */}
                 {loopEnabled && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
+                    animate={{ opacity: 1, height: "auto" }}
                     className="space-y-1.5"
                   >
                     <label className="flex items-center gap-2 text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
@@ -102,22 +100,32 @@ export const SniperSettingsModal = ({
                         onClick={() => setLoopCount(Math.max(1, loopCount - 1))}
                         disabled={sessionId}
                         className="w-8 h-8 p-0 rounded-lg text-xs"
-                      >-</Button>
+                      >
+                        -
+                      </Button>
                       <input
                         type="number"
                         min="1"
                         max="50"
                         value={loopCount}
                         disabled={sessionId}
-                        onChange={(e) => setLoopCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        onChange={(e) =>
+                          setLoopCount(
+                            Math.max(1, parseInt(e.target.value, 10) || 1),
+                          )
+                        }
                         className="flex-1 h-8 rounded-lg bg-[var(--color-surface-strong)] border border-[var(--color-border)] text-center text-xs font-bold text-[var(--color-text-primary)] focus:outline-none focus:border-indigo-500 shadow-inner disabled:opacity-50"
                       />
                       <Button
                         variant="outline"
-                        onClick={() => setLoopCount(Math.min(50, loopCount + 1))}
+                        onClick={() =>
+                          setLoopCount(Math.min(50, loopCount + 1))
+                        }
                         disabled={sessionId}
                         className="w-8 h-8 p-0 rounded-lg text-xs"
-                      >+</Button>
+                      >
+                        +
+                      </Button>
                     </div>
                   </motion.div>
                 )}
@@ -139,7 +147,11 @@ export const SniperSettingsModal = ({
                     step="1"
                     value={checkInterval}
                     disabled={sessionId}
-                    onChange={(e) => setCheckInterval(Math.max(1, parseInt(e.target.value, 10) || 200))}
+                    onChange={(e) =>
+                      setCheckInterval(
+                        Math.max(1, parseInt(e.target.value, 10) || 200),
+                      )
+                    }
                     className="w-full h-1 bg-[var(--color-surface-strong)] rounded-lg appearance-none cursor-pointer border border-[var(--color-border)] accent-indigo-500 my-1.5 disabled:opacity-40"
                   />
                 </div>
@@ -151,20 +163,19 @@ export const SniperSettingsModal = ({
                       <Sparkles size={13} className="text-emerald-400" />
                       Auto-Generate On Hit
                     </span>
-                    <CustomCheckbox 
-                      checked={autoGenerate} 
-                      onChange={() => setAutoGenerate(!autoGenerate)} 
+                    <CustomCheckbox
+                      checked={autoGenerate}
+                      onChange={() => setAutoGenerate(!autoGenerate)}
                     />
                   </label>
                 </div>
-
               </div>
 
               {/* Layout Footer Actions */}
               <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-strong)]/20 px-4 py-2.5 flex items-center justify-end">
-                <Button 
-                  variant="default" 
-                  onClick={onClose} 
+                <Button
+                  variant="default"
+                  onClick={onClose}
                   className="h-7.5 text-xs px-5 bg-indigo-600 hover:bg-indigo-500 text-[var(--color-text-primary)] font-medium rounded-lg shadow-sm border-0"
                 >
                   Confirm Configuration
@@ -175,5 +186,5 @@ export const SniperSettingsModal = ({
         </>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};

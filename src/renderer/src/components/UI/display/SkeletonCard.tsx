@@ -1,13 +1,13 @@
-import React from 'react'
-import Skeleton from './Skeleton'
-import { cn } from '../../../lib/utils'
+import React from "react";
+import Skeleton from "./Skeleton";
+import { cn } from "../../../lib/utils";
 
 // ============================================================================
 // SkeletonCard - Reusable skeleton card for loading states
 // ============================================================================
 
 interface SkeletonCardProps {
-  className?: string
+  className?: string;
 }
 
 /**
@@ -15,28 +15,34 @@ interface SkeletonCardProps {
  */
 export const SkeletonUserCard: React.FC<
   SkeletonCardProps & {
-    variant?: 'horizontal' | 'vertical'
-    showBorder?: boolean
+    variant?: "horizontal" | "vertical";
+    showBorder?: boolean;
   }
-> = ({ className, variant = 'horizontal', showBorder = true }) => {
-  if (variant === 'vertical') {
+> = ({ className, variant = "horizontal", showBorder = true }) => {
+  if (variant === "vertical") {
     return (
-      <div className={cn('w-28 flex flex-col items-center gap-2 shrink-0', className)}>
+      <div
+        className={cn(
+          "w-28 flex flex-col items-center gap-2 shrink-0",
+          className,
+        )}
+      >
         <Skeleton className="w-24 h-24 rounded-full" />
         <div className="w-full flex flex-col items-center gap-1">
           <Skeleton className="h-4 w-20" />
           <Skeleton className="h-3 w-12" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div
       className={cn(
-        'flex items-center gap-3 p-2 rounded-lg',
-        showBorder && 'p-4 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl',
-        className
+        "flex items-center gap-3 p-2 rounded-lg",
+        showBorder &&
+          "p-4 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl",
+        className,
       )}
     >
       <Skeleton className="w-10 h-10 rounded-full shrink-0" />
@@ -45,17 +51,19 @@ export const SkeletonUserCard: React.FC<
         <Skeleton className="h-3 w-20" />
       </div>
     </div>
-  )
-}
+  );
+};
 
 /**
  * Friend card skeleton with larger avatar (used in FriendsTab grid)
  */
-export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({ className }) => (
+export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({
+  className,
+}) => (
   <div
     className={cn(
-      'flex items-center p-4 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl',
-      className
+      "flex items-center p-4 bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl",
+      className,
     )}
   >
     <Skeleton className="w-12 h-12 rounded-full mr-4 shrink-0" />
@@ -64,16 +72,18 @@ export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({ className }) =
       <Skeleton className="h-3 w-24" />
     </div>
   </div>
-)
+);
 
 /**
  * Game card skeleton - thumbnail with overlay text and footer stats
  */
-export const SkeletonGameCard: React.FC<SkeletonCardProps> = ({ className }) => (
+export const SkeletonGameCard: React.FC<SkeletonCardProps> = ({
+  className,
+}) => (
   <div
     className={cn(
-      'bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden',
-      className
+      "bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden",
+      className,
     )}
   >
     <div className="aspect-square w-full relative bg-[var(--color-surface-hover)]">
@@ -88,55 +98,61 @@ export const SkeletonGameCard: React.FC<SkeletonCardProps> = ({ className }) => 
       <Skeleton className="h-4 w-12" />
     </div>
   </div>
-)
+);
 
 /**
  * Simple square card skeleton - for outfits, badges, collections
  */
 export const SkeletonSquareCard: React.FC<
   SkeletonCardProps & {
-    showBorder?: boolean
+    showBorder?: boolean;
   }
 > = ({ className, showBorder = true }) => (
   <div
     className={cn(
-      'aspect-square bg-[var(--color-surface)] rounded-xl overflow-hidden',
-      showBorder && 'border border-[var(--color-border)]',
-      className
+      "aspect-square bg-[var(--color-surface)] rounded-xl overflow-hidden",
+      showBorder && "border border-[var(--color-border)]",
+      className,
     )}
   >
     <Skeleton className="w-full h-full opacity-20" />
   </div>
-)
+);
 
 /**
  * Group card skeleton - square with name and member count
  */
-export const SkeletonGroupCard: React.FC<SkeletonCardProps> = ({ className }) => (
-  <div className={cn('w-28 flex flex-col items-center gap-2 shrink-0', className)}>
+export const SkeletonGroupCard: React.FC<SkeletonCardProps> = ({
+  className,
+}) => (
+  <div
+    className={cn("w-28 flex flex-col items-center gap-2 shrink-0", className)}
+  >
     <Skeleton className="w-24 h-24 rounded-xl" />
     <div className="w-full flex flex-col items-center gap-1">
       <Skeleton className="h-4 w-20" />
       <Skeleton className="h-3 w-12" />
     </div>
   </div>
-)
+);
 
 /**
  * Inventory item skeleton - square with padding
  */
-export const SkeletonInventoryCard: React.FC<SkeletonCardProps> = ({ className }) => (
+export const SkeletonInventoryCard: React.FC<SkeletonCardProps> = ({
+  className,
+}) => (
   <div
     className={cn(
-      'aspect-square bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden',
-      className
+      "aspect-square bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden",
+      className,
     )}
   >
     <div className="w-full h-full p-4 flex items-center justify-center">
       <Skeleton className="w-full h-full opacity-20" />
     </div>
   </div>
-)
+);
 
 export default {
   SkeletonUserCard,
@@ -144,5 +160,5 @@ export default {
   SkeletonGameCard,
   SkeletonSquareCard,
   SkeletonGroupCard,
-  SkeletonInventoryCard
-}
+  SkeletonInventoryCard,
+};

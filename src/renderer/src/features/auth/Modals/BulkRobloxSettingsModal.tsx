@@ -1,40 +1,52 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Loader2, CheckCircle2, AlertCircle, Settings } from 'lucide-react'
-import { Account } from '@renderer/types'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { bulkOperationLimiter, executeWithRetry, isRateLimitError, sleep } from '@renderer/lib/rateLimiter'
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Loader2, CheckCircle2, AlertCircle, Settings } from "lucide-react";
+import { Account } from "@renderer/types";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import {
+  bulkOperationLimiter,
+  executeWithRetry,
+  isRateLimitError,
+  sleep,
+} from "@renderer/lib/rateLimiter";
 
 interface BulkRobloxSettingsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  selectedAccounts: Account[]
-  onSuccess?: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  selectedAccounts: Account[];
+  onSuccess?: () => void;
 }
 
 export const BulkRobloxSettingsModal = ({
   isOpen,
   onClose,
   selectedAccounts,
-  onSuccess
+  onSuccess,
 }: BulkRobloxSettingsModalProps) => {
-  const [newDisplayName, setNewDisplayName] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [results, setResults] = useState<{ id: string; success: boolean; message?: string }[]>([])
+  const [newDisplayName, setNewDisplayName] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [results, setResults] = useState<
+    { id: string; success: boolean; message?: string }[]
+  >([]);
 
   const handleSubmit = async () => {
-    if (!newDisplayName.trim()) return
+    if (!newDisplayName.trim()) return;
 
-    setIsProcessing(true)
-    setResults([])
+    setIsProcessing(true);
+    setResults([]);
 
-    const processResults: { id: string; success: boolean; message?: string }[] = []
+    const processResults: { id: string; success: boolean; message?: string }[] =
+      [];
 
     for (const acc of selectedAccounts) {
       if (!acc.cookie || !acc.userId) {
-        processResults.push({ id: acc.id, success: false, message: 'Invalid cookie or user ID' })
-        setResults([...processResults])
-        continue
+        processResults.push({
+          id: acc.id,
+          success: false,
+          message: "Invalid cookie or user ID",
+        });
+        setResults([...processResults]);
+        continue;
       }
 
       try {
@@ -44,39 +56,44 @@ export const BulkRobloxSettingsModal = ({
             return await window.api.updateDisplayName(
               acc.cookie!,
               parseInt(acc.userId, 10),
-              newDisplayName.trim()
-            )
+              newDisplayName.trim(),
+            );
           },
           {
             retryCondition: (error) => {
-              if (isRateLimitError(error)) return true
-              const maybeError = error as any
-              const message = typeof maybeError?.message === 'string'
-                ? maybeError.message
-                : typeof error === 'string'
-                ? error
-                : ''
-              return /(?:429|rate limit|too many requests)/i.test(message)
-            }
-          }
-        )
+              if (isRateLimitError(error)) return true;
+              const maybeError = error as any;
+              const message =
+                typeof maybeError?.message === "string"
+                  ? maybeError.message
+                  : typeof error === "string"
+                    ? error
+                    : "";
+              return /(?:429|rate limit|too many requests)/i.test(message);
+            },
+          },
+        );
 
         processResults.push({
           id: acc.id,
           success: result.success,
-          message: result.error
-        })
+          message: result.error,
+        });
       } catch (err: any) {
-        processResults.push({ id: acc.id, success: false, message: err.message || 'Unknown error' })
+        processResults.push({
+          id: acc.id,
+          success: false,
+          message: err.message || "Unknown error",
+        });
       }
 
-      setResults([...processResults])
-      await sleep(1000)
+      setResults([...processResults]);
+      await sleep(1000);
     }
 
-    setIsProcessing(false)
-    if (onSuccess) onSuccess()
-  }
+    setIsProcessing(false);
+    if (onSuccess) onSuccess();
+  };
 
   return (
     <AnimatePresence>
@@ -102,12 +119,19 @@ export const BulkRobloxSettingsModal = ({
                     <Settings size={20} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Bulk Roblox Settings</h2>
-                    <p className="text-xs text-[var(--color-text-secondary)]">{selectedAccounts.length} accounts selected</p>
+                    <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                      Bulk Roblox Settings
+                    </h2>
+                    <p className="text-xs text-[var(--color-text-secondary)]">
+                      {selectedAccounts.length} accounts selected
+                    </p>
                   </div>
                 </div>
                 {!isProcessing && (
-                  <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors">
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-lg hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                  >
                     <X size={20} />
                   </button>
                 )}
@@ -116,7 +140,9 @@ export const BulkRobloxSettingsModal = ({
               <div className="p-5 flex-1 overflow-y-auto">
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">New Display Name</label>
+                    <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1.5">
+                      New Display Name
+                    </label>
                     <input
                       type="text"
                       value={newDisplayName}
@@ -129,24 +155,36 @@ export const BulkRobloxSettingsModal = ({
 
                   {results.length > 0 && (
                     <div className="mt-6 space-y-2">
-                      <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">Progress</h3>
+                      <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">
+                        Progress
+                      </h3>
                       <div className="space-y-1.5">
                         {results.map((r, idx) => {
-                          const acc = selectedAccounts.find(a => a.id === r.id)
+                          const acc = selectedAccounts.find(
+                            (a) => a.id === r.id,
+                          );
                           return (
-                            <div key={idx} className="flex items-center justify-between p-2 rounded bg-[var(--color-surface)]/50 border border-white/5 text-sm">
-                              <span className="text-[var(--color-text-secondary)] truncate pr-4">{acc?.username || acc?.id}</span>
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between p-2 rounded bg-[var(--color-surface)]/50 border border-white/5 text-sm"
+                            >
+                              <span className="text-[var(--color-text-secondary)] truncate pr-4">
+                                {acc?.username || acc?.id}
+                              </span>
                               {r.success ? (
                                 <span className="flex items-center gap-1.5 text-emerald-400 shrink-0">
                                   <CheckCircle2 size={14} /> Success
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-1.5 text-red-400 shrink-0" title={r.message}>
+                                <span
+                                  className="flex items-center gap-1.5 text-red-400 shrink-0"
+                                  title={r.message}
+                                >
                                   <AlertCircle size={14} /> Failed
                                 </span>
                               )}
                             </div>
-                          )
+                          );
                         })}
                       </div>
                     </div>
@@ -155,20 +193,29 @@ export const BulkRobloxSettingsModal = ({
               </div>
 
               <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] flex justify-end gap-3 shrink-0">
-                <Button variant="ghost" onClick={onClose} disabled={isProcessing}>
-                  {results.length > 0 ? 'Close' : 'Cancel'}
+                <Button
+                  variant="ghost"
+                  onClick={onClose}
+                  disabled={isProcessing}
+                >
+                  {results.length > 0 ? "Close" : "Cancel"}
                 </Button>
-                <Button 
-                  onClick={handleSubmit} 
-                  disabled={isProcessing || !newDisplayName.trim() || results.length > 0}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={
+                    isProcessing || !newDisplayName.trim() || results.length > 0
+                  }
                   className="min-w-[120px]"
                 >
                   {isProcessing ? (
-                    <><Loader2 size={16} className="animate-spin mr-2" /> Processing...</>
+                    <>
+                      <Loader2 size={16} className="animate-spin mr-2" />{" "}
+                      Processing...
+                    </>
                   ) : results.length > 0 ? (
-                    'Done'
+                    "Done"
                   ) : (
-                    'Apply to All'
+                    "Apply to All"
                   )}
                 </Button>
               </div>
@@ -177,7 +224,7 @@ export const BulkRobloxSettingsModal = ({
         </>
       )}
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default BulkRobloxSettingsModal
+export default BulkRobloxSettingsModal;

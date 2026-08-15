@@ -1,18 +1,21 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Loader2, Grid2X2, Grid3X3, User } from 'lucide-react'
-import { VirtuosoGrid } from 'react-virtuoso'
-import { SearchInput } from '@renderer/components/UI/inputs/SearchInput'
-import { TooltipProvider } from '@renderer/components/UI/display/Tooltip'
-import { SkeletonSquareCard } from '@renderer/components/UI/display/SkeletonCard'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { useInventoryV2, useInventoryThumbnails } from '@renderer/hooks/queries'
-import { Account } from '@renderer/types'
-import PlayerInventorySheet from './Modals/PlayerInventorySheet'
-import InventoryItemContextMenu from './InventoryItemContextMenu'
-import AccessoryDetailsModal from '@renderer/features/avatar/Modals/AccessoryDetailsModal'
-import { InventoryFilterSidebar } from './InventoryFilterSidebar'
-import { INVENTORY_CATEGORIES } from './inventoryCategories'
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Package, Loader2, Grid2X2, Grid3X3, User } from "lucide-react";
+import { VirtuosoGrid } from "react-virtuoso";
+import { SearchInput } from "@renderer/components/UI/inputs/SearchInput";
+import { TooltipProvider } from "@renderer/components/UI/display/Tooltip";
+import { SkeletonSquareCard } from "@renderer/components/UI/display/SkeletonCard";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import {
+  useInventoryV2,
+  useInventoryThumbnails,
+} from "@renderer/hooks/queries";
+import { Account } from "@renderer/types";
+import PlayerInventorySheet from "./Modals/PlayerInventorySheet";
+import InventoryItemContextMenu from "./InventoryItemContextMenu";
+import AccessoryDetailsModal from "@renderer/features/avatar/Modals/AccessoryDetailsModal";
+import { InventoryFilterSidebar } from "./InventoryFilterSidebar";
+import { INVENTORY_CATEGORIES } from "./inventoryCategories";
 import {
   useInventorySelectedCategory,
   useSetInventorySelectedCategory,
@@ -22,29 +25,29 @@ import {
   useSetInventorySortOrder,
   useInventorySearchQuery,
   useSetInventorySearchQuery,
-  useClearInventoryFilters
-} from './stores/useInventoryStore'
+  useClearInventoryFilters,
+} from "./stores/useInventoryStore";
 import {
   useInventoryViewMode,
-  useSetInventoryViewMode
-} from '@renderer/stores/useViewPreferencesStore'
+  useSetInventoryViewMode,
+} from "@renderer/stores/useViewPreferencesStore";
 
 interface InventoryItemCardProps {
   item: {
-    assetId: number
-    name?: string
-    assetName?: string
-    assetType?: string | number
-    created?: string
-  }
-  thumbnailUrl?: string
-  index: number
-  onClick?: () => void
+    assetId: number;
+    name?: string;
+    assetName?: string;
+    assetType?: string | number;
+    created?: string;
+  };
+  thumbnailUrl?: string;
+  index: number;
+  onClick?: () => void;
   onContextMenu?: (
     e: React.MouseEvent,
-    item: { assetId: number; name: string; assetType?: string | number }
-  ) => void
-  isCompact?: boolean
+    item: { assetId: number; name: string; assetType?: string | number },
+  ) => void;
+  isCompact?: boolean;
 }
 
 const InventoryItemCard = ({
@@ -53,18 +56,22 @@ const InventoryItemCard = ({
   index,
   onClick,
   onContextMenu,
-  isCompact = false
+  isCompact = false,
 }: InventoryItemCardProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false)
-  const displayName = item.name || item.assetName || 'Unknown Item'
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const displayName = item.name || item.assetName || "Unknown Item";
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
     if (onContextMenu) {
-      onContextMenu(e, { assetId: item.assetId, name: displayName, assetType: item.assetType })
+      onContextMenu(e, {
+        assetId: item.assetId,
+        name: displayName,
+        assetType: item.assetType,
+      });
     }
-  }
+  };
 
   return (
     <motion.div
@@ -77,20 +84,22 @@ const InventoryItemCard = ({
     >
       {/* Image Container */}
       <div
-        className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? 'aspect-square p-0' : 'aspect-square p-2'}`}
+        className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? "aspect-square p-0" : "aspect-square p-2"}`}
       >
         <div
-          className={`w-full h-full relative overflow-hidden bg-[var(--color-surface-hover)] ${isCompact ? '' : 'rounded-lg'}`}
+          className={`w-full h-full relative overflow-hidden bg-[var(--color-surface-hover)] ${isCompact ? "" : "rounded-lg"}`}
         >
           {thumbnailUrl ? (
             <>
-              {!imageLoaded && <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />}
+              {!imageLoaded && (
+                <div className="absolute inset-0 bg-[var(--color-surface-hover)]/30 animate-pulse" />
+              )}
               <img
                 src={thumbnailUrl}
                 alt={displayName}
                 onLoad={() => setImageLoaded(true)}
                 className={`w-full h-full object-contain transition-all duration-500 group-hover:scale-110 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                  imageLoaded ? "opacity-100" : "opacity-0"
                 }`}
                 loading="lazy"
               />
@@ -105,7 +114,7 @@ const InventoryItemCard = ({
 
       {/* Item Info */}
       <div
-        className={`flex flex-col gap-1.5 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] ${isCompact ? 'p-2' : 'p-3'}`}
+        className={`flex flex-col gap-1.5 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] ${isCompact ? "p-2" : "p-3"}`}
       >
         <h3 className="font-medium text-sm text-[var(--color-text-primary)] truncate">
           {displayName}
@@ -117,235 +126,262 @@ const InventoryItemCard = ({
         )}
       </div>
     </motion.div>
-  )
-}
+  );
+};
 
 interface InventoryTabProps {
-  account: Account | null
+  account: Account | null;
 }
 
 const InventoryTab = ({ account }: InventoryTabProps) => {
   // View Mode (persisted via Zustand)
-  const viewMode = useInventoryViewMode()
-  const setViewMode = useSetInventoryViewMode()
+  const viewMode = useInventoryViewMode();
+  const setViewMode = useSetInventoryViewMode();
 
   const [playerInventorySheet, setPlayerInventorySheet] = useState<{
-    userId: number
-    username: string
-  } | null>(null)
+    userId: number;
+    username: string;
+  } | null>(null);
   const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-    assetId: number
-    assetName: string
-    assetType?: string | number
-  } | null>(null)
+    x: number;
+    y: number;
+    assetId: number;
+    assetName: string;
+    assetType?: string | number;
+  } | null>(null);
   const [selectedAccessory, setSelectedAccessory] = useState<{
-    id: number
-    name: string
-    imageUrl?: string
-  } | null>(null)
+    id: number;
+    name: string;
+    imageUrl?: string;
+  } | null>(null);
 
   // Store state
-  const selectedCategory = useInventorySelectedCategory()
-  const setSelectedCategory = useSetInventorySelectedCategory()
-  const selectedSubcategory = useInventorySelectedSubcategory()
-  const setSelectedSubcategory = useSetInventorySelectedSubcategory()
-  const sortOrder = useInventorySortOrder()
-  const setSortOrder = useSetInventorySortOrder()
-  const searchQuery = useInventorySearchQuery()
-  const setSearchQuery = useSetInventorySearchQuery()
-  const clearFilters = useClearInventoryFilters()
+  const selectedCategory = useInventorySelectedCategory();
+  const setSelectedCategory = useSetInventorySelectedCategory();
+  const selectedSubcategory = useInventorySelectedSubcategory();
+  const setSelectedSubcategory = useSetInventorySelectedSubcategory();
+  const sortOrder = useInventorySortOrder();
+  const setSortOrder = useSetInventorySortOrder();
+  const searchQuery = useInventorySearchQuery();
+  const setSearchQuery = useSetInventorySearchQuery();
+  const clearFilters = useClearInventoryFilters();
 
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
-  const cookie = account?.cookie
-  const userId = account?.userId ? parseInt(account.userId) : undefined
+  const cookie = account?.cookie;
+  const userId = account?.userId ? parseInt(account.userId) : undefined;
 
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Determine asset types to fetch based on selected category/subcategory
   const assetTypes = useMemo(() => {
     // If a subcategory is selected, use its asset types
     if (selectedSubcategory) {
-      return selectedSubcategory.assetTypes
+      return selectedSubcategory.assetTypes;
     }
     // If a category is selected, use its asset types
     if (selectedCategory) {
-      return selectedCategory.assetTypes
+      return selectedCategory.assetTypes;
     }
     // Default to "All Items" category asset types
-    const allCategory = INVENTORY_CATEGORIES.find((c) => c.category === 'All')
+    const allCategory = INVENTORY_CATEGORIES.find((c) => c.category === "All");
     return (
       allCategory?.assetTypes || [
-        'Hat',
-        'Shirt',
-        'Pants',
-        'TShirt',
-        'HairAccessory',
-        'FaceAccessory',
-        'Gear'
+        "Hat",
+        "Shirt",
+        "Pants",
+        "TShirt",
+        "HairAccessory",
+        "FaceAccessory",
+        "Gear",
       ]
-    )
-  }, [selectedCategory, selectedSubcategory])
+    );
+  }, [selectedCategory, selectedSubcategory]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return selectedCategory !== null || sortOrder !== 'Desc'
-  }, [selectedCategory, sortOrder])
+    return selectedCategory !== null || sortOrder !== "Desc";
+  }, [selectedCategory, sortOrder]);
 
   // Fetch inventory
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInventoryV2({
-    cookie,
-    userId,
-    assetTypes,
-    sortOrder,
-    limit: 100,
-    enabled: !!cookie && !!userId && assetTypes.length > 0
-  })
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInventoryV2({
+      cookie,
+      userId,
+      assetTypes,
+      sortOrder,
+      limit: 100,
+      enabled: !!cookie && !!userId && assetTypes.length > 0,
+    });
 
   // Flatten pages into single array
   const items = useMemo(() => {
-    const allItems = data?.pages.flatMap((page) => page.data) || []
+    const allItems = data?.pages.flatMap((page) => page.data) || [];
 
     // Filter by search query
     if (debouncedSearchQuery.trim()) {
-      const query = debouncedSearchQuery.toLowerCase()
+      const query = debouncedSearchQuery.toLowerCase();
       return allItems.filter((item) => {
-        const name = (item.name || item.assetName || '').toLowerCase()
-        return name.includes(query)
-      })
+        const name = (item.name || item.assetName || "").toLowerCase();
+        return name.includes(query);
+      });
     }
 
-    return allItems
-  }, [data, debouncedSearchQuery])
+    return allItems;
+  }, [data, debouncedSearchQuery]);
 
   // Get unique asset IDs for thumbnail fetching
   const assetIds = useMemo(() => {
-    return items.map((item) => item.assetId).filter((id, index, self) => self.indexOf(id) === index)
-  }, [items])
+    return items
+      .map((item) => item.assetId)
+      .filter((id, index, self) => self.indexOf(id) === index);
+  }, [items]);
 
   // Fetch thumbnails using react-query + zustand
-  const { thumbnails } = useInventoryThumbnails(assetIds, items.length > 0)
+  const { thumbnails } = useInventoryThumbnails(assetIds, items.length > 0);
 
   // Infinite scroll observer
-  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
+          fetchNextPage();
         }
       },
-      { threshold: 0.1 }
-    )
+      { threshold: 0.1 },
+    );
 
     if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current)
+      observer.observe(loadMoreRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const gridStyle: React.CSSProperties = {
     gridTemplateColumns:
-      viewMode === 'compact'
-        ? 'repeat(auto-fill, minmax(140px, 1fr))'
-        : 'repeat(auto-fill, minmax(200px, 1fr))'
-  }
+      viewMode === "compact"
+        ? "repeat(auto-fill, minmax(140px, 1fr))"
+        : "repeat(auto-fill, minmax(200px, 1fr))",
+  };
 
   // Handle item click
   const handleItemClick = useCallback(
     (item: (typeof items)[0]) => {
       setSelectedAccessory({
         id: item.assetId,
-        name: item.name || item.assetName || 'Unknown Item',
-        imageUrl: thumbnails[item.assetId]
-      })
+        name: item.name || item.assetName || "Unknown Item",
+        imageUrl: thumbnails[item.assetId],
+      });
     },
-    [thumbnails]
-  )
+    [thumbnails],
+  );
 
   // Handle context menu
   const handleContextMenu = useCallback(
-    (e: React.MouseEvent, item: { assetId: number; name: string; assetType?: string | number }) => {
+    (
+      e: React.MouseEvent,
+      item: { assetId: number; name: string; assetType?: string | number },
+    ) => {
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
         assetId: item.assetId,
         assetName: item.name,
-        assetType: item.assetType
-      })
+        assetType: item.assetType,
+      });
     },
-    []
-  )
+    [],
+  );
 
   // Handle download OBJ
-  const handleDownloadObj = useCallback(async (assetId: number, assetName: string) => {
-    try {
-      const result = await (window as any).api.downloadAsset3D(assetId, 'obj', assetName)
-      if (!result?.success) console.error('Failed to download OBJ')
-    } catch (err) {
-      console.error('Failed to download OBJ:', err)
-    }
-  }, [])
+  const handleDownloadObj = useCallback(
+    async (assetId: number, assetName: string) => {
+      try {
+        const result = await (window as any).api.downloadAsset3D(
+          assetId,
+          "obj",
+          assetName,
+        );
+        if (!result?.success) console.error("Failed to download OBJ");
+      } catch (err) {
+        console.error("Failed to download OBJ:", err);
+      }
+    },
+    [],
+  );
 
   // Handle download texture
-  const handleDownloadTexture = useCallback(async (assetId: number, assetName: string) => {
-    try {
-      const result = await (window as any).api.downloadAsset3D(assetId, 'texture', assetName)
-      if (!result?.success) console.error('Failed to download texture')
-    } catch (err) {
-      console.error('Failed to download texture:', err)
-    }
-  }, [])
+  const handleDownloadTexture = useCallback(
+    async (assetId: number, assetName: string) => {
+      try {
+        const result = await (window as any).api.downloadAsset3D(
+          assetId,
+          "texture",
+          assetName,
+        );
+        if (!result?.success) console.error("Failed to download texture");
+      } catch (err) {
+        console.error("Failed to download texture:", err);
+      }
+    },
+    [],
+  );
 
   // Handle copy asset ID
   const handleCopyAssetId = useCallback(async (assetId: number) => {
     try {
-      await navigator.clipboard.writeText(String(assetId))
+      await navigator.clipboard.writeText(String(assetId));
     } catch (err) {
-      console.error('Failed to copy asset ID:', err)
+      console.error("Failed to copy asset ID:", err);
       // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = String(assetId)
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
+      const textArea = document.createElement("textarea");
+      textArea.value = String(assetId);
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
     }
-  }, [])
+  }, []);
 
   const handleDownloadTemplate = useCallback(
     async (assetId: number, assetName: string) => {
       try {
-        const result = await window.api.downloadCatalogTemplate(assetId, assetName, cookie)
+        const result = await window.api.downloadCatalogTemplate(
+          assetId,
+          assetName,
+          cookie,
+        );
         if (!result.success) {
-          console.error('Failed to download template:', result.message)
+          console.error("Failed to download template:", result.message);
         }
       } catch (err) {
-        console.error('Failed to download template:', err)
+        console.error("Failed to download template:", err);
       }
     },
-    [cookie]
-  )
+    [cookie],
+  );
 
   if (!account || !cookie || !userId) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
         <div className="text-center">
-          <User size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
+          <User
+            size={48}
+            className="mx-auto mb-4 text-[var(--color-text-muted)]"
+          />
           <p>Select an account to view inventory</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -368,9 +404,13 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
           {/* Toolbar */}
           <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
             <div className="flex items-center gap-4 flex-1">
-              <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Inventory</h1>
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+                Inventory
+              </h1>
               <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
-                {selectedSubcategory?.name || selectedCategory?.name || 'All Items'}
+                {selectedSubcategory?.name ||
+                  selectedCategory?.name ||
+                  "All Items"}
               </span>
             </div>
 
@@ -388,15 +428,15 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
               {/* View Mode Toggle */}
               <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
-                  onClick={() => setViewMode('default')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'default' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                  onClick={() => setViewMode("default")}
+                  className={`p-1.5 rounded transition-all ${viewMode === "default" ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"}`}
                   title="Default View"
                 >
                   <Grid2X2 size={18} />
                 </button>
                 <button
-                  onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-all ${viewMode === 'compact' ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                  onClick={() => setViewMode("compact")}
+                  className={`p-1.5 rounded transition-all ${viewMode === "compact" ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm" : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"}`}
                   title="Compact View"
                 >
                   <Grid3X3 size={18} />
@@ -442,7 +482,9 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                     icon={Package}
                     title="No items found"
                     description={
-                      searchQuery ? 'Try adjusting your search' : 'No items in this category'
+                      searchQuery
+                        ? "Try adjusting your search"
+                        : "No items in this category"
                     }
                     variant="minimal"
                   />
@@ -458,9 +500,9 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                   <VirtuosoGrid
                     totalCount={items.length}
                     overscan={200}
-                    listClassName={`grid gap-4 px-6 pb-6 ${viewMode === 'compact' ? 'grid-cols-[repeat(auto-fill,minmax(140px,1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(200px,1fr))]'}`}
+                    listClassName={`grid gap-4 px-6 pb-6 ${viewMode === "compact" ? "grid-cols-[repeat(auto-fill,minmax(140px,1fr))]" : "grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"}`}
                     itemContent={(index) => {
-                      const item = items[index]
+                      const item = items[index];
                       return (
                         <InventoryItemCard
                           key={`${item.assetId}-${index}`}
@@ -469,13 +511,13 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                           index={index}
                           onClick={() => handleItemClick(item)}
                           onContextMenu={handleContextMenu}
-                          isCompact={viewMode === 'compact'}
+                          isCompact={viewMode === "compact"}
                         />
-                      )
+                      );
                     }}
                     endReached={() => {
                       if (hasNextPage && !isFetchingNextPage) {
-                        fetchNextPage()
+                        fetchNextPage();
                       }
                     }}
                     components={{
@@ -488,7 +530,7 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
                               <span>Loading more...</span>
                             </div>
                           </div>
-                        ) : null
+                        ) : null,
                     }}
                   />
                 </motion.div>
@@ -528,14 +570,14 @@ const InventoryTab = ({ account }: InventoryTabProps) => {
             selectedAccessory
               ? {
                   name: selectedAccessory.name,
-                  imageUrl: selectedAccessory.imageUrl || ''
+                  imageUrl: selectedAccessory.imageUrl || "",
                 }
               : undefined
           }
         />
       </div>
     </TooltipProvider>
-  )
-}
+  );
+};
 
-export default InventoryTab
+export default InventoryTab;

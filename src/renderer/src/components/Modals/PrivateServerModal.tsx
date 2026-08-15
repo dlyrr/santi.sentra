@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
-import { X, Lock, Link2, Play } from 'lucide-react'
-import { Dialog, DialogContent } from '../UI/dialogs/Dialog'
+import React, { useState } from "react";
+import { X, Lock, Link2, Play } from "lucide-react";
+import { Dialog, DialogContent } from "../UI/dialogs/Dialog";
 
 export interface PrivateServerModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSubmit: (link: string, serverName?: string) => void
-  isLoading?: boolean
-  sessionUsername?: string
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (link: string, serverName?: string) => void;
+  isLoading?: boolean;
+  sessionUsername?: string;
 }
 
 const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
@@ -15,25 +15,25 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
   onClose,
   onSubmit,
   isLoading = false,
-  sessionUsername = 'Session'
+  sessionUsername = "Session",
 }) => {
-  const [link, setLink] = useState('')
-  const [serverName, setServerName] = useState('')
+  const [link, setLink] = useState("");
+  const [serverName, setServerName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (link.trim()) {
-      onSubmit(link.trim(), serverName.trim() || undefined)
-      setLink('')
-      setServerName('')
+      onSubmit(link.trim(), serverName.trim() || undefined);
+      setLink("");
+      setServerName("");
     }
-  }
+  };
 
   const handleClose = () => {
-    setLink('')
-    setServerName('')
-    onClose()
-  }
+    setLink("");
+    setServerName("");
+    onClose();
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={handleClose}>
@@ -45,8 +45,12 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
               <Lock className="text-[var(--color-text-primary)]" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Join Private Server</h3>
-              <p className="text-sm text-[var(--color-text-muted)]">{sessionUsername}</p>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                Join Private Server
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {sessionUsername}
+              </p>
             </div>
           </div>
           <button
@@ -62,7 +66,10 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Server Link Input */}
           <div className="space-y-2">
-            <label htmlFor="linkInput" className="block text-base font-medium text-[var(--color-text-primary)]">
+            <label
+              htmlFor="linkInput"
+              className="block text-base font-medium text-[var(--color-text-primary)]"
+            >
               <div className="flex items-center gap-2">
                 <Link2 size={16} />
                 <span>Server Link</span>
@@ -78,13 +85,21 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
               required
               disabled={isLoading}
             />
-            <p className="text-xs text-[var(--color-text-muted)]">Paste the private server link here</p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Paste the private server link here
+            </p>
           </div>
 
           {/* Server Name Input (Optional) */}
           <div className="space-y-2">
-            <label htmlFor="serverNameInput" className="block text-base font-medium text-[var(--color-text-primary)] pb-0">
-              Server Name <span className="text-[var(--color-text-muted)] text-xs font-normal">(optional)</span>
+            <label
+              htmlFor="serverNameInput"
+              className="block text-base font-medium text-[var(--color-text-primary)] pb-0"
+            >
+              Server Name{" "}
+              <span className="text-[var(--color-text-muted)] text-xs font-normal">
+                (optional)
+              </span>
             </label>
             <input
               id="serverNameInput"
@@ -113,14 +128,13 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
               className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] text-md font-bold py-3 rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={16} fill="currentColor" />
-              <span>{isLoading ? 'Joining...' : 'Join Server'}</span>
+              <span>{isLoading ? "Joining..." : "Join Server"}</span>
             </button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default PrivateServerModal
-
+export default PrivateServerModal;

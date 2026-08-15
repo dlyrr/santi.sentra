@@ -65,7 +65,7 @@ export class Logger {
     level: LogLevel,
     message: string,
     data?: unknown,
-    error?: Error
+    error?: Error,
   ): void {
     if (!this.shouldLog(level)) {
       return;
@@ -154,9 +154,7 @@ export const ConsoleLogHandler: LogHandler = (entry: LogEntry) => {
   consoleMethod(message);
 };
 
-function getConsoleMethod(
-  level: LogLevel
-): (message: string) => void {
+function getConsoleMethod(level: LogLevel): (message: string) => void {
   switch (level) {
     case LogLevel.DEBUG:
       return console.debug;

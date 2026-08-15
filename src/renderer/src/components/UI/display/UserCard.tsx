@@ -1,53 +1,61 @@
-import React from 'react'
-import { User, Loader2 } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
-import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
-import { formatDate, formatDateTime } from '@renderer/utils/dateUtils'
+import React from "react";
+import { User, Loader2 } from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
+import VerifiedIcon from "@renderer/components/UI/icons/VerifiedIcon";
+import { formatDate, formatDateTime } from "@renderer/utils/dateUtils";
 
 interface BaseUserCardProps {
-  name: string
-  avatarUrl?: string
-  userId?: number | string
-  onClick?: () => void
-  className?: string
+  name: string;
+  avatarUrl?: string;
+  userId?: number | string;
+  onClick?: () => void;
+  className?: string;
 }
 
 interface OwnerCardProps extends BaseUserCardProps {
-  variant: 'owner'
-  serialNumber?: number | null
-  ownedSince?: string
+  variant: "owner";
+  serialNumber?: number | null;
+  ownedSince?: string;
 }
 
 interface ResellerCardProps extends BaseUserCardProps {
-  variant: 'reseller'
-  serialNumber?: number | null
-  price: number
-  hasVerifiedBadge?: boolean
-  isPurchasing?: boolean
-  onBuy?: () => void
+  variant: "reseller";
+  serialNumber?: number | null;
+  price: number;
+  hasVerifiedBadge?: boolean;
+  isPurchasing?: boolean;
+  onBuy?: () => void;
 }
 
-export type UserCardProps = OwnerCardProps | ResellerCardProps
+export type UserCardProps = OwnerCardProps | ResellerCardProps;
 
 export const UserCard: React.FC<UserCardProps> = (props) => {
-  const { name, avatarUrl, userId, onClick, className, variant } = props
+  const { name, avatarUrl, userId, onClick, className, variant } = props;
 
   return (
     <div
       className={cn(
-        'flex-shrink-0 w-[140px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 flex flex-col gap-2 hover:border-[var(--color-border-strong)] transition-all group',
-        onClick && 'cursor-pointer',
-        className
+        "flex-shrink-0 w-[140px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 flex flex-col gap-2 hover:border-[var(--color-border-strong)] transition-all group",
+        onClick && "cursor-pointer",
+        className,
       )}
       onClick={onClick}
     >
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] overflow-hidden flex-shrink-0">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+            <img
+              src={avatarUrl}
+              alt={name}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <User size={14} className="text-[var(--color-text-muted)]" />
@@ -60,15 +68,17 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
             title={name}
           >
             {name}
-            {variant === 'reseller' && props.hasVerifiedBadge && (
+            {variant === "reseller" && props.hasVerifiedBadge && (
               <VerifiedIcon width={10} height={10} className="flex-shrink-0" />
             )}
           </div>
           {props.serialNumber !== null && props.serialNumber !== undefined && (
             <div
               className={cn(
-                'text-[10px] font-medium',
-                variant === 'owner' ? 'text-amber-500' : 'text-[var(--color-text-muted)]'
+                "text-[10px] font-medium",
+                variant === "owner"
+                  ? "text-amber-500"
+                  : "text-[var(--color-text-muted)]",
               )}
             >
               #{props.serialNumber.toLocaleString()}
@@ -77,7 +87,7 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
         </div>
       </div>
 
-      {variant === 'owner' && props.ownedSince && (
+      {variant === "owner" && props.ownedSince && (
         <div className="flex items-center justify-between mt-1 pt-2 border-t border-[var(--color-border)]">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -88,14 +98,18 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
             <TooltipContent>
               <div className="text-xs">
                 <div>Owned since: {formatDateTime(props.ownedSince)}</div>
-                {userId && <div className="text-[var(--color-text-secondary)]">ID: {userId}</div>}
+                {userId && (
+                  <div className="text-[var(--color-text-secondary)]">
+                    ID: {userId}
+                  </div>
+                )}
               </div>
             </TooltipContent>
           </Tooltip>
         </div>
       )}
 
-      {variant === 'reseller' && (
+      {variant === "reseller" && (
         <div className="flex flex-col gap-2 mt-1 pt-2 border-t border-[var(--color-border)]">
           <div className="text-xs font-semibold text-emerald-400 flex items-center justify-between gap-1">
             <span className="flex items-center gap-1">
@@ -108,15 +122,19 @@ export const UserCard: React.FC<UserCardProps> = (props) => {
             variant="outline"
             className="h-6 text-[10px] w-full hover:bg-emerald-500 hover:text-[var(--color-text-primary)] hover:border-emerald-500 transition-colors"
             onClick={(e) => {
-              e.stopPropagation()
-              props.onBuy?.()
+              e.stopPropagation();
+              props.onBuy?.();
             }}
             disabled={props.isPurchasing}
           >
-            {props.isPurchasing ? <Loader2 size={10} className="animate-spin" /> : 'Buy'}
+            {props.isPurchasing ? (
+              <Loader2 size={10} className="animate-spin" />
+            ) : (
+              "Buy"
+            )}
           </Button>
         </div>
       )}
     </div>
-  )
-}
+  );
+};

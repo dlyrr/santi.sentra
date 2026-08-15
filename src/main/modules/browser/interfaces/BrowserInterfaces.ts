@@ -31,7 +31,7 @@ export interface IBrowserAutomationService {
   fillForm(config: FormConfig): Promise<void>;
   executeAutomation(
     navigation: NavigationConfig,
-    form: FormConfig
+    form: FormConfig,
   ): Promise<AutomationResult>;
   waitForUserInteraction(timeout: number): Promise<void>;
   screenshot(path?: string): Promise<Buffer>;

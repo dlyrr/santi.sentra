@@ -1,30 +1,44 @@
-import React, { useState, useEffect, useTransition, useCallback, useRef, useMemo } from 'react'
-import { createPortal } from 'react-dom'
-import { Search, User, Gamepad2, Monitor, Hammer, ExternalLink } from 'lucide-react'
-import { Virtuoso } from 'react-virtuoso'
-import { SkeletonUserList } from '../UI/display/SkeletonGrid'
-import { Dialog, DialogContent, DialogClose } from '../UI/dialogs/Dialog'
-import { ErrorMessage } from '../UI/feedback/ErrorMessage'
-import { EmptyState } from '../UI/feedback/EmptyState'
+import React, {
+  useState,
+  useEffect,
+  useTransition,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
+import { createPortal } from "react-dom";
+import {
+  Search,
+  User,
+  Gamepad2,
+  Monitor,
+  Hammer,
+  ExternalLink,
+} from "lucide-react";
+import { Virtuoso } from "react-virtuoso";
+import { SkeletonUserList } from "../UI/display/SkeletonGrid";
+import { Dialog, DialogContent, DialogClose } from "../UI/dialogs/Dialog";
+import { ErrorMessage } from "../UI/feedback/ErrorMessage";
+import { EmptyState } from "../UI/feedback/EmptyState";
 import {
   getStatusBorderColor,
   getStatusColor,
-  mapPresenceToStatus
-} from '@renderer/utils/statusUtils'
-import { AccountStatus } from '@renderer/types'
+  mapPresenceToStatus,
+} from "@renderer/utils/statusUtils";
+import { AccountStatus } from "@renderer/types";
 
 interface UserListModalProps {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  type: 'friends' | 'followers' | 'following'
-  userId: number | string
-  requestCookie: string
-  onSelectUser: (userId: number) => void
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  type: "friends" | "followers" | "following";
+  userId: number | string;
+  requestCookie: string;
+  onSelectUser: (userId: number) => void;
 }
 
 // Animation duration for modal open (matches Dialog spring animation)
-const ANIMATION_DELAY_MS = 280
+const ANIMATION_DELAY_MS = 280;
 
 const UserListModal: React.FC<UserListModalProps> = ({
   isOpen,
@@ -33,138 +47,145 @@ const UserListModal: React.FC<UserListModalProps> = ({
   type,
   userId,
   requestCookie,
-  onSelectUser
+  onSelectUser,
 }) => {
-  const [users, setUsers] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [, startTransition] = useTransition()
-  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [, startTransition] = useTransition();
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchUsers = useCallback(
     async (currentCursor: string | null) => {
-      if (!requestCookie || !userId) return
+      if (!requestCookie || !userId) return;
 
-      setLoading(true)
+      setLoading(true);
       try {
-        const numericUserId = typeof userId === 'string' ? parseInt(userId) : userId
-        let newUsers: any[] = []
-        let nextCursor: string | null = null
+        const numericUserId =
+          typeof userId === "string" ? parseInt(userId) : userId;
+        let newUsers: any[] = [];
+        let nextCursor: string | null = null;
 
-        if (type === 'friends') {
+        if (type === "friends") {
           const res = await window.api.getFriendsPaged(
             requestCookie,
             numericUserId,
-            currentCursor || undefined
-          )
-          newUsers = res.data
-          nextCursor = res.nextCursor
+            currentCursor || undefined,
+          );
+          newUsers = res.data;
+          nextCursor = res.nextCursor;
           startTransition(() => {
-            setHasMore(!!nextCursor)
-            setCursor(nextCursor)
-          })
-        } else if (type === 'followers') {
+            setHasMore(!!nextCursor);
+            setCursor(nextCursor);
+          });
+        } else if (type === "followers") {
           const res = await window.api.getFollowers(
             requestCookie,
             numericUserId,
-            currentCursor || undefined
-          )
-          newUsers = res.data
-          nextCursor = res.nextCursor
+            currentCursor || undefined,
+          );
+          newUsers = res.data;
+          nextCursor = res.nextCursor;
           startTransition(() => {
-            setHasMore(!!nextCursor)
-            setCursor(nextCursor)
-          })
-        } else if (type === 'following') {
+            setHasMore(!!nextCursor);
+            setCursor(nextCursor);
+          });
+        } else if (type === "following") {
           const res = await window.api.getFollowings(
             requestCookie,
             numericUserId,
-            currentCursor || undefined
-          )
-          newUsers = res.data
-          nextCursor = res.nextCursor
+            currentCursor || undefined,
+          );
+          newUsers = res.data;
+          nextCursor = res.nextCursor;
           startTransition(() => {
-            setHasMore(!!nextCursor)
-            setCursor(nextCursor)
-          })
+            setHasMore(!!nextCursor);
+            setCursor(nextCursor);
+          });
         }
 
         startTransition(() => {
-          setUsers((prev) => (currentCursor ? [...prev, ...newUsers] : newUsers))
-        })
+          setUsers((prev) =>
+            currentCursor ? [...prev, ...newUsers] : newUsers,
+          );
+        });
       } catch (err) {
-        console.error('Failed to fetch users', err)
-        setError('Failed to load users.')
+        console.error("Failed to fetch users", err);
+        setError("Failed to load users.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
-    [requestCookie, userId, type]
-  )
+    [requestCookie, userId, type],
+  );
 
   useEffect(() => {
     if (isOpen) {
-      setUsers([])
-      setCursor(null)
-      setHasMore(true)
-      setError(null)
-      setSearchQuery('')
+      setUsers([]);
+      setCursor(null);
+      setHasMore(true);
+      setError(null);
+      setSearchQuery("");
 
       fetchTimeoutRef.current = setTimeout(() => {
-        fetchUsers(null)
-      }, ANIMATION_DELAY_MS)
+        fetchUsers(null);
+      }, ANIMATION_DELAY_MS);
     }
 
     return () => {
       if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current)
-        fetchTimeoutRef.current = null
+        clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
       }
-    }
-  }, [isOpen, userId, type, fetchUsers])
+    };
+  }, [isOpen, userId, type, fetchUsers]);
 
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return users
-    const lowerQuery = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return users;
+    const lowerQuery = searchQuery.toLowerCase();
     return users.filter(
       (user) =>
         user.displayName?.toLowerCase().includes(lowerQuery) ||
         user.name?.toLowerCase().includes(lowerQuery) ||
-        user.username?.toLowerCase().includes(lowerQuery)
-    )
-  }, [users, searchQuery])
+        user.username?.toLowerCase().includes(lowerQuery),
+    );
+  }, [users, searchQuery]);
 
   const getStatusIcon = (status: AccountStatus) => {
     switch (status) {
       case AccountStatus.Online:
-        return <Monitor size={14} className="text-blue-400" />
+        return <Monitor size={14} className="text-blue-400" />;
       case AccountStatus.InGame:
-        return <Gamepad2 size={14} className="text-emerald-400" />
+        return <Gamepad2 size={14} className="text-emerald-400" />;
       case AccountStatus.InStudio:
-        return <Hammer size={14} className="text-orange-400" />
+        return <Hammer size={14} className="text-orange-400" />;
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const getStatusText = (status: AccountStatus, lastLocation?: string) => {
     switch (status) {
       case AccountStatus.Online:
-        return 'Online'
+        return "Online";
       case AccountStatus.InGame:
-        return lastLocation || 'In Game'
+        return lastLocation || "In Game";
       case AccountStatus.InStudio:
-        return lastLocation || 'In Studio'
+        return lastLocation || "In Studio";
       default:
-        return 'Offline'
+        return "Offline";
     }
-  }
+  };
 
   return createPortal(
-    <Dialog isOpen={isOpen} onClose={onClose} overlayClassName="z-[10000] p-4 backdrop-blur-sm">
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      overlayClassName="z-[10000] p-4 backdrop-blur-sm"
+    >
       <DialogContent className="relative w-full max-w-2xl h-[85vh] bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 flex flex-col">
         {/* Header */}
         <div className="flex flex-col gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 backdrop-blur-md z-10">
@@ -174,9 +195,11 @@ const UserListModal: React.FC<UserListModalProps> = ({
                 <User className="text-[var(--color-text-primary)]" size={20} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">{title}</h3>
+                <h3 className="text-xl font-bold text-[var(--color-text-primary)] tracking-tight">
+                  {title}
+                </h3>
                 <p className="text-sm text-[var(--color-text-secondary)] font-medium">
-                  {users.length > 0 ? `${users.length} loaded` : 'Loading...'}
+                  {users.length > 0 ? `${users.length} loaded` : "Loading..."}
                 </p>
               </div>
             </div>
@@ -207,23 +230,27 @@ const UserListModal: React.FC<UserListModalProps> = ({
               overscan={400}
               endReached={() => {
                 if (!loading && hasMore && !searchQuery) {
-                  fetchUsers(cursor)
+                  fetchUsers(cursor);
                 }
               }}
               className="scrollbar-thin"
               itemContent={(_index, user) => {
                 const status = user.userPresenceType
                   ? mapPresenceToStatus(user.userPresenceType)
-                  : AccountStatus.Offline
-                const isOnline = status !== AccountStatus.Offline
-                const statusColor = getStatusColor(status)
+                  : AccountStatus.Offline;
+                const isOnline = status !== AccountStatus.Offline;
+                const statusColor = getStatusColor(status);
 
                 return (
                   <div className="px-4 py-2">
                     <div
                       className="group relative flex items-center gap-4 p-3 rounded-xl bg-[var(--color-surface)]/30 border border-[var(--color-border)]/50 hover:bg-[var(--color-surface-hover)]/50 hover:border-[var(--color-border-strong)] transition-all duration-200 cursor-pointer"
                       onClick={() =>
-                        onSelectUser(typeof user.id === 'string' ? parseInt(user.id) : user.id)
+                        onSelectUser(
+                          typeof user.id === "string"
+                            ? parseInt(user.id)
+                            : user.id,
+                        )
                       }
                     >
                       {/* Avatar */}
@@ -292,7 +319,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                       </div>
                     </div>
                   </div>
-                )
+                );
               }}
               components={{
                 Footer: () =>
@@ -302,7 +329,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                     </div>
                   ) : (
                     <div className="h-4" />
-                  )
+                  ),
               }}
             />
           ) : loading ? (
@@ -313,7 +340,9 @@ const UserListModal: React.FC<UserListModalProps> = ({
             <EmptyState
               icon={User}
               title={`No ${title.toLowerCase()} found`}
-              description={searchQuery ? `No results for "${searchQuery}"` : undefined}
+              description={
+                searchQuery ? `No results for "${searchQuery}"` : undefined
+              }
               variant="minimal"
             />
           ) : (
@@ -322,8 +351,8 @@ const UserListModal: React.FC<UserListModalProps> = ({
         </div>
       </DialogContent>
     </Dialog>,
-    document.body
-  )
-}
+    document.body,
+  );
+};
 
-export default UserListModal
+export default UserListModal;

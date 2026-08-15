@@ -1,3 +1,3 @@
-import { GeneratorTab } from './GeneratorTab'
+import { GeneratorTab } from "./GeneratorTab";
 
-export default GeneratorTab
+export default GeneratorTab;

@@ -5,7 +5,7 @@ export interface SniperSession {
   valid: string[];
   taken: string[];
   censored: string[];
-  status: 'idle' | 'running' | 'paused' | 'completed';
+  status: "idle" | "running" | "paused" | "completed";
   startTime?: number;
   endTime?: number;
 }

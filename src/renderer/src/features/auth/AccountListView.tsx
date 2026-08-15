@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useMemo, useContext, createContext, useState } from 'react'
-import { Copy, Info, Check, Clock, Star } from 'lucide-react'
+import { Copy, Info, Check, Clock, Star, AlertCircle } from 'lucide-react'
 import { Account } from '@renderer/types'
 import CustomCheckbox from '@renderer/components/UI/buttons/CustomCheckbox'
 import StatusBadge from '@renderer/components/UI/display/StatusBadge'
@@ -144,7 +144,10 @@ const AccountListView = ({
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 flex-shrink-0 relative">
                 <img
-                  className="h-8 w-8 rounded-full bg-[var(--color-surface-hover)] object-cover ring-1 ring-[var(--color-border)] group-hover:ring-[var(--color-border-strong)] transition-all duration-150"
+                  className={[
+                    "h-8 w-8 rounded-full bg-[var(--color-surface-hover)] object-cover ring-1 transition-all duration-150",
+                    isSelected ? "ring-[var(--accent-color-border)] shadow-[0_0_8px_var(--accent-color-faint)]" : "ring-[var(--color-border)] group-hover:ring-[var(--color-border-strong)]"
+                  ].join(' ')}
                   src={account.avatarUrl}
                   alt=""
                   style={privacyMode ? { filter: 'blur(16px)' } : undefined}
@@ -184,9 +187,14 @@ const AccountListView = ({
                     </span>
                   )}
                   {account.cookieInvalid && (
-                    <span className="ml-2 text-[10px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
-                      Invalid Cookie
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="ml-2 bg-red-500/10 p-0.5 rounded-full">
+                          <AlertCircle size={14} className="text-red-500 shrink-0" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Invalid Cookie</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
                 <div
@@ -246,7 +254,7 @@ const AccountListView = ({
                 <TooltipTrigger asChild>
                   <button
                     onClick={(e) => onInfoOpen(e, account)}
-                    className="pressable text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors p-1.5 hover:bg-[var(--color-surface-hover)] rounded-md"
+                    className="pressable text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors p-2 hover:bg-[var(--color-surface-hover)] rounded-md"
                   >
                     <Info size={16} />
                   </button>
@@ -289,7 +297,7 @@ const AccountListView = ({
             className={[
               'group transition-colors duration-100 cursor-pointer rounded-lg overflow-hidden',
               isSelected
-                ? 'bg-[var(--accent-color-faint)] ring-1 ring-[var(--accent-color-border)]'
+                ? 'bg-[var(--accent-color-faint)] shadow-[inset_3px_0_0_var(--accent-color)]'
                 : 'hover:bg-[var(--color-surface-hover)]'
             ].join(' ')}
             onClick={() => ctx.onToggleSelect(account.id)}

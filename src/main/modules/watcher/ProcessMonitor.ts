@@ -1,8 +1,8 @@
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { memoryCleanupService } from './MemoryCleanupService'
+import { exec } from "child_process";
+import { promisify } from "util";
+import { memoryCleanupService } from "./MemoryCleanupService";
 
-const execAsync = promisify(exec)
+const execAsync = promisify(exec);
 
 /**
  * ProcessMonitor - Monitors process existence and status
@@ -12,10 +12,10 @@ export class ProcessMonitor {
     try {
       // process.kill(pid, 0) checks if the process exists without actually killing it.
       // This is natively supported by Node.js on Windows, macOS, and Linux.
-      process.kill(pid, 0)
-      return true
+      process.kill(pid, 0);
+      return true;
     } catch {
-      return false
+      return false;
     }
   }
 
@@ -23,56 +23,70 @@ export class ProcessMonitor {
    * Check if Roblox is running (any process)
    */
   static async isRobloxRunning(): Promise<boolean> {
-    const pids = await this.getRobloxProcessPids()
-    return pids.length > 0
+    const pids = await this.getRobloxProcessPids();
+    return pids.length > 0;
   }
   /**
    * Get all running Roblox process PIDs
    */
   static async getRobloxProcessPids(): Promise<number[]> {
     try {
-      if (process.platform === 'darwin') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true')
+      if (process.platform === "darwin") {
+        const { stdout } = await execAsync(
+          "pgrep -x RobloxPlayer 2>/dev/null || true",
+        );
         const pids = stdout
           .trim()
-          .split('\n')
+          .split("\n")
           .filter((line) => line.length > 0 && /^\d+$/.test(line))
-          .map((line) => parseInt(line, 10))
-        
+          .map((line) => parseInt(line, 10));
+
         if (pids.length > 0) {
-          console.log(`[ProcessMonitor] Found ${pids.length} Roblox processes on macOS: ${pids.join(', ')}`)
+          console.log(
+            `[ProcessMonitor] Found ${pids.length} Roblox processes on macOS: ${pids.join(", ")}`,
+          );
         }
-        return pids
-      } else if (process.platform === 'win32') {
+        return pids;
+      } else if (process.platform === "win32") {
         // Use wmic which is significantly faster and less resource-intensive than tasklist
-        const { stdout } = await execAsync('wmic process where "name=\'RobloxPlayerBeta.exe\'" get ProcessId', { timeout: 3000 })
+        const { stdout } = await execAsync(
+          "wmic process where \"name='RobloxPlayerBeta.exe'\" get ProcessId",
+          { timeout: 3000 },
+        );
         const pids = stdout
-          .split('\n')
+          .split("\n")
           .map((line) => parseInt(line.trim(), 10))
-          .filter((pid) => !isNaN(pid))
-        
+          .filter((pid) => !isNaN(pid));
+
         if (pids.length > 0) {
           // Limit logging to avoid spam
-          if (Math.random() < 0.1) console.log(`[ProcessMonitor] Found ${pids.length} Roblox processes on Windows`)
+          if (Math.random() < 0.1)
+            console.log(
+              `[ProcessMonitor] Found ${pids.length} Roblox processes on Windows`,
+            );
         }
-        return pids
-      } else if (process.platform === 'linux') {
-        const { stdout } = await execAsync('pgrep -x RobloxPlayer 2>/dev/null || true')
+        return pids;
+      } else if (process.platform === "linux") {
+        const { stdout } = await execAsync(
+          "pgrep -x RobloxPlayer 2>/dev/null || true",
+        );
         const pids = stdout
           .trim()
-          .split('\n')
+          .split("\n")
           .filter((line) => line.length > 0 && /^\d+$/.test(line))
-          .map((line) => parseInt(line, 10))
-        
+          .map((line) => parseInt(line, 10));
+
         if (pids.length > 0) {
-          console.log(`[ProcessMonitor] Found ${pids.length} Roblox processes on Linux: ${pids.join(', ')}`)
+          console.log(
+            `[ProcessMonitor] Found ${pids.length} Roblox processes on Linux: ${pids.join(", ")}`,
+          );
         }
-        return pids
+        return pids;
       }
     } catch (error) {
-      console.error('[ProcessMonitor] Error getting Roblox processes:', error)
+      console.error("[ProcessMonitor] Error getting Roblox processes:", error);
     }
-    return []
+    return [];
   }
 
   /**
@@ -80,24 +94,24 @@ export class ProcessMonitor {
    */
   static async killProcess(pid: number): Promise<boolean> {
     try {
-      console.log(`[ProcessMonitor] Killing Roblox process ${pid}`)
-      
-      if (process.platform === 'darwin' || process.platform === 'linux') {
+      console.log(`[ProcessMonitor] Killing Roblox process ${pid}`);
+
+      if (process.platform === "darwin" || process.platform === "linux") {
         // macOS/Linux: use kill command
-        await execAsync(`kill -9 ${pid}`)
-        console.log(`[ProcessMonitor] Successfully killed process ${pid}`)
-        return true
-      } else if (process.platform === 'win32') {
+        await execAsync(`kill -9 ${pid}`);
+        console.log(`[ProcessMonitor] Successfully killed process ${pid}`);
+        return true;
+      } else if (process.platform === "win32") {
         // Windows: use taskkill command with child-process tree support
-        await execAsync(`taskkill /PID ${pid} /T /F`)
-        console.log(`[ProcessMonitor] Successfully killed process ${pid}`)
-        return true
+        await execAsync(`taskkill /PID ${pid} /T /F`);
+        console.log(`[ProcessMonitor] Successfully killed process ${pid}`);
+        return true;
       }
     } catch (error) {
-      console.error(`[ProcessMonitor] Error killing process ${pid}:`, error)
-      return false
+      console.error(`[ProcessMonitor] Error killing process ${pid}:`, error);
+      return false;
     }
-    return false
+    return false;
   }
 
   /**
@@ -105,133 +119,167 @@ export class ProcessMonitor {
    */
   static async getProcessRAM(pid: number): Promise<number | null> {
     try {
-      if (process.platform === 'darwin') {
+      if (process.platform === "darwin") {
         // macOS: use ps command, get memory in KB and convert to MB
-        const { stdout } = await execAsync(`ps -p ${pid} -o rss=`)
-        const trimmed = stdout.trim()
-        
+        const { stdout } = await execAsync(`ps -p ${pid} -o rss=`);
+        const trimmed = stdout.trim();
+
         // Validate that we got actual output
         if (!trimmed || trimmed.length === 0) {
-          console.log(`[ProcessMonitor] macOS: No output from ps for PID ${pid} - process may not exist`)
-          return null
+          console.log(
+            `[ProcessMonitor] macOS: No output from ps for PID ${pid} - process may not exist`,
+          );
+          return null;
         }
-        
-        const ramKB = parseInt(trimmed, 10)
-        
+
+        const ramKB = parseInt(trimmed, 10);
+
         // Check for NaN
         if (isNaN(ramKB)) {
-          console.log(`[ProcessMonitor] macOS: Invalid RAM value for PID ${pid}: "${trimmed}"`)
-          return null
+          console.log(
+            `[ProcessMonitor] macOS: Invalid RAM value for PID ${pid}: "${trimmed}"`,
+          );
+          return null;
         }
-        
-        const ramMB = Math.round(ramKB / 1024) // Convert KB to MB
-        console.log(`[ProcessMonitor] macOS: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`)
-        return ramMB
-      } else if (process.platform === 'win32') {
+
+        const ramMB = Math.round(ramKB / 1024); // Convert KB to MB
+        console.log(
+          `[ProcessMonitor] macOS: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`,
+        );
+        return ramMB;
+      } else if (process.platform === "win32") {
         // Windows: use PowerShell CIM if available, which is more reliable than WMIC
         const { stdout } = await execAsync(
-          `powershell.exe -NoProfile -Command "$p = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' -ErrorAction SilentlyContinue; if ($p) { [int64]$p.WorkingSetSize } else { exit 1 }"`
-        )
-        const trimmed = stdout.trim()
+          `powershell.exe -NoProfile -Command "$p = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' -ErrorAction SilentlyContinue; if ($p) { [int64]$p.WorkingSetSize } else { exit 1 }"`,
+        );
+        const trimmed = stdout.trim();
 
         if (!trimmed || trimmed.length === 0) {
-          console.log(`[ProcessMonitor] Windows: No RAM output for PID ${pid}`)
-          return null
+          console.log(`[ProcessMonitor] Windows: No RAM output for PID ${pid}`);
+          return null;
         }
 
-        const ramBytes = parseInt(trimmed, 10)
+        const ramBytes = parseInt(trimmed, 10);
         if (isNaN(ramBytes)) {
-          console.log(`[ProcessMonitor] Windows: Invalid RAM bytes for PID ${pid}: "${trimmed}"`)
-          return null
+          console.log(
+            `[ProcessMonitor] Windows: Invalid RAM bytes for PID ${pid}: "${trimmed}"`,
+          );
+          return null;
         }
 
-        const ramMB = Math.round(ramBytes / (1024 * 1024))
-        console.log(`[ProcessMonitor] Windows: PID ${pid} WorkingSet=${ramBytes}B -> ${ramMB}MB`)
-        return ramMB
-      } else if (process.platform === 'linux') {
+        const ramMB = Math.round(ramBytes / (1024 * 1024));
+        console.log(
+          `[ProcessMonitor] Windows: PID ${pid} WorkingSet=${ramBytes}B -> ${ramMB}MB`,
+        );
+        return ramMB;
+      } else if (process.platform === "linux") {
         // Linux: use ps command, get RSS (in KB) and convert to MB
-        const { stdout } = await execAsync(`ps -p ${pid} -o rss=`)
-        const trimmed = stdout.trim()
-        
+        const { stdout } = await execAsync(`ps -p ${pid} -o rss=`);
+        const trimmed = stdout.trim();
+
         // Validate that we got actual output
         if (!trimmed || trimmed.length === 0) {
-          console.log(`[ProcessMonitor] Linux: No output from ps for PID ${pid} - process may not exist`)
-          return null
+          console.log(
+            `[ProcessMonitor] Linux: No output from ps for PID ${pid} - process may not exist`,
+          );
+          return null;
         }
-        
-        const ramKB = parseInt(trimmed, 10)
-        
+
+        const ramKB = parseInt(trimmed, 10);
+
         // Check for NaN
         if (isNaN(ramKB)) {
-          console.log(`[ProcessMonitor] Linux: Invalid RAM value for PID ${pid}: "${trimmed}"`)
-          return null
+          console.log(
+            `[ProcessMonitor] Linux: Invalid RAM value for PID ${pid}: "${trimmed}"`,
+          );
+          return null;
         }
-        
-        const ramMB = Math.round(ramKB / 1024) // Convert KB to MB
-        console.log(`[ProcessMonitor] Linux: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`)
-        return ramMB
+
+        const ramMB = Math.round(ramKB / 1024); // Convert KB to MB
+        console.log(
+          `[ProcessMonitor] Linux: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`,
+        );
+        return ramMB;
       }
     } catch (error) {
-      console.error(`[ProcessMonitor] Error getting RAM for process ${pid}:`, error)
+      console.error(
+        `[ProcessMonitor] Error getting RAM for process ${pid}:`,
+        error,
+      );
     }
-    return null
+    return null;
   }
 
   /**
    * Attempt to clean up RAM using EmptyWorkingSet (Windows only)
    * Returns object with cleanup result and whether process should be restarted
    */
-  static async attemptRAMCleanup(pid: number, currentRAM: number, maxRAMMB: number, failureCount: number, enableCleanup: boolean = true): Promise<{
-    cleanedUp: boolean
-    shouldRestart: boolean
+  static async attemptRAMCleanup(
+    pid: number,
+    currentRAM: number,
+    maxRAMMB: number,
+    failureCount: number,
+    enableCleanup: boolean = true,
+  ): Promise<{
+    cleanedUp: boolean;
+    shouldRestart: boolean;
   }> {
     try {
       // Only attempt cleanup if memory is over limit
       if (currentRAM <= maxRAMMB) {
-        return { cleanedUp: false, shouldRestart: false }
+        return { cleanedUp: false, shouldRestart: false };
       }
 
       // If cleanup is disabled, skip attempts and go straight to restart
       if (!enableCleanup) {
-        console.log(`[ProcessMonitor] RAM cleanup disabled - restarting process ${pid}`)
-        return { cleanedUp: false, shouldRestart: true }
+        console.log(
+          `[ProcessMonitor] RAM cleanup disabled - restarting process ${pid}`,
+        );
+        return { cleanedUp: false, shouldRestart: true };
       }
 
       // Only attempt cleanup on Windows
-      if (process.platform !== 'win32') {
-        console.log(`[ProcessMonitor] RAM cleanup only supported on Windows - killing process ${pid}`)
-        return { cleanedUp: false, shouldRestart: true }
+      if (process.platform !== "win32") {
+        console.log(
+          `[ProcessMonitor] RAM cleanup only supported on Windows - killing process ${pid}`,
+        );
+        return { cleanedUp: false, shouldRestart: true };
       }
 
       console.log(
-        `[ProcessMonitor] Attempting RAM cleanup for PID ${pid}: ${currentRAM}MB > ${maxRAMMB}MB (failure count: ${failureCount})`
-      )
+        `[ProcessMonitor] Attempting RAM cleanup for PID ${pid}: ${currentRAM}MB > ${maxRAMMB}MB (failure count: ${failureCount})`,
+      );
 
       // Try to clean up memory using EmptyWorkingSet
-      const cleanupSuccess = await memoryCleanupService.emptyWorkingSet(pid)
+      const cleanupSuccess = await memoryCleanupService.emptyWorkingSet(pid);
 
       if (cleanupSuccess) {
-        console.log(`[ProcessMonitor] RAM cleanup succeeded for PID ${pid}`)
-        return { cleanedUp: true, shouldRestart: false }
+        console.log(`[ProcessMonitor] RAM cleanup succeeded for PID ${pid}`);
+        return { cleanedUp: true, shouldRestart: false };
       }
 
       // Cleanup failed - check if we've failed 3 times
-      const newFailureCount = failureCount + 1
-      console.log(`[ProcessMonitor] RAM cleanup failed for PID ${pid} (attempt ${newFailureCount}/3)`)
+      const newFailureCount = failureCount + 1;
+      console.log(
+        `[ProcessMonitor] RAM cleanup failed for PID ${pid} (attempt ${newFailureCount}/3)`,
+      );
 
       // After 3 failed cleanup attempts, restart the process
       if (newFailureCount >= 3) {
         console.log(
-          `[ProcessMonitor] RAM cleanup failed 3 times for PID ${pid} - will restart client`
-        )
-        return { cleanedUp: false, shouldRestart: true }
+          `[ProcessMonitor] RAM cleanup failed 3 times for PID ${pid} - will restart client`,
+        );
+        return { cleanedUp: false, shouldRestart: true };
       }
 
       // Still have attempts left, don't restart yet
-      return { cleanedUp: false, shouldRestart: false }
+      return { cleanedUp: false, shouldRestart: false };
     } catch (error) {
-      console.error(`[ProcessMonitor] Error during RAM cleanup attempt for ${pid}:`, error)
-      return { cleanedUp: false, shouldRestart: false }
+      console.error(
+        `[ProcessMonitor] Error during RAM cleanup attempt for ${pid}:`,
+        error,
+      );
+      return { cleanedUp: false, shouldRestart: false };
     }
   }
 
@@ -241,45 +289,65 @@ export class ProcessMonitor {
    * If cleanup fails 3 times with RAM still over limit, kills the process
    * Returns true if process was killed and needs restart
    */
-  static async checkAndLimitRAM(pid: number, maxRAMMB: number, failureCount: number = 0, enableCleanup: boolean = true): Promise<boolean> {
+  static async checkAndLimitRAM(
+    pid: number,
+    maxRAMMB: number,
+    failureCount: number = 0,
+    enableCleanup: boolean = true,
+  ): Promise<boolean> {
     try {
-      const ramUsage = await this.getProcessRAM(pid)
+      const ramUsage = await this.getProcessRAM(pid);
 
       if (ramUsage === null) {
         // Process might not exist or command failed
-        console.log(`[ProcessMonitor] Could not get RAM for process ${pid} - process may not exist`)
-        return false
+        console.log(
+          `[ProcessMonitor] Could not get RAM for process ${pid} - process may not exist`,
+        );
+        return false;
       }
 
-      console.log(`[ProcessMonitor] Process ${pid} RAM usage: ${ramUsage}MB (limit: ${maxRAMMB}MB)`)
+      console.log(
+        `[ProcessMonitor] Process ${pid} RAM usage: ${ramUsage}MB (limit: ${maxRAMMB}MB)`,
+      );
 
       if (ramUsage > maxRAMMB) {
         // Attempt RAM cleanup via EmptyWorkingSet before killing (if enabled)
-        const { cleanedUp, shouldRestart } = await this.attemptRAMCleanup(pid, ramUsage, maxRAMMB, failureCount, enableCleanup)
+        const { cleanedUp, shouldRestart } = await this.attemptRAMCleanup(
+          pid,
+          ramUsage,
+          maxRAMMB,
+          failureCount,
+          enableCleanup,
+        );
 
         if (shouldRestart) {
           console.log(
-            `[ProcessMonitor] Process ${pid} exceeded RAM limit (${ramUsage}MB > ${maxRAMMB}MB) - will restart`
-          )
-          const killed = await this.killProcess(pid)
-          return killed
+            `[ProcessMonitor] Process ${pid} exceeded RAM limit (${ramUsage}MB > ${maxRAMMB}MB) - will restart`,
+          );
+          const killed = await this.killProcess(pid);
+          return killed;
         }
 
         if (cleanedUp) {
-          console.log(`[ProcessMonitor] RAM cleanup succeeded for PID ${pid} - no restart needed`)
-          return false
+          console.log(
+            `[ProcessMonitor] RAM cleanup succeeded for PID ${pid} - no restart needed`,
+          );
+          return false;
         }
 
         // Cleanup failed but we still have attempts left - just log and continue
-        return false
+        return false;
       }
 
-      return false
+      return false;
     } catch (error) {
-      console.error(`[ProcessMonitor] Error checking RAM limit for ${pid}:`, error)
-      return false
+      console.error(
+        `[ProcessMonitor] Error checking RAM limit for ${pid}:`,
+        error,
+      );
+      return false;
     }
   }
 }
 
-export const processMonitor = new ProcessMonitor()
+export const processMonitor = new ProcessMonitor();

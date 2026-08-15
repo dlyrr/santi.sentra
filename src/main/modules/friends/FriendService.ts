@@ -1,14 +1,14 @@
-import { request, requestWithCsrf } from '@main/lib/request'
-import { RobloxAuthService } from '../auth/RobloxAuthService'
-import { RobloxUserService } from '../users/UserService'
-import { z } from 'zod'
+import { request, requestWithCsrf } from "@main/lib/request";
+import { RobloxAuthService } from "../auth/RobloxAuthService";
+import { RobloxUserService } from "../users/UserService";
+import { z } from "zod";
 import {
   friendSchema,
   friendsPageSchema,
   followersResponseSchema,
   presenceSchema,
-  userPresenceResponseSchema
-} from '@shared/ipc-schemas/user'
+  userPresenceResponseSchema,
+} from "@shared/ipc-schemas/user";
 
 const hydrateUserSchema = z.object({
   id: z.number(),
@@ -18,47 +18,56 @@ const hydrateUserSchema = z.object({
   created: z.string().optional(),
   isBanned: z.boolean().optional(),
   externalAppDisplayName: z.string().optional().nullable(),
-  hasVerifiedBadge: z.boolean().optional()
-})
+  hasVerifiedBadge: z.boolean().optional(),
+});
 
 const hydrateUsersResponseSchema = z.object({
-  data: z.array(hydrateUserSchema)
-})
+  data: z.array(hydrateUserSchema),
+});
 
 export class RobloxFriendService {
   static async getFriendStats(cookie: string, userId: number) {
-    const countSchema = z.object({ count: z.number() })
+    const countSchema = z.object({ count: z.number() });
     const userInfoSchema = z.object({
       name: z.string(),
       displayName: z.string(),
       description: z.string().optional(),
-      created: z.string().optional()
-    })
+      created: z.string().optional(),
+    });
 
     const results = await Promise.allSettled([
       request(countSchema, {
         url: `https://friends.roblox.com/v1/users/${userId}/followers/count`,
-        cookie
+        cookie,
       }),
       request(countSchema, {
         url: `https://friends.roblox.com/v1/users/${userId}/followings/count`,
-        cookie
+        cookie,
       }),
       request(countSchema, {
         url: `https://friends.roblox.com/v1/users/${userId}/friends/count`,
-        cookie
+        cookie,
       }),
-      request(userInfoSchema, { url: `https://users.roblox.com/v1/users/${userId}`, cookie })
-    ])
+      request(userInfoSchema, {
+        url: `https://users.roblox.com/v1/users/${userId}`,
+        cookie,
+      }),
+    ]);
 
-    const getResult = <T,>(result: PromiseSettledResult<T>, defaultValue: T): T => {
-      return result.status === 'fulfilled' ? result.value : defaultValue
-    }
+    const getResult = <T>(
+      result: PromiseSettledResult<T>,
+      defaultValue: T,
+    ): T => {
+      return result.status === "fulfilled" ? result.value : defaultValue;
+    };
 
-    const followers = getResult(results[0], { count: 0 })
-    const following = getResult(results[1], { count: 0 })
-    const friends = getResult(results[2], { count: 0 })
-    const userInfo = getResult(results[3], { name: 'Unknown', displayName: 'Unknown' })
+    const followers = getResult(results[0], { count: 0 });
+    const following = getResult(results[1], { count: 0 });
+    const friends = getResult(results[2], { count: 0 });
+    const userInfo = getResult(results[3], {
+      name: "Unknown",
+      displayName: "Unknown",
+    });
 
     return {
       followerCount: followers?.count ?? 0,
@@ -66,392 +75,423 @@ export class RobloxFriendService {
       friendCount: friends?.count ?? 0,
       description: userInfo?.description,
       created: userInfo?.created,
-      username: userInfo?.name ?? 'Unknown',
-      displayName: userInfo?.displayName ?? 'Unknown',
-      userId: userId
-    }
+      username: userInfo?.name ?? "Unknown",
+      displayName: userInfo?.displayName ?? "Unknown",
+      userId: userId,
+    };
   }
 
   private static async hydrateUsers(
     cookie: string,
     userIds: number[],
-    options?: { skipPresence?: boolean }
+    options?: { skipPresence?: boolean },
   ) {
-    if (userIds.length === 0) return { avatars: {}, userDetails: {}, presences: {} }
+    if (userIds.length === 0)
+      return { avatars: {}, userDetails: {}, presences: {} };
 
     const chunk = (arr: number[], size: number) =>
       Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-        arr.slice(i * size, i * size + size)
-      )
+        arr.slice(i * size, i * size + size),
+      );
 
-    const avatars: Record<number, string> = {}
-    const presences: Record<number, any> = {}
-    const userDetails: Record<number, any> = {}
+    const avatars: Record<number, string> = {};
+    const presences: Record<number, any> = {};
+    const userDetails: Record<number, any> = {};
 
-    let csrfToken = ''
+    let csrfToken = "";
     if (!options?.skipPresence) {
       try {
-        csrfToken = await RobloxAuthService.getCsrfToken(cookie)
+        csrfToken = await RobloxAuthService.getCsrfToken(cookie);
       } catch (e) {
-        console.warn('Failed to get CSRF token for presence, proceeding without presence data', e)
+        console.warn(
+          "Failed to get CSRF token for presence, proceeding without presence data",
+          e,
+        );
       }
     }
 
     try {
       const avatarMap = await RobloxUserService.getBatchUserAvatarHeadshots(
         userIds,
-        '420x420',
-        cookie
-      )
+        "420x420",
+        cookie,
+      );
       for (const [id, url] of avatarMap.entries()) {
         if (url) {
-          avatars[id] = url
+          avatars[id] = url;
         }
       }
     } catch (e) {
-      console.error('Failed to fetch avatars via batch service', e)
+      console.error("Failed to fetch avatars via batch service", e);
     }
 
-    const userChunks = chunk(userIds, 50)
+    const userChunks = chunk(userIds, 50);
     for (const ids of userChunks) {
       try {
         const usersResult = await request(hydrateUsersResponseSchema, {
-          method: 'POST',
-          url: 'https://users.roblox.com/v1/users',
+          method: "POST",
+          url: "https://users.roblox.com/v1/users",
           cookie,
-          body: { userIds: ids, excludeBannedUsers: false }
-        })
-        const userData = usersResult.data || []
+          body: { userIds: ids, excludeBannedUsers: false },
+        });
+        const userData = usersResult.data || [];
 
         userData.forEach((u: any) => {
-          userDetails[u.id] = u
-        })
+          userDetails[u.id] = u;
+        });
       } catch (e: any) {
-        console.error('Failed to fetch user details chunk', e)
+        console.error("Failed to fetch user details chunk", e);
       }
     }
 
     if (csrfToken && !options?.skipPresence) {
-      const presenceChunks = chunk(userIds, 50)
+      const presenceChunks = chunk(userIds, 50);
       for (const ids of presenceChunks) {
         try {
-          const presenceResult = await requestWithCsrf(userPresenceResponseSchema, {
-            method: 'POST',
-            url: 'https://presence.roblox.com/v1/presence/users',
-            cookie,
-            headers: { 'x-csrf-token': csrfToken },
-            body: { userIds: ids }
-          })
-          const presenceData = presenceResult.userPresences || []
+          const presenceResult = await requestWithCsrf(
+            userPresenceResponseSchema,
+            {
+              method: "POST",
+              url: "https://presence.roblox.com/v1/presence/users",
+              cookie,
+              headers: { "x-csrf-token": csrfToken },
+              body: { userIds: ids },
+            },
+          );
+          const presenceData = presenceResult.userPresences || [];
 
           presenceData.forEach((p: any) => {
-            const validPresence = presenceSchema.parse(p)
-            presences[validPresence.userId] = validPresence
-          })
+            const validPresence = presenceSchema.parse(p);
+            presences[validPresence.userId] = validPresence;
+          });
         } catch (e) {
-          console.error('Failed to fetch presence chunk', e)
+          console.error("Failed to fetch presence chunk", e);
         }
       }
     }
 
-    return { avatars, userDetails, presences }
+    return { avatars, userDetails, presences };
   }
 
   /**
    * Get friends with pagination support - fetches only one page at a time
    */
-  static async getFriendsPaged(cookie: string, userId: number, cursor?: string) {
-    const limit = 50
+  static async getFriendsPaged(
+    cookie: string,
+    userId: number,
+    cursor?: string,
+  ) {
+    const limit = 50;
     const queryParams = new URLSearchParams({
-      limit: limit.toString()
-    })
+      limit: limit.toString(),
+    });
     if (cursor) {
-      queryParams.append('cursor', cursor)
+      queryParams.append("cursor", cursor);
     }
 
     const friendsResult = await request(friendsPageSchema, {
       url: `https://friends.roblox.com/v1/users/${userId}/friends/find?${queryParams.toString()}`,
-      cookie
-    })
+      cookie,
+    });
 
-    const friends = friendsResult.PageItems || []
+    const friends = friendsResult.PageItems || [];
     if (friends.length === 0) {
       return {
         data: [],
         nextCursor: null,
-        previousCursor: null
-      }
+        previousCursor: null,
+      };
     }
 
-    const friendIds = friends.map((f) => f.id)
-    const { avatars, userDetails, presences } = await this.hydrateUsers(cookie, friendIds)
+    const friendIds = friends.map((f) => f.id);
+    const { avatars, userDetails, presences } = await this.hydrateUsers(
+      cookie,
+      friendIds,
+    );
 
     const data = friends.map((f) => {
-      const p = presences[f.id]
-      const u = userDetails[f.id]
+      const p = presences[f.id];
+      const u = userDetails[f.id];
       return {
         id: f.id.toString(),
         userId: f.id.toString(),
-        username: u ? u.name : f.name || '',
-        displayName: u ? u.displayName : f.displayName || f.name || '',
-        avatarUrl: avatars[f.id] || '',
+        username: u ? u.name : f.name || "",
+        displayName: u ? u.displayName : f.displayName || f.name || "",
+        avatarUrl: avatars[f.id] || "",
         userPresenceType: p ? p.userPresenceType : f.isOnline ? 1 : 0,
-        lastLocation: p?.lastLocation || '',
+        lastLocation: p?.lastLocation || "",
         placeId: p?.placeId || null,
         gameId: p?.gameId || null,
-        description: f.description || '',
-        hasVerifiedBadge: f.hasVerifiedBadge ?? u?.hasVerifiedBadge ?? false
-      }
-    })
+        description: f.description || "",
+        hasVerifiedBadge: f.hasVerifiedBadge ?? u?.hasVerifiedBadge ?? false,
+      };
+    });
 
     return {
       data,
       nextCursor: friendsResult.NextCursor ?? null,
-      previousCursor: null
-    }
+      previousCursor: null,
+    };
   }
 
   /**
    * Get ALL friends (fetches all pages) - use for FriendsTab where all friends are needed
    */
-  static async getFriends(cookie: string, userId: number, _forceRefresh: boolean = false) {
-    void _forceRefresh
-    let friends: z.infer<typeof friendSchema>[] = []
-    let cursor: string | null = null
-    const limit = 50
-    const maxPages = 100
-    let pagesFetched = 0
+  static async getFriends(
+    cookie: string,
+    userId: number,
+    _forceRefresh: boolean = false,
+  ) {
+    void _forceRefresh;
+    let friends: z.infer<typeof friendSchema>[] = [];
+    let cursor: string | null = null;
+    const limit = 50;
+    const maxPages = 100;
+    let pagesFetched = 0;
 
     try {
       do {
         const queryParams = new URLSearchParams({
-          limit: limit.toString()
-        })
+          limit: limit.toString(),
+        });
         if (cursor) {
-          queryParams.append('cursor', cursor)
+          queryParams.append("cursor", cursor);
         }
 
         const friendsResult = await request(friendsPageSchema, {
           url: `https://friends.roblox.com/v1/users/${userId}/friends/find?${queryParams.toString()}`,
-          cookie
-        })
+          cookie,
+        });
 
-        const pageFriends = friendsResult.PageItems || []
-        friends = [...friends, ...pageFriends]
-        cursor = friendsResult.NextCursor ?? null
-        pagesFetched++
-      } while (cursor && pagesFetched < maxPages)
+        const pageFriends = friendsResult.PageItems || [];
+        friends = [...friends, ...pageFriends];
+        cursor = friendsResult.NextCursor ?? null;
+        pagesFetched++;
+      } while (cursor && pagesFetched < maxPages);
 
       if (cursor && pagesFetched >= maxPages) {
-        console.warn(`Friends fetch hit page limit (${maxPages}) for user ${userId}`)
+        console.warn(
+          `Friends fetch hit page limit (${maxPages}) for user ${userId}`,
+        );
       }
     } catch (error) {
-      console.error('Error fetching friends pages:', error)
+      console.error("Error fetching friends pages:", error);
     }
 
-    if (friends.length === 0) return []
+    if (friends.length === 0) return [];
 
-    const friendIds = friends.map((f) => f.id)
-    const { avatars, userDetails, presences } = await this.hydrateUsers(cookie, friendIds)
+    const friendIds = friends.map((f) => f.id);
+    const { avatars, userDetails, presences } = await this.hydrateUsers(
+      cookie,
+      friendIds,
+    );
 
     return friends.map((f) => {
-      const p = presences[f.id]
-      const u = userDetails[f.id]
+      const p = presences[f.id];
+      const u = userDetails[f.id];
       return {
         id: f.id.toString(),
-        username: u ? u.name : f.name || '',
-        displayName: u ? u.displayName : f.displayName || f.name || '',
+        username: u ? u.name : f.name || "",
+        displayName: u ? u.displayName : f.displayName || f.name || "",
         userId: f.id.toString(),
-        avatarUrl: avatars[f.id] || '',
+        avatarUrl: avatars[f.id] || "",
         userPresenceType: p ? p.userPresenceType : f.isOnline ? 1 : 0,
-        lastLocation: p?.lastLocation || '',
+        lastLocation: p?.lastLocation || "",
         placeId: p?.placeId || null,
         gameId: p?.gameId || null,
-        description: f.description || '',
-        hasVerifiedBadge: f.hasVerifiedBadge ?? u?.hasVerifiedBadge ?? false
-      }
-    })
+        description: f.description || "",
+        hasVerifiedBadge: f.hasVerifiedBadge ?? u?.hasVerifiedBadge ?? false,
+      };
+    });
   }
 
   static async getFollowers(cookie: string, userId: number, cursor?: string) {
-    const limit = 50
+    const limit = 50;
     const queryParams = new URLSearchParams({
       limit: limit.toString(),
-      sortOrder: 'Desc'
-    })
-    if (cursor) queryParams.append('cursor', cursor)
+      sortOrder: "Desc",
+    });
+    if (cursor) queryParams.append("cursor", cursor);
 
     const result = await request(followersResponseSchema, {
       url: `https://friends.roblox.com/v1/users/${userId}/followers?${queryParams.toString()}`,
-      cookie
-    })
+      cookie,
+    });
 
-    const users = result.data || []
+    const users = result.data || [];
     if (users.length === 0) {
       return {
         data: [],
         nextCursor: null,
-        previousCursor: result.previousPageCursor ?? null
-      }
+        previousCursor: result.previousPageCursor ?? null,
+      };
     }
 
-    const userIds = users.map((u) => u.id)
-    const { avatars, userDetails, presences } = await this.hydrateUsers(cookie, userIds)
+    const userIds = users.map((u) => u.id);
+    const { avatars, userDetails, presences } = await this.hydrateUsers(
+      cookie,
+      userIds,
+    );
 
     const data = users.map((u) => {
-      const p = presences[u.id]
-      const details = userDetails[u.id]
+      const p = presences[u.id];
+      const details = userDetails[u.id];
       return {
         id: u.id.toString(),
         userId: u.id.toString(),
-        username: details ? details.name : u.name || '',
-        displayName: details ? details.displayName : u.displayName || '',
-        avatarUrl: avatars[u.id] || '',
+        username: details ? details.name : u.name || "",
+        displayName: details ? details.displayName : u.displayName || "",
+        avatarUrl: avatars[u.id] || "",
         userPresenceType: p ? p.userPresenceType : 0,
         created: u.created,
-        hasVerifiedBadge: details?.hasVerifiedBadge ?? false
-      }
-    })
+        hasVerifiedBadge: details?.hasVerifiedBadge ?? false,
+      };
+    });
 
     return {
       data,
       nextCursor: result.nextPageCursor ?? null,
-      previousCursor: result.previousPageCursor ?? null
-    }
+      previousCursor: result.previousPageCursor ?? null,
+    };
   }
 
   static async getFollowings(cookie: string, userId: number, cursor?: string) {
-    const limit = 50
+    const limit = 50;
     const queryParams = new URLSearchParams({
       limit: limit.toString(),
-      sortOrder: 'Desc'
-    })
-    if (cursor) queryParams.append('cursor', cursor)
+      sortOrder: "Desc",
+    });
+    if (cursor) queryParams.append("cursor", cursor);
 
     const result = await request(followersResponseSchema, {
       url: `https://friends.roblox.com/v1/users/${userId}/followings?${queryParams.toString()}`,
-      cookie
-    })
+      cookie,
+    });
 
-    const users = result.data || []
+    const users = result.data || [];
     if (users.length === 0) {
       return {
         data: [],
         nextCursor: null,
-        previousCursor: result.previousPageCursor ?? null
-      }
+        previousCursor: result.previousPageCursor ?? null,
+      };
     }
 
-    const userIds = users.map((u) => u.id)
-    const { avatars, userDetails, presences } = await this.hydrateUsers(cookie, userIds)
+    const userIds = users.map((u) => u.id);
+    const { avatars, userDetails, presences } = await this.hydrateUsers(
+      cookie,
+      userIds,
+    );
 
     const data = users.map((u) => {
-      const p = presences[u.id]
-      const details = userDetails[u.id]
+      const p = presences[u.id];
+      const details = userDetails[u.id];
       return {
         id: u.id.toString(),
         userId: u.id.toString(),
-        username: details ? details.name : u.name || '',
-        displayName: details ? details.displayName : u.displayName || '',
-        avatarUrl: avatars[u.id] || '',
+        username: details ? details.name : u.name || "",
+        displayName: details ? details.displayName : u.displayName || "",
+        avatarUrl: avatars[u.id] || "",
         userPresenceType: p ? p.userPresenceType : 0,
         created: u.created,
-        hasVerifiedBadge: details?.hasVerifiedBadge ?? false
-      }
-    })
+        hasVerifiedBadge: details?.hasVerifiedBadge ?? false,
+      };
+    });
 
     return {
       data,
       nextCursor: result.nextPageCursor ?? null,
-      previousCursor: result.previousPageCursor ?? null
-    }
+      previousCursor: result.previousPageCursor ?? null,
+    };
   }
 
   static async sendFriendRequest(cookie: string, targetUserId: number) {
-    const url = `https://friends.roblox.com/v1/users/${targetUserId}/request-friendship`
-    const payload = { friendshipOriginSourceType: 0 }
+    const url = `https://friends.roblox.com/v1/users/${targetUserId}/request-friendship`;
+    const payload = { friendshipOriginSourceType: 0 };
 
     const result = await requestWithCsrf(
       z.object({ success: z.boolean(), isCaptchaRequired: z.boolean() }),
       {
-        method: 'POST',
+        method: "POST",
         url,
         cookie,
-        body: payload
-      }
-    )
+        body: payload,
+      },
+    );
 
-    return result
+    return result;
   }
 
   static async getFriendRequests(cookie: string) {
     const result = await request(z.object({ data: z.array(z.any()) }), {
       url: `https://friends.roblox.com/v1/my/friends/requests?sortOrder=Desc&limit=100`,
-      cookie
-    })
+      cookie,
+    });
 
     if (!result.data || result.data.length === 0) {
-      return []
+      return [];
     }
 
-    const requests = result.data
-    const userIds = requests.map((r: any) => r.id)
+    const requests = result.data;
+    const userIds = requests.map((r: any) => r.id);
 
     const { avatars, userDetails } = await this.hydrateUsers(cookie, userIds, {
-      skipPresence: true
-    })
+      skipPresence: true,
+    });
 
     return requests.map((r: any) => {
-      const id = r.id
-      const user = userDetails[id]
-      const friendRequest = r.friendRequest ?? {}
-      const mutualFriends = Array.isArray(r.mutualFriendsList) ? r.mutualFriendsList : []
+      const id = r.id;
+      const user = userDetails[id];
+      const friendRequest = r.friendRequest ?? {};
+      const mutualFriends = Array.isArray(r.mutualFriendsList)
+        ? r.mutualFriendsList
+        : [];
       // Use username as fallback for display name to avoid "Display {id}" showing
-      const fallbackName = user ? user.name : `User ${id}`
+      const fallbackName = user ? user.name : `User ${id}`;
       return {
         id: id,
         userId: id,
         username: user ? user.name : `User ${id}`,
         displayName: user ? user.displayName : fallbackName,
-        avatarUrl: avatars[id] || '',
+        avatarUrl: avatars[id] || "",
         created: friendRequest.sentAt || new Date().toISOString(),
         originSourceType: friendRequest.originSourceType,
         sourceUniverseId: friendRequest.sourceUniverseId ?? null,
         contactName: friendRequest.contactName ?? null,
-        senderNickname: friendRequest.senderNickname ?? '',
+        senderNickname: friendRequest.senderNickname ?? "",
         mutualFriendsList: mutualFriends,
-        hasVerifiedBadge: user?.hasVerifiedBadge ?? r.hasVerifiedBadge ?? false
-      }
-    })
+        hasVerifiedBadge: user?.hasVerifiedBadge ?? r.hasVerifiedBadge ?? false,
+      };
+    });
   }
 
   static async acceptFriendRequest(cookie: string, requesterUserId: number) {
-    const url = `https://friends.roblox.com/v1/users/${requesterUserId}/accept-friend-request`
+    const url = `https://friends.roblox.com/v1/users/${requesterUserId}/accept-friend-request`;
     await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
-      method: 'POST',
+      method: "POST",
       url,
-      cookie
-    })
-    return { success: true }
+      cookie,
+    });
+    return { success: true };
   }
 
   static async declineFriendRequest(cookie: string, requesterUserId: number) {
-    const url = `https://friends.roblox.com/v1/users/${requesterUserId}/decline-friend-request`
+    const url = `https://friends.roblox.com/v1/users/${requesterUserId}/decline-friend-request`;
     await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
-      method: 'POST',
+      method: "POST",
       url,
-      cookie
-    })
-    return { success: true }
+      cookie,
+    });
+    return { success: true };
   }
 
   static async unfriend(cookie: string, targetUserId: number) {
-    const url = `https://friends.roblox.com/v1/users/${targetUserId}/unfriend`
+    const url = `https://friends.roblox.com/v1/users/${targetUserId}/unfriend`;
     await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
-      method: 'POST',
+      method: "POST",
       url,
-      cookie
-    })
-    return { success: true }
+      cookie,
+    });
+    return { success: true };
   }
 }

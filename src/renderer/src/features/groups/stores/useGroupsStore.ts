@@ -1,38 +1,38 @@
-import { create } from 'zustand'
-import { devtools, persist } from 'zustand/middleware'
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
 
-export type GroupsTabType = 'joined' | 'pending'
+export type GroupsTabType = "joined" | "pending";
 
 interface GroupsState {
   // Active sidebar tab
-  activeGroupsTab: GroupsTabType
+  activeGroupsTab: GroupsTabType;
 
   // Selected group ID
-  selectedGroupId: number | null
+  selectedGroupId: number | null;
 
   // Search query for filtering groups
-  searchQuery: string
+  searchQuery: string;
 
   // Scroll position for restoration
-  scrollPosition: number
+  scrollPosition: number;
 }
 
 interface GroupsActions {
-  setActiveGroupsTab: (tab: GroupsTabType) => void
-  setSelectedGroupId: (groupId: number | null) => void
-  setSearchQuery: (query: string) => void
-  setScrollPosition: (position: number) => void
-  reset: () => void
+  setActiveGroupsTab: (tab: GroupsTabType) => void;
+  setSelectedGroupId: (groupId: number | null) => void;
+  setSearchQuery: (query: string) => void;
+  setScrollPosition: (position: number) => void;
+  reset: () => void;
 }
 
-type GroupsStore = GroupsState & GroupsActions
+type GroupsStore = GroupsState & GroupsActions;
 
 const initialState: GroupsState = {
-  activeGroupsTab: 'joined',
+  activeGroupsTab: "joined",
   selectedGroupId: null,
-  searchQuery: '',
-  scrollPosition: 0
-}
+  searchQuery: "",
+  scrollPosition: 0,
+};
 
 export const useGroupsStore = create<GroupsStore>()(
   devtools(
@@ -42,35 +42,43 @@ export const useGroupsStore = create<GroupsStore>()(
 
         setActiveGroupsTab: (activeGroupsTab) =>
           set(
-            { activeGroupsTab, selectedGroupId: null, searchQuery: '' },
+            { activeGroupsTab, selectedGroupId: null, searchQuery: "" },
             false,
-            'setActiveGroupsTab'
+            "setActiveGroupsTab",
           ),
 
         setSelectedGroupId: (selectedGroupId) =>
-          set({ selectedGroupId }, false, 'setSelectedGroupId'),
+          set({ selectedGroupId }, false, "setSelectedGroupId"),
 
-        setSearchQuery: (searchQuery) => set({ searchQuery }, false, 'setSearchQuery'),
+        setSearchQuery: (searchQuery) =>
+          set({ searchQuery }, false, "setSearchQuery"),
 
-        setScrollPosition: (scrollPosition) => set({ scrollPosition }, false, 'setScrollPosition'),
+        setScrollPosition: (scrollPosition) =>
+          set({ scrollPosition }, false, "setScrollPosition"),
 
-        reset: () => set(initialState, false, 'reset')
+        reset: () => set(initialState, false, "reset"),
       }),
       {
-        name: 'groups-storage',
+        name: "groups-storage",
         partialize: (state) => ({
-          activeGroupsTab: state.activeGroupsTab
-        })
-      }
+          activeGroupsTab: state.activeGroupsTab,
+        }),
+      },
     ),
-    { name: 'GroupsStore' }
-  )
-)
+    { name: "GroupsStore" },
+  ),
+);
 
 // Selectors
-export const useActiveGroupsTab = () => useGroupsStore((state) => state.activeGroupsTab)
-export const useSetActiveGroupsTab = () => useGroupsStore((state) => state.setActiveGroupsTab)
-export const useSelectedGroupId = () => useGroupsStore((state) => state.selectedGroupId)
-export const useSetSelectedGroupId = () => useGroupsStore((state) => state.setSelectedGroupId)
-export const useGroupsSearchQuery = () => useGroupsStore((state) => state.searchQuery)
-export const useSetGroupsSearchQuery = () => useGroupsStore((state) => state.setSearchQuery)
+export const useActiveGroupsTab = () =>
+  useGroupsStore((state) => state.activeGroupsTab);
+export const useSetActiveGroupsTab = () =>
+  useGroupsStore((state) => state.setActiveGroupsTab);
+export const useSelectedGroupId = () =>
+  useGroupsStore((state) => state.selectedGroupId);
+export const useSetSelectedGroupId = () =>
+  useGroupsStore((state) => state.setSelectedGroupId);
+export const useGroupsSearchQuery = () =>
+  useGroupsStore((state) => state.searchQuery);
+export const useSetGroupsSearchQuery = () =>
+  useGroupsStore((state) => state.setSearchQuery);

@@ -5,7 +5,11 @@
 
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
-import { AppError, ErrorCode, ErrorSeverity } from "../../shared/error/AppError";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+} from "../../shared/error/AppError";
 import {
   Macro,
   MacroEvent,
@@ -39,14 +43,14 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
    */
   public async play(
     macro: Macro,
-    config: MacroPlaybackConfig = {}
+    config: MacroPlaybackConfig = {},
   ): Promise<MacroPlaybackResult> {
     if (this.state && this.state.isPlaying) {
       throw new AppError(
         "Playback already in progress",
         ErrorCode.MACRO_PLAYBACK_ERROR,
         "MacroPlayer",
-        ErrorSeverity.MEDIUM
+        ErrorSeverity.MEDIUM,
       );
     }
 
@@ -59,7 +63,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
         error: new AppError(
           "Macro has no events",
           ErrorCode.MACRO_INVALID_FORMAT,
-          "MacroPlayer"
+          "MacroPlayer",
         ),
       };
     }
@@ -132,7 +136,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
         error: new AppError(
           "No macro loaded",
           ErrorCode.MACRO_PLAYBACK_ERROR,
-          "MacroPlayer"
+          "MacroPlayer",
         ),
       };
     }
@@ -158,11 +162,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
         this.logger.info(`Starting playback loop ${loop + 1}/${loopCount}`);
         this.emit("playbackStarted", this.state);
 
-        for (
-          let i = 0;
-          i < this.currentMacro.events.length;
-          i++
-        ) {
+        for (let i = 0; i < this.currentMacro.events.length; i++) {
           if (this.shouldCancel) {
             break;
           }
@@ -178,7 +178,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
           if (nextEvent && i > 0) {
             const delay = nextEvent.timestamp - event.timestamp;
             const adjustedDelay = Math.ceil(
-              delay / (this.config.speedMultiplier ?? 1.0)
+              delay / (this.config.speedMultiplier ?? 1.0),
             );
             await this.sleep(Math.max(0, adjustedDelay));
           }
@@ -193,10 +193,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
             try {
               callback(this.state!, event);
             } catch (error) {
-              this.logger.error(
-                "Error in playback callback",
-                error as Error
-              );
+              this.logger.error("Error in playback callback", error as Error);
             }
           });
 
@@ -204,9 +201,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
         }
 
         if (!this.shouldCancel) {
-          this.logger.info(
-            `Completed playback loop ${loop + 1}/${loopCount}`
-          );
+          this.logger.info(`Completed playback loop ${loop + 1}/${loopCount}`);
         }
       }
 
@@ -232,7 +227,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
     } catch (error) {
       this.logger.error(
         "Macro playback failed",
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       );
 
       if (this.state) {
@@ -246,10 +241,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
         totalEvents: this.currentMacro.events.length,
         eventsPlayed: totalEventsPlayed,
         duration: Date.now() - startTime,
-        error:
-          error instanceof Error
-            ? error
-            : new Error(String(error)),
+        error: error instanceof Error ? error : new Error(String(error)),
       };
     }
   }
@@ -272,7 +264,7 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
       }
       this.logger.warn(
         "Event execution failed (continuing)",
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       );
     }
   }

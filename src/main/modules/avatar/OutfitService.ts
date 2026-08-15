@@ -1,19 +1,19 @@
-import { request, requestWithCsrf } from '@main/lib/request'
-import { z } from 'zod'
+import { request, requestWithCsrf } from "@main/lib/request";
+import { z } from "zod";
 import {
   userOutfitCollectionSchema,
   outfitDetailsSchema,
   wearingAssetsResultSchema,
   updateOutfitResultSchema,
-  OutfitDetails
-} from '@shared/ipc-schemas/avatar'
+  OutfitDetails,
+} from "@shared/ipc-schemas/avatar";
 import {
   buildBodyColorsPayload,
   extractBodyColorIds,
-  extractBodyColor3s
-} from './utils/bodyColorUtils'
-import { extractAssetIds, normalizeAssets } from './utils/assetNormalization'
-import { RobloxAvatarMutationService } from './AvatarMutationService'
+  extractBodyColor3s,
+} from "./utils/bodyColorUtils";
+import { extractAssetIds, normalizeAssets } from "./utils/assetNormalization";
+import { RobloxAvatarMutationService } from "./AvatarMutationService";
 
 export class RobloxOutfitService {
   static async getOutfits(
@@ -21,39 +21,48 @@ export class RobloxOutfitService {
     userId: number,
     isEditable: boolean = false,
     page: number = 1,
-    itemsPerPage: number = 25
+    itemsPerPage: number = 25,
   ) {
     return request(userOutfitCollectionSchema, {
       url: `https://avatar.roblox.com/v1/users/${userId}/outfits?isEditable=${isEditable}&itemsPerPage=${itemsPerPage}&page=${page}`,
-      cookie
-    })
+      cookie,
+    });
   }
 
   static async getOutfitDetails(cookie: string, outfitId: number) {
     return request(outfitDetailsSchema, {
       url: `https://avatar.roblox.com/v1/outfits/${outfitId}/details`,
-      cookie
-    })
+      cookie,
+    });
   }
 
-  static async wearOutfit(cookie: string, outfitId: number): Promise<{ success: boolean }> {
-    const outfit = await RobloxOutfitService.getOutfitDetails(cookie, outfitId)
+  static async wearOutfit(
+    cookie: string,
+    outfitId: number,
+  ): Promise<{ success: boolean }> {
+    const outfit = await RobloxOutfitService.getOutfitDetails(cookie, outfitId);
 
     if (!outfit) {
-      throw new Error(`Unable to load outfit ${outfitId}`)
+      throw new Error(`Unable to load outfit ${outfitId}`);
     }
 
-    if (outfit.playerAvatarType === 'R6' || outfit.playerAvatarType === 'R15') {
-      await RobloxAvatarMutationService.setPlayerAvatarType(cookie, outfit.playerAvatarType)
+    if (outfit.playerAvatarType === "R6" || outfit.playerAvatarType === "R15") {
+      await RobloxAvatarMutationService.setPlayerAvatarType(
+        cookie,
+        outfit.playerAvatarType,
+      );
     }
 
-    const bodyColorPayload = buildBodyColorsPayload(outfit.bodyColors)
+    const bodyColorPayload = buildBodyColorsPayload(outfit.bodyColors);
     if (bodyColorPayload) {
-      await RobloxAvatarMutationService.setBodyColors(cookie, bodyColorPayload)
+      await RobloxAvatarMutationService.setBodyColors(cookie, bodyColorPayload);
     }
 
-    if (outfit.scale && typeof outfit.scale === 'object') {
-      await RobloxAvatarMutationService.setAvatarScales(cookie, outfit.scale as any)
+    if (outfit.scale && typeof outfit.scale === "object") {
+      await RobloxAvatarMutationService.setAvatarScales(
+        cookie,
+        outfit.scale as any,
+      );
     }
 
     // Use V2 API with full asset objects for better compatibility
@@ -63,115 +72,128 @@ export class RobloxOutfitService {
         name: asset.name,
         assetType: {
           id: asset.assetType?.id,
-          name: asset.assetType?.name
+          name: asset.assetType?.name,
         },
-        ...(asset.currentVersionId ? { currentVersionId: asset.currentVersionId } : {}),
-        ...(asset.meta ? { meta: asset.meta } : {})
-      }))
+        ...(asset.currentVersionId
+          ? { currentVersionId: asset.currentVersionId }
+          : {}),
+        ...(asset.meta ? { meta: asset.meta } : {}),
+      }));
 
       await requestWithCsrf(wearingAssetsResultSchema, {
-        method: 'POST',
-        url: 'https://avatar.roblox.com/v2/avatar/set-wearing-assets',
+        method: "POST",
+        url: "https://avatar.roblox.com/v2/avatar/set-wearing-assets",
         cookie,
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: {
-          assets: assetsPayload
-        }
-      })
+          assets: assetsPayload,
+        },
+      });
     }
 
-    return { success: true }
+    return { success: true };
   }
 
-  static async updateOutfit(cookie: string, outfitId: number, details: Partial<OutfitDetails>) {
-    const payload = RobloxOutfitService.buildOutfitPayload(details)
+  static async updateOutfit(
+    cookie: string,
+    outfitId: number,
+    details: Partial<OutfitDetails>,
+  ) {
+    const payload = RobloxOutfitService.buildOutfitPayload(details);
 
     const response = await requestWithCsrf(updateOutfitResultSchema, {
-      method: 'PATCH',
+      method: "PATCH",
       url: `https://avatar.roblox.com/v3/outfits/${outfitId}`,
       cookie,
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
-      body: payload
-    })
+      body: payload,
+    });
 
     return {
       ...response,
-      success: response.success // Zod schema ensures success boolean
-    }
+      success: response.success, // Zod schema ensures success boolean
+    };
   }
 
-  static async deleteOutfit(cookie: string, outfitId: number): Promise<{ success: boolean }> {
+  static async deleteOutfit(
+    cookie: string,
+    outfitId: number,
+  ): Promise<{ success: boolean }> {
     try {
       await requestWithCsrf(z.object({ success: z.boolean().optional() }), {
-        method: 'POST',
+        method: "POST",
         url: `https://avatar.roblox.com/v1/outfits/${outfitId}/delete`,
         cookie,
         headers: {
-          'Content-Type': 'application/json'
-        }
-      })
+          "Content-Type": "application/json",
+        },
+      });
 
-      return { success: true }
+      return { success: true };
     } catch (error: any) {
-      console.error(`Failed to delete outfit ${outfitId}:`, error)
+      console.error(`Failed to delete outfit ${outfitId}:`, error);
       if (error.body) {
-        console.error('Error body:', error.body)
+        console.error("Error body:", error.body);
       }
-      return { success: false }
+      return { success: false };
     }
   }
 
-  private static buildOutfitPayload(details: Partial<OutfitDetails>): Record<string, any> {
-    const payload: Record<string, any> = {}
+  private static buildOutfitPayload(
+    details: Partial<OutfitDetails>,
+  ): Record<string, any> {
+    const payload: Record<string, any> = {};
     if (!details) {
-      throw new Error('No outfit details supplied for update')
+      throw new Error("No outfit details supplied for update");
     }
 
-    if (typeof details.name === 'string') {
-      payload.name = details.name
+    if (typeof details.name === "string") {
+      payload.name = details.name;
     }
 
     if (details.playerAvatarType) {
-      payload.playerAvatarType = details.playerAvatarType
+      payload.playerAvatarType = details.playerAvatarType;
     }
 
     if (details.bodyColors) {
-      const bodyColorIds = extractBodyColorIds(details.bodyColors)
-      const bodyColor3s = extractBodyColor3s(details.bodyColors)
+      const bodyColorIds = extractBodyColorIds(details.bodyColors);
+      const bodyColor3s = extractBodyColor3s(details.bodyColors);
 
       if (bodyColorIds) {
-        payload.bodyColors = bodyColorIds
+        payload.bodyColors = bodyColorIds;
       } else {
-        payload.bodyColors = details.bodyColors
+        payload.bodyColors = details.bodyColors;
       }
 
       if (bodyColor3s) {
-        payload.bodyColor3s = bodyColor3s
+        payload.bodyColor3s = bodyColor3s;
       }
     }
 
-    const scale = (details as any).scale || (details as any).scales
+    const scale = (details as any).scale || (details as any).scales;
     if (scale) {
-      payload.scale = scale
+      payload.scale = scale;
     }
 
-    const rawAssets = (details as any).assets
+    const rawAssets = (details as any).assets;
     if (Array.isArray(rawAssets)) {
-      payload.assetIds = extractAssetIds(rawAssets)
-      const assets = normalizeAssets(rawAssets)
+      payload.assetIds = extractAssetIds(rawAssets);
+      const assets = normalizeAssets(rawAssets);
       if (assets) {
-        payload.assets = assets
+        payload.assets = assets;
       }
     }
 
     if (Object.keys(payload).length === 0) {
-      throw new Error('Outfit update payload was empty. Provide at least one field to change.')
+      throw new Error(
+        "Outfit update payload was empty. Provide at least one field to change.",
+      );
     }
 
-    return payload
+    return payload;
   }
 }

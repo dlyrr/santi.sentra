@@ -1,54 +1,76 @@
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './Dialog'
-import { Input } from '../inputs/Input'
-import { Button } from '../buttons/Button'
-import { Account } from '@renderer/types'
-import { Loader2, Ticket } from 'lucide-react'
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "./Dialog";
+import { Input } from "../inputs/Input";
+import { Button } from "../buttons/Button";
+import { Account } from "@renderer/types";
+import { Loader2, Ticket } from "lucide-react";
 
 interface RedeemCodeDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  account: Account
+  isOpen: boolean;
+  onClose: () => void;
+  account: Account;
 }
 
-export default function RedeemCodeDialog({ isOpen, onClose, account }: RedeemCodeDialogProps) {
-  const [code, setCode] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+export default function RedeemCodeDialog({
+  isOpen,
+  onClose,
+  account,
+}: RedeemCodeDialogProps) {
+  const [code, setCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const handleRedeem = async () => {
-    if (!code.trim()) return
+    if (!code.trim()) return;
 
     if (!account.cookie) {
-      setMessage({ type: 'error', text: 'You must be logged in to redeem a code.' })
-      return
+      setMessage({
+        type: "error",
+        text: "You must be logged in to redeem a code.",
+      });
+      return;
     }
 
-    setIsLoading(true)
-    setMessage(null)
+    setIsLoading(true);
+    setMessage(null);
 
     try {
-      const response = await window.api.redeemPromoCode(account.cookie, code)
+      const response = await window.api.redeemPromoCode(account.cookie, code);
 
       if (response.success) {
-        setMessage({ type: 'success', text: response.successMsg || 'Code redeemed successfully!' })
-        setCode('')
+        setMessage({
+          type: "success",
+          text: response.successMsg || "Code redeemed successfully!",
+        });
+        setCode("");
       } else {
-        setMessage({ type: 'error', text: response.errorMsg || 'Failed to redeem code' })
+        setMessage({
+          type: "error",
+          text: response.errorMsg || "Failed to redeem code",
+        });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'An unexpected error occurred' })
-      console.error(err)
+      setMessage({ type: "error", text: "An unexpected error occurred" });
+      console.error(err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleClose = () => {
-    setMessage(null)
-    setCode('')
-    onClose()
-  }
+    setMessage(null);
+    setCode("");
+    onClose();
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={handleClose}>
@@ -72,8 +94,8 @@ export default function RedeemCodeDialog({ isOpen, onClose, account }: RedeemCod
               onChange={(e) => setCode(e.target.value)}
               disabled={isLoading}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && code.trim() && !isLoading) {
-                  handleRedeem()
+                if (e.key === "Enter" && code.trim() && !isLoading) {
+                  handleRedeem();
                 }
               }}
             />
@@ -81,9 +103,9 @@ export default function RedeemCodeDialog({ isOpen, onClose, account }: RedeemCod
             {message && (
               <div
                 className={`text-sm p-3 rounded-md ${
-                  message.type === 'success'
-                    ? 'bg-emerald-500/10 text-emerald-500'
-                    : 'bg-red-500/10 text-red-500'
+                  message.type === "success"
+                    ? "bg-emerald-500/10 text-emerald-500"
+                    : "bg-red-500/10 text-red-500"
                 }`}
               >
                 {message.text}
@@ -103,5 +125,5 @@ export default function RedeemCodeDialog({ isOpen, onClose, account }: RedeemCod
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

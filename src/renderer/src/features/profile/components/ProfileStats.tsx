@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Calendar,
   MapPin,
@@ -9,44 +9,50 @@ import {
   History,
   Coins,
   TrendingUp,
-  Clock
-} from 'lucide-react'
-import { StatRow } from './StatRow'
-import { SlidingNumber } from '@renderer/components/UI/specialized/SlidingNumber'
-import { ProfileData } from '../hooks/useProfileData'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { formatDate, formatDateTime, formatRelativeDate } from '@renderer/utils/dateUtils'
-import { useRolimonsPlayer } from '@renderer/features/avatar/api/useRolimons'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
+  Clock,
+} from "lucide-react";
+import { StatRow } from "./StatRow";
+import { SlidingNumber } from "@renderer/components/UI/specialized/SlidingNumber";
+import { ProfileData } from "../hooks/useProfileData";
+import { formatNumber } from "@renderer/utils/numberUtils";
+import {
+  formatDate,
+  formatDateTime,
+  formatRelativeDate,
+} from "@renderer/utils/dateUtils";
+import { useRolimonsPlayer } from "@renderer/features/avatar/api/useRolimons";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
 
 interface ProfileStatsProps {
-  profile: ProfileData
-  userId: number
-  pastUsernames?: string[]
+  profile: ProfileData;
+  userId: number;
+  pastUsernames?: string[];
 }
 
 export const ProfileStats: React.FC<ProfileStatsProps> = ({
   profile,
   userId,
-  pastUsernames = []
+  pastUsernames = [],
 }) => {
-  const [showRelativeJoinDate, setShowRelativeJoinDate] = useState(false)
-  const [showAllPastUsernames, setShowAllPastUsernames] = useState(false)
-  const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true)
+  const [showRelativeJoinDate, setShowRelativeJoinDate] = useState(false);
+  const [showAllPastUsernames, setShowAllPastUsernames] = useState(false);
+  const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true);
   const lastOnlineDate = rolimonsPlayer?.last_online
     ? new Date(rolimonsPlayer.last_online * 1000)
-    : null
-  const filteredPastUsernames = pastUsernames.filter((name) => !/^#+$/.test(name.trim()))
+    : null;
+  const filteredPastUsernames = pastUsernames.filter(
+    (name) => !/^#+$/.test(name.trim()),
+  );
   const displayedPastUsernames = showAllPastUsernames
     ? filteredPastUsernames
-    : filteredPastUsernames.slice(0, 8)
+    : filteredPastUsernames.slice(0, 8);
   const hasValueStats =
     (rolimonsPlayer?.value !== undefined && rolimonsPlayer.value !== null) ||
-    (rolimonsPlayer?.rap !== undefined && rolimonsPlayer.rap !== null)
+    (rolimonsPlayer?.rap !== undefined && rolimonsPlayer.rap !== null);
   const hasActivityStats =
     profile.placeVisits !== undefined ||
     profile.totalFavorites !== undefined ||
-    profile.concurrentPlayers !== undefined
+    profile.concurrentPlayers !== undefined;
 
   return (
     <motion.div
@@ -68,10 +74,12 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
           Account
         </div>
         {(() => {
-          const relative = formatRelativeDate(profile.joinDate, { fallback: '-' })
-          const absolute = formatDate(profile.joinDate, { fallback: '-' })
-          const value = showRelativeJoinDate ? relative : absolute
-          const tooltip = showRelativeJoinDate ? absolute : relative
+          const relative = formatRelativeDate(profile.joinDate, {
+            fallback: "-",
+          });
+          const absolute = formatDate(profile.joinDate, { fallback: "-" });
+          const value = showRelativeJoinDate ? relative : absolute;
+          const tooltip = showRelativeJoinDate ? absolute : relative;
           return (
             <StatRow
               icon={Calendar}
@@ -80,7 +88,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
               onClick={() => setShowRelativeJoinDate((prev) => !prev)}
               title={tooltip}
             />
-          )
+          );
         })()}
         <StatRow
           icon={Users}
@@ -93,18 +101,19 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
             />
           }
         />
-        {rolimonsPlayer?.last_online !== undefined && rolimonsPlayer.last_online !== null && (
-          <StatRow
-            icon={Clock}
-            label="Last Online"
-            value={
-              <span className="text-xs text-[var(--color-text-primary)] font-semibold">
-                {formatRelativeDate(lastOnlineDate)}
-              </span>
-            }
-            title={formatDateTime(lastOnlineDate)}
-          />
-        )}
+        {rolimonsPlayer?.last_online !== undefined &&
+          rolimonsPlayer.last_online !== null && (
+            <StatRow
+              icon={Clock}
+              label="Last Online"
+              value={
+                <span className="text-xs text-[var(--color-text-primary)] font-semibold">
+                  {formatRelativeDate(lastOnlineDate)}
+                </span>
+              }
+              title={formatDateTime(lastOnlineDate)}
+            />
+          )}
         {filteredPastUsernames.length > 0 && (
           <div className="py-1.5">
             <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-2">
@@ -127,7 +136,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                   onClick={() => setShowAllPastUsernames((prev) => !prev)}
                 >
                   {showAllPastUsernames && filteredPastUsernames.length > 8
-                    ? 'Show less'
+                    ? "Show less"
                     : `+${filteredPastUsernames.length - 8} more`}
                 </button>
               )}
@@ -146,32 +155,34 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
             <div className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider pb-1">
               Value
             </div>
-            {rolimonsPlayer?.value !== undefined && rolimonsPlayer.value !== null && (
-              <StatRow
-                icon={Coins}
-                label="Value"
-                value={
-                  <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-primary)] font-semibold">
-                    {formatNumber(rolimonsPlayer.value)}
-                    <RobuxIcon className="w-3.5 h-3.5" />
-                  </span>
-                }
-                title="Rolimons Value"
-              />
-            )}
-            {rolimonsPlayer?.rap !== undefined && rolimonsPlayer.rap !== null && (
-              <StatRow
-                icon={TrendingUp}
-                label="RAP"
-                value={
-                  <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-primary)] font-semibold">
-                    {formatNumber(rolimonsPlayer.rap)}
-                    <RobuxIcon className="w-3.5 h-3.5" />
-                  </span>
-                }
-                title="Recent Average Price"
-              />
-            )}
+            {rolimonsPlayer?.value !== undefined &&
+              rolimonsPlayer.value !== null && (
+                <StatRow
+                  icon={Coins}
+                  label="Value"
+                  value={
+                    <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-primary)] font-semibold">
+                      {formatNumber(rolimonsPlayer.value)}
+                      <RobuxIcon className="w-3.5 h-3.5" />
+                    </span>
+                  }
+                  title="Rolimons Value"
+                />
+              )}
+            {rolimonsPlayer?.rap !== undefined &&
+              rolimonsPlayer.rap !== null && (
+                <StatRow
+                  icon={TrendingUp}
+                  label="RAP"
+                  value={
+                    <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-primary)] font-semibold">
+                      {formatNumber(rolimonsPlayer.rap)}
+                      <RobuxIcon className="w-3.5 h-3.5" />
+                    </span>
+                  }
+                  title="Recent Average Price"
+                />
+              )}
           </div>
         </>
       )}
@@ -229,5 +240,5 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
         </>
       )}
     </motion.div>
-  )
-}
+  );
+};

@@ -1,103 +1,103 @@
-import { AccountStatus } from '../types'
-import { Circle } from 'lucide-react'
+import { AccountStatus } from "../types";
+import { Circle } from "lucide-react";
 
 export const getStatusColor = (status: AccountStatus): string => {
   switch (status) {
     case AccountStatus.Online:
-      return 'bg-blue-500'
+      return "bg-blue-500";
     case AccountStatus.InGame:
-      return 'bg-emerald-500'
+      return "bg-emerald-500";
     case AccountStatus.InStudio:
-      return 'bg-orange-500'
+      return "bg-orange-500";
     case AccountStatus.Offline:
-      return 'bg-[var(--color-text-muted)]'
+      return "bg-[var(--color-text-muted)]";
     case AccountStatus.Banned:
-      return 'bg-red-500'
+      return "bg-red-500";
     default:
-      return 'bg-[var(--color-border-strong)]'
+      return "bg-[var(--color-border-strong)]";
   }
-}
+};
 
 export const getStatusBorderColor = (status: AccountStatus): string => {
   switch (status) {
     case AccountStatus.Online:
-      return 'border-blue-700'
+      return "border-blue-700";
     case AccountStatus.InGame:
-      return 'border-emerald-700'
+      return "border-emerald-700";
     case AccountStatus.InStudio:
-      return 'border-orange-700'
+      return "border-orange-700";
     case AccountStatus.Offline:
-      return 'border-[var(--color-border-strong)]'
+      return "border-[var(--color-border-strong)]";
     case AccountStatus.Banned:
-      return 'border-red-700'
+      return "border-red-700";
     default:
-      return 'border-[var(--color-border-strong)]'
+      return "border-[var(--color-border-strong)]";
   }
-}
+};
 
 export const getStatusRingColor = (status: AccountStatus): string => {
   switch (status) {
     case AccountStatus.Online:
-      return 'bg-blue-700'
+      return "bg-blue-700";
     case AccountStatus.InGame:
-      return 'bg-emerald-700'
+      return "bg-emerald-700";
     case AccountStatus.InStudio:
-      return 'bg-orange-700'
+      return "bg-orange-700";
     case AccountStatus.Offline:
-      return 'bg-[var(--color-surface-muted)]'
+      return "bg-[var(--color-surface-muted)]";
     case AccountStatus.Banned:
-      return 'bg-red-700'
+      return "bg-red-700";
     default:
-      return 'bg-[var(--color-surface-hover)]'
+      return "bg-[var(--color-surface-hover)]";
   }
-}
+};
 
 export const getStatusRingUtilityClass = (status: AccountStatus): string => {
   switch (status) {
     case AccountStatus.Online:
-      return 'ring-blue-500'
+      return "ring-blue-500";
     case AccountStatus.InGame:
-      return 'ring-emerald-500'
+      return "ring-emerald-500";
     case AccountStatus.InStudio:
-      return 'ring-orange-500'
+      return "ring-orange-500";
     case AccountStatus.Offline:
-      return 'ring-neutral-400'
+      return "ring-neutral-400";
     case AccountStatus.Banned:
-      return 'ring-red-500'
+      return "ring-red-500";
     default:
-      return 'ring-neutral-500'
+      return "ring-neutral-500";
   }
-}
+};
 
 export const getStatusIcon = (status: AccountStatus) => {
   const colorClass = {
-    [AccountStatus.Online]: 'text-blue-500',
-    [AccountStatus.InGame]: 'text-emerald-500',
-    [AccountStatus.InStudio]: 'text-orange-500',
-    [AccountStatus.Offline]: 'text-[var(--color-text-muted)]',
-    [AccountStatus.Banned]: 'text-red-500'
-  }[status]
+    [AccountStatus.Online]: "text-blue-500",
+    [AccountStatus.InGame]: "text-emerald-500",
+    [AccountStatus.InStudio]: "text-orange-500",
+    [AccountStatus.Offline]: "text-[var(--color-text-muted)]",
+    [AccountStatus.Banned]: "text-red-500",
+  }[status];
 
-  return <Circle size={10} fill="currentColor" className={colorClass} />
-}
+  return <Circle size={10} fill="currentColor" className={colorClass} />;
+};
 
 export const mapPresenceToStatus = (presenceType: number): AccountStatus => {
   switch (presenceType) {
     case 1:
-      return AccountStatus.Online
+      return AccountStatus.Online;
     case 2:
-      return AccountStatus.InGame
+      return AccountStatus.InGame;
     case 3:
-      return AccountStatus.InStudio
+      return AccountStatus.InStudio;
     default:
-      return AccountStatus.Offline
+      return AccountStatus.Offline;
   }
-}
+};
 
 export const isActiveStatus = (status: AccountStatus): boolean => {
   return (
     status === AccountStatus.Online ||
     status === AccountStatus.InGame ||
     status === AccountStatus.InStudio
-  )
-}
+  );
+};

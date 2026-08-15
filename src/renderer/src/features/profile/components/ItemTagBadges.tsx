@@ -1,19 +1,23 @@
-import { Sparkles, TrendingUp, Flame, Star, Music } from 'lucide-react'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@renderer/components/UI/display/Tooltip'
-import { useRolimonsItem } from '@renderer/hooks/queries'
+import { Sparkles, TrendingUp, Flame, Star, Music } from "lucide-react";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@renderer/components/UI/display/Tooltip";
+import { useRolimonsItem } from "@renderer/hooks/queries";
 
-const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696]
+const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696];
 
 interface ItemTagBadgesProps {
-  assetId: number
+  assetId: number;
 }
 
 export const ItemTagBadges: React.FC<ItemTagBadgesProps> = ({ assetId }) => {
-  const rolimonsItem = useRolimonsItem(assetId)
-  const isLimited = !!rolimonsItem
-  const isSoundHat = SOUND_HAT_IDS.includes(assetId)
+  const rolimonsItem = useRolimonsItem(assetId);
+  const isLimited = !!rolimonsItem;
+  const isSoundHat = SOUND_HAT_IDS.includes(assetId);
 
-  if (!isLimited && !isSoundHat) return null
+  if (!isLimited && !isSoundHat) return null;
 
   return (
     <div className="absolute flex flex-col gap-1.5 z-20 top-2 left-2">
@@ -78,5 +82,5 @@ export const ItemTagBadges: React.FC<ItemTagBadgesProps> = ({ assetId }) => {
         </Tooltip>
       )}
     </div>
-  )
-}
+  );
+};

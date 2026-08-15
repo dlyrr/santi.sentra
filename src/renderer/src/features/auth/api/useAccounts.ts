@@ -1,9 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect } from 'react'
-import { queryKeys } from '@shared/queryKeys'
-import { Account } from '@renderer/types'
-import { mapPresenceToStatus, isActiveStatus } from '@renderer/utils/statusUtils'
-import { useActiveTab } from '@renderer/stores/useUIStore'
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect } from "react";
+import { queryKeys } from "@shared/queryKeys";
+import { Account } from "@renderer/types";
+import {
+  mapPresenceToStatus,
+  isActiveStatus,
+} from "@renderer/utils/statusUtils";
+import { useActiveTab } from "@renderer/stores/useUIStore";
 
 // ============================================================================
 // Basic Queries
@@ -14,26 +17,26 @@ export function useAccounts() {
   return useQuery({
     queryKey: queryKeys.accounts.list(),
     queryFn: async () => {
-      const result = await window.api.getAccounts()
+      const result = await window.api.getAccounts();
       // Ensure result is always an array
-      return Array.isArray(result) ? result : []
+      return Array.isArray(result) ? result : [];
     },
     staleTime: Infinity, // Accounts are managed locally, don't auto-refetch
     refetchOnMount: false, // Don't re-fetch on component remount (we use setQueryData)
-    refetchOnWindowFocus: false // Accounts don't change externally
-  })
+    refetchOnWindowFocus: false, // Accounts don't change externally
+  });
 }
 
 // Fetch account stats
 export function useAccountStats(cookie: string | undefined) {
   return useQuery({
-    queryKey: queryKeys.accounts.stats(cookie || ''),
+    queryKey: queryKeys.accounts.stats(cookie || ""),
     queryFn: () => window.api.fetchAccountStats(cookie!),
     enabled: !!cookie,
     staleTime: 60 * 1000, // 1 minute
     refetchInterval: 60 * 1000, // keep robux balance fresh for selected profile
-    refetchOnWindowFocus: false
-  })
+    refetchOnWindowFocus: false,
+  });
 }
 
 // ============================================================================
@@ -42,51 +45,49 @@ export function useAccountStats(cookie: string | undefined) {
 
 // Save accounts mutation (optimistic)
 export function useSaveAccounts() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (accounts: Account[]) => {
-      console.log('[useSaveAccounts] Calling window.api.saveAccounts with', accounts.length, 'accounts')
-      return window.api.saveAccounts(accounts).then((result) => {
-        console.log('[useSaveAccounts] ✓ saveAccounts completed successfully, result:', result)
-        return result
-      }).catch((err) => {
-        console.error('[useSaveAccounts] ✗ saveAccounts failed with error:', err)
-        console.error('[useSaveAccounts] Error details:', {
-          message: err?.message,
-          stack: err?.stack,
-          toString: String(err)
-        })
-        throw err
-      })
-    },
+    mutationFn: (accounts: Account[]) =>
+      window.api
+        .saveAccounts(accounts)
+        .catch((err) => {
+          console.error(
+            "[useSaveAccounts] saveAccounts failed:",
+            err instanceof Error ? err.message : String(err),
+          );
+          throw err;
+        }),
     onMutate: async (newAccounts) => {
-      console.log('[useSaveAccounts] onMutate: optimistically updating cache with', newAccounts.length, 'accounts')
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.accounts.list() })
+      await queryClient.cancelQueries({ queryKey: queryKeys.accounts.list() });
 
       // Snapshot previous value
-      const previousAccounts = queryClient.getQueryData<Account[]>(queryKeys.accounts.list())
+      const previousAccounts = queryClient.getQueryData<Account[]>(
+        queryKeys.accounts.list(),
+      );
 
       // Optimistically update
-      queryClient.setQueryData(queryKeys.accounts.list(), newAccounts)
+      queryClient.setQueryData(queryKeys.accounts.list(), newAccounts);
 
-      return { previousAccounts }
+      return { previousAccounts };
     },
-    onSuccess: (result, newAccounts) => {
-      console.log('[useSaveAccounts] onSuccess: mutation completed, saved', newAccounts.length, 'accounts')
-    },
+    onSuccess: () => {},
     onError: (err, _newAccounts, context) => {
-      console.error('[useSaveAccounts] onError: mutation failed, rolling back. Error:', err instanceof Error ? err.message : String(err))
+      console.error(
+        "[useSaveAccounts] mutation failed, rolling back. Error:",
+        err instanceof Error ? err.message : String(err),
+      );
       // Rollback on error
       if (context?.previousAccounts) {
-        console.log('[useSaveAccounts] onError: rolling back to', context.previousAccounts.length, 'previous accounts')
-        queryClient.setQueryData(queryKeys.accounts.list(), context.previousAccounts)
+        queryClient.setQueryData(
+          queryKeys.accounts.list(),
+          context.previousAccounts,
+        );
       }
-      // Removed notification
-    }
+    },
     // Don't invalidate - we manage the cache ourselves
-  })
+  });
 }
 
 // ============================================================================
@@ -98,76 +99,82 @@ export function useSaveAccounts() {
  * Uses React Query as the single source of truth with optimistic updates.
  */
 export function useAccountsManager() {
-  const queryClient = useQueryClient()
-  const { data: accounts = [], isLoading } = useAccounts()
-  const { mutate: saveAccounts } = useSaveAccounts()
+  const queryClient = useQueryClient();
+  const { data: accounts = [], isLoading } = useAccounts();
+  const { mutate: saveAccounts } = useSaveAccounts();
 
   // Update accounts (optimistic)
   const setAccounts = useCallback(
     (newAccountsOrUpdater: Account[] | ((prev: Account[]) => Account[])) => {
-      const currentAccounts = queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || []
+      const currentAccounts =
+        queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
       // Ensure currentAccounts is always an array
-      const safeCurrentAccounts = Array.isArray(currentAccounts) ? currentAccounts : []
-      
+      const safeCurrentAccounts = Array.isArray(currentAccounts)
+        ? currentAccounts
+        : [];
+
       const newAccounts =
-        typeof newAccountsOrUpdater === 'function'
+        typeof newAccountsOrUpdater === "function"
           ? newAccountsOrUpdater(safeCurrentAccounts)
-          : newAccountsOrUpdater
+          : newAccountsOrUpdater;
 
       // Ensure newAccounts is always an array
-      const safeNewAccounts = Array.isArray(newAccounts) ? newAccounts : []
+      const safeNewAccounts = Array.isArray(newAccounts) ? newAccounts : [];
 
       // Optimistically update cache immediately
-      queryClient.setQueryData(queryKeys.accounts.list(), safeNewAccounts)
+      queryClient.setQueryData(queryKeys.accounts.list(), safeNewAccounts);
 
       // Persist to storage
-      saveAccounts(safeNewAccounts)
+      saveAccounts(safeNewAccounts);
     },
-    [queryClient, saveAccounts]
-  )
+    [queryClient, saveAccounts],
+  );
 
   // Add account
   const addAccount = useCallback(
     (account: Account) => {
-      setAccounts((prev) => [...prev, account])
+      setAccounts((prev) => [...prev, account]);
     },
-    [setAccounts]
-  )
+    [setAccounts],
+  );
 
   // Remove account
   const removeAccount = useCallback(
     (id: string) => {
-      setAccounts((prev) => prev.filter((acc) => acc.id !== id))
+      setAccounts((prev) => prev.filter((acc) => acc.id !== id));
     },
-    [setAccounts]
-  )
+    [setAccounts],
+  );
 
   // Update account
   const updateAccount = useCallback(
     (id: string, updates: Partial<Account>) => {
-      setAccounts((prev) => prev.map((acc) => (acc.id === id ? { ...acc, ...updates } : acc)))
+      setAccounts((prev) =>
+        prev.map((acc) => (acc.id === id ? { ...acc, ...updates } : acc)),
+      );
     },
-    [setAccounts]
-  )
+    [setAccounts],
+  );
 
   // Reorder accounts
   const moveAccount = useCallback(
     (fromId: string, toId: string) => {
       setAccounts((prev) => {
-        const fromIndex = prev.findIndex((a) => a.id === fromId)
-        const toIndex = prev.findIndex((a) => a.id === toId)
+        const fromIndex = prev.findIndex((a) => a.id === fromId);
+        const toIndex = prev.findIndex((a) => a.id === toId);
 
-        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return prev
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex)
+          return prev;
 
-        const newAccounts = [...prev]
-        const [movedAccount] = newAccounts.splice(fromIndex, 1)
-        newAccounts.splice(toIndex, 0, movedAccount)
+        const newAccounts = [...prev];
+        const [movedAccount] = newAccounts.splice(fromIndex, 1);
+        newAccounts.splice(toIndex, 0, movedAccount);
 
-        return newAccounts
-      })
+        return newAccounts;
+      });
     },
-    [setAccounts]
-  )
+    [setAccounts],
+  );
 
   return {
     accounts,
@@ -176,8 +183,8 @@ export function useAccountsManager() {
     addAccount,
     removeAccount,
     updateAccount,
-    moveAccount
-  }
+    moveAccount,
+  };
 }
 
 // ============================================================================
@@ -188,14 +195,16 @@ export function useAccountsManager() {
 export function useAccountStatuses(
   accounts: Account[],
   options?: {
-    enabled?: boolean
-    refetchInterval?: number
-  }
+    enabled?: boolean;
+    refetchInterval?: number;
+  },
 ) {
-  const cookies = accounts.filter((acc) => acc.cookie).map((acc) => acc.cookie!)
+  const cookies = accounts
+    .filter((acc) => acc.cookie)
+    .map((acc) => acc.cookie!);
 
   // Sort cookies to ensure stable query key regardless of account order
-  const sortedCookies = [...cookies].sort()
+  const sortedCookies = [...cookies].sort();
 
   return useQuery({
     queryKey: queryKeys.accounts.statuses(sortedCookies),
@@ -204,55 +213,50 @@ export function useAccountStatuses(
     refetchInterval: options?.refetchInterval ?? 5000,
     staleTime: 8000,
     // Prevent refetching when window regains focus (we have our own polling)
-    refetchOnWindowFocus: false
-  })
+    refetchOnWindowFocus: false,
+  });
 }
 
 // Helper to update accounts with new statuses
 export function updateAccountsWithStatuses(
   accounts: Account[],
-  batchResults: Record<string, { userId: number; presence?: any } | null>
+  batchResults: Record<string, { userId: number; presence?: any } | null>,
 ): { accounts: Account[]; hasChanges: boolean } {
-  let hasChanges = false
+  let hasChanges = false;
 
   const updatedAccounts = accounts.map((acc) => {
-    if (!acc.cookie) return acc
+    if (!acc.cookie) return acc;
 
-    const result = batchResults[acc.cookie]
-    if (!result || !result.presence) return acc
+    const result = batchResults[acc.cookie];
+    if (!result || !result.presence) return acc;
 
-    const statusData = result.presence
-    const newStatus = mapPresenceToStatus(statusData.userPresenceType)
-    const statusChanged = acc.status !== newStatus
-    const isCurrentlyActive = isActiveStatus(newStatus)
+    const statusData = result.presence;
+    const newStatus = mapPresenceToStatus(statusData.userPresenceType);
+    const now = new Date();
+    const statusChanged = acc.status !== newStatus;
+    const isCurrentlyActive = isActiveStatus(newStatus);
 
     if (isCurrentlyActive) {
-      // Timestamp tracking disabled to prevent memory leaks due to infinite update loops
-      // const now = new Date()
-      // const lastActiveDate = acc.lastActive ? new Date(acc.lastActive) : new Date(0)
-      // const shouldUpdateTimestamp = now.getTime() - lastActiveDate.getTime() > 60 * 1000
+      // Update lastActive timestamp at most every 5 minutes to prevent excessive re-renders
+      const lastActiveDate = acc.lastActive ? new Date(acc.lastActive) : new Date(0);
+      const shouldUpdateTimestamp = now.getTime() - lastActiveDate.getTime() > 5 * 60 * 1000;
 
-      // if (shouldUpdateTimestamp || statusChanged) {
-      //   hasChanges = true
-      //   return { ...acc, status: newStatus, lastActive: now.toISOString() }
-      // }
-
-      if (statusChanged) {
-        hasChanges = true
-        return { ...acc, status: newStatus }
+      if (shouldUpdateTimestamp || statusChanged) {
+        hasChanges = true;
+        return { ...acc, status: newStatus, lastActive: now.toISOString() };
       }
     }
 
     // Only update status if it changed
     if (statusChanged) {
-      hasChanges = true
-      return { ...acc, status: newStatus }
+      hasChanges = true;
+      return { ...acc, status: newStatus };
     }
 
-    return acc
-  })
+    return acc;
+  });
 
-  return { accounts: updatedAccounts, hasChanges }
+  return { accounts: updatedAccounts, hasChanges };
 }
 
 /**
@@ -260,42 +264,44 @@ export function updateAccountsWithStatuses(
  * Uses TanStack Query's refetchInterval for built-in polling.
  */
 export function useAccountStatusPolling() {
-  const queryClient = useQueryClient()
-  const activeTab = useActiveTab()
+  const queryClient = useQueryClient();
+  const activeTab = useActiveTab();
 
   // Get accounts directly from query cache to avoid dependency loop
-  const accounts = queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || []
+  const accounts =
+    queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
 
   // Determine polling interval based on active tab
-  const pollInterval = activeTab === 'Accounts' ? 30000 : 5 * 60 * 1000
+  const pollInterval = activeTab === "Accounts" ? 30000 : 5 * 60 * 1000;
 
   // Use the existing useAccountStatuses hook with dynamic interval
   const { data: batchResults } = useAccountStatuses(accounts, {
     enabled: accounts.length > 0,
-    refetchInterval: pollInterval
-  })
+    refetchInterval: pollInterval,
+  });
 
   // Update accounts when status data changes
   // Only depend on batchResults to avoid infinite loops
   useEffect(() => {
-    if (!batchResults) return
+    if (!batchResults) return;
 
     // Get fresh accounts from cache inside the effect
-    const currentAccounts = queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || []
-    if (currentAccounts.length === 0) return
+    const currentAccounts =
+      queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
+    if (currentAccounts.length === 0) return;
 
-    const { accounts: updatedAccounts, hasChanges } = updateAccountsWithStatuses(
-      currentAccounts,
-      batchResults
-    )
+    const { accounts: updatedAccounts, hasChanges } =
+      updateAccountsWithStatuses(currentAccounts, batchResults);
 
     if (hasChanges) {
       // Update cache directly without triggering save (status is transient)
       // Check for deep equality to prevent infinite render loops if hasChanges is false positive
-      const cached = queryClient.getQueryData<Account[]>(queryKeys.accounts.list())
+      const cached = queryClient.getQueryData<Account[]>(
+        queryKeys.accounts.list(),
+      );
       if (JSON.stringify(cached) !== JSON.stringify(updatedAccounts)) {
-        queryClient.setQueryData(queryKeys.accounts.list(), updatedAccounts)
+        queryClient.setQueryData(queryKeys.accounts.list(), updatedAccounts);
       }
     }
-  }, [batchResults, queryClient])
+  }, [batchResults, queryClient]);
 }

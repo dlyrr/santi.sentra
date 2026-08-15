@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 // ============================================================================
 // ACCOUNT SETTINGS JSON SCHEMA (/my/settings/json)
@@ -13,9 +13,9 @@ export const myAccountSecurityModelSchema = z.object({
     UserId: z.number(),
     IsEnabled: z.boolean(),
     CodeLength: z.number(),
-    ValidCodeCharacters: z.string().nullable()
-  })
-})
+    ValidCodeCharacters: z.string().nullable(),
+  }),
+});
 
 export const accountSettingsJsonSchema = z.object({
   ChangeUsernameEnabled: z.boolean(),
@@ -79,10 +79,10 @@ export const accountSettingsJsonSchema = z.object({
   IsFastTrackAccessible: z.boolean(),
   IsAgeDownEnabled: z.boolean(),
   IsDisplayNamesEnabled: z.boolean(),
-  IsBirthdateLocked: z.boolean()
-})
+  IsBirthdateLocked: z.boolean(),
+});
 
-export type AccountSettingsJson = z.infer<typeof accountSettingsJsonSchema>
+export type AccountSettingsJson = z.infer<typeof accountSettingsJsonSchema>;
 
 // ============================================================================
 // USER SETTINGS API SCHEMA (/user-settings-api/v1/user-settings/settings-and-options)
@@ -90,31 +90,31 @@ export type AccountSettingsJson = z.infer<typeof accountSettingsJsonSchema>
 
 const settingOptionSchema = z.object({
   optionValue: z.string().optional(),
-  optionType: z.string().optional()
-})
+  optionType: z.string().optional(),
+});
 
 const settingOptionWithRequirementSchema = z.object({
   option: settingOptionSchema,
-  requirement: z.string().optional()
-})
+  requirement: z.string().optional(),
+});
 
 const stringSettingSchema = z.object({
   currentValue: z.string(),
-  options: z.array(settingOptionWithRequirementSchema)
-})
+  options: z.array(settingOptionWithRequirementSchema),
+});
 
 const timeWindowSettingSchema = z.object({
   currentValue: z.object({
     startTimeMinutes: z.number(),
-    endTimeMinutes: z.number()
+    endTimeMinutes: z.number(),
   }),
-  options: z.array(settingOptionWithRequirementSchema)
-})
+  options: z.array(settingOptionWithRequirementSchema),
+});
 
 const optionalSettingSchema = z.object({
   currentValue: z.string().optional(),
-  options: z.array(settingOptionWithRequirementSchema)
-})
+  options: z.array(settingOptionWithRequirementSchema),
+});
 
 export const userSettingsAndOptionsSchema = z.object({
   contentAgeRestriction: stringSettingSchema.optional(),
@@ -153,18 +153,22 @@ export const userSettingsAndOptionsSchema = z.object({
   eppEnrollmentStatus: stringSettingSchema.optional(),
   allowSensitiveIssues: stringSettingSchema.optional(),
   allowFacialAgeEstimation: stringSettingSchema.optional(),
-  allowCrossAgeGroupStudioCollaboration: stringSettingSchema.optional()
-})
+  allowCrossAgeGroupStudioCollaboration: stringSettingSchema.optional(),
+});
 
-export type UserSettingsAndOptions = z.infer<typeof userSettingsAndOptionsSchema>
+export type UserSettingsAndOptions = z.infer<
+  typeof userSettingsAndOptionsSchema
+>;
 
 // Combined settings response
 export const combinedAccountSettingsSchema = z.object({
   accountSettings: accountSettingsJsonSchema,
-  userSettings: userSettingsAndOptionsSchema
-})
+  userSettings: userSettingsAndOptionsSchema,
+});
 
-export type CombinedAccountSettings = z.infer<typeof combinedAccountSettingsSchema>
+export type CombinedAccountSettings = z.infer<
+  typeof combinedAccountSettingsSchema
+>;
 
 // ============================================================================
 // UPDATE SETTINGS SCHEMAS
@@ -172,153 +176,167 @@ export type CombinedAccountSettings = z.infer<typeof combinedAccountSettingsSche
 
 // Privacy levels enum values
 export const privacyLevelValues = [
-  'NoOne',
-  'Friends',
-  'FriendsAndFollowing',
-  'FriendsFollowingAndFollowers',
-  'AllAuthenticatedUsers',
-  'AllUsers'
-] as const
+  "NoOne",
+  "Friends",
+  "FriendsAndFollowing",
+  "FriendsFollowingAndFollowers",
+  "AllAuthenticatedUsers",
+  "AllUsers",
+] as const;
 
-export type PrivacyLevel = (typeof privacyLevelValues)[number]
+export type PrivacyLevel = (typeof privacyLevelValues)[number];
 
 // Trade privacy values
 export const tradePrivacyValues = [
-  'Undefined',
-  'Disabled',
-  'NoOne',
-  'Friends',
-  'TopFriends',
-  'Following',
-  'Followers',
-  'All'
-] as const
+  "Undefined",
+  "Disabled",
+  "NoOne",
+  "Friends",
+  "TopFriends",
+  "Following",
+  "Followers",
+  "All",
+] as const;
 
-export type TradePrivacy = (typeof tradePrivacyValues)[number]
+export type TradePrivacy = (typeof tradePrivacyValues)[number];
 
 // Trade value/quality filter
-export const tradeValueValues = ['Undefined', 'None', 'Low', 'Medium', 'High'] as const
+export const tradeValueValues = [
+  "Undefined",
+  "None",
+  "Low",
+  "Medium",
+  "High",
+] as const;
 
-export type TradeValue = (typeof tradeValueValues)[number]
+export type TradeValue = (typeof tradeValueValues)[number];
 
 // Theme types
-export const themeTypeValues = ['Dark', 'Light'] as const
+export const themeTypeValues = ["Dark", "Light"] as const;
 
-export type ThemeType = (typeof themeTypeValues)[number]
+export type ThemeType = (typeof themeTypeValues)[number];
 
 // Content restriction levels
-export const contentRestrictionLevelValues = ['NoRestrictions', 'Teen', 'PreTeen', 'Child'] as const
+export const contentRestrictionLevelValues = [
+  "NoRestrictions",
+  "Teen",
+  "PreTeen",
+  "Child",
+] as const;
 
-export type ContentRestrictionLevel = (typeof contentRestrictionLevelValues)[number]
+export type ContentRestrictionLevel =
+  (typeof contentRestrictionLevelValues)[number];
 
 // Online status privacy levels (for whoCanSeeMyOnlineStatus / join privacy)
 export const onlineStatusPrivacyValues = [
-  'NoOne',
-  'Friends',
-  'FriendsFollowingAndFollowers',
-  'AllUsers'
-] as const
+  "NoOne",
+  "Friends",
+  "FriendsFollowingAndFollowers",
+  "AllUsers",
+] as const;
 
-export type OnlineStatusPrivacy = (typeof onlineStatusPrivacyValues)[number]
+export type OnlineStatusPrivacy = (typeof onlineStatusPrivacyValues)[number];
 
 // Update request schemas
 export const updateInventoryPrivacyRequestSchema = z.object({
-  inventoryPrivacy: z.enum(privacyLevelValues)
-})
+  inventoryPrivacy: z.enum(privacyLevelValues),
+});
 
 export const updateTradePrivacyRequestSchema = z.object({
-  tradePrivacy: z.enum(tradePrivacyValues)
-})
+  tradePrivacy: z.enum(tradePrivacyValues),
+});
 
 export const updateTradeValueRequestSchema = z.object({
-  tradeValue: z.enum(tradeValueValues)
-})
+  tradeValue: z.enum(tradeValueValues),
+});
 
 export const updateAppChatPrivacyRequestSchema = z.object({
-  appChatPrivacy: z.enum(privacyLevelValues)
-})
+  appChatPrivacy: z.enum(privacyLevelValues),
+});
 
 export const updateGameChatPrivacyRequestSchema = z.object({
-  gameChatPrivacy: z.enum(privacyLevelValues)
-})
+  gameChatPrivacy: z.enum(privacyLevelValues),
+});
 
 export const updatePrivacyRequestSchema = z.object({
-  phoneDiscovery: z.enum(privacyLevelValues)
-})
+  phoneDiscovery: z.enum(privacyLevelValues),
+});
 
 export const updateThemeRequestSchema = z.object({
-  themeType: z.string()
-})
+  themeType: z.string(),
+});
 
 export const updateContentRestrictionRequestSchema = z.object({
-  contentRestrictionLevel: z.enum(contentRestrictionLevelValues)
-})
+  contentRestrictionLevel: z.enum(contentRestrictionLevelValues),
+});
 
 export const updateWhoCanJoinMeInExperiencesRequestSchema = z.object({
-  whoCanJoinMeInExperiences: z.enum(privacyLevelValues)
-})
+  whoCanJoinMeInExperiences: z.enum(privacyLevelValues),
+});
 
 export const sendVerificationEmailRequestSchema = z.object({
-  freeItem: z.boolean().optional()
-})
+  freeItem: z.boolean().optional(),
+});
 
 // Response schemas
-export const updateSettingResponseSchema = z.object({}).passthrough()
+export const updateSettingResponseSchema = z.object({}).passthrough();
 
 export const privacyUpdateResponseSchema = z.object({
   privacySettingResponse: z.string().optional(),
   tradePrivacy: z.string().optional(),
-  inventoryPrivacy: z.string().optional()
-})
+  inventoryPrivacy: z.string().optional(),
+});
 
-export type PrivacyUpdateResponse = z.infer<typeof privacyUpdateResponseSchema>
+export type PrivacyUpdateResponse = z.infer<typeof privacyUpdateResponseSchema>;
 
 // ============================================================================
 // REDEEM PROMO CODE SCHEMAS
 // ============================================================================
 
 export const redeemPromoCodeRequestSchema = z.object({
-  code: z.string()
-})
+  code: z.string(),
+});
 
 export const redeemPromoCodeResponseSchema = z.object({
   errorMsg: z.string().nullable().optional(),
   success: z.boolean(),
-  successMsg: z.string().nullable().optional()
-})
+  successMsg: z.string().nullable().optional(),
+});
 
-export type RedeemPromoCodeResponse = z.infer<typeof redeemPromoCodeResponseSchema>
+export type RedeemPromoCodeResponse = z.infer<
+  typeof redeemPromoCodeResponseSchema
+>;
 
 // ============================================================================
 // DESCRIPTION API SCHEMAS (/v1/description)
 // ============================================================================
 
 export const descriptionResponseSchema = z.object({
-  description: z.string()
-})
+  description: z.string(),
+});
 
-export type DescriptionResponse = z.infer<typeof descriptionResponseSchema>
+export type DescriptionResponse = z.infer<typeof descriptionResponseSchema>;
 
 export const updateDescriptionRequestSchema = z.object({
-  description: z.string()
-})
+  description: z.string(),
+});
 
 // ============================================================================
 // GENDER API SCHEMAS (/v1/gender)
 // ============================================================================
 
-export const genderValues = ['1', '2', '3'] as const // 1=Unknown, 2=Male, 3=Female
-export type GenderValue = (typeof genderValues)[number]
+export const genderValues = ["1", "2", "3"] as const; // 1=Unknown, 2=Male, 3=Female
+export type GenderValue = (typeof genderValues)[number];
 
 export const genderResponseSchema = z.object({
-  gender: z.number()
-})
+  gender: z.number(),
+});
 
-export type GenderResponse = z.infer<typeof genderResponseSchema>
+export type GenderResponse = z.infer<typeof genderResponseSchema>;
 
 export const updateGenderRequestSchema = z.object({
-  gender: z.string()
-})
+  gender: z.string(),
+});
 
 // ============================================================================
 // BIRTHDATE API SCHEMAS (/v1/birthdate)
@@ -327,43 +345,46 @@ export const updateGenderRequestSchema = z.object({
 export const birthdateResponseSchema = z.object({
   birthMonth: z.number(),
   birthDay: z.number(),
-  birthYear: z.number()
-})
+  birthYear: z.number(),
+});
 
-export type BirthdateResponse = z.infer<typeof birthdateResponseSchema>
+export type BirthdateResponse = z.infer<typeof birthdateResponseSchema>;
 
 export const updateBirthdateRequestSchema = z.object({
   birthMonth: z.number(),
   birthDay: z.number(),
-  birthYear: z.number()
-})
+  birthYear: z.number(),
+});
 
 // ============================================================================
 // PROMOTION CHANNELS API SCHEMAS (/v1/promotion-channels)
 // ============================================================================
 
 export const promotionChannelsVisibilityValues = [
-  'NoOne',
-  'Friends',
-  'FriendsFollowingAndFollowers',
-  'AllUsers'
-] as const
-export type PromotionChannelsVisibility = (typeof promotionChannelsVisibilityValues)[number]
+  "NoOne",
+  "Friends",
+  "FriendsFollowingAndFollowers",
+  "AllUsers",
+] as const;
+export type PromotionChannelsVisibility =
+  (typeof promotionChannelsVisibilityValues)[number];
 
 export const promotionChannelsResponseSchema = z.object({
   facebook: z.string().nullable().optional(),
   twitter: z.string().nullable().optional(),
   youtube: z.string().nullable().optional(),
   twitch: z.string().nullable().optional(),
-  promotionChannelsVisibilityPrivacy: z.string().optional()
-})
+  promotionChannelsVisibilityPrivacy: z.string().optional(),
+});
 
-export type PromotionChannelsResponse = z.infer<typeof promotionChannelsResponseSchema>
+export type PromotionChannelsResponse = z.infer<
+  typeof promotionChannelsResponseSchema
+>;
 
 export const updatePromotionChannelsRequestSchema = z.object({
   facebook: z.string().optional(),
   twitter: z.string().optional(),
   youtube: z.string().optional(),
   twitch: z.string().optional(),
-  promotionChannelsVisibilityPrivacy: z.string().optional()
-})
+  promotionChannelsVisibilityPrivacy: z.string().optional(),
+});

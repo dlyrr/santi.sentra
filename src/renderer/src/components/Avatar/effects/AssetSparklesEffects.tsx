@@ -1,11 +1,11 @@
-import React from 'react'
-import { RobloxSparkles } from './RobloxSparkles'
-import { SparklesInstance } from './fireUtils'
+import React from "react";
+import { RobloxSparkles } from "./RobloxSparkles";
+import { SparklesInstance } from "./fireUtils";
 
 interface AssetSparklesEffectsProps {
-  sparkles: SparklesInstance[]
+  sparkles: SparklesInstance[];
   /** Scale factor for the entire scene (to match 3D model scaling) */
-  scale?: number
+  scale?: number;
 }
 
 /**
@@ -14,9 +14,9 @@ interface AssetSparklesEffectsProps {
  */
 export const AssetSparklesEffects: React.FC<AssetSparklesEffectsProps> = ({
   sparkles,
-  scale = 1
+  scale = 1,
 }) => {
-  if (!sparkles || sparkles.length === 0) return null
+  if (!sparkles || sparkles.length === 0) return null;
 
   return (
     <group scale={scale}>
@@ -29,17 +29,17 @@ export const AssetSparklesEffects: React.FC<AssetSparklesEffectsProps> = ({
           position={[
             sparkle.position.x * 0.1, // Scale down from Roblox studs
             sparkle.position.y * 0.1,
-            sparkle.position.z * 0.1
+            sparkle.position.z * 0.1,
           ]}
           parentSize={[
             sparkle.parentSize.x * 0.1,
             sparkle.parentSize.y * 0.1,
-            sparkle.parentSize.z * 0.1
+            sparkle.parentSize.z * 0.1,
           ]}
         />
       ))}
     </group>
-  )
-}
+  );
+};
 
-export default AssetSparklesEffects
+export default AssetSparklesEffects;

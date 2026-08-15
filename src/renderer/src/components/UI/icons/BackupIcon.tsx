@@ -1,11 +1,14 @@
-import React from 'react'
+import React from "react";
 
 interface BackupIconProps {
-  size?: number
-  className?: string
+  size?: number;
+  className?: string;
 }
 
-const BackupIcon: React.FC<BackupIconProps> = ({ size = 24, className = '' }) => {
+const BackupIcon: React.FC<BackupIconProps> = ({
+  size = 24,
+  className = "",
+}) => {
   return (
     <svg
       width={size}
@@ -29,7 +32,7 @@ const BackupIcon: React.FC<BackupIconProps> = ({ size = 24, className = '' }) =>
       {/* Checkmark inside lock */}
       <path d="M17 9l0.5 0.5 1-1" strokeWidth="1.5" stroke="currentColor" />
     </svg>
-  )
-}
+  );
+};
 
-export default BackupIcon
+export default BackupIcon;

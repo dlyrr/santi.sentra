@@ -1,5 +1,10 @@
-import { request, requestWithCsrf, safeRequest, safeFetchBuffer } from '@main/lib/request'
-import { z } from 'zod'
+import {
+  request,
+  requestWithCsrf,
+  safeRequest,
+  safeFetchBuffer,
+} from "@main/lib/request";
+import { z } from "zod";
 import {
   assetDetailsSchema,
   recommendationsSchema,
@@ -8,29 +13,34 @@ import {
   resaleDataSchema,
   CatalogItemDetail,
   ResellersResponse,
-  AssetOwnersResponse
-} from '@shared/ipc-schemas/avatar'
-import { RobloxXMLParser, Instance } from '../../lib/xmlReader'
-import { isBinaryRobloxFile, parseBinaryRobloxFile } from '../../lib/rbxmReader'
+  AssetOwnersResponse,
+} from "@shared/ipc-schemas/avatar";
+import { RobloxXMLParser, Instance } from "../../lib/xmlReader";
+import {
+  isBinaryRobloxFile,
+  parseBinaryRobloxFile,
+} from "../../lib/rbxmReader";
 
 export class RobloxAssetService {
   static async getAssetDetails(cookie: string, assetId: number) {
     const [catalogDetails, economyDetails] = await Promise.allSettled([
       request(assetDetailsSchema, {
         url: `https://catalog.roblox.com/v1/catalog/items/${assetId}/details?itemType=Asset`,
-        cookie
+        cookie,
       }),
       request(assetDetailsSchema, {
         url: `https://economy.roblox.com/v2/assets/${assetId}/details`,
-        cookie
-      })
-    ])
+        cookie,
+      }),
+    ]);
 
-    const catalogData = catalogDetails.status === 'fulfilled' ? catalogDetails.value : {}
-    const economyData = economyDetails.status === 'fulfilled' ? economyDetails.value : {}
+    const catalogData =
+      catalogDetails.status === "fulfilled" ? catalogDetails.value : {};
+    const economyData =
+      economyDetails.status === "fulfilled" ? economyDetails.value : {};
 
     const collectibleLowestResalePrice =
-      economyData.CollectiblesItemDetails?.CollectibleLowestResalePrice ?? null
+      economyData.CollectiblesItemDetails?.CollectibleLowestResalePrice ?? null;
 
     return {
       ...catalogData,
@@ -41,56 +51,63 @@ export class RobloxAssetService {
       creatorName: catalogData.creatorName || economyData.Creator?.Name,
       creatorType: catalogData.creatorType || economyData.Creator?.CreatorType,
       creatorHasVerifiedBadge:
-        catalogData.creatorHasVerifiedBadge || economyData.Creator?.HasVerifiedBadge,
+        catalogData.creatorHasVerifiedBadge ||
+        economyData.Creator?.HasVerifiedBadge,
       created: catalogData.itemCreatedUtc || economyData.Created,
       updated: economyData.Updated || catalogData.itemUpdatedUtc,
       isLimited:
         catalogData.isLimited ||
         economyData.IsLimited ||
         economyData.CollectiblesItemDetails?.IsLimited,
-      isLimitedUnique: catalogData.isLimitedUnique || economyData.IsLimitedUnique,
+      isLimitedUnique:
+        catalogData.isLimitedUnique || economyData.IsLimitedUnique,
       isForSale: catalogData.isPurchasable || economyData.IsForSale,
-      collectibleLowestResalePrice
-    }
+      collectibleLowestResalePrice,
+    };
   }
 
   static async getAssetHierarchy(assetId: number) {
     try {
       const buffer = await safeFetchBuffer(
-        `https://assetdelivery.roblox.com/v1/asset?id=${assetId}`
-      )
+        `https://assetdelivery.roblox.com/v1/asset?id=${assetId}`,
+      );
 
-      let dataModel: Instance
+      let dataModel: Instance;
 
       if (isBinaryRobloxFile(buffer)) {
-        dataModel = parseBinaryRobloxFile(buffer)
+        dataModel = parseBinaryRobloxFile(buffer);
       } else {
-        const content = buffer.toString('utf-8')
-        const parser = new RobloxXMLParser()
+        const content = buffer.toString("utf-8");
+        const parser = new RobloxXMLParser();
         try {
-          await parser.parse(content)
+          await parser.parse(content);
         } catch (parseError: any) {
-          throw new Error(`Failed to parse XML: ${parseError.message}`)
+          throw new Error(`Failed to parse XML: ${parseError.message}`);
         }
-        dataModel = parser.dataModel
+        dataModel = parser.dataModel;
       }
 
       const serialize = (inst: Instance): any => ({
         class: inst.class,
         referent: inst.referent,
         properties: inst.properties,
-        children: inst.children.map(serialize)
-      })
+        children: inst.children.map(serialize),
+      });
 
-      return serialize(dataModel)
+      return serialize(dataModel);
     } catch (error: any) {
-      console.error('[RobloxAssetService] Failed to fetch/parse asset hierarchy:', error)
+      console.error(
+        "[RobloxAssetService] Failed to fetch/parse asset hierarchy:",
+        error,
+      );
 
       if (error.statusCode === 401) {
-        throw new Error('This asset must be created by Roblox or yourself to view its hierarchy')
+        throw new Error(
+          "This asset must be created by Roblox or yourself to view its hierarchy",
+        );
       }
 
-      throw new Error(error.message || 'Failed to load asset hierarchy')
+      throw new Error(error.message || "Failed to load asset hierarchy");
     }
   }
 
@@ -106,57 +123,63 @@ export class RobloxAssetService {
   static async getBatchAssetDetails(
     cookie: string,
     assetIds: number[],
-    itemType: 'Asset' | 'Bundle' = 'Asset'
+    itemType: "Asset" | "Bundle" = "Asset",
   ): Promise<CatalogItemDetail[]> {
     if (assetIds.length === 0) {
-      return []
+      return [];
     }
 
     // Roblox API has a limit of ~120 items per batch request
-    const BATCH_LIMIT = 120
-    const chunks = this.chunkArray(assetIds, BATCH_LIMIT)
-    const allResults: CatalogItemDetail[] = []
+    const BATCH_LIMIT = 120;
+    const chunks = this.chunkArray(assetIds, BATCH_LIMIT);
+    const allResults: CatalogItemDetail[] = [];
 
     for (const chunk of chunks) {
       try {
         const items = chunk.map((id) => ({
           itemType,
-          id
-        }))
+          id,
+        }));
 
         const response = await requestWithCsrf(batchCatalogDetailsSchema, {
-          method: 'POST',
-          url: 'https://catalog.roblox.com/v1/catalog/items/details',
+          method: "POST",
+          url: "https://catalog.roblox.com/v1/catalog/items/details",
           cookie,
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
-          body: { items }
-        })
+          body: { items },
+        });
 
         if (response.data) {
-          allResults.push(...response.data)
+          allResults.push(...response.data);
         }
       } catch (error) {
-        console.error('[RobloxAssetService] Failed to fetch batch asset details for chunk:', error)
+        console.error(
+          "[RobloxAssetService] Failed to fetch batch asset details for chunk:",
+          error,
+        );
       }
     }
 
-    return allResults
+    return allResults;
   }
 
   static async getAssetRecommendations(cookie: string, assetId: number) {
     try {
-      const details = await RobloxAssetService.getAssetDetails(cookie, assetId)
-      const assetTypeId = details.AssetTypeId || details.assetType || 8
+      const details = await RobloxAssetService.getAssetDetails(cookie, assetId);
+      const assetTypeId = details.AssetTypeId || details.assetType || 8;
 
       return await request(recommendationsSchema, {
         url: `https://catalog.roblox.com/v2/recommendations/assets?assetId=${assetId}&assetTypeId=${assetTypeId}&details=false&numItems=10`,
-        cookie
-      })
+        cookie,
+      });
     } catch (error) {
-      console.warn('[RobloxAssetService] Failed to fetch recommendations:', error)
-      return { data: [] }
+      console.warn(
+        "[RobloxAssetService] Failed to fetch recommendations:",
+        error,
+      );
+      return { data: [] };
     }
   }
 
@@ -169,21 +192,21 @@ export class RobloxAssetService {
   static async getAssetResellers(
     collectibleItemId: string,
     limit: number = 100,
-    cursor?: string
+    cursor?: string,
   ): Promise<ResellersResponse> {
     try {
-      let url = `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=${limit}`
+      let url = `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=${limit}`;
       if (cursor) {
-        url += `&cursor=${cursor}`
+        url += `&cursor=${cursor}`;
       }
 
       return await request(resellersResponseSchema, {
         url,
-        method: 'GET'
-      })
+        method: "GET",
+      });
     } catch (error) {
-      console.warn('[RobloxAssetService] Failed to fetch resellers:', error)
-      return { data: [] }
+      console.warn("[RobloxAssetService] Failed to fetch resellers:", error);
+      return { data: [] };
     }
   }
 
@@ -199,13 +222,13 @@ export class RobloxAssetService {
     cookie: string,
     assetId: number,
     limit: number = 100,
-    sortOrder: 'Asc' | 'Desc' = 'Asc',
-    cursor?: string
+    sortOrder: "Asc" | "Desc" = "Asc",
+    cursor?: string,
   ): Promise<AssetOwnersResponse> {
     try {
-      let url = `https://inventory.roblox.com/v2/assets/${assetId}/owners?limit=${limit}&sortOrder=${sortOrder}`
+      let url = `https://inventory.roblox.com/v2/assets/${assetId}/owners?limit=${limit}&sortOrder=${sortOrder}`;
       if (cursor) {
-        url += `&cursor=${cursor}`
+        url += `&cursor=${cursor}`;
       }
 
       const lenientOwnerSchema = z
@@ -217,47 +240,50 @@ export class RobloxAssetService {
             .object({
               id: z.number(),
               type: z.string(),
-              name: z.string().nullable().optional()
+              name: z.string().nullable().optional(),
             })
             .nullable()
             .optional(),
           created: z.string().optional(),
-          updated: z.string().optional()
+          updated: z.string().optional(),
         })
-        .passthrough()
+        .passthrough();
 
       const lenientResponseSchema = z.object({
         data: z.array(lenientOwnerSchema),
         nextPageCursor: z.string().nullable().optional(),
-        previousPageCursor: z.string().nullable().optional()
-      })
+        previousPageCursor: z.string().nullable().optional(),
+      });
 
       const rawData = await safeRequest<any>({
         url,
-        method: 'GET',
-        cookie
-      })
+        method: "GET",
+        cookie,
+      });
 
-      const result = lenientResponseSchema.parse(rawData)
+      const result = lenientResponseSchema.parse(rawData);
 
-      return result as AssetOwnersResponse
+      return result as AssetOwnersResponse;
     } catch (error: any) {
-      console.error('[RobloxAssetService] Failed to fetch asset owners:', error)
+      console.error(
+        "[RobloxAssetService] Failed to fetch asset owners:",
+        error,
+      );
       if (error.issues) {
         console.error(
-          '[RobloxAssetService] Zod validation issues:',
-          JSON.stringify(error.issues, null, 2)
-        )
+          "[RobloxAssetService] Zod validation issues:",
+          JSON.stringify(error.issues, null, 2),
+        );
       }
-      return { data: [] }
+      return { data: [] };
     }
   }
 
   static async getResaleData(assetId: number) {
     return request(resaleDataSchema, {
       url: `https://economy.roblox.com/v1/assets/${assetId}/resale-data`,
-      method: 'GET'
-    })
+      method: "GET",
+    });
   }
 
   static async purchaseLimitedItem(
@@ -265,7 +291,7 @@ export class RobloxAssetService {
     collectibleItemInstanceId: string,
     expectedPrice: number,
     sellerId: number,
-    productId: string
+    productId: string,
   ) {
     const purchaseResponseSchema = z
       .object({
@@ -276,35 +302,35 @@ export class RobloxAssetService {
         title: z.string().optional(),
         errorMsg: z.string().optional(),
         showDivId: z.string().optional(),
-        shortMessage: z.string().optional()
+        shortMessage: z.string().optional(),
       })
-      .passthrough()
+      .passthrough();
 
     return requestWithCsrf(purchaseResponseSchema, {
-      method: 'POST',
+      method: "POST",
       url: `https://economy.roblox.com/v1/purchases/products/${productId}`,
       cookie,
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
       body: {
         expectedCurrency: 1,
         expectedPrice,
         expectedSellerId: sellerId,
-        userAssetId: collectibleItemInstanceId
-      }
-    })
+        userAssetId: collectibleItemInstanceId,
+      },
+    });
   }
 
   private static chunkArray<T>(items: T[], size: number): T[][] {
     if (size <= 0 || items.length <= size) {
-      return items.length ? [items.slice()] : []
+      return items.length ? [items.slice()] : [];
     }
 
-    const chunks: T[][] = []
+    const chunks: T[][] = [];
     for (let i = 0; i < items.length; i += size) {
-      chunks.push(items.slice(i, i + size))
+      chunks.push(items.slice(i, i + size));
     }
-    return chunks
+    return chunks;
   }
 }

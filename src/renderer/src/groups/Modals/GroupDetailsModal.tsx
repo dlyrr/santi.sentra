@@ -1,4 +1,4 @@
-import { Users } from 'lucide-react'
+import { Users } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -6,16 +6,19 @@ import {
   SheetHeader,
   SheetTitle,
   SheetClose,
-  SheetBody
-} from '@renderer/components/UI/dialogs/Sheet'
-import { GroupDetailsPanel, type GroupDetailsPanelProps } from '../components/GroupDetailsPanel'
+  SheetBody,
+} from "@renderer/components/UI/dialogs/Sheet";
+import {
+  GroupDetailsPanel,
+  type GroupDetailsPanelProps,
+} from "../components/GroupDetailsPanel";
 
 interface GroupDetailsModalProps extends Omit<
   GroupDetailsPanelProps,
-  'emptyStateMessage' | 'showActions' | 'tabLayoutId'
+  "emptyStateMessage" | "showActions" | "tabLayoutId"
 > {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export const GroupDetailsModal = ({
@@ -25,7 +28,7 @@ export const GroupDetailsModal = ({
   selectedAccount,
   isPending,
   userRole,
-  onViewProfile
+  onViewProfile,
 }: GroupDetailsModalProps) => {
   return (
     <Sheet isOpen={isOpen} onClose={onClose}>
@@ -56,7 +59,7 @@ export const GroupDetailsModal = ({
         </SheetBody>
       </SheetContent>
     </Sheet>
-  )
-}
+  );
+};
 
-export default GroupDetailsModal
+export default GroupDetailsModal;

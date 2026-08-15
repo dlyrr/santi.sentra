@@ -1,78 +1,84 @@
-import { net } from 'electron'
-import { z } from 'zod'
-import { hbaManager } from './hbaManager'
+import { net } from "electron";
+import { z } from "zod";
+import { hbaManager } from "./hbaManager";
 
 interface RequestOptions {
-  method?: string
-  url: string
-  cookie?: string
-  body?: any
-  headers?: Record<string, string>
-  returnHeaders?: boolean
+  method?: string;
+  url: string;
+  cookie?: string;
+  body?: any;
+  headers?: Record<string, string>;
+  returnHeaders?: boolean;
 }
 
 export class RequestError extends Error {
-  statusCode?: number
-  headers?: Record<string, string | string[]>
-  body?: string
+  statusCode?: number;
+  headers?: Record<string, string | string[]>;
+  body?: string;
 
   constructor(
     message: string,
     statusCode?: number,
     headers?: Record<string, string | string[]>,
-    body?: string
+    body?: string,
   ) {
-    super(message)
-    this.name = 'RequestError'
-    this.statusCode = statusCode
-    this.headers = headers
-    this.body = body
+    super(message);
+    this.name = "RequestError";
+    this.statusCode = statusCode;
+    this.headers = headers;
+    this.body = body;
   }
 }
 
 export const safeRequest = <T>(options: RequestOptions): Promise<T> => {
   return new Promise((resolve, reject) => {
-    const method = options.method || 'GET'
+    const method = options.method || "GET";
 
     const request = net.request({
       method,
-      url: options.url
-    })
+      url: options.url,
+    });
 
     const timeout = setTimeout(() => {
-      request.abort()
-      reject(new RequestError('Request timed out', 408))
-    }, 30000)
+      request.abort();
+      reject(new RequestError("Request timed out", 408));
+    }, 30000);
 
     const clearTimeoutSafely = () => {
-      clearTimeout(timeout)
-    }
+      clearTimeout(timeout);
+    };
 
-    request.on('redirect', () => {
-      request.followRedirect()
-    })
+    request.on("redirect", () => {
+      request.followRedirect();
+    });
 
-    request.on('response', (response) => {
-      let data = ''
-      response.on('data', (chunk) => {
-        data += chunk
-      })
+    request.on("response", (response) => {
+      let data = "";
+      response.on("data", (chunk) => {
+        data += chunk;
+      });
 
-      response.on('end', () => {
-        clearTimeoutSafely()
+      response.on("end", () => {
+        clearTimeoutSafely();
         if (response.statusCode >= 200 && response.statusCode < 300) {
           try {
-            const result = data ? JSON.parse(data) : {}
+            const result = data ? JSON.parse(data) : {};
 
             if (options.returnHeaders) {
-              resolve({ data: result, headers: response.headers } as unknown as T)
+              resolve({
+                data: result,
+                headers: response.headers,
+              } as unknown as T);
             } else {
-              resolve(result)
+              resolve(result);
             }
           } catch {
             reject(
-              new RequestError(`Failed to parse response from ${options.url}`, response.statusCode)
-            )
+              new RequestError(
+                `Failed to parse response from ${options.url}`,
+                response.statusCode,
+              ),
+            );
           }
         } else {
           reject(
@@ -80,173 +86,184 @@ export const safeRequest = <T>(options: RequestOptions): Promise<T> => {
               `Request failed with status code ${response.statusCode}`,
               response.statusCode,
               response.headers,
-              data || undefined
-            )
-          )
+              data || undefined,
+            ),
+          );
         }
-      })
+      });
 
-      response.on('error', (error) => {
-        clearTimeoutSafely()
-        reject(error)
-      })
-    })
+      response.on("error", (error) => {
+        clearTimeoutSafely();
+        reject(error);
+      });
+    });
 
-    request.on('error', (error) => {
-      clearTimeoutSafely()
-      reject(error)
-    })
+    request.on("error", (error) => {
+      clearTimeoutSafely();
+      reject(error);
+    });
 
     const send = async () => {
       if (options.cookie) {
-        request.setHeader('Cookie', `.ROBLOSECURITY=${options.cookie}`)
+        request.setHeader("Cookie", `.ROBLOSECURITY=${options.cookie}`);
         try {
-          const hbaHeaders = await hbaManager.getHeaders(options.cookie, options.url, method)
+          const hbaHeaders = await hbaManager.getHeaders(
+            options.cookie,
+            options.url,
+            method,
+          );
           Object.entries(hbaHeaders).forEach(([key, value]) => {
-            request.setHeader(key, value)
-          })
+            request.setHeader(key, value);
+          });
         } catch (error) {
-          console.error('Failed to generate HBA headers:', error)
+          console.error("Failed to generate HBA headers:", error);
         }
       }
 
-      request.setHeader('Content-Type', 'application/json')
+      request.setHeader("Content-Type", "application/json");
       request.setHeader(
-        'User-Agent',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      )
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      );
 
       if (options.headers) {
         Object.entries(options.headers).forEach(([key, value]) => {
-          request.setHeader(key, value)
-        })
+          request.setHeader(key, value);
+        });
       }
 
       if (options.body) {
-        request.write(JSON.stringify(options.body))
+        request.write(JSON.stringify(options.body));
       }
 
-      request.end()
-    }
+      request.end();
+    };
 
     void send().catch((error) => {
-      clearTimeout(timeout)
-      reject(error)
-    })
-  })
-}
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+};
 
 export const safeFetchText = (url: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const request = net.request({
-      method: 'GET',
-      url
-    })
+      method: "GET",
+      url,
+    });
 
-    request.on('response', (response) => {
-      let data = ''
-      response.on('data', (chunk) => {
-        data += chunk
-      })
+    request.on("response", (response) => {
+      let data = "";
+      response.on("data", (chunk) => {
+        data += chunk;
+      });
 
-      response.on('end', () => {
+      response.on("end", () => {
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          resolve(data)
+          resolve(data);
         } else {
           reject(
             new RequestError(
               `Request failed with status code ${response.statusCode}`,
               response.statusCode,
               response.headers,
-              data
-            )
-          )
+              data,
+            ),
+          );
         }
-      })
+      });
 
-      response.on('error', (error) => {
-        reject(error)
-      })
-    })
+      response.on("error", (error) => {
+        reject(error);
+      });
+    });
 
-    request.on('error', (error) => {
-      reject(error)
-    })
+    request.on("error", (error) => {
+      reject(error);
+    });
 
-    request.end()
-  })
-}
+    request.end();
+  });
+};
 
 export const safeFetchBuffer = (url: string): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     const request = net.request({
-      method: 'GET',
-      url
-    })
+      method: "GET",
+      url,
+    });
 
-    request.on('response', (response) => {
-      const chunks: Buffer[] = []
+    request.on("response", (response) => {
+      const chunks: Buffer[] = [];
 
-      response.on('data', (chunk: Buffer) => {
-        chunks.push(chunk)
-      })
+      response.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
 
-      response.on('end', () => {
-        const buffer = Buffer.concat(chunks)
+      response.on("end", () => {
+        const buffer = Buffer.concat(chunks);
         if (response.statusCode >= 200 && response.statusCode < 300) {
-          resolve(buffer)
+          resolve(buffer);
         } else {
           reject(
             new RequestError(
               `Request failed with status code ${response.statusCode}`,
               response.statusCode,
               response.headers,
-              buffer.toString('utf-8')
-            )
-          )
+              buffer.toString("utf-8"),
+            ),
+          );
         }
-      })
+      });
 
-      response.on('error', (error) => {
-        reject(error)
-      })
-    })
+      response.on("error", (error) => {
+        reject(error);
+      });
+    });
 
-    request.on('error', (error) => {
-      reject(error)
-    })
+    request.on("error", (error) => {
+      reject(error);
+    });
 
-    request.end()
-  })
-}
+    request.end();
+  });
+};
 
-export const request = async <T>(schema: z.ZodType<T>, options: RequestOptions): Promise<T> => {
-  const data = await safeRequest<unknown>(options)
-  return schema.parse(data)
-}
+export const request = async <T>(
+  schema: z.ZodType<T>,
+  options: RequestOptions,
+): Promise<T> => {
+  const data = await safeRequest<unknown>(options);
+  return schema.parse(data);
+};
 
 export const requestWithCsrf = async <T>(
   schema: z.ZodType<T>,
-  options: RequestOptions
+  options: RequestOptions,
 ): Promise<T> => {
   try {
-    const data = await safeRequest<unknown>(options)
-    return schema.parse(data)
+    const data = await safeRequest<unknown>(options);
+    return schema.parse(data);
   } catch (error) {
-    if (error instanceof RequestError && error.statusCode === 403 && error.headers) {
-      const token = error.headers['x-csrf-token']
+    if (
+      error instanceof RequestError &&
+      error.statusCode === 403 &&
+      error.headers
+    ) {
+      const token = error.headers["x-csrf-token"];
       if (token) {
-        const csrfToken = Array.isArray(token) ? token[0] : (token as string)
+        const csrfToken = Array.isArray(token) ? token[0] : (token as string);
         const data = await safeRequest<unknown>({
           ...options,
           headers: {
             ...options.headers,
-            'x-csrf-token': csrfToken
-          }
-        })
-        return schema.parse(data)
+            "x-csrf-token": csrfToken,
+          },
+        });
+        return schema.parse(data);
       }
     }
-    throw error
+    throw error;
   }
-}
+};

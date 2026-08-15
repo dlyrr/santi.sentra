@@ -6,7 +6,11 @@
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import { ConfigManager } from "../../shared/config/ConfigManager";
-import { AppError, ErrorCode, ErrorSeverity } from "../../shared/error/AppError";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+} from "../../shared/error/AppError";
 import {
   Item,
   TradingConfig,
@@ -14,7 +18,10 @@ import {
   TradingDecision,
   TradeOpportunity,
 } from "../types/TradingTypes";
-import { ITradingAnalyzer, TradingDecisionCallback } from "../interfaces/TradingInterfaces";
+import {
+  ITradingAnalyzer,
+  TradingDecisionCallback,
+} from "../interfaces/TradingInterfaces";
 import { ProfitCalculator } from "../utils/ProfitCalculator";
 
 /**
@@ -54,10 +61,7 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
       // Check cache
       if (this.analysisCache.has(item.id)) {
         const cached = this.analysisCache.get(item.id);
-        if (
-          cached &&
-          Date.now() - cached.timestamp < 5000
-        ) {
+        if (cached && Date.now() - cached.timestamp < 5000) {
           return cached;
         }
       }
@@ -78,7 +82,7 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
         ErrorCode.TRADING_CALCULATION_ERROR,
         "TradingAnalyzer",
         ErrorSeverity.MEDIUM,
-        { itemId: item.id, error }
+        { itemId: item.id, error },
       );
       this.logger.error("Item analysis failed", error as Error, {
         itemId: item.id,
@@ -106,7 +110,10 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
         decision = "HOLD";
         confidence = 0.6;
         reason = `Marginal profit (${analysis.netProfitPercentage.toFixed(2)}%). Wait for better conditions.`;
-      } else if (analysis.analysis.highVolume && analysis.netProfitPercentage > 20) {
+      } else if (
+        analysis.analysis.highVolume &&
+        analysis.netProfitPercentage > 20
+      ) {
         decision = "BUY";
         confidence = 0.85;
         reason = `High volume with good margin (${analysis.netProfitPercentage.toFixed(2)}%).`;
@@ -133,10 +140,7 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
         try {
           callback(tradingDecision);
         } catch (error) {
-          this.logger.error(
-            "Error in decision callback",
-            error as Error
-          );
+          this.logger.error("Error in decision callback", error as Error);
         }
       });
 
@@ -206,7 +210,7 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
         "Failed to find trading opportunities",
         ErrorCode.TRADING_CALCULATION_ERROR,
         "TradingAnalyzer",
-        ErrorSeverity.MEDIUM
+        ErrorSeverity.MEDIUM,
       );
       this.logger.error("Opportunity detection failed", error as Error);
       throw appError;
@@ -246,7 +250,7 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
         "minProfitThreshold must be non-negative",
         ErrorCode.TRADING_CONFIG_ERROR,
         "TradingAnalyzer",
-        ErrorSeverity.HIGH
+        ErrorSeverity.HIGH,
       );
     }
 
@@ -258,20 +262,17 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
         "maxProfitThreshold must be >= minProfitThreshold",
         ErrorCode.TRADING_CONFIG_ERROR,
         "TradingAnalyzer",
-        ErrorSeverity.HIGH
+        ErrorSeverity.HIGH,
       );
     }
 
     if (this.config.feePercentage !== undefined) {
-      if (
-        this.config.feePercentage < 0 ||
-        this.config.feePercentage > 100
-      ) {
+      if (this.config.feePercentage < 0 || this.config.feePercentage > 100) {
         throw new AppError(
           "feePercentage must be between 0 and 100",
           ErrorCode.TRADING_CONFIG_ERROR,
           "TradingAnalyzer",
-          ErrorSeverity.HIGH
+          ErrorSeverity.HIGH,
         );
       }
     }
@@ -282,18 +283,16 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
  * Factory for creating TradingAnalyzer instances with dependency injection.
  */
 export class TradingAnalyzerFactory {
-  public static create(
-    config?: Partial<TradingConfig>
-  ): TradingAnalyzer {
+  public static create(config?: Partial<TradingConfig>): TradingAnalyzer {
     return new TradingAnalyzer(config);
   }
 
   public static createFromConfigManager(
-    configManager: ConfigManager
+    configManager: ConfigManager,
   ): TradingAnalyzer {
     const config = configManager.get<Partial<TradingConfig>>(
       "trading.config",
-      {}
+      {},
     );
     return new TradingAnalyzer(config);
   }

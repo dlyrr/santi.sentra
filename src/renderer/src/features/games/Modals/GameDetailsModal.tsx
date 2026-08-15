@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   User,
   Users,
@@ -24,389 +24,414 @@ import {
   MonitorSmartphone,
   Link2,
   ChevronLeft,
-  ChevronRight
-} from 'lucide-react'
-import { Account, Game, JoinMethod } from '@renderer/types'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
+  ChevronRight,
+} from "lucide-react";
+import { Account, Game, JoinMethod } from "@renderer/types";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
 import {
-  Sheet,
-  SheetContent,
-  SheetHandle,
-  SheetHeader,
-  SheetTitle,
-  SheetClose,
-  SheetBody
-} from '@renderer/components/UI/dialogs/Sheet'
-import { Dialog, DialogBody, DialogContent } from '@renderer/components/UI/dialogs/Dialog'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { SlidingNumber } from '@renderer/components/UI/specialized/SlidingNumber'
-import { Tabs } from '@renderer/components/UI/navigation/Tabs'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { linkify } from '@renderer/utils/linkify'
-import { cn } from '@renderer/lib/utils'
-import ServersList from '../ServersView'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { SocialLink, VoteResponse, GamePass } from '@shared/ipc-schemas/games'
-import { useNotification } from '@renderer/features/system/stores/useSnackbarStore'
-import FavoriteParticles from '@renderer/components/UI/specialized/FavoriteParticles'
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@renderer/components/UI/dialogs/Dialog";
+
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { SlidingNumber } from "@renderer/components/UI/specialized/SlidingNumber";
+import { Tabs } from "@renderer/components/UI/navigation/Tabs";
+import { formatNumber } from "@renderer/utils/numberUtils";
+import { linkify } from "@renderer/utils/linkify";
+import { cn } from "@renderer/lib/utils";
+import ServersList from "../ServersView";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { SocialLink, VoteResponse, GamePass } from "@shared/ipc-schemas/games";
+import { useNotification } from "@renderer/features/system/stores/useSnackbarStore";
+import FavoriteParticles from "@renderer/components/UI/specialized/FavoriteParticles";
 import {
   useFavoriteGames,
   useAddFavoriteGame,
-  useRemoveFavoriteGame
-} from '@renderer/hooks/queries'
+  useRemoveFavoriteGame,
+} from "@renderer/hooks/queries";
 import {
   PurchaseErrorDialog,
-  PurchaseSuccessDialog
-} from '@renderer/features/avatar/components/AssetPricing'
-import GameImageContextMenu from './GameImageContextMenu'
-import VerifiedIcon from '@renderer/components/UI/icons/VerifiedIcon'
-import UniversalProfileModal from '@renderer/components/Modals/UniversalProfileModal'
-import { GroupDetailsModal } from '@renderer/features/groups/Modals/GroupDetailsModal'
+  PurchaseSuccessDialog,
+} from "@renderer/features/avatar/components/AssetPricing";
+import GameImageContextMenu from "./GameImageContextMenu";
+import VerifiedIcon from "@renderer/components/UI/icons/VerifiedIcon";
+import UniversalProfileModal from "@renderer/components/Modals/UniversalProfileModal";
+import { GroupDetailsModal } from "@renderer/features/groups/Modals/GroupDetailsModal";
 
 interface GameDetailsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onLaunch: (config: { method: JoinMethod; target: string }) => void
-  game: Game | null
-  account?: Account | null
-  onViewServers?: (placeId: string) => void
+  isOpen: boolean;
+  onClose: () => void;
+  onLaunch: (config: { method: JoinMethod; target: string }) => void;
+  game: Game | null;
+  account?: Account | null;
+  onViewServers?: (placeId: string) => void;
 }
 
-const CAROUSEL_INTERVAL = 5000
+const CAROUSEL_INTERVAL = 5000;
 
 const getSocialIcon = (type: string) => {
   switch (type.toLowerCase()) {
-    case 'twitter':
-      return <Twitter size={20} className="text-[#1DA1F2]" />
-    case 'youtube':
-      return <Youtube size={20} className="text-[#FF0000]" />
-    case 'twitch':
-      return <Twitch size={20} className="text-[#9146FF]" />
-    case 'facebook':
-      return <Facebook size={20} className="text-[#1877F2]" />
-    case 'discord':
-      return <MessageCircle size={20} className="text-[#5865F2]" />
+    case "twitter":
+      return <Twitter size={20} className="text-[#1DA1F2]" />;
+    case "youtube":
+      return <Youtube size={20} className="text-[#FF0000]" />;
+    case "twitch":
+      return <Twitch size={20} className="text-[#9146FF]" />;
+    case "facebook":
+      return <Facebook size={20} className="text-[#1877F2]" />;
+    case "discord":
+      return <MessageCircle size={20} className="text-[#5865F2]" />;
     default:
-      return <Globe size={20} className="text-[var(--color-text-secondary)]" />
+      return <Globe size={20} className="text-[var(--color-text-secondary)]" />;
   }
-}
+};
 
 const getPlatformName = (type: string): string => {
-  const normalized = type.toLowerCase()
-  if (normalized === 'pc' || normalized === 'desktop') return 'PC'
-  if (normalized === 'mobile' || normalized === 'phone') return 'Mobile'
-  if (normalized === 'console') return 'Console'
-  if (normalized === 'tablet') return 'Tablet'
-  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
-}
+  const normalized = type.toLowerCase();
+  if (normalized === "pc" || normalized === "desktop") return "PC";
+  if (normalized === "mobile" || normalized === "phone") return "Mobile";
+  if (normalized === "console") return "Console";
+  if (normalized === "tablet") return "Tablet";
+  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+};
 
 const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   isOpen,
   onClose,
   onLaunch,
   game,
-  account
+  account,
 }) => {
-  const [displayedGame, setDisplayedGame] = useState<Game | null>(game)
-  const [thumbnails, setThumbnails] = useState<string[]>([])
-  const [carouselIndex, setCarouselIndex] = useState(0)
-  const [activeTab, setActiveTab] = useState<'info' | 'servers' | 'store'>('info')
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false)
-  const [selectedCreatorId, setSelectedCreatorId] = useState<string | number | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStartX, setDragStartX] = useState(0)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const dragOffsetRef = useRef(0)
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const { showNotification } = useNotification()
+  const [displayedGame, setDisplayedGame] = useState<Game | null>(game);
+  const [thumbnails, setThumbnails] = useState<string[]>([]);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<"info" | "servers" | "store">(
+    "info",
+  );
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [selectedCreatorId, setSelectedCreatorId] = useState<
+    string | number | null
+  >(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const dragOffsetRef = useRef(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const { showNotification } = useNotification();
 
   const handleCreatorClick = () => {
-    if (!displayedGame) return
+    if (!displayedGame) return;
 
-    if (displayedGame.creatorType === 'Group') {
-      setSelectedCreatorId(parseInt(displayedGame.creatorId, 10))
-      setIsGroupModalOpen(true)
+    if (displayedGame.creatorType === "Group") {
+      setSelectedCreatorId(parseInt(displayedGame.creatorId, 10));
+      setIsGroupModalOpen(true);
     } else {
-      setSelectedCreatorId(displayedGame.creatorId)
-      setIsProfileModalOpen(true)
+      setSelectedCreatorId(displayedGame.creatorId);
+      setIsProfileModalOpen(true);
     }
-  }
+  };
 
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const [contextMenu, setContextMenu] = useState<{
-    x: number
-    y: number
-    imageUrl: string
-    gameName: string
-  } | null>(null)
+    x: number;
+    y: number;
+    imageUrl: string;
+    gameName: string;
+  } | null>(null);
 
   // Favorite logic
-  const { data: favorites = [] } = useFavoriteGames()
-  const addFavoriteMutation = useAddFavoriteGame()
-  const removeFavoriteMutation = useRemoveFavoriteGame()
-  const [favoriteBurst, setFavoriteBurst] = useState(false)
+  const { data: favorites = [] } = useFavoriteGames();
+  const addFavoriteMutation = useAddFavoriteGame();
+  const removeFavoriteMutation = useRemoveFavoriteGame();
+  const [favoriteBurst, setFavoriteBurst] = useState(false);
 
   const isFavorite = displayedGame
     ? favorites.includes(displayedGame.placeId || displayedGame.id.toString())
-    : false
+    : false;
 
   const handleFavorite = async () => {
-    if (!displayedGame) return
-    const placeId = displayedGame.placeId || displayedGame.id.toString()
+    if (!displayedGame) return;
+    const placeId = displayedGame.placeId || displayedGame.id.toString();
 
     try {
       if (isFavorite) {
-        await removeFavoriteMutation.mutateAsync(placeId)
-        showNotification('Removed from favorites', 'success')
+        await removeFavoriteMutation.mutateAsync(placeId);
+        showNotification("Removed from favorites", "success");
       } else {
-        setFavoriteBurst(true)
-        await addFavoriteMutation.mutateAsync(placeId)
-        showNotification('Added to favorites', 'success')
-        setTimeout(() => setFavoriteBurst(false), 1000)
+        setFavoriteBurst(true);
+        await addFavoriteMutation.mutateAsync(placeId);
+        showNotification("Added to favorites", "success");
+        setTimeout(() => setFavoriteBurst(false), 1000);
       }
     } catch (error) {
-      console.error('Failed to update favorites:', error)
-      showNotification('Failed to update favorites', 'error')
+      console.error("Failed to update favorites:", error);
+      showNotification("Failed to update favorites", "error");
     }
-  }
+  };
 
   const handleImageContextMenu = useCallback(
     (e: React.MouseEvent, imageUrl: string) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!displayedGame) return
+      e.preventDefault();
+      e.stopPropagation();
+      if (!displayedGame) return;
       setContextMenu({
         x: e.clientX,
         y: e.clientY,
         imageUrl,
-        gameName: displayedGame.name
-      })
+        gameName: displayedGame.name,
+      });
     },
-    [displayedGame]
-  )
+    [displayedGame],
+  );
 
   const handleSaveImage = useCallback(
     async (imageUrl: string, gameName: string) => {
       try {
-        const result = await window.api.saveGameImage(imageUrl, gameName)
+        const result = await window.api.saveGameImage(imageUrl, gameName);
         if (result.success) {
-          showNotification('Image saved successfully', 'success')
+          showNotification("Image saved successfully", "success");
         } else if (result.canceled) {
           // User canceled, don't show notification
         } else {
-          showNotification('Failed to save image', 'error')
+          showNotification("Failed to save image", "error");
         }
       } catch (error) {
-        console.error('Failed to save image:', error)
-        showNotification('Failed to save image', 'error')
+        console.error("Failed to save image:", error);
+        showNotification("Failed to save image", "error");
       }
     },
-    [showNotification]
-  )
+    [showNotification],
+  );
 
   const handleCopyLink = useCallback(async () => {
-    if (!displayedGame) return
-    const link = `https://www.roblox.com/games/${displayedGame.placeId || displayedGame.id}`
+    if (!displayedGame) return;
+    const link = `https://www.roblox.com/games/${displayedGame.placeId || displayedGame.id}`;
 
     try {
-      await navigator.clipboard.writeText(link)
-      showNotification('Game link copied to clipboard', 'success')
+      await navigator.clipboard.writeText(link);
+      showNotification("Game link copied to clipboard", "success");
     } catch (err) {
-      console.error('Failed to copy link', err)
-      showNotification('Failed to copy link', 'error')
+      console.error("Failed to copy link", err);
+      showNotification("Failed to copy link", "error");
     }
-  }, [displayedGame, showNotification])
+  }, [displayedGame, showNotification]);
 
-  const targetPlaceId = displayedGame?.placeId || displayedGame?.id
-  const lastServerJobId = displayedGame?.lastServerJobId ?? null
-  const hasFriendsPlaying = (displayedGame?.friendsPlayingCount ?? 0) > 0
+  const targetPlaceId = displayedGame?.placeId || displayedGame?.id;
+  const lastServerJobId = displayedGame?.lastServerJobId ?? null;
+  const hasFriendsPlaying = (displayedGame?.friendsPlayingCount ?? 0) > 0;
 
   const handleRejoinLastServer = useCallback(() => {
-    if (!displayedGame || !targetPlaceId) return
+    if (!displayedGame || !targetPlaceId) return;
     if (!lastServerJobId) {
-      showNotification('No recent server to rejoin', 'info')
-      return
+      showNotification("No recent server to rejoin", "info");
+      return;
     }
 
-    onLaunch({ method: JoinMethod.JobId, target: `${targetPlaceId}:${lastServerJobId}` })
-    onClose()
-  }, [displayedGame, lastServerJobId, onClose, onLaunch, showNotification, targetPlaceId])
+    onLaunch({
+      method: JoinMethod.JobId,
+      target: `${targetPlaceId}:${lastServerJobId}`,
+    });
+    onClose();
+  }, [
+    displayedGame,
+    lastServerJobId,
+    onClose,
+    onLaunch,
+    showNotification,
+    targetPlaceId,
+  ]);
 
   const handleJoinFriends = useCallback(() => {
     if (!hasFriendsPlaying) {
-      showNotification('No friends playing this game right now', 'info')
-      return
+      showNotification("No friends playing this game right now", "info");
+      return;
     }
 
     // We don’t yet have a direct friend join target; jump to Servers tab so they can pick.
-    setActiveTab('servers')
-    showNotification('Jumped to Servers — look for friends online', 'info')
-  }, [hasFriendsPlaying, showNotification])
+    setActiveTab("servers");
+    showNotification("Jumped to Servers — look for friends online", "info");
+  }, [hasFriendsPlaying, showNotification]);
 
   const { data: socialLinks } = useQuery({
-    queryKey: ['gameSocialLinks', game?.universeId],
+    queryKey: ["gameSocialLinks", game?.universeId],
     queryFn: async () => {
-      if (!game?.universeId) return []
-      return window.api.getGameSocialLinks(Number(game.universeId))
+      if (!game?.universeId) return [];
+      return window.api.getGameSocialLinks(Number(game.universeId));
     },
-    enabled: !!game?.universeId && isOpen
-  })
+    enabled: !!game?.universeId && isOpen,
+  });
 
   // Fetch game passes
   const { data: gamePassesData, isLoading: _isLoadingPasses } = useQuery({
-    queryKey: ['gamePasses', game?.universeId],
+    queryKey: ["gamePasses", game?.universeId],
     queryFn: async () => {
-      if (!game?.universeId) return { gamePasses: [], nextPageToken: null }
-      return window.api.getGamePasses(Number(game.universeId))
+      if (!game?.universeId) return { gamePasses: [], nextPageToken: null };
+      return window.api.getGamePasses(Number(game.universeId));
     },
-    enabled: !!game?.universeId && isOpen
-  })
+    enabled: !!game?.universeId && isOpen,
+  });
 
   // Filter to only show passes that are for sale
   const gamePassesForSale =
-    gamePassesData?.gamePasses?.filter((p: GamePass) => p.isForSale && p.productId !== null) || []
-  const hasGamePasses = gamePassesForSale.length > 0
+    gamePassesData?.gamePasses?.filter(
+      (p: GamePass) => p.isForSale && p.productId !== null,
+    ) || [];
+  const hasGamePasses = gamePassesForSale.length > 0;
 
   const voteMutation = useMutation({
     mutationFn: async ({ vote }: { vote: boolean }) => {
-      if (!game?.universeId) throw new Error('No universe ID')
-      return window.api.voteOnGame(Number(game.universeId), vote)
+      if (!game?.universeId) throw new Error("No universe ID");
+      return window.api.voteOnGame(Number(game.universeId), vote);
     },
     onSuccess: (data: VoteResponse) => {
       if (data.success) {
         showNotification(
-          `Successfully ${data.model?.userVote ? 'liked' : 'disliked'} the game!`,
-          'success'
-        )
+          `Successfully ${data.model?.userVote ? "liked" : "disliked"} the game!`,
+          "success",
+        );
 
         // Update local state
         if (data.model) {
           setDisplayedGame((prev) => {
-            if (!prev) return null
+            if (!prev) return null;
             return {
               ...prev,
               likes: data.model?.upVotes ?? prev.likes,
               dislikes: data.model?.downVotes ?? prev.dislikes,
-              userVote: data.model?.userVote
-            }
-          })
+              userVote: data.model?.userVote,
+            };
+          });
         }
 
         // Refresh game stats
-        queryClient.invalidateQueries({ queryKey: ['gameDetails', game?.universeId] })
-      } else if (data.modalType === 'PlayGame') {
-        showNotification('You must play the game before you can vote', 'error')
+        queryClient.invalidateQueries({
+          queryKey: ["gameDetails", game?.universeId],
+        });
+      } else if (data.modalType === "PlayGame") {
+        showNotification("You must play the game before you can vote", "error");
       } else {
-        showNotification(data.message || 'Failed to vote on game', 'error')
+        showNotification(data.message || "Failed to vote on game", "error");
       }
     },
     onError: (error: any) => {
-      console.error('Vote error:', error)
-      showNotification('Failed to vote on game', 'error')
-    }
-  })
+      console.error("Vote error:", error);
+      showNotification("Failed to vote on game", "error");
+    },
+  });
 
   // Auto-advance carousel
   const startCarousel = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
+    if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % Math.max(thumbnails.length, 1))
-    }, CAROUSEL_INTERVAL)
-  }, [thumbnails.length])
+      setCarouselIndex((prev) => (prev + 1) % Math.max(thumbnails.length, 1));
+    }, CAROUSEL_INTERVAL);
+  }, [thumbnails.length]);
 
-  const showCarouselControls = thumbnails.length > 1
-  const canCarouselLeft = showCarouselControls && carouselIndex > 0
-  const canCarouselRight = showCarouselControls && carouselIndex < thumbnails.length - 1
+  const showCarouselControls = thumbnails.length > 1;
+  const canCarouselLeft = showCarouselControls && carouselIndex > 0;
+  const canCarouselRight =
+    showCarouselControls && carouselIndex < thumbnails.length - 1;
 
   const handleCarouselLeft = useCallback(() => {
-    if (!showCarouselControls) return
-    setCarouselIndex((prev) => Math.max(prev - 1, 0))
-    startCarousel()
-  }, [showCarouselControls, startCarousel])
+    if (!showCarouselControls) return;
+    setCarouselIndex((prev) => Math.max(prev - 1, 0));
+    startCarousel();
+  }, [showCarouselControls, startCarousel]);
 
   const handleCarouselRight = useCallback(() => {
-    if (!showCarouselControls) return
-    setCarouselIndex((prev) => Math.min(prev + 1, thumbnails.length - 1))
-    startCarousel()
-  }, [showCarouselControls, startCarousel, thumbnails.length])
+    if (!showCarouselControls) return;
+    setCarouselIndex((prev) => Math.min(prev + 1, thumbnails.length - 1));
+    startCarousel();
+  }, [showCarouselControls, startCarousel, thumbnails.length]);
 
   useEffect(() => {
     if (isOpen && thumbnails.length > 1) {
-      startCarousel()
+      startCarousel();
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [isOpen, thumbnails.length, startCarousel])
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isOpen, thumbnails.length, startCarousel]);
 
   const finishDrag = useCallback(() => {
-    if (!isDragging) return
-    setIsDragging(false)
+    if (!isDragging) return;
+    setIsDragging(false);
 
-    const threshold = 100
-    const finalOffset = dragOffsetRef.current
-    let nextIndex = carouselIndex
+    const threshold = 100;
+    const finalOffset = dragOffsetRef.current;
+    let nextIndex = carouselIndex;
 
     if (finalOffset > threshold && carouselIndex > 0) {
-      nextIndex = carouselIndex - 1
-    } else if (finalOffset < -threshold && carouselIndex < thumbnails.length - 1) {
-      nextIndex = carouselIndex + 1
+      nextIndex = carouselIndex - 1;
+    } else if (
+      finalOffset < -threshold &&
+      carouselIndex < thumbnails.length - 1
+    ) {
+      nextIndex = carouselIndex + 1;
     }
 
-    dragOffsetRef.current = 0
+    dragOffsetRef.current = 0;
 
     if (carouselRef.current) {
-      carouselRef.current.style.transition = 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1)'
-      carouselRef.current.style.transform = `translateX(calc(-${nextIndex * 100}%))`
+      carouselRef.current.style.transition =
+        "transform 500ms cubic-bezier(0.4, 0, 0.2, 1)";
+      carouselRef.current.style.transform = `translateX(calc(-${nextIndex * 100}%))`;
     }
 
-    setCarouselIndex(nextIndex)
-    startCarousel()
-  }, [carouselIndex, isDragging, startCarousel, thumbnails.length])
+    setCarouselIndex(nextIndex);
+    startCarousel();
+  }, [carouselIndex, isDragging, startCarousel, thumbnails.length]);
 
   // Update carousel transform when index changes (when not dragging)
   useEffect(() => {
     if (!isDragging && carouselRef.current) {
-      carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}%))`
+      carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}%))`;
     }
-  }, [carouselIndex, isDragging])
+  }, [carouselIndex, isDragging]);
 
   // Refresh game stats
   useEffect(() => {
-    if (!isOpen || !game?.universeId) return
+    if (!isOpen || !game?.universeId) return;
 
     const fetchStats = async () => {
       try {
-        const games = await window.api.getGamesByUniverseIds([Number(game.universeId)])
+        const games = await window.api.getGamesByUniverseIds([
+          Number(game.universeId),
+        ]);
         if (games && games.length > 0) {
-          const details = games[0]
+          const details = games[0];
           setDisplayedGame((prev) => {
-            if (!prev) return null
+            if (!prev) return null;
             return {
               ...prev,
               playing: details.playing ?? prev.playing,
-              visits: details.visits ?? prev.visits
-            }
-          })
+              visits: details.visits ?? prev.visits,
+            };
+          });
         }
       } catch (error) {
-        console.error('Failed to refresh game stats', error)
+        console.error("Failed to refresh game stats", error);
       }
-    }
+    };
 
-    const statsInterval = setInterval(fetchStats, 10000)
-    return () => clearInterval(statsInterval)
-  }, [isOpen, game])
+    const statsInterval = setInterval(fetchStats, 10000);
+    return () => clearInterval(statsInterval);
+  }, [isOpen, game]);
 
   useEffect(() => {
     if (game) {
-      setDisplayedGame(game)
-      setCarouselIndex(0)
-      setActiveTab('info')
+      setDisplayedGame(game);
+      setCarouselIndex(0);
+      setActiveTab("info");
       // Start with the fallback thumbnail
-      setThumbnails(game.thumbnailUrl ? [game.thumbnailUrl] : [])
+      setThumbnails(game.thumbnailUrl ? [game.thumbnailUrl] : []);
 
       // Fetch high-res thumbnails
       if (game.universeId) {
@@ -414,469 +439,361 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           .getGameThumbnail16x9(Number(game.universeId))
           .then((urls) => {
             if (urls && urls.length > 0) {
-              setThumbnails(urls)
+              setThumbnails(urls);
             }
           })
           .catch((err) => {
-            console.error('Failed to fetch high-res thumbnails', err)
-          })
+            console.error("Failed to fetch high-res thumbnails", err);
+          });
       }
     }
-  }, [game])
+  }, [game]);
 
   // Calculate stats safely
-  const totalVotes = displayedGame ? displayedGame.likes + displayedGame.dislikes : 0
+  const totalVotes = displayedGame
+    ? displayedGame.likes + displayedGame.dislikes
+    : 0;
   const likePercentage =
-    displayedGame && totalVotes > 0 ? Math.round((displayedGame.likes / totalVotes) * 100) : 0
-  if (!displayedGame) return null
+    displayedGame && totalVotes > 0
+      ? Math.round((displayedGame.likes / totalVotes) * 100)
+      : 0;
+  if (!displayedGame) return null;
 
-  const ageRating = displayedGame.ageRating || 'Not rated'
+  const ageRating = displayedGame.ageRating || "Not rated";
   const deviceNames =
     displayedGame.supportedDevices && displayedGame.supportedDevices.length > 0
-      ? displayedGame.supportedDevices.map((device) => getPlatformName(device)).join(' / ')
-      : 'Unknown devices'
+      ? displayedGame.supportedDevices
+          .map((device) => getPlatformName(device))
+          .join(" / ")
+      : "Unknown devices";
 
   return (
-    <Sheet isOpen={isOpen} onClose={onClose}>
-      <SheetContent className="h-full flex flex-col">
-        <SheetHandle />
-
-        <SheetHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
-              <Gamepad2 className="text-[var(--color-text-secondary)]" size={20} />
-            </div>
-            <SheetTitle>Game Details</SheetTitle>
+    <>
+      <Dialog isOpen={isOpen} onClose={onClose}>
+      <DialogContent className="flex flex-col w-full max-w-4xl p-0 bg-[var(--color-app-bg)] overflow-hidden max-h-[90vh]">
+        {/* Full Bleed Hero Section */}
+        <div className="relative w-full h-[320px] shrink-0 bg-black overflow-hidden group">
+          {/* Carousel */}
+          <div
+            className="absolute inset-0 flex transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
+          >
+            {thumbnails.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={displayedGame.name}
+                className="w-full h-full object-cover shrink-0 opacity-80"
+                onContextMenu={(e) => handleImageContextMenu(e, url)}
+                draggable={false}
+              />
+            ))}
           </div>
-          <SheetClose />
-        </SheetHeader>
 
-        <SheetBody className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="flex flex-col h-full">
-            <div className="flex flex-col lg:flex-row flex-1 min-h-0">
-              {/* LEFT SIDE: Preview & Actions */}
-              <div className="w-full lg:w-1/2 flex flex-col bg-[var(--color-app-bg)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] relative">
-                {/* Carousel */}
-                <div
-                  className="relative w-full aspect-video bg-[var(--color-surface)] overflow-hidden cursor-grab active:cursor-grabbing group"
-                  onMouseDown={(e) => {
-                    setIsDragging(true)
-                    setDragStartX(e.clientX)
-                    dragOffsetRef.current = 0
-                    if (intervalRef.current) clearInterval(intervalRef.current)
-                    if (carouselRef.current) {
-                      carouselRef.current.style.transition = 'none'
-                    }
-                  }}
-                  onMouseMove={(e) => {
-                    if (!isDragging || !carouselRef.current) return
-                    const diff = e.clientX - dragStartX
-                    dragOffsetRef.current = diff
-                    carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}% + ${diff}px))`
-                  }}
-                  onMouseUp={finishDrag}
-                  onMouseLeave={() => {
-                    if (isDragging) {
-                      finishDrag()
-                    }
-                  }}
-                >
-                  {showCarouselControls && (
-                    <>
-                      {canCarouselLeft && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleCarouselLeft()
-                          }}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)] rounded-full shadow-lg transition-colors border border-[var(--color-border)]"
-                          aria-label="Previous screenshot"
-                        >
-                          <ChevronLeft size={22} className="text-[var(--color-text-primary)]" />
-                        </button>
-                      )}
-                      {canCarouselRight && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleCarouselRight()
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)] rounded-full shadow-lg transition-colors border border-[var(--color-border)]"
-                          aria-label="Next screenshot"
-                        >
-                          <ChevronRight size={22} className="text-[var(--color-text-primary)]" />
-                        </button>
-                      )}
-                      {canCarouselLeft && (
-                        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-neutral-950/40 to-transparent z-10" />
-                      )}
-                      {canCarouselRight && (
-                        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-neutral-950/40 to-transparent z-10" />
-                      )}
-                    </>
-                  )}
-                  <div
-                    ref={carouselRef}
-                    className="flex h-full"
-                    style={{
-                      transform: `translateX(calc(-${carouselIndex * 100}%))`,
-                      transition: 'transform 500ms cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}
-                  >
-                    {thumbnails.map((url, idx) => (
-                      <img
-                        key={`thumbnail-${idx}`}
-                        src={url}
-                        alt={displayedGame.name}
-                        className="w-full h-full object-cover shrink-0 select-none"
-                        draggable={false}
-                        onContextMenu={(e) => handleImageContextMenu(e, url)}
-                      />
-                    ))}
-                  </div>
+          {/* Top gradient for close button visibility */}
+          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/80 to-transparent z-10" />
+          
+          {/* Bottom gradient for title */}
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[var(--color-app-bg)] via-[var(--color-app-bg)]/80 to-transparent z-10" />
 
-                  {/* Carousel indicators */}
-                  {thumbnails.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                      {thumbnails.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            setCarouselIndex(idx)
-                            startCarousel()
-                          }}
-                          className={`w-1.5 h-1.5 rounded-full transition-all ${idx === carouselIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/70'}`}
-                        />
-                      ))}
-                    </div>
+          {/* Close & Drag Handle */}
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+            <button
+              onClick={handleFavorite}
+              className="w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-black/60 transition-colors group/fav"
+            >
+              <Star
+                size={16}
+                className={cn(
+                  "transition-all",
+                  isFavorite ? "fill-yellow-400 text-yellow-400" : "text-white group-hover/fav:text-yellow-400"
+                )}
+              />
+              <FavoriteParticles active={favoriteBurst} />
+            </button>
+            <DialogClose className="relative static w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors" />
+          </div>
+
+          {/* Carousel Controls */}
+          {showCarouselControls && (
+            <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={handleCarouselLeft}
+                className={cn(
+                  "w-10 h-10 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-black/80",
+                  !canCarouselLeft && "invisible"
+                )}
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                onClick={handleCarouselRight}
+                className={cn(
+                  "w-10 h-10 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-black/80",
+                  !canCarouselRight && "invisible"
+                )}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+          )}
+
+          {/* Carousel Indicators */}
+          {thumbnails.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+              {thumbnails.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setCarouselIndex(idx);
+                    startCarousel();
+                  }}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-300",
+                    idx === carouselIndex ? "w-6 bg-white" : "w-1.5 bg-white/40 hover:bg-white/60"
                   )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin z-20 -mt-16 relative">
+          <div className="px-6 sm:px-8 pb-8 max-w-4xl mx-auto space-y-6">
+            
+            {/* Header Title & Actions */}
+            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between">
+              <div className="space-y-2 flex-1">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-md leading-tight">
+                  {displayedGame.name}
+                </h1>
+                <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
+                  <span className="text-sm font-medium flex items-center gap-1">
+                    by{" "}
+                    <button
+                      onClick={handleCreatorClick}
+                      className={cn(
+                        "hover:underline focus:outline-none transition-colors",
+                        displayedGame.creatorHasVerifiedBadge
+                          ? "text-[#5b9cf6] flex items-center gap-1"
+                          : "text-white"
+                      )}
+                    >
+                      {displayedGame.creatorName}
+                      {displayedGame.creatorHasVerifiedBadge && (
+                        <VerifiedIcon width={14} height={14} />
+                      )}
+                    </button>
+                  </span>
+                  <span className="text-white/30">•</span>
+                  <span className="flex items-center gap-1 text-sm text-emerald-400 font-semibold drop-shadow-md">
+                    <ThumbsUp size={14} /> {likePercentage}%
+                  </span>
+                  <span className="text-white/30">•</span>
+                  <span className="flex items-center gap-1 text-sm text-[var(--color-text-primary)] font-medium drop-shadow-md">
+                    <Users size={14} /> {formatNumber(displayedGame.playing)} playing
+                  </span>
                 </div>
+              </div>
 
-                {/* Game Title & Creator */}
-                <div className="p-6 flex flex-col gap-4">
-                  <div>
-                    <div className="flex items-center justify-between gap-4 mb-2">
-                      <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">{displayedGame.name}</h2>
-                      {/* Favorite Button */}
-                      <button
-                        onClick={handleFavorite}
-                        className="relative w-10 h-10 shrink-0 rounded-full bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)]/50 flex items-center justify-center transition-all group"
-                        title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                      >
-                        <Star
-                          size={20}
-                          className={cn(
-                            'transition-all duration-300',
-                            isFavorite
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)]'
-                          )}
-                        />
-                        <FavoriteParticles active={favoriteBurst} />
-                      </button>
+              {/* Primary Action */}
+              <button
+                onClick={() => {
+                  const targetId = displayedGame.placeId || displayedGame.id;
+                  onLaunch({ method: JoinMethod.PlaceId, target: targetId });
+                  onClose();
+                }}
+                className="w-full sm:w-auto shrink-0 bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold text-lg py-3.5 px-8 rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] hover:-translate-y-1"
+              >
+                <Play fill="currentColor" size={20} />
+                <span>Play</span>
+              </button>
+            </div>
+
+            {/* Quick Actions Row */}
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={handleJoinFriends}
+                className={cn(
+                  "px-4 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 transition-all",
+                  hasFriendsPlaying
+                    ? "bg-[rgba(var(--accent-color-rgb),0.1)] border-[rgba(var(--accent-color-rgb),0.3)] text-[var(--accent-color)] hover:bg-[rgba(var(--accent-color-rgb),0.15)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed"
+                )}
+              >
+                <Users size={16} />
+                <span className="hidden sm:inline">{hasFriendsPlaying ? "Join friends" : "No friends playing"}</span>
+                <span className="sm:hidden">Friends</span>
+              </button>
+              <button
+                onClick={handleRejoinLastServer}
+                className={cn(
+                  "px-4 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 transition-all",
+                  lastServerJobId
+                    ? "bg-[var(--color-surface-hover)] border-[var(--color-border-strong)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-strong)]"
+                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed"
+                )}
+              >
+                <Clock size={16} />
+                <span className="hidden sm:inline">{lastServerJobId ? "Rejoin last server" : "No recent server"}</span>
+                <span className="sm:hidden">Rejoin</span>
+              </button>
+              <button
+                onClick={handleCopyLink}
+                className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <Link2 size={16} />
+                <span className="hidden sm:inline">Copy link</span>
+                <span className="sm:hidden">Share</span>
+              </button>
+            </div>
+
+            {/* Main Content Tabs */}
+            <div className="mt-8">
+              <Tabs
+                tabs={[
+                  { id: "info", label: "Overview", icon: Info },
+                  { id: "servers", label: "Servers", icon: Server },
+                  { id: "store", label: "Store", icon: ShoppingBag, hidden: !hasGamePasses },
+                ]}
+                activeTab={activeTab}
+                onTabChange={(tabId) => setActiveTab(tabId as "info" | "servers" | "store")}
+                layoutId="gameDetailsTabIndicator"
+              />
+
+              <div className="mt-6">
+                {activeTab === "info" ? (
+                  <div className="space-y-6">
+                    {/* Bento Grid Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                        <Globe size={18} className="text-[var(--color-text-secondary)] mb-2" />
+                        <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                          <SlidingNumber number={displayedGame.visits} formatter={(n) => formatNumber(n)} />
+                        </span>
+                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">Visits</span>
+                      </div>
+                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                        <Users size={18} className="text-[var(--color-text-secondary)] mb-2" />
+                        <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                          <SlidingNumber number={displayedGame.playing} formatter={(n) => formatNumber(n)} />
+                        </span>
+                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">Active</span>
+                      </div>
+                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                        <Calendar size={18} className="text-[var(--color-text-secondary)] mb-2" />
+                        <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                          {displayedGame.created ? new Date(displayedGame.created).getFullYear() : "-"}
+                        </span>
+                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">Created</span>
+                      </div>
+                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col justify-center">
+                        <div className="flex justify-between items-end mb-2">
+                          <button
+                            onClick={() => voteMutation.mutate({ vote: true })}
+                            disabled={voteMutation.isPending}
+                            className={cn(
+                              "flex items-center gap-1.5 transition-colors group",
+                              displayedGame.userVote === true ? "text-emerald-400" : "text-[var(--color-text-secondary)] hover:text-emerald-400"
+                            )}
+                          >
+                            <ThumbsUp size={16} className={displayedGame.userVote === true ? "fill-current" : "group-hover:fill-current"} />
+                            <span className="text-sm font-bold"><SlidingNumber number={displayedGame.likes} formatter={(n) => formatNumber(n)} /></span>
+                          </button>
+                          <button
+                            onClick={() => voteMutation.mutate({ vote: false })}
+                            disabled={voteMutation.isPending}
+                            className={cn(
+                              "flex items-center gap-1.5 transition-colors group",
+                              displayedGame.userVote === false ? "text-red-400" : "text-[var(--color-text-secondary)] hover:text-red-400"
+                            )}
+                          >
+                            <span className="text-sm font-bold"><SlidingNumber number={displayedGame.dislikes} formatter={(n) => formatNumber(n)} /></span>
+                            <ThumbsDown size={16} className={displayedGame.userVote === false ? "fill-current" : "group-hover:fill-current"} />
+                          </button>
+                        </div>
+                        <div className="h-1.5 w-full bg-red-500/20 rounded-full overflow-hidden flex">
+                          <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${likePercentage}%` }} />
+                          <div className="h-full bg-red-500 transition-all duration-500 flex-1" />
+                        </div>
+                        <span className="text-[10px] text-[var(--color-text-muted)] text-center mt-2 uppercase tracking-wider font-semibold">{likePercentage}% Rating</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-[var(--color-text-secondary)]">
-                      <User size={16} />
-                      <span className="text-sm font-medium flex items-center gap-1">
-                        by{' '}
-                        <button
-                          onClick={handleCreatorClick}
-                          className={cn(
-                            'hover:underline focus:outline-none',
-                            displayedGame.creatorHasVerifiedBadge
-                              ? 'text-[#3385ff] flex items-center gap-1'
-                              : 'text-[var(--color-text-primary)]'
-                          )}
-                        >
-                          {displayedGame.creatorName}
-                          {displayedGame.creatorHasVerifiedBadge && (
-                            <VerifiedIcon width={14} height={14} />
-                          )}
-                        </button>
+
+                    {/* Tags & Badges */}
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                        <Gamepad2 size={13} className="text-[var(--color-text-secondary)]" />
+                        {displayedGame.genre}
                       </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs text-[var(--color-text-primary)] border border-[var(--color-border)]">
-                        <Shield size={14} className="text-[var(--color-text-secondary)]" />
-                        Age: {ageRating}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                        <Shield size={13} className="text-[var(--color-text-secondary)]" />
+                        {ageRating}
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs text-[var(--color-text-primary)] border border-[var(--color-border)]">
-                        <MonitorSmartphone size={14} className="text-[var(--color-text-secondary)]" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                        <MonitorSmartphone size={13} className="text-[var(--color-text-secondary)]" />
                         {deviceNames}
                       </span>
                     </div>
+
+                    {/* Description */}
+                    <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-2xl p-6">
+                      <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-4">About</h3>
+                      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed whitespace-pre-wrap">
+                        {linkify(displayedGame.description)}
+                      </p>
+                    </div>
+
+                    {/* Social Links */}
+                    {socialLinks && socialLinks.length > 0 && (
+                      <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-2xl p-6">
+                        <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-4">Community</h3>
+                        <div className="flex flex-wrap gap-3">
+                          {socialLinks.map((link: SocialLink) => (
+                            <Tooltip key={link.id}>
+                              <TooltipTrigger asChild>
+                                <a
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] rounded-xl transition-all text-sm font-medium text-[var(--color-text-primary)] hover:-translate-y-0.5"
+                                >
+                                  {getSocialIcon(link.type)}
+                                  <span>{link.title}</span>
+                                </a>
+                              </TooltipTrigger>
+                              <TooltipContent>{getPlatformName(link.type)}</TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Play Button */}
-                  <button
-                    className="w-full pressable bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold text-base py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[0_0_25px_var(--accent-color-shadow)] border border-[var(--accent-color-border)]"
-                    onClick={() => {
-                      const targetId = displayedGame.placeId || displayedGame.id
-                      onLaunch({ method: JoinMethod.PlaceId, target: targetId })
-                      onClose()
-                    }}
-                  >
-                    <Play fill="currentColor" size={20} />
-                    <span>Play Now</span>
-                  </button>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button
-                      onClick={handleJoinFriends}
-                      className={cn(
-                        'w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm flex items-center justify-center gap-2 transition-colors',
-                        hasFriendsPlaying
-                          ? 'hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                          : 'text-[var(--color-text-muted)] cursor-not-allowed'
-                      )}
-                    >
-                      <Users size={16} />
-                      <span>{hasFriendsPlaying ? 'Join friends' : 'No friends playing'}</span>
-                    </button>
-                    <button
-                      onClick={handleRejoinLastServer}
-                      className={cn(
-                        'w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm flex items-center justify-center gap-2 transition-colors',
-                        lastServerJobId
-                          ? 'hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                          : 'text-[var(--color-text-muted)] cursor-not-allowed'
-                      )}
-                    >
-                      <Clock size={16} />
-                      <span>{lastServerJobId ? 'Rejoin last server' : 'No recent server'}</span>
-                    </button>
-                    <button
-                      onClick={handleCopyLink}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm flex items-center justify-center gap-2 transition-colors hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
-                    >
-                      <Link2 size={16} />
-                      <span>Copy link</span>
-                    </button>
+                ) : activeTab === "servers" ? (
+                  <div className="h-[600px] bg-[var(--color-surface)]/30 rounded-2xl border border-[var(--color-border)] overflow-hidden">
+                    <ServersList
+                      placeId={displayedGame.placeId || displayedGame.id.toString()}
+                      onJoin={(jobId) => {
+                        const targetId = displayedGame.placeId || displayedGame.id.toString();
+                        onLaunch({ method: JoinMethod.JobId, target: `${targetId}:${jobId}` });
+                        onClose();
+                      }}
+                    />
                   </div>
-                </div>
-              </div>
-
-              {/* RIGHT SIDE: Info & Tabs */}
-              <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-[var(--color-app-bg)]">
-                <Tabs
-                  tabs={[
-                    { id: 'info', label: 'Info', icon: Info },
-                    { id: 'servers', label: 'Servers', icon: Server },
-                    { id: 'store', label: 'Store', icon: ShoppingBag, hidden: !hasGamePasses }
-                  ]}
-                  activeTab={activeTab}
-                  onTabChange={(tabId) => setActiveTab(tabId as 'info' | 'servers' | 'store')}
-                  layoutId="gameDetailsTabIndicator"
-                />
-
-                <div
-                  className={cn(
-                    'flex-1 bg-[var(--color-app-bg)]',
-                    activeTab === 'info'
-                      ? 'overflow-y-auto scrollbar-thin'
-                      : 'overflow-hidden flex flex-col'
-                  )}
-                >
-                  {activeTab === 'info' ? (
-                    <div className="p-6 space-y-6">
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[var(--color-surface)]/50 p-4 rounded-lg border border-[var(--color-border)]/50">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
-                            <Users size={16} />
-                            <span>Playing</span>
-                          </div>
-                          <SlidingNumber
-                            number={displayedGame.playing}
-                            formatter={formatNumber}
-                            className="text-2xl font-bold text-[var(--color-text-primary)] leading-none"
-                          />
-                        </div>
-                        <div className="bg-[var(--color-surface)]/50 p-4 rounded-lg border border-[var(--color-border)]/50">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
-                            <Globe size={16} />
-                            <span>Visits</span>
-                          </div>
-                          <SlidingNumber
-                            number={displayedGame.visits}
-                            formatter={formatNumber}
-                            className="text-2xl font-bold text-[var(--color-text-primary)] leading-none"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Like Ratio */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <button
-                            className="flex items-center gap-2 text-emerald-400 hover:text-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
-                            onClick={() => voteMutation.mutate({ vote: true })}
-                            disabled={voteMutation.isPending}
-                            title="Like"
-                          >
-                            <ThumbsUp
-                              size={16}
-                              className={
-                                displayedGame.userVote === true
-                                  ? 'fill-current'
-                                  : 'group-hover:fill-current'
-                              }
-                            />
-                            <SlidingNumber
-                              number={displayedGame.likes}
-                              formatter={formatNumber}
-                              className="font-bold"
-                            />
-                          </button>
-                          <button
-                            className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
-                            onClick={() => voteMutation.mutate({ vote: false })}
-                            disabled={voteMutation.isPending}
-                            title="Dislike"
-                          >
-                            <SlidingNumber
-                              number={displayedGame.dislikes}
-                              formatter={formatNumber}
-                              className="font-bold"
-                            />
-                            <ThumbsDown
-                              size={16}
-                              className={
-                                displayedGame.userVote === false
-                                  ? 'fill-current'
-                                  : 'group-hover:fill-current'
-                              }
-                            />
-                          </button>
-                        </div>
-                        <div className="h-2 w-full bg-[var(--color-surface-hover)] rounded-full overflow-hidden flex">
-                          <div
-                            className="h-full bg-emerald-500"
-                            style={{ width: `${likePercentage}%` }}
-                          ></div>
-                          <div className="h-full bg-red-500 flex-1"></div>
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Description</h3>
-                        <div className="flex gap-2 mb-2">
-                          <span className="px-2 py-0.5 rounded bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] text-xs border border-[var(--color-border-strong)]">
-                            {displayedGame.genre}
-                          </span>
-                        </div>
-                        <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed whitespace-pre-wrap">
-                          {linkify(displayedGame.description)}
-                        </p>
-                      </div>
-
-                      {/* Detail Stats Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
-                            <Info size={14} />
-                            <span>Place ID</span>
-                          </div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="text-lg font-bold text-[var(--color-text-primary)] font-mono truncate">
-                                {displayedGame.placeId || displayedGame.id}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {displayedGame.placeId || displayedGame.id.toString()}
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
-                            <Users size={14} />
-                            <span>Max Players</span>
-                          </div>
-                          <div className="text-lg font-bold text-[var(--color-text-primary)]">
-                            {displayedGame.maxPlayers}
-                          </div>
-                        </div>
-                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
-                            <Calendar size={14} />
-                            <span>Created</span>
-                          </div>
-                          <div className="text-lg font-bold text-[var(--color-text-primary)]">
-                            {displayedGame.created
-                              ? new Date(displayedGame.created).toLocaleDateString()
-                              : '-'}
-                          </div>
-                        </div>
-                        <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
-                          <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
-                            <Clock size={14} />
-                            <span>Updated</span>
-                          </div>
-                          <div className="text-lg font-bold text-[var(--color-text-primary)]">
-                            {displayedGame.updated
-                              ? new Date(displayedGame.updated).toLocaleDateString()
-                              : '-'}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Social Links */}
-                      {socialLinks && socialLinks.length > 0 && (
-                        <div className="space-y-2 pt-4 border-t border-[var(--color-border)]">
-                          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">Social Links</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {socialLinks.map((link: SocialLink) => (
-                              <Tooltip key={link.id}>
-                                <TooltipTrigger asChild>
-                                  <a
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg transition-colors text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                                  >
-                                    {getSocialIcon(link.type)}
-                                    <span>{link.title}</span>
-                                  </a>
-                                </TooltipTrigger>
-                                <TooltipContent>{getPlatformName(link.type)}</TooltipContent>
-                              </Tooltip>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : activeTab === 'servers' ? (
-                    <div className="flex-1 min-h-0">
-                      <ServersList
-                        placeId={displayedGame.placeId || displayedGame.id.toString()}
-                        onJoin={(jobId) => {
-                          const targetId = displayedGame.placeId || displayedGame.id.toString()
-                          onLaunch({ method: JoinMethod.JobId, target: `${targetId}:${jobId}` })
-                          onClose()
-                        }}
-                      />
-                    </div>
-                  ) : activeTab === 'store' ? (
-                    <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
-                      <div className="grid grid-cols-1 gap-3">
-                        {gamePassesForSale.map((pass: GamePass) => (
-                          <GamePassCard
-                            key={pass.id}
-                            pass={pass}
-                            account={account}
-                            showNotification={showNotification}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+                ) : activeTab === "store" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {gamePassesForSale.map((pass: GamePass) => (
+                      <GamePassCard key={pass.id} pass={pass} account={account} showNotification={showNotification} />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
-        </SheetBody>
-      </SheetContent>
+        </div>
+      </DialogContent>
+    </Dialog>
 
       <GameImageContextMenu
         activeMenu={contextMenu}
@@ -890,105 +807,124 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         userId={selectedCreatorId}
         selectedAccount={account || null}
         onJoinGame={(placeId, jobId, userId) => {
-          if (!placeId) return
-          const placeTarget = typeof placeId === 'number' ? placeId.toString() : placeId
+          if (!placeId) return;
+          const placeTarget =
+            typeof placeId === "number" ? placeId.toString() : placeId;
 
           if (jobId) {
-            onLaunch({ method: JoinMethod.JobId, target: `${placeTarget}:${jobId}` })
-            return
+            onLaunch({
+              method: JoinMethod.JobId,
+              target: `${placeTarget}:${jobId}`,
+            });
+            return;
           }
 
           if (userId) {
-            onLaunch({ method: JoinMethod.Friend, target: `${userId}:${placeTarget}` })
-            return
+            onLaunch({
+              method: JoinMethod.Friend,
+              target: `${userId}:${placeTarget}`,
+            });
+            return;
           }
 
-          onLaunch({ method: JoinMethod.PlaceId, target: placeTarget })
+          onLaunch({ method: JoinMethod.PlaceId, target: placeTarget });
         }}
       />
 
       <GroupDetailsModal
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
-        groupId={typeof selectedCreatorId === 'number' ? selectedCreatorId : null}
+        groupId={
+          typeof selectedCreatorId === "number" ? selectedCreatorId : null
+        }
         selectedAccount={account || null}
       />
-    </Sheet>
-  )
-}
+    </>
+  );
+};
 
 // Game Pass Card Component
 const GamePassCard: React.FC<{
-  pass: GamePass
-  account?: Account | null
-  showNotification: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
+  pass: GamePass;
+  account?: Account | null;
+  showNotification: (
+    message: string,
+    type: "success" | "error" | "warning" | "info",
+  ) => void;
 }> = ({ pass, account, showNotification }) => {
-  const [imageUrl, setImageUrl] = useState<string>('')
-  const [isPurchasing, setIsPurchasing] = useState(false)
-  const [isOwned, setIsOwned] = useState(pass.isOwned)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isOwned, setIsOwned] = useState(pass.isOwned);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState<{
-    name: string
-    creator: string
-    price: number | string
-    thumbnailUrl: string
-  } | null>(null)
-  const [purchaseError, setPurchaseError] = useState<string | null>(null)
+    name: string;
+    creator: string;
+    price: number | string;
+    thumbnailUrl: string;
+  } | null>(null);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   useEffect(() => {
     if (pass.displayIconImageAssetId) {
       fetch(
-        `https://thumbnails.roblox.com/v1/assets?assetIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`
+        `https://thumbnails.roblox.com/v1/assets?assetIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`,
       )
         .then((res) => res.json())
         .then((data) => {
           if (data.data && data.data.length > 0 && data.data[0].imageUrl) {
-            setImageUrl(data.data[0].imageUrl)
+            setImageUrl(data.data[0].imageUrl);
           }
         })
         .catch(() => {
-          console.error('Failed to load game pass thumbnail')
-        })
+          console.error("Failed to load game pass thumbnail");
+        });
     }
-  }, [pass.displayIconImageAssetId])
+  }, [pass.displayIconImageAssetId]);
 
   const handleOpenConfirm = () => {
-    if (isOwned) return
+    if (isOwned) return;
     if (pass.productId === null) {
-      showNotification('This game pass is unavailable for purchase right now', 'warning')
-      return
+      showNotification(
+        "This game pass is unavailable for purchase right now",
+        "warning",
+      );
+      return;
     }
     if (pass.price === null) {
-      showNotification('This game pass is not currently for sale', 'warning')
-      return
+      showNotification("This game pass is not currently for sale", "warning");
+      return;
     }
     if (!account?.cookie) {
-      showNotification('Select an account with a valid cookie to purchase', 'error')
-      return
+      showNotification(
+        "Select an account with a valid cookie to purchase",
+        "error",
+      );
+      return;
     }
-    setPurchaseError(null)
-    setShowConfirm(true)
-  }
+    setPurchaseError(null);
+    setShowConfirm(true);
+  };
 
   const handleConfirmPurchase = async () => {
-    if (!account?.cookie || pass.price === null || pass.productId === null) return
+    if (!account?.cookie || pass.price === null || pass.productId === null)
+      return;
 
-    setIsPurchasing(true)
-    setPurchaseError(null)
+    setIsPurchasing(true);
+    setPurchaseError(null);
 
-    const sellerId = pass.creator?.creatorId
+    const sellerId = pass.creator?.creatorId;
     if (!sellerId) {
-      const message = 'Unable to determine seller for this game pass'
-      setPurchaseError(message)
-      showNotification(message, 'error')
-      setIsPurchasing(false)
-      setShowConfirm(false)
-      return
+      const message = "Unable to determine seller for this game pass";
+      setPurchaseError(message);
+      showNotification(message, "error");
+      setIsPurchasing(false);
+      setShowConfirm(false);
+      return;
     }
     const idempotencyKey =
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
-        : undefined
+        : undefined;
 
     try {
       const result = await window.api.purchaseGamePass(
@@ -997,43 +933,47 @@ const GamePassCard: React.FC<{
         pass.price,
         sellerId,
         account.userId,
-        idempotencyKey
-      )
+        idempotencyKey,
+      );
 
       if (result?.purchased) {
-        setIsOwned(true)
+        setIsOwned(true);
         setPurchaseSuccess({
           name: pass.displayName || pass.name,
-          creator: pass.creator?.name || 'Unknown Creator',
+          creator: pass.creator?.name || "Unknown Creator",
           price: pass.price,
-          thumbnailUrl: imageUrl
-        })
-        showNotification('Game pass purchased successfully', 'success')
+          thumbnailUrl: imageUrl,
+        });
+        showNotification("Game pass purchased successfully", "success");
       } else {
         const message =
           result?.reason ||
           result?.errorMessage ||
           result?.shortMessage ||
           result?.purchaseResult ||
-          'Failed to purchase game pass'
-        setPurchaseError(message)
-        showNotification(message, 'error')
+          "Failed to purchase game pass";
+        setPurchaseError(message);
+        showNotification(message, "error");
       }
     } catch (error: any) {
-      const message = error?.message || 'Failed to purchase game pass'
-      setPurchaseError(message)
-      showNotification(message, 'error')
+      const message = error?.message || "Failed to purchase game pass";
+      setPurchaseError(message);
+      showNotification(message, "error");
     } finally {
-      setIsPurchasing(false)
-      setShowConfirm(false)
+      setIsPurchasing(false);
+      setShowConfirm(false);
     }
-  }
+  };
 
   return (
     <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)]/50 rounded-lg p-3 flex gap-3 hover:bg-[var(--color-surface)] transition-colors">
       <div className="w-16 h-16 rounded-lg bg-[var(--color-surface-hover)] overflow-hidden flex-shrink-0">
         {imageUrl ? (
-          <img src={imageUrl} alt={pass.displayName} className="w-full h-full object-cover" />
+          <img
+            src={imageUrl}
+            alt={pass.displayName}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <ShoppingBag size={24} className="text-[var(--color-text-muted)]" />
@@ -1042,9 +982,13 @@ const GamePassCard: React.FC<{
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <h4 className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{pass.displayName}</h4>
+        <h4 className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+          {pass.displayName}
+        </h4>
         {pass.displayDescription && (
-          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-0.5">{pass.displayDescription}</p>
+          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-0.5">
+            {pass.displayDescription}
+          </p>
         )}
       </div>
 
@@ -1061,16 +1005,23 @@ const GamePassCard: React.FC<{
             className="flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(var(--accent-color-rgb),0.15)] hover:bg-[rgba(var(--accent-color-rgb),0.25)] border border-[var(--accent-color-border)] rounded-lg text-[var(--accent-color)] transition-colors disabled:opacity-50"
           >
             <RobuxIcon className="w-4 h-4" />
-            <span className="text-sm font-semibold">{pass.price.toLocaleString()}</span>
+            <span className="text-sm font-semibold">
+              {pass.price.toLocaleString()}
+            </span>
           </button>
         ) : (
-          <span className="text-xs text-[var(--color-text-muted)]">Not for sale</span>
+          <span className="text-xs text-[var(--color-text-muted)]">
+            Not for sale
+          </span>
         )}
       </div>
 
-      <Dialog isOpen={showConfirm} onClose={() => !isPurchasing && setShowConfirm(false)}>
+      <Dialog
+        isOpen={showConfirm}
+        onClose={() => !isPurchasing && setShowConfirm(false)}
+      >
         <DialogContent className="max-w-sm">
-          <DialogBody className="space-y-4">
+          <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-lg overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
                 {imageUrl ? (
@@ -1080,17 +1031,24 @@ const GamePassCard: React.FC<{
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <ShoppingBag size={24} className="text-[var(--color-text-muted)]" />
+                  <ShoppingBag
+                    size={24}
+                    className="text-[var(--color-text-muted)]"
+                  />
                 )}
               </div>
               <div>
-                <p className="text-sm text-[var(--color-text-secondary)]">Confirm Purchase</p>
-                <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">{pass.displayName}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Confirm Purchase
+                </p>
+                <p className="text-base font-semibold text-[var(--color-text-primary)] truncate">
+                  {pass.displayName}
+                </p>
               </div>
             </div>
 
             <div className="text-sm text-[var(--color-text-secondary)]">
-              Buy this game pass for{' '}
+              Buy this game pass for{" "}
               <span className="inline-flex items-center gap-1 font-semibold text-emerald-400">
                 {pass.price?.toLocaleString()}
                 <RobuxIcon className="w-4 h-4" />
@@ -1107,12 +1065,18 @@ const GamePassCard: React.FC<{
               >
                 Cancel
               </Button>
-              <Button className="flex-1" disabled={isPurchasing} onClick={handleConfirmPurchase}>
-                {isPurchasing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {isPurchasing ? 'Purchasing...' : 'Confirm'}
+              <Button
+                className="flex-1"
+                disabled={isPurchasing}
+                onClick={handleConfirmPurchase}
+              >
+                {isPurchasing && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                {isPurchasing ? "Purchasing..." : "Confirm"}
               </Button>
             </div>
-          </DialogBody>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1130,10 +1094,10 @@ const GamePassCard: React.FC<{
       <PurchaseErrorDialog
         isOpen={!!purchaseError}
         onClose={() => setPurchaseError(null)}
-        errorMessage={purchaseError || ''}
+        errorMessage={purchaseError || ""}
       />
     </div>
-  )
-}
+  );
+};
 
-export default GameDetailsModal
+export default GameDetailsModal;

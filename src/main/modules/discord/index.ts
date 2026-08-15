@@ -1,2 +1,2 @@
-export { discordRPCService } from './DiscordRPCService'
-export { registerDiscordRPCHandlers } from './DiscordRPCController'
+export { discordRPCService } from "./DiscordRPCService";
+export { registerDiscordRPCHandlers } from "./DiscordRPCController";

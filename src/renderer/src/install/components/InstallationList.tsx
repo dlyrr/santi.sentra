@@ -1,16 +1,16 @@
-import React from 'react'
-import { Download } from 'lucide-react'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { UnifiedInstallation } from '../types'
-import { InstallationCard } from './InstallationCard'
+import React from "react";
+import { Download } from "lucide-react";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import { UnifiedInstallation } from "../types";
+import { InstallationCard } from "./InstallationCard";
 
 interface InstallationListProps {
-  installations: UnifiedInstallation[]
-  isVerifying: string | null
-  installProgress: { status: string; percent: number; detail: string }
-  onLaunch: (install: UnifiedInstallation) => void
-  onSettings: (install: UnifiedInstallation) => void
-  onContextMenu: (e: React.MouseEvent, install: UnifiedInstallation) => void
+  installations: UnifiedInstallation[];
+  isVerifying: string | null;
+  installProgress: { status: string; percent: number; detail: string };
+  onLaunch: (install: UnifiedInstallation) => void;
+  onSettings: (install: UnifiedInstallation) => void;
+  onContextMenu: (e: React.MouseEvent, install: UnifiedInstallation) => void;
 }
 
 export const InstallationList: React.FC<InstallationListProps> = ({
@@ -19,7 +19,7 @@ export const InstallationList: React.FC<InstallationListProps> = ({
   installProgress,
   onLaunch,
   onSettings,
-  onContextMenu
+  onContextMenu,
 }) => {
   if (installations.length === 0) {
     return (
@@ -31,7 +31,7 @@ export const InstallationList: React.FC<InstallationListProps> = ({
           variant="minimal"
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -49,5 +49,5 @@ export const InstallationList: React.FC<InstallationListProps> = ({
         />
       ))}
     </div>
-  )
-}
+  );
+};

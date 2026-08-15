@@ -1,4 +1,4 @@
-import { AssetDetails } from '@shared/ipc-schemas/avatar'
+import { AssetDetails } from "@shared/ipc-schemas/avatar";
 
 /**
  * Normalizes asset details from various API responses into a consistent format
@@ -19,16 +19,19 @@ export function normalizeAssetDetails(detailsData: any): AssetDetails {
     creatorName: detailsData.creatorName || detailsData.Creator?.Name,
     creatorType: detailsData.creatorType || detailsData.Creator?.CreatorType,
     creatorHasVerifiedBadge:
-      detailsData.creatorHasVerifiedBadge || detailsData.Creator?.HasVerifiedBadge,
-    created: detailsData.itemCreatedUtc || detailsData.created || detailsData.Created,
-    updated: detailsData.itemUpdatedUtc || detailsData.updated || detailsData.Updated,
+      detailsData.creatorHasVerifiedBadge ||
+      detailsData.Creator?.HasVerifiedBadge,
+    created:
+      detailsData.itemCreatedUtc || detailsData.created || detailsData.Created,
+    updated:
+      detailsData.itemUpdatedUtc || detailsData.updated || detailsData.Updated,
     isLimited:
       detailsData.isLimited ||
       detailsData.IsLimited ||
       detailsData.CollectiblesItemDetails?.IsLimited,
     isLimitedUnique: detailsData.isLimitedUnique || detailsData.IsLimitedUnique,
     isPBR: detailsData.isPBR,
-    itemType: detailsData.itemType || detailsData.ProductType || 'Asset',
+    itemType: detailsData.itemType || detailsData.ProductType || "Asset",
     // Ensure flags are present
     isPurchasable: detailsData.isPurchasable,
     hasResellers: detailsData.hasResellers,
@@ -39,10 +42,12 @@ export function normalizeAssetDetails(detailsData: any): AssetDetails {
         ? detailsData.Remaining
         : detailsData.unitsAvailableForConsumption,
     // Total quantity for limited items
-    totalQuantity: detailsData.totalQuantity || detailsData.CollectiblesItemDetails?.TotalQuantity,
+    totalQuantity:
+      detailsData.totalQuantity ||
+      detailsData.CollectiblesItemDetails?.TotalQuantity,
     // Collectible lowest resale price for limited items
     collectibleLowestResalePrice:
       detailsData.collectibleLowestResalePrice ||
-      detailsData.CollectiblesItemDetails?.CollectibleLowestResalePrice
-  }
+      detailsData.CollectiblesItemDetails?.CollectibleLowestResalePrice,
+  };
 }

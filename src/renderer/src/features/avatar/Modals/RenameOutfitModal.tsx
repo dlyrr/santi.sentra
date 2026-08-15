@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { X, Save, Shirt } from 'lucide-react'
-import { Dialog, DialogContent } from '@renderer/components/UI/dialogs/Dialog'
+import React, { useState, useEffect } from "react";
+import { X, Save, Shirt } from "lucide-react";
+import { Dialog, DialogContent } from "@renderer/components/UI/dialogs/Dialog";
 
 interface RenameOutfitModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (outfitId: number, newName: string) => void
-  outfitId: number | null
-  currentName: string
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (outfitId: number, newName: string) => void;
+  outfitId: number | null;
+  currentName: string;
 }
 
 const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
@@ -15,23 +15,23 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
   onClose,
   onSave,
   outfitId,
-  currentName
+  currentName,
 }) => {
-  const [name, setName] = useState('')
+  const [name, setName] = useState("");
 
   useEffect(() => {
     if (isOpen && outfitId) {
-      setName(currentName)
+      setName(currentName);
     }
-  }, [isOpen, outfitId, currentName])
+  }, [isOpen, outfitId, currentName]);
 
-  if (!outfitId) return null
+  if (!outfitId) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSave(outfitId, name)
-    onClose()
-  }
+    e.preventDefault();
+    onSave(outfitId, name);
+    onClose();
+  };
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -42,7 +42,9 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
               <Shirt className="text-[var(--color-text-secondary)]" size={20} />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">Rename Outfit</h3>
+              <h3 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                Rename Outfit
+              </h3>
             </div>
           </div>
           <button
@@ -55,7 +57,10 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="nameInput" className="text-sm font-medium text-[var(--color-text-secondary)]">
+            <label
+              htmlFor="nameInput"
+              className="text-sm font-medium text-[var(--color-text-secondary)]"
+            >
               Outfit Name
             </label>
             <input
@@ -88,7 +93,7 @@ const RenameOutfitModal: React.FC<RenameOutfitModalProps> = ({
         </form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
 
-export default RenameOutfitModal
+export default RenameOutfitModal;

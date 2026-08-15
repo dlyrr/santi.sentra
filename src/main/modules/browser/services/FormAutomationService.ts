@@ -4,7 +4,11 @@
 
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
-import { AppError, ErrorCode, ErrorSeverity } from "../../shared/error/AppError";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+} from "../../shared/error/AppError";
 import { FormConfig, FormField, IBrowserInstance } from "../types/BrowserTypes";
 import { IFormAutomationService } from "../interfaces/BrowserInterfaces";
 
@@ -29,7 +33,7 @@ export class FormAutomationService
       throw new AppError(
         "Browser instance not available",
         ErrorCode.BROWSER_FORM_ERROR,
-        "FormAutomationService"
+        "FormAutomationService",
       );
     }
 
@@ -51,17 +55,15 @@ export class FormAutomationService
             });
             await customAction.action(this.browser);
           } catch (error) {
-            this.logger.error(
-              "Custom action failed",
-              error as Error,
-              { action: customAction.name }
-            );
+            this.logger.error("Custom action failed", error as Error, {
+              action: customAction.name,
+            });
             throw new AppError(
               `Custom action failed: ${customAction.name}`,
               ErrorCode.BROWSER_FORM_ERROR,
               "FormAutomationService",
               ErrorSeverity.MEDIUM,
-              { action: customAction.name }
+              { action: customAction.name },
             );
           }
         }
@@ -75,7 +77,7 @@ export class FormAutomationService
         ErrorCode.BROWSER_FORM_ERROR,
         "FormAutomationService",
         ErrorSeverity.MEDIUM,
-        { error }
+        { error },
       );
       this.logger.error("Form fill error", error as Error);
       throw appError;
@@ -90,7 +92,7 @@ export class FormAutomationService
       throw new AppError(
         "Browser instance not available",
         ErrorCode.BROWSER_FORM_ERROR,
-        "FormAutomationService"
+        "FormAutomationService",
       );
     }
 
@@ -105,7 +107,7 @@ export class FormAutomationService
         ErrorCode.BROWSER_FORM_ERROR,
         "FormAutomationService",
         ErrorSeverity.MEDIUM,
-        { selector }
+        { selector },
       );
       this.logger.error("Form submission error", error as Error);
       throw appError;
@@ -115,14 +117,12 @@ export class FormAutomationService
   /**
    * Extract form data.
    */
-  public async extractFormData(
-    selector: string
-  ): Promise<Record<string, any>> {
+  public async extractFormData(selector: string): Promise<Record<string, any>> {
     if (!this.browser) {
       throw new AppError(
         "Browser instance not available",
         ErrorCode.BROWSER_FORM_ERROR,
-        "FormAutomationService"
+        "FormAutomationService",
       );
     }
 
@@ -134,17 +134,12 @@ export class FormAutomationService
         }
 
         const result: Record<string, any> = {};
-        const inputs = form.querySelectorAll(
-          "input, textarea, select"
-        );
+        const inputs = form.querySelectorAll("input, textarea, select");
 
         inputs.forEach((input: any) => {
           const name = input.name || input.id;
           if (name) {
-            if (
-              input.type === "checkbox" ||
-              input.type === "radio"
-            ) {
+            if (input.type === "checkbox" || input.type === "radio") {
               result[name] = input.checked;
             } else {
               result[name] = input.value;
@@ -163,7 +158,7 @@ export class FormAutomationService
         ErrorCode.BROWSER_FORM_ERROR,
         "FormAutomationService",
         ErrorSeverity.MEDIUM,
-        { selector }
+        { selector },
       );
       this.logger.error("Form data extraction error", error as Error);
       throw appError;
@@ -178,7 +173,7 @@ export class FormAutomationService
       throw new AppError(
         "Browser instance not available",
         ErrorCode.BROWSER_FORM_ERROR,
-        "FormAutomationService"
+        "FormAutomationService",
       );
     }
 
@@ -187,7 +182,7 @@ export class FormAutomationService
 
       await this.withTimeout(
         this.browser.waitForSelector(".success, [data-success], .loading"),
-        timeout
+        timeout,
       );
 
       this.logger.info("Form submission detected");
@@ -196,7 +191,7 @@ export class FormAutomationService
       const appError = new AppError(
         "Timeout waiting for form submission",
         ErrorCode.BROWSER_TIMEOUT_ERROR,
-        "FormAutomationService"
+        "FormAutomationService",
       );
       this.logger.error("Form submission wait timeout");
       throw appError;
@@ -276,7 +271,7 @@ export class FormAutomationService
         ErrorCode.BROWSER_FORM_ERROR,
         "FormAutomationService",
         ErrorSeverity.MEDIUM,
-        { selector: field.selector }
+        { selector: field.selector },
       );
     }
   }
@@ -284,10 +279,7 @@ export class FormAutomationService
   /**
    * Execute with timeout.
    */
-  private withTimeout<T>(
-    promise: Promise<T>,
-    timeout: number
-  ): Promise<T> {
+  private withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
     return Promise.race<T>([
       promise,
       new Promise<T>((_, reject) =>
@@ -296,10 +288,10 @@ export class FormAutomationService
             new AppError(
               "Operation timeout",
               ErrorCode.BROWSER_TIMEOUT_ERROR,
-              "FormAutomationService"
-            )
+              "FormAutomationService",
+            ),
           );
-        }, timeout)
+        }, timeout),
       ),
     ]);
   }

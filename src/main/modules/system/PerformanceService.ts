@@ -1,154 +1,157 @@
-import { RobloxLauncherService } from '../install/LauncherService'
+import { RobloxLauncherService } from "../install/LauncherService";
 
-import { app } from 'electron'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import * as fs from 'fs'
-import * as path from 'path'
-import { ProcessMonitor } from '../watcher/ProcessMonitor'
-import { storageService } from '../system/StorageService'
+import { app } from "electron";
+import { exec } from "child_process";
+import { promisify } from "util";
+import * as fs from "fs";
+import * as path from "path";
+import { ProcessMonitor } from "../watcher/ProcessMonitor";
+import { storageService } from "../system/StorageService";
 
-const execAsync = promisify(exec)
+const execAsync = promisify(exec);
 
 export class PerformanceService {
-  private static updateInterval: NodeJS.Timeout | null = null
-  private static fastInterval: NodeJS.Timeout | null = null
-  private static frequentInterval: NodeJS.Timeout | null = null
-  private static isRunning = false
-  private static isFastRunning = false
-  private static isFrequentRunning = false
-  private static wasHeadless = false
+  private static updateInterval: NodeJS.Timeout | null = null;
+  private static fastInterval: NodeJS.Timeout | null = null;
+  private static frequentInterval: NodeJS.Timeout | null = null;
+  private static isRunning = false;
+  private static isFastRunning = false;
+  private static isFrequentRunning = false;
+  private static wasHeadless = false;
 
   static init() {
-    this.startLoop()
+    this.startLoop();
   }
 
   private static startLoop() {
     if (this.updateInterval) {
-      clearTimeout(this.updateInterval)
+      clearTimeout(this.updateInterval);
     }
     if (this.fastInterval) {
-      clearTimeout(this.fastInterval)
+      clearTimeout(this.fastInterval);
     }
 
     if (this.frequentInterval) {
-      clearTimeout(this.frequentInterval)
+      clearTimeout(this.frequentInterval);
     }
 
     // Use recursive setTimeout to prevent overlapping async calls.
     // setInterval would fire a new tick even if the previous async call is still running.
     const scheduleMaintenance = () => {
       this.updateInterval = setTimeout(async () => {
-        await this.runMaintenance()
-        scheduleMaintenance()
-      }, 120000)
-    }
+        await this.runMaintenance();
+        scheduleMaintenance();
+      }, 120000);
+    };
 
     const scheduleFastMaintenance = () => {
       this.fastInterval = setTimeout(async () => {
-        await this.runFastMaintenance()
-        scheduleFastMaintenance()
-      }, 5000)
-    }
+        await this.runFastMaintenance();
+        scheduleFastMaintenance();
+      }, 5000);
+    };
 
     const scheduleFrequentMaintenance = () => {
       this.frequentInterval = setTimeout(async () => {
-        await this.runFrequentMaintenance()
-        scheduleFrequentMaintenance()
-      }, 15000) // 15 seconds for RAM/CPU throttling
-    }
+        await this.runFrequentMaintenance();
+        scheduleFrequentMaintenance();
+      }, 15000); // 15 seconds for RAM/CPU throttling
+    };
 
     // Initial run after 10s
     setTimeout(() => {
-      this.runMaintenance().then(() => scheduleMaintenance())
-      this.runFastMaintenance().then(() => scheduleFastMaintenance())
-      this.runFrequentMaintenance().then(() => scheduleFrequentMaintenance())
-    }, 10000)
+      this.runMaintenance().then(() => scheduleMaintenance());
+      this.runFastMaintenance().then(() => scheduleFastMaintenance());
+      this.runFrequentMaintenance().then(() => scheduleFrequentMaintenance());
+    }, 10000);
   }
 
   private static async runMaintenance() {
-    if (this.isRunning) return
-    this.isRunning = true
+    if (this.isRunning) return;
+    this.isRunning = true;
 
     try {
-      const settings = storageService.getRobloxSettings()
-      
+      const settings = storageService.getRobloxSettings();
+
       // Features only apply on Windows for now
-      if (process.platform === 'win32') {
-        const pids = await ProcessMonitor.getRobloxProcessPids()
-        
+      if (process.platform === "win32") {
+        const pids = await ProcessMonitor.getRobloxProcessPids();
+
         if (pids.length > 0) {
           // Anti-AFK
           if (settings.antiAfkEnabled) {
-            await this.runAntiAfk(pids)
+            await this.runAntiAfk(pids);
           }
 
           // Rename Windows
           if (settings.renameWindowsEnabled) {
-            await this.runWindowRenamer(pids)
+            await this.runWindowRenamer(pids);
           }
         }
       }
     } catch (err) {
-      console.error('[PerformanceService] Maintenance error:', err)
+      console.error("[PerformanceService] Maintenance error:", err);
     } finally {
-      this.isRunning = false
+      this.isRunning = false;
     }
   }
 
   private static async runFrequentMaintenance() {
-    if (this.isFrequentRunning) return
-    this.isFrequentRunning = true
+    if (this.isFrequentRunning) return;
+    this.isFrequentRunning = true;
 
     try {
-      const settings = storageService.getRobloxSettings()
-      
-      if (process.platform === 'win32') {
-        const pids = await ProcessMonitor.getRobloxProcessPids()
-        
+      const settings = storageService.getRobloxSettings();
+
+      if (process.platform === "win32") {
+        const pids = await ProcessMonitor.getRobloxProcessPids();
+
         if (pids.length > 0) {
           // RAM Optimization
           if (settings.optimizeRamEnabled) {
-            await this.runRamOptimization(pids, settings.ramOptimizeLimit || 500)
+            await this.runRamOptimization(
+              pids,
+              settings.ramOptimizeLimit || 500,
+            );
           }
 
           // CPU Optimization
           if (settings.enableOptimizations) {
-            await this.runCpuOptimization(pids)
+            await this.runCpuOptimization(pids);
           }
         }
       }
     } catch (err) {
-      console.error('[PerformanceService] Frequent maintenance error:', err)
+      console.error("[PerformanceService] Frequent maintenance error:", err);
     } finally {
-      this.isFrequentRunning = false
+      this.isFrequentRunning = false;
     }
   }
 
   private static async runFastMaintenance() {
-    if (this.isFastRunning) return
-    this.isFastRunning = true
+    if (this.isFastRunning) return;
+    this.isFastRunning = true;
 
     try {
-      const settings = storageService.getRobloxSettings()
-      
-      if (process.platform === 'win32') {
-        const headlessEnabled = !!settings.headlessModeEnabled
-        
+      const settings = storageService.getRobloxSettings();
+
+      if (process.platform === "win32") {
+        const headlessEnabled = !!settings.headlessModeEnabled;
+
         // Only run if we need to hide them, OR if we just turned it off and need to restore them
         if (headlessEnabled || this.wasHeadless) {
-          const pids = await ProcessMonitor.getRobloxProcessPids()
+          const pids = await ProcessMonitor.getRobloxProcessPids();
           if (pids.length > 0) {
-            await this.runHeadlessMode(pids, headlessEnabled)
+            await this.runHeadlessMode(pids, headlessEnabled);
           }
         }
-        
-        this.wasHeadless = headlessEnabled
+
+        this.wasHeadless = headlessEnabled;
       }
     } catch (err) {
-      console.error('[PerformanceService] Fast maintenance error:', err)
+      console.error("[PerformanceService] Fast maintenance error:", err);
     } finally {
-      this.isFastRunning = false
+      this.isFastRunning = false;
     }
   }
 
@@ -174,8 +177,8 @@ Add-Type @"
   }
 "@
 }
-$pids = @(${pids.join(',')})
-$hide = ${hide ? '$true' : '$false'}
+$pids = @(${pids.join(",")})
+$hide = ${hide ? "$true" : "$false"}
 $SW_HIDE = 0
 $SW_SHOW = 5
 $SW_RESTORE = 9
@@ -196,16 +199,20 @@ $SW_RESTORE = 9
   }
   return $true
 }, [IntPtr]::Zero)
-`
-      await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`)
+`;
+      await execAsync(
+        `powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`,
+      );
     } catch (err) {
-      console.error('[PerformanceService] Headless Mode error:', err)
+      console.error("[PerformanceService] Headless Mode error:", err);
     }
   }
 
   private static async runAntiAfk(pids: number[]) {
     try {
-      console.log(`[PerformanceService] Running Anti-AFK for ${pids.length} processes...`)
+      console.log(
+        `[PerformanceService] Running Anti-AFK for ${pids.length} processes...`,
+      );
       // Use PowerShell to send a harmless key (F15) to the windows of these processes
       const psScript = `
 Add-Type @"
@@ -222,7 +229,7 @@ Add-Type @"
   }
 "@
 
-$pids = @(${pids.join(',')})
+$pids = @(${pids.join(",")})
 $WM_KEYDOWN = 0x0100
 $WM_KEYUP = 0x0101
 $VK_F15 = 0x7E
@@ -237,17 +244,21 @@ $VK_F15 = 0x7E
   }
   return $true
 }, [IntPtr]::Zero)
-`
-      await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`)
+`;
+      await execAsync(
+        `powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`,
+      );
     } catch (err) {
-      console.error('[PerformanceService] Anti-AFK error:', err)
+      console.error("[PerformanceService] Anti-AFK error:", err);
     }
   }
 
   private static async runRamOptimization(pids: number[], limitMb: number) {
     try {
-      console.log(`[PerformanceService] Optimizing RAM for ${pids.length} processes...`)
-      
+      console.log(
+        `[PerformanceService] Optimizing RAM for ${pids.length} processes...`,
+      );
+
       // other project inspired deep RAM optimization using SetProcessWorkingSetSize and EmptyWorkingSet
       const psScript = `
 Add-Type @"
@@ -260,7 +271,7 @@ Add-Type @"
     public static extern bool SetProcessWorkingSetSize(IntPtr hProcess, int dwMinimumWorkingSetSize, int dwMaximumWorkingSetSize);
   }
 "@
-$pids = @(${pids.join(',')})
+$pids = @(${pids.join(",")})
 foreach ($p in $pids) {
   try {
     $proc = Get-Process -Id $p -ErrorAction Stop
@@ -268,17 +279,21 @@ foreach ($p in $pids) {
     [Win32]::EmptyWorkingSet($proc.Handle) | Out-Null
   } catch {}
 }
-`
-      await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`)
+`;
+      await execAsync(
+        `powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`,
+      );
     } catch (err) {
-      console.error('[PerformanceService] RAM Optimization error:', err)
+      console.error("[PerformanceService] RAM Optimization error:", err);
     }
   }
 
   private static async runCpuOptimization(pids: number[]) {
     try {
-      console.log(`[PerformanceService] Optimizing CPU Affinity for ${pids.length} processes...`)
-      
+      console.log(
+        `[PerformanceService] Optimizing CPU Affinity for ${pids.length} processes...`,
+      );
+
       // other project inspired CPU Affinity & QoS adjustment.
       // - Disables CPU Boost on process by setting Power Throttling / Priority
       // - Sets Process Affinity to leave system headroom
@@ -295,7 +310,7 @@ Add-Type @"
     public static extern bool SetPriorityClass(IntPtr hProcess, uint dwPriorityClass);
   }
 "@
-$pids = @(${pids.join(',')})
+$pids = @(${pids.join(",")})
 $IDLE_PRIORITY_CLASS = 0x00000040
 
 foreach ($p in $pids) {
@@ -332,17 +347,21 @@ foreach ($p in $pids) {
     }
   } catch {}
 }
-`
-      await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`)
+`;
+      await execAsync(
+        `powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`,
+      );
     } catch (err) {
-      console.error('[PerformanceService] CPU Optimization error:', err)
+      console.error("[PerformanceService] CPU Optimization error:", err);
     }
   }
 
   private static async runWindowRenamer(pids: number[]) {
     try {
-      console.log(`[PerformanceService] Renaming windows for ${pids.length} processes...`)
-      
+      console.log(
+        `[PerformanceService] Renaming windows for ${pids.length} processes...`,
+      );
+
       const psScript = `
 Add-Type @"
   using System;
@@ -358,7 +377,7 @@ Add-Type @"
   }
 "@
 
-$pids = @(${pids.join(',')})
+$pids = @(${pids.join(",")})
 $browserTrackerMap = @{}
 
 # Try to extract browserTrackerId from command line
@@ -375,12 +394,14 @@ foreach ($p in $pids) {
 }
 
 $browserTrackerMap | ConvertTo-Json -Compress
-`
-      const { stdout } = await execAsync(`powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`)
-      
+`;
+      const { stdout } = await execAsync(
+        `powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`,
+      );
+
       try {
-        const trackerMap = JSON.parse(stdout.trim())
-        if (Object.keys(trackerMap).length === 0) return
+        const trackerMap = JSON.parse(stdout.trim());
+        if (Object.keys(trackerMap).length === 0) return;
 
         let renameScript = `
 Add-Type @"
@@ -402,16 +423,18 @@ Add-Type @"
 "@
 
 $renameMap = @{
-`
-        let hasRenames = false
+`;
+        let hasRenames = false;
         for (const [pidStr, trackerId] of Object.entries(trackerMap)) {
-          const username = RobloxLauncherService.activeLaunches.get(trackerId as string)
+          const username = RobloxLauncherService.activeLaunches.get(
+            trackerId as string,
+          );
           if (username) {
-            renameScript += `  "${pidStr}" = "${username}"\n`
-            hasRenames = true
+            renameScript += `  "${pidStr}" = "${username}"\n`;
+            hasRenames = true;
           }
         }
-        
+
         renameScript += `}
 
 [Win32]::EnumWindows({
@@ -433,14 +456,15 @@ $renameMap = @{
   }
   return $true
 }, [IntPtr]::Zero)
-`
+`;
         if (hasRenames) {
-          await execAsync(`powershell -NoProfile -NonInteractive -Command "${renameScript.replace(/"/g, '\\"')}"`)
+          await execAsync(
+            `powershell -NoProfile -NonInteractive -Command "${renameScript.replace(/"/g, '\\"')}"`,
+          );
         }
       } catch (err) {}
-      
     } catch (err) {
-      console.error('[PerformanceService] Window Renamer error:', err)
+      console.error("[PerformanceService] Window Renamer error:", err);
     }
   }
 }

@@ -1,27 +1,33 @@
-import React, { lazy, Suspense } from 'react'
-import { Image as ImageIcon, Box, Eye, Undo2, Loader2 } from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/UI/display/Tooltip'
+import React, { lazy, Suspense } from "react";
+import { Image as ImageIcon, Box, Eye, Undo2, Loader2 } from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
 
-const Avatar3DThumbnail = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail'))
+const Avatar3DThumbnail = lazy(
+  () => import("@renderer/components/Avatar/Avatar3DThumbnail"),
+);
 
 interface AssetPreviewProps {
-  viewMode: '2d' | '3d'
-  has3DView: boolean
-  currentAssetId: number | null
-  assetTypeId?: number | null
-  imageUrl: string
-  assetName: string
-  isTryingOn: boolean
-  tryOnImageUrl: string | null
-  tryOnManifestUrl?: string | null
-  tryOnLoading: boolean
-  cookie?: string
-  onViewModeChange: (mode: '2d' | '3d') => void
-  on3DError: () => void
-  onContextMenu: (e: React.MouseEvent) => void
-  onTryOn: () => void
-  onRevertTryOn: () => void
+  viewMode: "2d" | "3d";
+  has3DView: boolean;
+  currentAssetId: number | null;
+  assetTypeId?: number | null;
+  imageUrl: string;
+  assetName: string;
+  isTryingOn: boolean;
+  tryOnImageUrl: string | null;
+  tryOnManifestUrl?: string | null;
+  tryOnLoading: boolean;
+  cookie?: string;
+  onViewModeChange: (mode: "2d" | "3d") => void;
+  on3DError: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onTryOn: () => void;
+  onRevertTryOn: () => void;
 }
 
 export const AssetPreview: React.FC<AssetPreviewProps> = ({
@@ -40,19 +46,23 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
   on3DError,
   onContextMenu,
   onTryOn,
-  onRevertTryOn
+  onRevertTryOn,
 }) => {
-  const [tryOn3DFallback, setTryOn3DFallback] = React.useState<string | null>(null)
+  const [tryOn3DFallback, setTryOn3DFallback] = React.useState<string | null>(
+    null,
+  );
 
   // Clear fallback when try-on state changes
   React.useEffect(() => {
     if (!isTryingOn) {
-      setTryOn3DFallback(null)
+      setTryOn3DFallback(null);
     }
-  }, [isTryingOn])
+  }, [isTryingOn]);
 
-  const shouldShowTryOnModel = isTryingOn && (!!tryOnManifestUrl || !!tryOn3DFallback)
-  const shouldShowTryOnImage = isTryingOn && !!tryOnImageUrl && !tryOn3DFallback
+  const shouldShowTryOnModel =
+    isTryingOn && (!!tryOnManifestUrl || !!tryOn3DFallback);
+  const shouldShowTryOnImage =
+    isTryingOn && !!tryOnImageUrl && !tryOn3DFallback;
 
   if (shouldShowTryOnModel) {
     // Showing try-on 3D model
@@ -68,9 +78,10 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
           backgroundImage:
-            'linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent)',
-          backgroundSize: '50px 50px',
-          transform: 'perspective(500px) rotateX(60deg) translateY(100px) scale(2)'
+            "linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent)",
+          backgroundSize: "50px 50px",
+          transform:
+            "perspective(500px) rotateX(60deg) translateY(100px) scale(2)",
         }}
       />
 
@@ -101,13 +112,16 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
               alt="Try-on preview"
               className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-300"
               onError={(e) => {
-                console.error('[AssetPreview] Image failed to load:', tryOnImageUrl)
+                console.error(
+                  "[AssetPreview] Image failed to load:",
+                  tryOnImageUrl,
+                );
                 // Set fallback state to show placeholder instead of just hiding the image
-                setTryOn3DFallback('image_failed')
+                setTryOn3DFallback("image_failed");
               }}
             />
           </div>
-        ) : viewMode === '2d' ? (
+        ) : viewMode === "2d" ? (
           <div className="w-full h-full flex items-center justify-center p-8">
             <img
               src={imageUrl}
@@ -144,23 +158,23 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
           {!isTryingOn && has3DView && (
             <div className="flex items-center p-1 bg-[var(--color-app-bg)]/80 backdrop-blur border border-[var(--color-border)] rounded-lg shadow-xl">
               <button
-                onClick={() => onViewModeChange('2d')}
+                onClick={() => onViewModeChange("2d")}
                 className={cn(
-                  'p-2 rounded transition-colors',
-                  viewMode === '2d'
-                    ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                  "p-2 rounded transition-colors",
+                  viewMode === "2d"
+                    ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]",
                 )}
               >
                 <ImageIcon size={18} />
               </button>
               <button
-                onClick={() => onViewModeChange('3d')}
+                onClick={() => onViewModeChange("3d")}
                 className={cn(
-                  'p-2 rounded transition-colors',
-                  viewMode === '3d'
-                    ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm'
-                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                  "p-2 rounded transition-colors",
+                  viewMode === "3d"
+                    ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] shadow-sm"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]",
                 )}
               >
                 <Box size={18} />
@@ -176,11 +190,11 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
                   onClick={isTryingOn ? onRevertTryOn : onTryOn}
                   disabled={tryOnLoading}
                   className={cn(
-                    'p-2.5 rounded-lg backdrop-blur border shadow-xl transition-all flex items-center gap-2',
+                    "p-2.5 rounded-lg backdrop-blur border shadow-xl transition-all flex items-center gap-2",
                     isTryingOn
-                      ? 'bg-amber-500/90 hover:bg-amber-400/90 border-amber-400/50 text-[var(--color-text-primary)]'
-                      : 'bg-[var(--color-app-bg)]/80 hover:bg-[var(--color-surface)]/80 border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
-                    tryOnLoading && 'opacity-70 cursor-wait'
+                      ? "bg-amber-500/90 hover:bg-amber-400/90 border-amber-400/50 text-[var(--color-text-primary)]"
+                      : "bg-[var(--color-app-bg)]/80 hover:bg-[var(--color-surface)]/80 border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+                    tryOnLoading && "opacity-70 cursor-wait",
                   )}
                 >
                   {tryOnLoading ? (
@@ -193,12 +207,16 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                {tryOnLoading ? 'Loading...' : isTryingOn ? 'Revert to Original' : 'Try On Avatar'}
+                {tryOnLoading
+                  ? "Loading..."
+                  : isTryingOn
+                    ? "Revert to Original"
+                    : "Try On Avatar"}
               </TooltipContent>
             </Tooltip>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

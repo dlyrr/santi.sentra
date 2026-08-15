@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 import {
   ZoomIn,
   ZoomOut,
@@ -8,95 +8,101 @@ import {
   Download,
   BarChart3,
   ChevronDown,
-  Minus
-} from 'lucide-react'
-import { cn } from '@renderer/lib/utils'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
-import { DateRange, formatPrice, formatPercentChange } from './index'
+  Minus,
+} from "lucide-react";
+import { cn } from "@renderer/lib/utils";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
+import { DateRange, formatPrice, formatPercentChange } from "./index";
 
 // ============================================================================
 // Stat Badge Component
 // ============================================================================
 
 interface StatBadgeProps {
-  label: string
-  value: string
-  color?: string
-  icon?: React.ReactNode
+  label: string;
+  value: string;
+  color?: string;
+  icon?: React.ReactNode;
 }
 
 export const StatBadge: React.FC<StatBadgeProps> = ({
   label,
   value,
-  color = 'text-[var(--color-text-secondary)]',
-  icon
+  color = "text-[var(--color-text-secondary)]",
+  icon,
 }) => (
   <div className="flex flex-col items-center px-3 py-1.5 bg-[var(--color-surface-hover)]/30 rounded-lg">
-    <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">{label}</span>
-    <span className={cn('text-sm font-semibold flex items-center gap-1', color)}>
+    <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">
+      {label}
+    </span>
+    <span
+      className={cn("text-sm font-semibold flex items-center gap-1", color)}
+    >
       {icon}
       {value}
     </span>
   </div>
-)
+);
 
 // ============================================================================
 // Date Range Button Component
 // ============================================================================
 
 interface DateRangeButtonProps {
-  range: DateRange
-  activeRange: DateRange
-  onClick: (range: DateRange) => void
-  accentColor: string
+  range: DateRange;
+  activeRange: DateRange;
+  onClick: (range: DateRange) => void;
+  accentColor: string;
 }
 
 export const DateRangeButton: React.FC<DateRangeButtonProps> = ({
   range,
   activeRange,
   onClick,
-  accentColor
+  accentColor,
 }) => {
   const labels: Record<DateRange, string> = {
-    '7d': '7D',
-    '30d': '30D',
-    '90d': '90D',
-    '180d': '180D',
-    '1y': '1Y',
-    all: 'All',
-    custom: 'Custom'
-  }
+    "7d": "7D",
+    "30d": "30D",
+    "90d": "90D",
+    "180d": "180D",
+    "1y": "1Y",
+    all: "All",
+    custom: "Custom",
+  };
 
-  const isActive = activeRange === range
+  const isActive = activeRange === range;
 
   return (
     <button
       onClick={() => onClick(range)}
       className={cn(
-        'px-2 py-1 text-xs rounded transition-colors',
-        isActive ? 'border' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+        "px-2 py-1 text-xs rounded transition-colors",
+        isActive
+          ? "border"
+          : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]",
       )}
       style={
         isActive
           ? {
               backgroundColor: `${accentColor}20`,
               color: accentColor,
-              borderColor: `${accentColor}30`
+              borderColor: `${accentColor}30`,
             }
           : undefined
       }
     >
       {labels[range]}
     </button>
-  )
-}
+  );
+};
 
 // ============================================================================
 // Chart Skeleton Component
 // ============================================================================
 
 interface ChartSkeletonProps {
-  height: number
+  height: number;
 }
 
 export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ height }) => (
@@ -108,9 +114,12 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ height }) => (
         <div className="h-6 w-32 bg-[var(--color-surface-hover)] rounded animate-pulse" />
       </div>
     </div>
-    <div className="w-full bg-[var(--color-surface-hover)]/30 rounded animate-pulse" style={{ height }} />
+    <div
+      className="w-full bg-[var(--color-surface-hover)]/30 rounded animate-pulse"
+      style={{ height }}
+    />
   </div>
-)
+);
 
 // ============================================================================
 // Chart Controls Component
@@ -118,22 +127,22 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({ height }) => (
 
 interface ChartControlsProps {
   // Zoom controls
-  onZoomIn: () => void
-  onZoomOut: () => void
-  onResetView: () => void
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onResetView: () => void;
 
   // Moving average
-  showMovingAverage?: boolean
-  showMA: boolean
-  onToggleMA: () => void
-  movingAveragePeriod?: number
+  showMovingAverage?: boolean;
+  showMA: boolean;
+  onToggleMA: () => void;
+  movingAveragePeriod?: number;
 
   // Prediction (removed)
 
   // Export
-  allowExport?: boolean
-  onExportPNG: () => void
-  onExportCSV: () => void
+  allowExport?: boolean;
+  onExportPNG: () => void;
+  onExportCSV: () => void;
 }
 
 export const ChartControls: React.FC<ChartControlsProps> = ({
@@ -146,7 +155,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
   movingAveragePeriod = 7,
   allowExport = true,
   onExportPNG,
-  onExportCSV
+  onExportCSV,
 }) => (
   <div className="flex items-center gap-1 border-r border-[var(--color-border-strong)] pr-2">
     {/* Moving average toggle */}
@@ -154,10 +163,10 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
       <button
         onClick={onToggleMA}
         className={cn(
-          'p-1.5 rounded transition-colors text-xs font-medium',
+          "p-1.5 rounded transition-colors text-xs font-medium",
           showMA
-            ? 'bg-amber-500/20 text-amber-400'
-            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
+            ? "bg-amber-500/20 text-amber-400"
+            : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]",
         )}
         title={`${movingAveragePeriod}-day Moving Average`}
       >
@@ -213,7 +222,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
       </div>
     )}
   </div>
-)
+);
 
 // ============================================================================
 // Statistics Panel Component
@@ -221,15 +230,17 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
 
 interface StatisticsPanelProps {
   statistics: {
-    min: number
-    max: number
-    avg: number
-    change: number
-    volatility: number
-  }
+    min: number;
+    max: number;
+    avg: number;
+    change: number;
+    volatility: number;
+  };
 }
 
-export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ statistics }) => (
+export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
+  statistics,
+}) => (
   <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-[var(--color-border)]/50">
     <StatBadge label="Min" value={formatPrice(statistics.min)} />
     <StatBadge label="Max" value={formatPrice(statistics.max)} />
@@ -237,7 +248,7 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ statistics }) 
     <StatBadge
       label="Change"
       value={formatPercentChange(statistics.change)}
-      color={statistics.change >= 0 ? 'text-emerald-400' : 'text-red-400'}
+      color={statistics.change >= 0 ? "text-emerald-400" : "text-red-400"}
       icon={
         statistics.change >= 0 ? (
           <TrendingUp size={12} />
@@ -251,21 +262,25 @@ export const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ statistics }) 
     <StatBadge
       label="Volatility"
       value={`${statistics.volatility.toFixed(1)}%`}
-      color={statistics.volatility > 20 ? 'text-amber-400' : 'text-[var(--color-text-secondary)]'}
+      color={
+        statistics.volatility > 20
+          ? "text-amber-400"
+          : "text-[var(--color-text-secondary)]"
+      }
     />
   </div>
-)
+);
 
 // ============================================================================
 // Chart Legend Component
 // ============================================================================
 
 interface ChartLegendProps {
-  color: string
-  title: string
-  showMA: boolean
-  maDataLength: number
-  movingAveragePeriod: number
+  color: string;
+  title: string;
+  showMA: boolean;
+  maDataLength: number;
+  movingAveragePeriod: number;
 }
 
 export const ChartLegend: React.FC<ChartLegendProps> = ({
@@ -273,40 +288,47 @@ export const ChartLegend: React.FC<ChartLegendProps> = ({
   title,
   showMA,
   maDataLength,
-  movingAveragePeriod
+  movingAveragePeriod,
 }) => {
-  if (!showMA || maDataLength === 0) return null
+  if (!showMA || maDataLength === 0) return null;
 
   return (
     <div className="mt-2 flex items-center gap-4 text-xs">
       <div className="flex items-center gap-1.5">
         <div className="w-3 h-0.5 rounded" style={{ backgroundColor: color }} />
-        <span className="text-[var(--color-text-secondary)]">{title.replace(' History', '')}</span>
+        <span className="text-[var(--color-text-secondary)]">
+          {title.replace(" History", "")}
+        </span>
       </div>
       {showMA && maDataLength > 0 && (
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-0.5 rounded bg-amber-500" style={{ borderStyle: 'dashed' }} />
-          <span className="text-[var(--color-text-secondary)]">{movingAveragePeriod}-day MA</span>
+          <div
+            className="w-3 h-0.5 rounded bg-amber-500"
+            style={{ borderStyle: "dashed" }}
+          />
+          <span className="text-[var(--color-text-secondary)]">
+            {movingAveragePeriod}-day MA
+          </span>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
 // ============================================================================
 // Chart Tooltip Component
 // ============================================================================
 
 interface ChartTooltipProps {
-  visible: boolean
-  price: number
-  date: string
-  x: number
-  y: number
-  color: string
-  volume?: number
-  maValue?: number
-  containerWidth: number
+  visible: boolean;
+  price: number;
+  date: string;
+  x: number;
+  y: number;
+  color: string;
+  volume?: number;
+  maValue?: number;
+  containerWidth: number;
 }
 
 export const ChartTooltip: React.FC<ChartTooltipProps> = ({
@@ -318,52 +340,67 @@ export const ChartTooltip: React.FC<ChartTooltipProps> = ({
   color,
   volume,
   maValue,
-  containerWidth
+  containerWidth,
 }) => {
-  if (!visible) return null
+  if (!visible) return null;
 
   return (
     <div
       className="absolute z-50 pointer-events-none bg-[var(--color-surface)]/95 border border-[var(--color-border-strong)] rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm"
       style={{
         left: Math.min(x + 12, containerWidth - 160),
-        top: Math.max(y - 80, 60)
+        top: Math.max(y - 80, 60),
       }}
     >
-      <div className="font-semibold text-sm flex items-center gap-1.5" style={{ color }}>
+      <div
+        className="font-semibold text-sm flex items-center gap-1.5"
+        style={{ color }}
+      >
         {price.toLocaleString()}
         <RobuxIcon className="w-3.5 h-3.5" />
       </div>
       {maValue !== undefined && (
-        <div className="text-amber-400 text-xs mt-0.5">MA: {formatPrice(maValue)}</div>
+        <div className="text-amber-400 text-xs mt-0.5">
+          MA: {formatPrice(maValue)}
+        </div>
       )}
       {volume !== undefined && (
-        <div className="text-[var(--color-text-secondary)] text-xs mt-0.5">Vol: {volume.toLocaleString()}</div>
+        <div className="text-[var(--color-text-secondary)] text-xs mt-0.5">
+          Vol: {volume.toLocaleString()}
+        </div>
       )}
       <div className="text-[var(--color-text-muted)] text-xs mt-1">{date}</div>
     </div>
-  )
-}
+  );
+};
 
 // ============================================================================
 // Stats Toggle Button Component
 // ============================================================================
 
 interface StatsToggleProps {
-  showStats: boolean
-  onToggle: () => void
+  showStats: boolean;
+  onToggle: () => void;
 }
 
-export const StatsToggle: React.FC<StatsToggleProps> = ({ showStats, onToggle }) => (
+export const StatsToggle: React.FC<StatsToggleProps> = ({
+  showStats,
+  onToggle,
+}) => (
   <button
     onClick={onToggle}
     className={cn(
-      'flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors',
-      showStats ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+      "flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors",
+      showStats
+        ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]",
     )}
   >
     <BarChart3 size={12} />
     Stats
-    <ChevronDown size={10} className={cn('transition-transform', showStats && 'rotate-180')} />
+    <ChevronDown
+      size={10}
+      className={cn("transition-transform", showStats && "rotate-180")}
+    />
   </button>
-)
+);

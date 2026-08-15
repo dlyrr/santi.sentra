@@ -1,24 +1,24 @@
-import React, { useMemo } from 'react'
-import { Box, Image as ImageIcon, Copy, FileDown } from 'lucide-react'
-import { ASSET_TYPES_WITH_MODELS } from '../avatar/utils/categoryUtils'
+import React, { useMemo } from "react";
+import { Box, Image as ImageIcon, Copy, FileDown } from "lucide-react";
+import { ASSET_TYPES_WITH_MODELS } from "../avatar/utils/categoryUtils";
 import GenericContextMenu, {
   ContextMenuSection,
-  ContextMenuItem
-} from '@renderer/components/UI/menus/GenericContextMenu'
+  ContextMenuItem,
+} from "@renderer/components/UI/menus/GenericContextMenu";
 
 interface InventoryItemContextMenuProps {
   activeMenu: {
-    x: number
-    y: number
-    assetId: number
-    assetName: string
-    assetType?: number | string
-  } | null
-  onClose: () => void
-  onDownloadObj: (assetId: number, assetName: string) => void
-  onDownloadTexture: (assetId: number, assetName: string) => void
-  onDownloadTemplate: (assetId: number, assetName: string) => void
-  onCopyAssetId: (assetId: number) => void
+    x: number;
+    y: number;
+    assetId: number;
+    assetName: string;
+    assetType?: number | string;
+  } | null;
+  onClose: () => void;
+  onDownloadObj: (assetId: number, assetName: string) => void;
+  onDownloadTexture: (assetId: number, assetName: string) => void;
+  onDownloadTemplate: (assetId: number, assetName: string) => void;
+  onCopyAssetId: (assetId: number) => void;
 }
 
 const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
@@ -27,15 +27,15 @@ const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
   onDownloadObj,
   onDownloadTexture,
   onDownloadTemplate,
-  onCopyAssetId
+  onCopyAssetId,
 }) => {
   const sections: ContextMenuSection[] = useMemo(() => {
-    if (!activeMenu) return []
+    if (!activeMenu) return [];
 
     // Convert assetType to number if it's a string
     // Map string asset type names to numeric IDs
     const assetTypeNum =
-      typeof activeMenu.assetType === 'string'
+      typeof activeMenu.assetType === "string"
         ? (() => {
             // Map common string asset types to their numeric IDs
             const typeMap: Record<string, number> = {
@@ -53,36 +53,39 @@ const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
               TShirt: 2,
               Head: 17,
               Face: 18,
-              EmoteAnimation: 61
-            }
-            return typeMap[activeMenu.assetType as string]
+              EmoteAnimation: 61,
+            };
+            return typeMap[activeMenu.assetType as string];
           })()
-        : activeMenu.assetType
+        : activeMenu.assetType;
 
     // Classic Shirt (11) and Pants (12) - only these support templates
-    const isClothing = assetTypeNum === 11 || assetTypeNum === 12
+    const isClothing = assetTypeNum === 11 || assetTypeNum === 12;
     // Check if asset type has model (for OBJ download)
-    const hasModel = assetTypeNum && ASSET_TYPES_WITH_MODELS.includes(assetTypeNum)
+    const hasModel =
+      assetTypeNum && ASSET_TYPES_WITH_MODELS.includes(assetTypeNum);
 
-    const downloadItems: ContextMenuItem[] = []
+    const downloadItems: ContextMenuItem[] = [];
     if (hasModel) {
       downloadItems.push({
-        label: 'Download .obj',
+        label: "Download .obj",
         icon: <Box size={16} />,
-        onClick: () => onDownloadObj(activeMenu.assetId, activeMenu.assetName)
-      })
+        onClick: () => onDownloadObj(activeMenu.assetId, activeMenu.assetName),
+      });
     }
     downloadItems.push({
-      label: 'Download Texture',
+      label: "Download Texture",
       icon: <ImageIcon size={16} />,
-      onClick: () => onDownloadTexture(activeMenu.assetId, activeMenu.assetName)
-    })
+      onClick: () =>
+        onDownloadTexture(activeMenu.assetId, activeMenu.assetName),
+    });
     if (isClothing) {
       downloadItems.push({
-        label: 'Download Template',
+        label: "Download Template",
         icon: <FileDown size={16} />,
-        onClick: () => onDownloadTemplate(activeMenu.assetId, activeMenu.assetName)
-      })
+        onClick: () =>
+          onDownloadTemplate(activeMenu.assetId, activeMenu.assetName),
+      });
     }
 
     return [
@@ -90,14 +93,20 @@ const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
       {
         items: [
           {
-            label: 'Copy Asset ID',
+            label: "Copy Asset ID",
             icon: <Copy size={16} />,
-            onClick: () => onCopyAssetId(activeMenu.assetId)
-          }
-        ]
-      }
-    ]
-  }, [activeMenu, onDownloadObj, onDownloadTexture, onDownloadTemplate, onCopyAssetId])
+            onClick: () => onCopyAssetId(activeMenu.assetId),
+          },
+        ],
+      },
+    ];
+  }, [
+    activeMenu,
+    onDownloadObj,
+    onDownloadTexture,
+    onDownloadTemplate,
+    onCopyAssetId,
+  ]);
 
   return (
     <GenericContextMenu
@@ -105,7 +114,7 @@ const InventoryItemContextMenu: React.FC<InventoryItemContextMenuProps> = ({
       sections={sections}
       onClose={onClose}
     />
-  )
-}
+  );
+};
 
-export default InventoryItemContextMenu
+export default InventoryItemContextMenu;

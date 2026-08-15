@@ -1,29 +1,33 @@
-import React, { lazy, Suspense } from 'react'
-import { AvatarControls } from './AvatarControls'
-import { AvatarTypeSwitch } from './AvatarTypeSwitch'
-import { Account } from '@renderer/types'
+import React, { lazy, Suspense } from "react";
+import { AvatarControls } from "./AvatarControls";
+import { AvatarTypeSwitch } from "./AvatarTypeSwitch";
+import { Account } from "@renderer/types";
 
-const Model3DViewer = lazy(() => import('@renderer/components/Avatar/Avatar3DThumbnail').then((mod) => ({ default: mod.Model3DViewer })))
+const Model3DViewer = lazy(() =>
+  import("@renderer/components/Avatar/Avatar3DThumbnail").then((mod) => ({
+    default: mod.Model3DViewer,
+  })),
+);
 
 interface AvatarViewportProps {
-  userId?: string
-  cookie?: string
-  account?: Account | null
-  currentAvatarType?: 'R6' | 'R15' | null
-  isRendering: boolean
-  renderText: string
-  onRefresh: () => void
-  onReset: () => void
-  resetSignal?: number
-  onRenderStart?: () => void
-  onRenderComplete?: () => void
-  onRenderError?: (error: string) => void
-  onRenderStatusChange?: (status: string) => void
-  isLargeScreen: boolean
-  isResizing: boolean
-  onResizeStart: (e: React.MouseEvent) => void
-  avatarRenderWidth: number
-  containerRef: React.RefObject<HTMLDivElement | null>
+  userId?: string;
+  cookie?: string;
+  account?: Account | null;
+  currentAvatarType?: "R6" | "R15" | null;
+  isRendering: boolean;
+  renderText: string;
+  onRefresh: () => void;
+  onReset: () => void;
+  resetSignal?: number;
+  onRenderStart?: () => void;
+  onRenderComplete?: () => void;
+  onRenderError?: (error: string) => void;
+  onRenderStatusChange?: (status: string) => void;
+  isLargeScreen: boolean;
+  isResizing: boolean;
+  onResizeStart: (e: React.MouseEvent) => void;
+  avatarRenderWidth: number;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const AvatarViewport: React.FC<AvatarViewportProps> = ({
@@ -39,22 +43,29 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
   onRenderComplete,
   onRenderError,
   isLargeScreen,
-  containerRef
+  containerRef,
 }) => {
   return (
     <div
       ref={containerRef}
       className="w-full h-full bg-[var(--color-surface)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] relative flex flex-col shrink-0"
       style={{
-        height: isLargeScreen ? '100%' : '40vh'
+        height: isLargeScreen ? "100%" : "40vh",
       }}
     >
       {/* Viewport Controls (Overlay) */}
-      <AvatarControls onRefresh={onRefresh} onReset={onReset} isRendering={isRendering} />
+      <AvatarControls
+        onRefresh={onRefresh}
+        onReset={onReset}
+        isRendering={isRendering}
+      />
 
       {/* R15/R6 Switch - Top Left */}
       <div className="absolute top-4 left-4 z-10">
-        <AvatarTypeSwitch account={account || null} currentAvatarType={currentAvatarType || null} />
+        <AvatarTypeSwitch
+          account={account || null}
+          currentAvatarType={currentAvatarType || null}
+        />
       </div>
 
       {/* 3D Viewport with React Three Fiber */}
@@ -64,9 +75,10 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
           className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
             backgroundImage:
-              'linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent)',
-            backgroundSize: '50px 50px',
-            transform: 'perspective(500px) rotateX(60deg) translateY(100px) scale(2)'
+              "linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent)",
+            backgroundSize: "50px 50px",
+            transform:
+              "perspective(500px) rotateX(60deg) translateY(100px) scale(2)",
           }}
         />
         {/* Universal 3D Model Viewer */}
@@ -89,5 +101,5 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
 
       {/* Resize Handle - Disabled for fixed 50/50 split */}
     </div>
-  )
-}
+  );
+};

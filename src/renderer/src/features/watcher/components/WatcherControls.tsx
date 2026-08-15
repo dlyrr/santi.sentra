@@ -1,9 +1,9 @@
-import { Play, Square } from 'lucide-react'
+import { Play, Square } from "lucide-react";
 
 interface WatcherControlsProps {
-  isWatching: boolean
-  onToggle: () => void
-  sessionCount: number
+  isWatching: boolean;
+  onToggle: () => void;
+  sessionCount: number;
 }
 
 /**
@@ -12,7 +12,7 @@ interface WatcherControlsProps {
 export default function WatcherControls({
   isWatching,
   onToggle,
-  sessionCount
+  sessionCount,
 }: WatcherControlsProps) {
   return (
     <div className="flex items-center gap-3">
@@ -20,8 +20,8 @@ export default function WatcherControls({
         onClick={onToggle}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
           isWatching
-            ? 'bg-red-600 hover:bg-red-700 text-[var(--color-text-primary)]'
-            : 'bg-green-600 hover:bg-green-700 text-[var(--color-text-primary)]'
+            ? "bg-red-600 hover:bg-red-700 text-[var(--color-text-primary)]"
+            : "bg-green-600 hover:bg-green-700 text-[var(--color-text-primary)]"
         }`}
       >
         {isWatching ? (
@@ -39,15 +39,17 @@ export default function WatcherControls({
 
       <div className="text-sm text-[var(--color-text-muted)]">
         {isWatching && sessionCount > 0 && (
-          <p>Monitoring {sessionCount} session{sessionCount !== 1 ? 's' : ''}</p>
+          <p>
+            Monitoring {sessionCount} session{sessionCount !== 1 ? "s" : ""}
+          </p>
         )}
         {isWatching && sessionCount === 0 && (
-          <p className="text-yellow-500">Watching active, but no sessions yet</p>
+          <p className="text-yellow-500">
+            Watching active, but no sessions yet
+          </p>
         )}
-        {!isWatching && (
-          <p>Watcher is inactive</p>
-        )}
+        {!isWatching && <p>Watcher is inactive</p>}
       </div>
     </div>
-  )
+  );
 }
