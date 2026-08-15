@@ -46,7 +46,6 @@ import type { ChangeEvent } from "react";
 import UniversalProfileModal from "@renderer/components/Modals/UniversalProfileModal";
 import { GroupDetailsPanel } from "./components/GroupDetailsPanel";
 import AccessoryDetailsModal from "@renderer/features/avatar/Modals/AccessoryDetailsModal";
-import GroupsToolbar from "./GroupsToolbar";
 
 interface GroupsTabProps {
   selectedAccount: Account | null;
@@ -396,15 +395,32 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
     <TooltipProvider>
       <div className="flex flex-col h-full" style={{ background: "var(--color-app-bg)" }}>
 
-        {/* Compact Toolbar */}
-        <GroupsToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filteredGroupsCount={displayGroups.length}
-          onRefresh={handleRefresh}
-          isLoading={isLoading}
-          isFetching={isFetching}
-        />
+        {/* Premium Header */}
+        <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[var(--color-border)] bg-[var(--color-surface-strong)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-[var(--color-text-primary)] leading-none">Groups</h1>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                {joinedGroups.length > 0 ? `${joinedGroups.length} joined` : "Select an account to view groups"}
+                {pendingGroups.length > 0 && ` · ${pendingGroups.length} pending`}
+              </p>
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={isLoading || isFetching || !selectedAccount}
+                  className="h-10 w-10"
+                >
+                  <RefreshCw size={15} className={isLoading || isFetching ? "animate-spin" : ""} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh Groups</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
 
         {/* Main Content */}
         {targetAccounts.length === 0 ? (

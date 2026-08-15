@@ -55,7 +55,7 @@ export const CatalogActiveFilters = ({
   if (activeFilters.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-6 py-3 mb-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]/20" role="region" aria-label="Active filters">
+    <div className="flex flex-wrap items-center gap-2 px-6 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/20">
       <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider mr-2">
         Active Filters:
       </span>
@@ -66,7 +66,7 @@ export const CatalogActiveFilters = ({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] text-sm text-[var(--color-text-primary)] group shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+            className="flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)] text-xs text-[var(--color-text-primary)] group shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
           >
             <span className="font-medium text-[var(--color-text-secondary)]">
               {filter.label}:

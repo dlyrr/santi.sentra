@@ -157,7 +157,7 @@ export const CatalogFilterSidebar = ({
               className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
             />
           ) : (
-            <span className="w-3.5" />
+            <span className="w-3.5" /> // Spacer
           )}
           <span className="truncate text-left flex-1">{category.name}</span>
         </button>
@@ -172,9 +172,9 @@ export const CatalogFilterSidebar = ({
               className="overflow-hidden"
             >
               <div className="ml-5 pl-2 border-l border-[var(--color-border)] space-y-0.5 py-1">
-                {category.subcategories.map((sub, subIndex) => (
+                {category.subcategories.map((sub) => (
                   <button
-                    key={`${sub.subcategoryId ?? ('sub-' + subIndex)}`}
+                    key={sub.subcategoryId}
                     onClick={() => {
                       onCategoryChange(category);
                       onSubcategoryChange(sub);
@@ -235,8 +235,8 @@ export const CatalogFilterSidebar = ({
                 <Check size={14} className="shrink-0" />
               )}
             </button>
-            {categories.map((cat, catIndex) => (
-              <CategoryItem key={`${cat.categoryId ?? ('cat-' + catIndex)}`} category={cat} />
+            {categories.map((cat) => (
+              <CategoryItem key={cat.categoryId} category={cat} />
             ))}
           </div>
         </div>

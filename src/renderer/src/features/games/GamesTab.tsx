@@ -41,7 +41,6 @@ import {
 } from "@renderer/hooks/queries";
 import { useOpenModal } from "@renderer/stores/useUIStore";
 import { useSelectedIds } from "@renderer/stores/useSelectionStore";
-import GamesToolbar from "./GamesToolbar";
 
 interface GamesTabProps {
   onGameSelect: (game: Game) => void;
@@ -529,17 +528,141 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
     <TooltipProvider>
       <div className="flex flex-col h-full" style={{ background: "var(--color-app-bg)" }}>
 
-        {/* Compact Toolbar - with sort/categories in dropdown */}
-        <GamesToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedGameCount={selectedIds.size}
-          isSearchMode={isSearchMode}
-          onLaunch={() => openModal("join")}
-          sortOptions={sorts}
-          selectedSortId={selectedSortId}
-          onSortChange={setSelectedSortId}
-        />
+        {/* Header */}
+        <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[var(--color-border)] bg-[var(--color-surface-strong)]">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-[var(--color-text-primary)] leading-none">Games</h1>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                  {isRecommendedLoading ? "Loading..." : `${games.length.toLocaleString()} results`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
+              {selectedIds.size > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="default"
+                      onClick={() => openModal("join")}
+                      className="gap-2 shrink-0 bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] border-[var(--accent-color-border)]"
+                    >
+                      <Play size={15} fill="currentColor" />
+                      Launch {selectedIds.size}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Launch with {selectedIds.size} account{selectedIds.size !== 1 ? "s" : ""}</TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Sort filter button */}
+              {sorts.length > 0 && (
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "gap-2 border-[var(--color-border)] shadow-sm transition-all",
+                      filterOpen || selectedSortId !== (sorts[0]?.token || sortOptions[0]?.value)
+                        ? "bg-[rgba(var(--accent-color-rgb),0.1)] border-[rgba(var(--accent-color-rgb),0.3)] text-[var(--accent-color)]"
+                        : "bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)]"
+                    )}
+                    onClick={() => setFilterOpen(!filterOpen)}
+                  >
+                    <SlidersHorizontal size={14} className={selectedSortId !== (sorts[0]?.token || sortOptions[0]?.value) ? "text-[var(--accent-color)]" : "text-[var(--color-text-secondary)]"} />
+                    <span className="font-semibold text-sm">
+                      {sortOptions.find(o => o.value === selectedSortId)?.label || "Sort"}
+                    </span>
+                    <ChevronDown size={14} className={cn("text-[var(--color-text-muted)] transition-transform duration-200", filterOpen && "rotate-180")} />
+                  </Button>
+
+                  <AnimatePresence>
+                    {filterOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                        className="absolute right-0 top-full mt-3 w-[360px] bg-[var(--color-surface)]/90 backdrop-blur-xl border border-[var(--color-border)] rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] z-50 overflow-hidden ring-1 ring-white/5"
+                      >
+                        <div className="p-4 border-b border-[var(--color-border)]/50 flex items-center justify-between bg-gradient-to-br from-[var(--color-surface-hover)]/30 to-transparent">
+                          <div>
+                            <h3 className="text-sm font-bold text-[var(--color-text-primary)] leading-none mb-1">Categories</h3>
+                            <p className="text-[11px] text-[var(--color-text-muted)]">Select a category to explore games</p>
+                          </div>
+                          <button onClick={() => setFilterOpen(false)} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] p-1.5 rounded-lg hover:bg-[var(--color-surface-strong)] transition-colors border border-transparent hover:border-[var(--color-border)]">
+                            <X size={16} />
+                          </button>
+                        </div>
+                        <div className="p-3 max-h-[450px] overflow-y-auto scrollbar-thin grid grid-cols-1 gap-1.5">
+                          {sortOptions.map((opt) => {
+                            const isSelected = selectedSortId === opt.value;
+                            // Strip emojis from label
+                            const cleanLabel = opt.label.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]/gu, '').trim();
+                            
+                            return (
+                              <button
+                                key={opt.value}
+                                onClick={() => {
+                                  setSelectedSortId(opt.value);
+                                  setFilterOpen(false);
+                                }}
+                                className={cn(
+                                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group duration-300",
+                                  isSelected
+                                    ? "bg-[var(--accent-color)]/10 border border-[var(--accent-color)]/20 text-[var(--color-text-primary)]"
+                                    : "hover:bg-[var(--color-surface-hover)] border border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                )}
+                              >
+                                <div className={cn(
+                                  "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                                  isSelected ? "bg-[var(--accent-color)] shadow-[0_0_8px_var(--accent-color)]" : "bg-[var(--color-border-strong)] group-hover:bg-[var(--color-text-muted)]"
+                                )} />
+                                <span className={cn("text-sm truncate flex-1", isSelected ? "font-bold" : "font-medium")}>{cleanLabel}</span>
+                                {isSelected && <Check size={16} className="shrink-0 text-[var(--accent-color)] drop-shadow-[0_0_5px_rgba(var(--accent-color-rgb),0.5)]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              <SearchInput
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search games…"
+                containerClassName="w-56 shrink-0"
+              />
+            </div>
+          </div>
+
+          {/* Active search chip */}
+          <AnimatePresence>
+            {isSearchMode && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: "auto", marginTop: 12 }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Search:</span>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[rgba(var(--accent-color-rgb),0.1)] border border-[rgba(var(--accent-color-rgb),0.25)] text-xs text-[var(--accent-color)]">
+                    <span className="font-medium">"{debouncedSearchQuery}"</span>
+                    <button onClick={handleClearSearch} className="p-0.5 rounded-full hover:bg-[rgba(var(--accent-color-rgb),0.2)] ml-1">
+                      <X size={11} />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
@@ -558,7 +681,7 @@ const GamesTab = ({ onGameSelect }: GamesTabProps) => {
                   </div>
                   {isFavoritesLoading ? (
                     <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2">
-                      {Array.from({ length: 6 }).map((_, idx) =>                           <GameCardSkeleton key={`fav-skel-${idx}-${index}`} />)}
+                      {Array.from({ length: 6 }).map((_, idx) => <GameCardSkeleton key={`fav-skel-${idx}`} />)}
                     </div>
                   ) : (
                     <HorizontalCarousel title="" titleExtra={null}>
