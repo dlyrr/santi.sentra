@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// AUTH SCHEMAS
-// ============================================================================
-
 export const quickLoginCodeSchema = z.object({
   code: z.string(),
   privateKey: z.string(),

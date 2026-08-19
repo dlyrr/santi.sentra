@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// ACCOUNT SETTINGS JSON SCHEMA (/my/settings/json)
-// ============================================================================
-
 export const myAccountSecurityModelSchema = z.object({
   IsEmailSet: z.boolean(),
   IsEmailVerified: z.boolean(),
@@ -84,10 +80,6 @@ export const accountSettingsJsonSchema = z.object({
 
 export type AccountSettingsJson = z.infer<typeof accountSettingsJsonSchema>;
 
-// ============================================================================
-// USER SETTINGS API SCHEMA (/user-settings-api/v1/user-settings/settings-and-options)
-// ============================================================================
-
 const settingOptionSchema = z.object({
   optionValue: z.string().optional(),
   optionType: z.string().optional(),
@@ -160,7 +152,6 @@ export type UserSettingsAndOptions = z.infer<
   typeof userSettingsAndOptionsSchema
 >;
 
-// Combined settings response
 export const combinedAccountSettingsSchema = z.object({
   accountSettings: accountSettingsJsonSchema,
   userSettings: userSettingsAndOptionsSchema,
@@ -170,11 +161,6 @@ export type CombinedAccountSettings = z.infer<
   typeof combinedAccountSettingsSchema
 >;
 
-// ============================================================================
-// UPDATE SETTINGS SCHEMAS
-// ============================================================================
-
-// Privacy levels enum values
 export const privacyLevelValues = [
   "NoOne",
   "Friends",
@@ -186,7 +172,6 @@ export const privacyLevelValues = [
 
 export type PrivacyLevel = (typeof privacyLevelValues)[number];
 
-// Trade privacy values
 export const tradePrivacyValues = [
   "Undefined",
   "Disabled",
@@ -200,7 +185,6 @@ export const tradePrivacyValues = [
 
 export type TradePrivacy = (typeof tradePrivacyValues)[number];
 
-// Trade value/quality filter
 export const tradeValueValues = [
   "Undefined",
   "None",
@@ -211,12 +195,10 @@ export const tradeValueValues = [
 
 export type TradeValue = (typeof tradeValueValues)[number];
 
-// Theme types
 export const themeTypeValues = ["Dark", "Light"] as const;
 
 export type ThemeType = (typeof themeTypeValues)[number];
 
-// Content restriction levels
 export const contentRestrictionLevelValues = [
   "NoRestrictions",
   "Teen",
@@ -227,7 +209,6 @@ export const contentRestrictionLevelValues = [
 export type ContentRestrictionLevel =
   (typeof contentRestrictionLevelValues)[number];
 
-// Online status privacy levels (for whoCanSeeMyOnlineStatus / join privacy)
 export const onlineStatusPrivacyValues = [
   "NoOne",
   "Friends",
@@ -237,7 +218,6 @@ export const onlineStatusPrivacyValues = [
 
 export type OnlineStatusPrivacy = (typeof onlineStatusPrivacyValues)[number];
 
-// Update request schemas
 export const updateInventoryPrivacyRequestSchema = z.object({
   inventoryPrivacy: z.enum(privacyLevelValues),
 });
@@ -278,7 +258,6 @@ export const sendVerificationEmailRequestSchema = z.object({
   freeItem: z.boolean().optional(),
 });
 
-// Response schemas
 export const updateSettingResponseSchema = z.object({}).passthrough();
 
 export const privacyUpdateResponseSchema = z.object({
@@ -288,10 +267,6 @@ export const privacyUpdateResponseSchema = z.object({
 });
 
 export type PrivacyUpdateResponse = z.infer<typeof privacyUpdateResponseSchema>;
-
-// ============================================================================
-// REDEEM PROMO CODE SCHEMAS
-// ============================================================================
 
 export const redeemPromoCodeRequestSchema = z.object({
   code: z.string(),
@@ -307,10 +282,6 @@ export type RedeemPromoCodeResponse = z.infer<
   typeof redeemPromoCodeResponseSchema
 >;
 
-// ============================================================================
-// DESCRIPTION API SCHEMAS (/v1/description)
-// ============================================================================
-
 export const descriptionResponseSchema = z.object({
   description: z.string(),
 });
@@ -321,11 +292,7 @@ export const updateDescriptionRequestSchema = z.object({
   description: z.string(),
 });
 
-// ============================================================================
-// GENDER API SCHEMAS (/v1/gender)
-// ============================================================================
-
-export const genderValues = ["1", "2", "3"] as const; // 1=Unknown, 2=Male, 3=Female
+export const genderValues = ["1", "2", "3"] as const;
 export type GenderValue = (typeof genderValues)[number];
 
 export const genderResponseSchema = z.object({
@@ -337,10 +304,6 @@ export type GenderResponse = z.infer<typeof genderResponseSchema>;
 export const updateGenderRequestSchema = z.object({
   gender: z.string(),
 });
-
-// ============================================================================
-// BIRTHDATE API SCHEMAS (/v1/birthdate)
-// ============================================================================
 
 export const birthdateResponseSchema = z.object({
   birthMonth: z.number(),
@@ -355,10 +318,6 @@ export const updateBirthdateRequestSchema = z.object({
   birthDay: z.number(),
   birthYear: z.number(),
 });
-
-// ============================================================================
-// PROMOTION CHANNELS API SCHEMAS (/v1/promotion-channels)
-// ============================================================================
 
 export const promotionChannelsVisibilityValues = [
   "NoOne",
@@ -388,3 +347,20 @@ export const updatePromotionChannelsRequestSchema = z.object({
   twitch: z.string().optional(),
   promotionChannelsVisibilityPrivacy: z.string().optional(),
 });
+
+export const accountStandingResponseSchema = z
+  .object({
+    statusInfo: z
+      .object({
+        status: z.string(),
+        statusDescription: z.string().optional(),
+      })
+      .optional(),
+    features: z.array(z.any()).optional(),
+    worstPlatformIntervention: z.any().optional().nullable(),
+  })
+  .passthrough();
+
+export type AccountStandingResponse = z.infer<
+  typeof accountStandingResponseSchema
+>;

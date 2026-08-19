@@ -1,12 +1,6 @@
-/**
- * UserAgentService manages realistic user agents for chromium instances
- * Provides rotation, auto-swap, and persistent storage of UA preferences
- */
-
 import { storageService } from "../system/StorageService";
 
 export class UserAgentService {
-  // List of diverse user agents - Chrome, Safari, Firefox, Edge, Opera, Brave, Vivaldi
   private static readonly USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
@@ -80,9 +74,6 @@ export class UserAgentService {
 
   private static autoSwapInterval: NodeJS.Timeout | null = null;
 
-  /**
-   * Get the current user agent based on stored settings
-   */
   static getCurrentUserAgent(): string {
     const settings = storageService.getSettings();
     const uaSettings = settings?.userAgentSettings;
@@ -90,22 +81,17 @@ export class UserAgentService {
     return this.USER_AGENTS[Math.min(index, this.USER_AGENTS.length - 1)];
   }
 
-  /**
-   * Get the next user agent and rotate the index
-   */
   static getNextUserAgent(): string {
     const settings = storageService.getSettings();
-    let uaSettings = settings?.userAgentSettings || {
+    const uaSettings = settings?.userAgentSettings || {
       currentUserAgentIndex: 0,
       autoSwapUserAgent: false,
       autoSwapIntervalMinutes: 30,
     };
 
-    // Rotate to next index
     const nextIndex =
       (uaSettings.currentUserAgentIndex + 1) % this.USER_AGENTS.length;
 
-    // Update settings
     const updatedSettings = {
       ...settings,
       userAgentSettings: {
@@ -119,9 +105,6 @@ export class UserAgentService {
     return this.USER_AGENTS[nextIndex];
   }
 
-  /**
-   * Set user agent by index
-   */
   static setUserAgentIndex(index: number): string {
     const validIndex = Math.max(
       0,
@@ -145,34 +128,23 @@ export class UserAgentService {
     return this.USER_AGENTS[validIndex];
   }
 
-  /**
-   * Get all available user agents
-   */
   static getAllUserAgents(): string[] {
     return [...this.USER_AGENTS];
   }
 
-  /**
-   * Get current user agent index
-   */
   static getCurrentUserAgentIndex(): number {
     const settings = storageService.getSettings();
     return settings?.userAgentSettings?.currentUserAgentIndex ?? 0;
   }
 
-  /**
-   * Start auto-swapping user agents at specified interval
-   */
   static startAutoSwap(
     intervalMinutes: number = 30,
     onSwap?: (ua: string) => void,
   ): void {
-    // Clear any existing interval
     if (this.autoSwapInterval) {
       clearInterval(this.autoSwapInterval);
     }
 
-    // Update settings to enable auto-swap
     const settings = storageService.getSettings();
     const updatedSettings = {
       ...settings,
@@ -185,7 +157,6 @@ export class UserAgentService {
     };
     storageService.setSettings(updatedSettings);
 
-    // Set up interval
     const intervalMs = intervalMinutes * 60 * 1000;
     this.autoSwapInterval = setInterval(() => {
       const newUA = this.getNextUserAgent();
@@ -200,9 +171,6 @@ export class UserAgentService {
     );
   }
 
-  /**
-   * Stop auto-swapping user agents
-   */
   static stopAutoSwap(): void {
     if (this.autoSwapInterval) {
       clearInterval(this.autoSwapInterval);
@@ -224,9 +192,6 @@ export class UserAgentService {
     }
   }
 
-  /**
-   * Check if auto-swap is enabled and resume if needed
-   */
   static resumeAutoSwapIfEnabled(): void {
     const settings = storageService.getSettings();
     const uaSettings = settings?.userAgentSettings;
@@ -236,17 +201,11 @@ export class UserAgentService {
     }
   }
 
-  /**
-   * Get auto-swap status
-   */
   static isAutoSwapEnabled(): boolean {
     const settings = storageService.getSettings();
     return settings?.userAgentSettings?.autoSwapUserAgent ?? false;
   }
 
-  /**
-   * Get auto-swap interval
-   */
   static getAutoSwapInterval(): number {
     const settings = storageService.getSettings();
     return settings?.userAgentSettings?.autoSwapIntervalMinutes ?? 30;

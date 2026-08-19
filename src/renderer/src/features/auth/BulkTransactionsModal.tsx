@@ -59,7 +59,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
       return;
     }
 
-    setResults([]); // Clear previous results when fetching new timeframe
+    setResults([]);
     setProgress(0);
     let isActive = true;
 
@@ -89,7 +89,6 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
 
       const totals: AccountTotals[] = [];
 
-      // Process in small batches of 3 to avoid hammering the Roblox API (Rate Limits)
       const batchSize = 3;
       for (let i = 0; i < selectedAccounts.length; i += batchSize) {
         if (!isActive) return;
@@ -131,7 +130,6 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
         );
         totals.push(...batchResults);
 
-        // Add a small delay between batches to respect rate limits
         if (i + batchSize < selectedAccounts.length) {
           await new Promise((resolve) => setTimeout(resolve, 800));
         }
@@ -159,9 +157,9 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
 
   return (
     <Dialog isOpen={isOpen} onClose={isLoading ? () => {} : onClose}>
-      <DialogContent className="max-w-2xl bg-[#0e0e10] border border-white/10 shadow-2xl p-0 overflow-hidden">
-        {/* Header */}
-        <div className="relative p-6 pb-4 border-b border-white/10">
+      <DialogContent className="max-w-2xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl p-0 overflow-hidden">
+        {}
+        <div className="relative p-6 pb-4 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
               <DollarSign size={22} />
@@ -183,7 +181,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               disabled={isLoading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs font-medium text-[var(--color-text-secondary)] hover:bg-white/10 hover:text-[var(--color-text-primary)] transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-lg text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-colors disabled:opacity-50"
             >
               <Calendar size={14} className="text-[var(--color-text-muted)]" />
               <span>
@@ -196,7 +194,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
               />
             </button>
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-36 bg-[#1a1a1c] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+              <div className="absolute right-0 mt-1.5 w-36 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl overflow-hidden">
                 <div className="p-1">
                   {TIME_FRAME_OPTIONS.map((option) => (
                     <button
@@ -208,7 +206,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
                       className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors ${
                         timeFrame === option.value
                           ? "bg-[var(--accent-color)] text-[var(--accent-color-foreground)] font-bold"
-                          : "text-[var(--color-text-secondary)] hover:bg-white/5 hover:text-[var(--color-text-primary)]"
+                          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
                       }`}
                     >
                       {option.label}
@@ -222,13 +220,13 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="absolute top-5 right-5 rounded-lg p-1.5 text-[var(--color-text-muted)] transition hover:bg-white/10 hover:text-[var(--color-text-primary)] disabled:opacity-40"
+            className="absolute top-5 right-5 rounded-lg p-1.5 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Loading state */}
+        {}
         {isLoading && (
           <div className="p-8 flex flex-col items-center gap-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
@@ -241,7 +239,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
                 accounts)
               </p>
             </div>
-            <div className="w-full max-w-xs bg-white/5 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full max-w-xs bg-[var(--color-surface-muted)] rounded-full h-1.5 overflow-hidden">
               <div
                 className="bg-emerald-500 h-full rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
@@ -250,12 +248,12 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
           </div>
         )}
 
-        {/* Results */}
+        {}
         {!isLoading && results.length > 0 && (
           <div className="flex flex-col">
-            {/* Summary cards */}
+            {}
             <div className="grid grid-cols-2 gap-3 p-6 pb-4 md:grid-cols-4">
-              <div className="rounded-xl bg-white/5 border border-white/5 p-4">
+              <div className="rounded-xl bg-[var(--color-surface-muted)] border border-[var(--color-border)] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
                   Incoming
                 </p>
@@ -263,7 +261,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
                   {fmt(totalIncoming)}
                 </p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/5 p-4">
+              <div className="rounded-xl bg-[var(--color-surface-muted)] border border-[var(--color-border)] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
                   Outgoing
                 </p>
@@ -271,7 +269,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
                   {fmt(totalOutgoing)}
                 </p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/5 p-4">
+              <div className="rounded-xl bg-[var(--color-surface-muted)] border border-[var(--color-border)] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
                   Net
                 </p>
@@ -282,7 +280,7 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
                   {fmt(net)}
                 </p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/5 p-4">
+              <div className="rounded-xl bg-[var(--color-surface-muted)] border border-[var(--color-border)] p-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1">
                   Sales
                 </p>
@@ -292,11 +290,11 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
               </div>
             </div>
 
-            {/* Per-account table */}
-            <div className="mx-6 mb-6 rounded-xl border border-white/5 overflow-hidden">
+            {}
+            <div className="mx-6 mb-6 rounded-xl border border-[var(--color-border)] overflow-hidden">
               <div className="max-h-[280px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-sm">
-                  <thead className="bg-white/5 sticky top-0">
+                  <thead className="bg-[var(--color-surface-muted)] sticky top-0">
                     <tr>
                       <th className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
                         Account
@@ -312,13 +310,13 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-[var(--color-border)]">
                     {results.map((r) => {
                       const rowNet = r.incomingRobux - r.outgoingRobux;
                       return (
                         <tr
                           key={r.accountId}
-                          className="hover:bg-white/5 transition-colors"
+                          className="hover:bg-[var(--color-surface-hover)] transition-colors"
                         >
                           <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
                             {r.error ? (
@@ -361,12 +359,12 @@ const BulkTransactionsModal: React.FC<BulkTransactionsModalProps> = ({
           </div>
         )}
 
-        {/* Footer */}
+        {}
         {!isLoading && (
-          <div className="border-t border-white/10 px-6 py-4 flex justify-end">
+          <div className="border-t border-[var(--color-border)] px-6 py-4 flex justify-end">
             <button
               onClick={onClose}
-              className="px-5 h-10 rounded-xl bg-white/5 border border-white/10 font-semibold text-[var(--color-text-primary)] text-sm transition hover:bg-white/10"
+              className="px-5 h-10 rounded-xl bg-[var(--color-surface-muted)] border border-[var(--color-border)] font-semibold text-[var(--color-text-primary)] text-sm transition hover:bg-[var(--color-surface-hover)]"
             >
               Close
             </button>

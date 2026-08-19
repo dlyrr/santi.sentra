@@ -16,6 +16,7 @@ import {
   DialogClose,
 } from "@renderer/components/UI/dialogs/Dialog";
 import { Tabs } from "@renderer/components/UI/navigation/Tabs";
+import { Button } from "@renderer/components/UI/buttons/Button";
 
 interface AddAccountModalProps {
   isOpen: boolean;
@@ -164,10 +165,8 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
     setIsLoading(false);
     setBulkCookies("");
     onClose();
-    // Parent will show individual success/failure notifications per account
-    // Additional summary is shown here only if there were failures
+
     if (failedCookies.length > 0 && successCount === 0) {
-      // If everything failed, the modal has already closed — parent handles error notifications
       console.warn(`[BulkImport] All ${failedCookies.length} imports failed`);
     }
   };
@@ -180,7 +179,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
     try {
       await onAdd(cookie, "cookie");
       setCookie("");
-      onClose(); // Close on success
+      onClose();
     } finally {
       setIsLoading(false);
     }
@@ -244,20 +243,22 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
           <DialogClose disabled={isLoading} />
         </div>
 
-        {/* Tabs */}
-        <Tabs
-          tabs={[
-            { id: "cookie", label: "Single Cookie", icon: Cookie },
-            { id: "bulk", label: "Bulk Import", icon: Upload },
-            { id: "browser", label: "Login / Code", icon: LogIn },
-          ]}
-          activeTab={method}
-          onTabChange={(tabId) =>
-            setMethod(tabId as "cookie" | "bulk" | "browser")
-          }
-          layoutId="addAccountTabIndicator"
-          tabClassName="pressable"
-        />
+        {}
+        <div className="flex justify-center px-6">
+          <Tabs
+            tabs={[
+              { id: "cookie", label: "Single Cookie", icon: Cookie },
+              { id: "bulk", label: "Bulk Import", icon: Upload },
+              { id: "browser", label: "Login / Code", icon: LogIn },
+            ]}
+            activeTab={method}
+            onTabChange={(tabId) =>
+              setMethod(tabId as "cookie" | "bulk" | "browser")
+            }
+            layoutId="addAccountTabIndicator"
+            tabClassName="pressable"
+          />
+        </div>
 
         <div className="p-6 max-h-[60vh] overflow-y-auto">
           {method === "cookie" ? (
@@ -267,7 +268,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
                   className="text-yellow-500 shrink-0 mt-0.5"
                   size={18}
                 />
-                <p className="text-s text-yellow-200/80 leading-relaxed">
+                <p className="text-sm text-yellow-200/80 leading-relaxed">
                   Your security is important. Cookies are processed locally and
                   encrypted.
                 </p>
@@ -323,34 +324,34 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
                 />
               </div>
 
-              <div className="pt-2 flex gap-3">
-                <button
+              <div className="pt-2 flex gap-3 justify-center">
+                <Button
                   type="button"
                   onClick={handleGetCookie}
                   disabled={isLoading}
-                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
                 >
                   Get Cookie
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={!cookie.trim() || isLoading}
-                  className="pressable flex-[2] flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="default"
+                  size="sm"
+                  className="flex-[2] flex items-center justify-center gap-2"
                 >
-                  {isLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Plus size={18} />
-                  )}
+                  <Plus size={18} />
                   <span>{isLoading ? "Importing..." : "Import Account"}</span>
-                </button>
+                </Button>
               </div>
             </form>
           ) : method === "bulk" ? (
             <form onSubmit={handleBulkImport} className="space-y-4">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex gap-3 items-start">
                 <Info className="text-blue-400 shrink-0 mt-0.5" size={18} />
-                <p className="text-s text-blue-100/80 leading-relaxed">
+                <p className="text-sm text-blue-100/80 leading-relaxed">
                   Paste multiple cookies separated by new lines (one cookie per
                   line).
                 </p>
@@ -405,31 +406,31 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
                 </div>
               )}
 
-              <div className="pt-2 flex gap-3">
-                <button
+              <div className="pt-2 flex gap-3 justify-center">
+                <Button
                   type="button"
                   onClick={onClose}
                   disabled={isLoading}
-                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={!bulkCookies.trim() || isLoading}
-                  className="pressable flex-[2] flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="default"
+                  size="sm"
+                  className="flex-[2] flex items-center justify-center gap-2"
                 >
-                  {isLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Upload size={18} />
-                  )}
+                  <Upload size={18} />
                   <span>
                     {isLoading
                       ? `Importing... (${bulkImportProgress?.current || 0}/${bulkImportProgress?.total || 0})`
                       : "Import All"}
                   </span>
-                </button>
+                </Button>
               </div>
             </form>
           ) : (
@@ -465,30 +466,30 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
                   {browserLoginError}
                 </div>
               )}
-              <div className="pt-2 flex gap-3">
-                <button
+              <div className="pt-2 flex gap-3 justify-center">
+                <Button
                   type="button"
                   onClick={onClose}
                   disabled={isLoading}
-                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleBrowserLogin}
                   disabled={isLoading}
-                  className="pressable flex-[2] flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="default"
+                  size="sm"
+                  className="flex-[2] flex items-center justify-center gap-2"
                 >
-                  {isLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <LogIn size={18} />
-                  )}
+                  <LogIn size={18} />
                   <span>
                     {isLoading ? "Waiting on Roblox..." : "Open Roblox Login"}
                   </span>
-                </button>
+                </Button>
               </div>
               {browserLoginStatus === "waiting" && (
                 <p className="text-sm text-[var(--color-text-secondary)] text-center">

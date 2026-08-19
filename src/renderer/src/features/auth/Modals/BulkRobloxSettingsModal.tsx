@@ -130,9 +130,9 @@ export const BulkRobloxSettingsModal = ({
                 {!isProcessing && (
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-white/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                    className="pressable p-1.5 rounded-lg hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                   >
-                    <X size={20} />
+                    <X size={18} />
                   </button>
                 )}
               </div>
@@ -166,7 +166,7 @@ export const BulkRobloxSettingsModal = ({
                           return (
                             <div
                               key={idx}
-                              className="flex items-center justify-between p-2 rounded bg-[var(--color-surface)]/50 border border-white/5 text-sm"
+                              className="flex items-center justify-between p-2 rounded bg-[var(--color-surface)]/50 border border-[var(--color-border-subtle)] text-sm"
                             >
                               <span className="text-[var(--color-text-secondary)] truncate pr-4">
                                 {acc?.username || acc?.id}

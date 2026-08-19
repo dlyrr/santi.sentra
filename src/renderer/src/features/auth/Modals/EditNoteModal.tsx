@@ -31,7 +31,6 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({
       if (account) {
         setNote(account.notes || "");
       } else if (accounts && accounts.length > 0) {
-        // If bulk, only set if all have same note, else empty
         const firstNote = accounts[0].notes || "";
         const allSame = accounts.every((a) => (a.notes || "") === firstNote);
         setNote(allSame ? firstNote : "");

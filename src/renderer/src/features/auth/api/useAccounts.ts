@@ -8,66 +8,50 @@ import {
 } from "@renderer/utils/statusUtils";
 import { useActiveTab } from "@renderer/stores/useUIStore";
 
-// ============================================================================
-// Basic Queries
-// ============================================================================
-
-// Fetch accounts list
 export function useAccounts() {
   return useQuery({
     queryKey: queryKeys.accounts.list(),
     queryFn: async () => {
       const result = await window.api.getAccounts();
-      // Ensure result is always an array
+
       return Array.isArray(result) ? result : [];
     },
-    staleTime: Infinity, // Accounts are managed locally, don't auto-refetch
-    refetchOnMount: false, // Don't re-fetch on component remount (we use setQueryData)
-    refetchOnWindowFocus: false, // Accounts don't change externally
+    staleTime: Infinity,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 
-// Fetch account stats
 export function useAccountStats(cookie: string | undefined) {
   return useQuery({
     queryKey: queryKeys.accounts.stats(cookie || ""),
     queryFn: () => window.api.fetchAccountStats(cookie!),
     enabled: !!cookie,
-    staleTime: 60 * 1000, // 1 minute
-    refetchInterval: 60 * 1000, // keep robux balance fresh for selected profile
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
 
-// ============================================================================
-// Mutations with Optimistic Updates
-// ============================================================================
-
-// Save accounts mutation (optimistic)
 export function useSaveAccounts() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (accounts: Account[]) =>
-      window.api
-        .saveAccounts(accounts)
-        .catch((err) => {
-          console.error(
-            "[useSaveAccounts] saveAccounts failed:",
-            err instanceof Error ? err.message : String(err),
-          );
-          throw err;
-        }),
+      window.api.saveAccounts(accounts).catch((err) => {
+        console.error(
+          "[useSaveAccounts] saveAccounts failed:",
+          err instanceof Error ? err.message : String(err),
+        );
+        throw err;
+      }),
     onMutate: async (newAccounts) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.list() });
 
-      // Snapshot previous value
       const previousAccounts = queryClient.getQueryData<Account[]>(
         queryKeys.accounts.list(),
       );
 
-      // Optimistically update
       queryClient.setQueryData(queryKeys.accounts.list(), newAccounts);
 
       return { previousAccounts };
@@ -78,7 +62,7 @@ export function useSaveAccounts() {
         "[useSaveAccounts] mutation failed, rolling back. Error:",
         err instanceof Error ? err.message : String(err),
       );
-      // Rollback on error
+
       if (context?.previousAccounts) {
         queryClient.setQueryData(
           queryKeys.accounts.list(),
@@ -86,29 +70,19 @@ export function useSaveAccounts() {
         );
       }
     },
-    // Don't invalidate - we manage the cache ourselves
   });
 }
 
-// ============================================================================
-// Account Management Hook (Single Source of Truth)
-// ============================================================================
-
-/**
- * Hook that provides accounts data and management functions.
- * Uses React Query as the single source of truth with optimistic updates.
- */
 export function useAccountsManager() {
   const queryClient = useQueryClient();
   const { data: accounts = [], isLoading } = useAccounts();
   const { mutate: saveAccounts } = useSaveAccounts();
 
-  // Update accounts (optimistic)
   const setAccounts = useCallback(
     (newAccountsOrUpdater: Account[] | ((prev: Account[]) => Account[])) => {
       const currentAccounts =
         queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
-      // Ensure currentAccounts is always an array
+
       const safeCurrentAccounts = Array.isArray(currentAccounts)
         ? currentAccounts
         : [];
@@ -118,27 +92,24 @@ export function useAccountsManager() {
           ? newAccountsOrUpdater(safeCurrentAccounts)
           : newAccountsOrUpdater;
 
-      // Ensure newAccounts is always an array
       const safeNewAccounts = Array.isArray(newAccounts) ? newAccounts : [];
 
-      // Optimistically update cache immediately
       queryClient.setQueryData(queryKeys.accounts.list(), safeNewAccounts);
 
-      // Persist to storage
       saveAccounts(safeNewAccounts);
     },
     [queryClient, saveAccounts],
   );
 
-  // Add account
   const addAccount = useCallback(
     (account: Account) => {
-      setAccounts((prev) => [...prev, account]);
+      setAccounts((prev) =>
+        prev.some((a) => a.id === account.id) ? prev : [...prev, account],
+      );
     },
     [setAccounts],
   );
 
-  // Remove account
   const removeAccount = useCallback(
     (id: string) => {
       setAccounts((prev) => prev.filter((acc) => acc.id !== id));
@@ -146,7 +117,6 @@ export function useAccountsManager() {
     [setAccounts],
   );
 
-  // Update account
   const updateAccount = useCallback(
     (id: string, updates: Partial<Account>) => {
       setAccounts((prev) =>
@@ -156,7 +126,6 @@ export function useAccountsManager() {
     [setAccounts],
   );
 
-  // Reorder accounts
   const moveAccount = useCallback(
     (fromId: string, toId: string) => {
       setAccounts((prev) => {
@@ -187,11 +156,6 @@ export function useAccountsManager() {
   };
 }
 
-// ============================================================================
-// Status Polling
-// ============================================================================
-
-// Batch fetch account statuses (for polling)
 export function useAccountStatuses(
   accounts: Account[],
   options?: {
@@ -203,7 +167,6 @@ export function useAccountStatuses(
     .filter((acc) => acc.cookie)
     .map((acc) => acc.cookie!);
 
-  // Sort cookies to ensure stable query key regardless of account order
   const sortedCookies = [...cookies].sort();
 
   return useQuery({
@@ -212,12 +175,11 @@ export function useAccountStatuses(
     enabled: cookies.length > 0 && (options?.enabled ?? true),
     refetchInterval: options?.refetchInterval ?? 5000,
     staleTime: 8000,
-    // Prevent refetching when window regains focus (we have our own polling)
+
     refetchOnWindowFocus: false,
   });
 }
 
-// Helper to update accounts with new statuses
 export function updateAccountsWithStatuses(
   accounts: Account[],
   batchResults: Record<string, { userId: number; presence?: any } | null>,
@@ -237,9 +199,11 @@ export function updateAccountsWithStatuses(
     const isCurrentlyActive = isActiveStatus(newStatus);
 
     if (isCurrentlyActive) {
-      // Update lastActive timestamp at most every 5 minutes to prevent excessive re-renders
-      const lastActiveDate = acc.lastActive ? new Date(acc.lastActive) : new Date(0);
-      const shouldUpdateTimestamp = now.getTime() - lastActiveDate.getTime() > 5 * 60 * 1000;
+      const lastActiveDate = acc.lastActive
+        ? new Date(acc.lastActive)
+        : new Date(0);
+      const shouldUpdateTimestamp =
+        now.getTime() - lastActiveDate.getTime() > 5 * 60 * 1000;
 
       if (shouldUpdateTimestamp || statusChanged) {
         hasChanges = true;
@@ -247,7 +211,6 @@ export function updateAccountsWithStatuses(
       }
     }
 
-    // Only update status if it changed
     if (statusChanged) {
       hasChanges = true;
       return { ...acc, status: newStatus };
@@ -259,33 +222,23 @@ export function updateAccountsWithStatuses(
   return { accounts: updatedAccounts, hasChanges };
 }
 
-/**
- * Hook that automatically polls and updates account statuses.
- * Uses TanStack Query's refetchInterval for built-in polling.
- */
 export function useAccountStatusPolling() {
   const queryClient = useQueryClient();
   const activeTab = useActiveTab();
 
-  // Get accounts directly from query cache to avoid dependency loop
   const accounts =
     queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
 
-  // Determine polling interval based on active tab
   const pollInterval = activeTab === "Accounts" ? 30000 : 5 * 60 * 1000;
 
-  // Use the existing useAccountStatuses hook with dynamic interval
   const { data: batchResults } = useAccountStatuses(accounts, {
     enabled: accounts.length > 0,
     refetchInterval: pollInterval,
   });
 
-  // Update accounts when status data changes
-  // Only depend on batchResults to avoid infinite loops
   useEffect(() => {
     if (!batchResults) return;
 
-    // Get fresh accounts from cache inside the effect
     const currentAccounts =
       queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
     if (currentAccounts.length === 0) return;
@@ -294,8 +247,6 @@ export function useAccountStatusPolling() {
       updateAccountsWithStatuses(currentAccounts, batchResults);
 
     if (hasChanges) {
-      // Update cache directly without triggering save (status is transient)
-      // Check for deep equality to prevent infinite render loops if hasChanges is false positive
       const cached = queryClient.getQueryData<Account[]>(
         queryKeys.accounts.list(),
       );

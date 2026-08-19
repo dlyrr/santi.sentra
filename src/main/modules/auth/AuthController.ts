@@ -5,9 +5,6 @@ import { RobloxUserService } from "../users/UserService";
 import { RobloxLoginWindowService } from "./RobloxLoginWindowService";
 import { storageService } from "../system/StorageService";
 
-/**
- * Registers authentication-related IPC handlers
- */
 export const registerAuthHandlers = (): void => {
   handle("validate-cookie", z.tuple([z.string()]), async (_, cookieRaw) => {
     const cookie = RobloxAuthService.extractCookie(cookieRaw);

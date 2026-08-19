@@ -145,25 +145,32 @@ export const ChangeDisplayNameModal = ({
       setResultMessages(resultEntries.slice(-5));
     }
 
-    await window.api.account.saveAccounts(updatedAccounts);
-    onAccountsChange(updatedAccounts);
+    try {
+      await window.api.account.saveAccounts(updatedAccounts);
+      onAccountsChange(updatedAccounts);
 
-    setIsProcessing(false);
-    setCurrentAccountLabel("");
+      if (failedCountLocal > 0) {
+        showNotification(
+          `Updated ${updateCount} accounts, ${failedCountLocal} failed. Check results in the modal.`,
+          "warning",
+        );
+      } else {
+        showNotification(
+          `Successfully updated ${updateCount} account${updateCount === 1 ? "" : "s"}.`,
+          "success",
+        );
+      }
 
-    if (failedCountLocal > 0) {
+      closeModal("changeDisplayName");
+    } catch (err: any) {
       showNotification(
-        `Updated ${updateCount} accounts, ${failedCountLocal} failed. Check results in the modal.`,
-        "warning",
+        `Failed to save accounts: ${err?.message || "Unknown error"}`,
+        "error",
       );
-    } else {
-      showNotification(
-        `Successfully updated ${updateCount} account${updateCount === 1 ? "" : "s"}.`,
-        "success",
-      );
+    } finally {
+      setIsProcessing(false);
+      setCurrentAccountLabel("");
     }
-
-    closeModal("changeDisplayName");
   };
 
   return (
@@ -218,7 +225,7 @@ export const ChangeDisplayNameModal = ({
                 />
               </div>
               {resultMessages.length > 0 && (
-                <div className="max-h-28 overflow-y-auto rounded-lg bg-black/10 p-2 text-xs text-[var(--color-text-secondary)]">
+                <div className="max-h-28 overflow-y-auto rounded-lg bg-[var(--color-surface)] p-2 text-xs text-[var(--color-text-secondary)]">
                   {resultMessages.slice(-5).map((message, index) => (
                     <div key={`${message}-${index}`} className="truncate">
                       {message}
@@ -264,7 +271,7 @@ export const ChangeDisplayNameModal = ({
                       setStartingNumber(parseInt(e.target.value) || 1)
                     }
                     min={1}
-                    className="w-full h-9 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 text-sm focus:border-[var(--accent-color)] transition-all text-[var(--color-text-primary)]"
+                    className="w-full h-9 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 text-sm focus:border-[var(--accent-color)] focus:ring-1 focus:ring-[var(--accent-color)] transition-all text-[var(--color-text-primary)]"
                   />
                 </div>
               )}

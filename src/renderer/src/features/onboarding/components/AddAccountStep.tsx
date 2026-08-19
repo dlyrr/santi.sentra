@@ -22,7 +22,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Cookie method state
   const [cookie, setCookie] = useState("");
   const [isCookieBlurred, setIsCookieBlurred] = useState(true);
 
@@ -67,8 +66,7 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
 
   const addAccountFromCookie = async (cookieValue: string) => {
     const trimmed = cookieValue.trim();
-    // Note: This is a known Roblox cookie prefix. If it changes, this will need to be updated.
-    // Consider centralizing this as a constant if used in multiple places.
+
     const expectedStart =
       "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_";
 
@@ -94,7 +92,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
       console.warn("Failed to fetch premium status during onboarding:", error);
     }
 
-    // Get existing accounts to check for duplicates
     const existingAccounts = await window.api.getAccounts();
     if (
       existingAccounts.some((acc: Account) => acc.id === data.id.toString())
@@ -102,7 +99,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
       throw new Error("Account already added");
     }
 
-    // Create the new account
     const newAccount: Account = {
       id: data.id.toString(),
       displayName: data.displayName,
@@ -120,7 +116,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
       notes: "",
     };
 
-    // Save all accounts including the new one
     await window.api.saveAccounts([...existingAccounts, newAccount]);
 
     setSuccess(true);

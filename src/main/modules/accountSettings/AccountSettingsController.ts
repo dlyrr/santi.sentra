@@ -9,11 +9,7 @@ import {
   onlineStatusPrivacyValues,
 } from "@shared/ipc-schemas/accountSettings";
 
-/**
- * Registers IPC handlers for account settings
- */
 export const registerAccountSettingsHandlers = (): void => {
-  // GET handlers
   handle(
     "get-account-settings-json",
     z.tuple([z.string()]),
@@ -42,7 +38,6 @@ export const registerAccountSettingsHandlers = (): void => {
     return AccountSettingsService.getThemeTypes(cookie);
   });
 
-  // UPDATE handlers
   handle(
     "update-inventory-privacy",
     z.tuple([z.string(), z.enum(privacyLevelValues)]),
@@ -142,12 +137,98 @@ export const registerAccountSettingsHandlers = (): void => {
   );
 
   handle(
+    "update-user-setting",
+    z.tuple([z.string(), z.string(), z.string()]),
+    async (_, cookie, key, value) => {
+      return AccountSettingsService.updateUserSetting(cookie, key, value);
+    },
+  );
+
+  handle(
     "send-verification-email",
     z.tuple([z.string(), z.boolean().optional()]),
     async (_, cookie, freeItem) => {
       return AccountSettingsService.sendVerificationEmail(
         cookie,
         freeItem ?? false,
+      );
+    },
+  );
+
+  handle(
+    "update-email",
+    z.tuple([
+      z.string(),
+      z.string(),
+      z.string().optional(),
+      z.string().optional(),
+      z.string().optional(),
+    ]),
+    async (_, cookie, email, metadata, id, type) => {
+      return AccountSettingsService.updateEmail(
+        cookie,
+        email,
+        metadata,
+        id,
+        type,
+      );
+    },
+  );
+
+  handle(
+    "update-username",
+    z.tuple([
+      z.string(),
+      z.number(),
+      z.string(),
+      z.string().optional(),
+      z.string().optional(),
+      z.string().optional(),
+    ]),
+    async (_, cookie, userId, username, metadata, id, type) => {
+      return AccountSettingsService.updateUsername(
+        cookie,
+        userId,
+        username,
+        metadata,
+        id,
+        type,
+      );
+    },
+  );
+
+  handle(
+    "toggle-twostep",
+    z.tuple([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.string().optional(),
+      z.string().optional(),
+      z.string().optional(),
+    ]),
+    async (_, cookie, userId, enable, metadata, id, type) => {
+      return AccountSettingsService.toggleTwoStep(
+        cookie,
+        userId,
+        enable,
+        metadata,
+        id,
+        type,
+      );
+    },
+  );
+
+  handle(
+    "verify-challenge",
+    z.tuple([z.string(), z.string(), z.string(), z.string(), z.string()]),
+    async (_, cookie, id, type, metadata, code) => {
+      return AccountSettingsService.verifyChallenge(
+        cookie,
+        id,
+        type,
+        metadata,
+        code,
       );
     },
   );
@@ -160,11 +241,6 @@ export const registerAccountSettingsHandlers = (): void => {
     },
   );
 
-  // ============================================================================
-  // ACCOUNT INFORMATION API HANDLERS
-  // ============================================================================
-
-  // Description handlers
   handle("get-description", z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getDescription(cookie);
   });
@@ -177,7 +253,6 @@ export const registerAccountSettingsHandlers = (): void => {
     },
   );
 
-  // Gender handlers
   handle("get-gender", z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getGender(cookie);
   });
@@ -190,7 +265,6 @@ export const registerAccountSettingsHandlers = (): void => {
     },
   );
 
-  // Birthdate handlers
   handle("get-birthdate", z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getBirthdate(cookie);
   });
@@ -208,7 +282,6 @@ export const registerAccountSettingsHandlers = (): void => {
     },
   );
 
-  // Promotion channels handlers
   handle("get-promotion-channels", z.tuple([z.string()]), async (_, cookie) => {
     return AccountSettingsService.getPromotionChannels(cookie);
   });
@@ -239,6 +312,30 @@ export const registerAccountSettingsHandlers = (): void => {
         userId,
         newDisplayName,
       );
+    },
+  );
+
+  handle("get-account-standing", z.tuple([z.string()]), async (_, cookie) => {
+    return AccountSettingsService.getAccountStanding(cookie);
+  });
+
+  handle("sign-out-all-sessions", z.tuple([z.string()]), async (_, cookie) => {
+    return AccountSettingsService.signOutAllSessions(cookie);
+  });
+
+  handle(
+    "set-pin-enabled",
+    z.tuple([z.string(), z.enum(["lock", "unlock"]), z.string().optional()]),
+    async (_, cookie, action, pin) => {
+      return AccountSettingsService.setPinEnabled(cookie, action, pin);
+    },
+  );
+
+  handle(
+    "update-super-safe-privacy-mode",
+    z.tuple([z.string(), z.boolean()]),
+    async (_, cookie, enabled) => {
+      return AccountSettingsService.updateSuperSafePrivacyMode(cookie, enabled);
     },
   );
 };

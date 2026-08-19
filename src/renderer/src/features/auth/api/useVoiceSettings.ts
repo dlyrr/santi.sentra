@@ -15,7 +15,7 @@ export const useVoiceSettingsForAccounts = (accounts: Account[]) => {
       queryKey: queryKeys.accounts.voice(account.cookie!),
       queryFn: () => window.api.getVoiceSettings(account.cookie!),
       enabled: !!account.cookie,
-      staleTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 10 * 60 * 1000,
       refetchInterval: 10 * 60 * 1000,
       retry: false,
       refetchOnWindowFocus: false,

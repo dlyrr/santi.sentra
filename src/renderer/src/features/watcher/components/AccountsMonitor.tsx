@@ -105,7 +105,7 @@ export default function AccountsMonitor({
   }
 
   return (
-    <div className="flex flex-col divide-y divide-[var(--color-border)]">
+    <div className="flex flex-col gap-2 p-2 md:p-3">
       {accounts.map((account) => {
         const session = sessions.find((s) => s.accountId === account.id);
         const status = session?.status ?? "inactive";
@@ -118,63 +118,59 @@ export default function AccountsMonitor({
           <div
             key={account.id}
             className={cn(
-              "group flex items-center gap-3 px-4 py-2.5 transition-colors border-l-2",
+              "group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-all duration-200",
               cfg.rowBorder,
               isSelected
-                ? "bg-[rgba(var(--accent-color-rgb),0.06)]"
-                : "hover:bg-[var(--color-surface-hover)]"
+                ? "border-[var(--accent-color)]/35 bg-[rgba(var(--accent-color-rgb),0.07)] shadow-[0_0_0_1px_rgba(var(--accent-color-rgb),0.08)]"
+                : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-hover)]",
             )}
           >
-            {/* Checkbox */}
-            <div className="shrink-0 flex items-center pr-1">
+            <div className="flex shrink-0 items-center pr-1">
               <CustomCheckbox
                 checked={isSelected}
                 onChange={() => onToggleAccount(account.id)}
               />
             </div>
 
-            {/* Status dot */}
-            <div className="shrink-0 relative w-2 h-2">
+            <div className="relative h-2.5 w-2.5 shrink-0">
               <span className={`absolute inset-0 rounded-full ${cfg.dot}`} />
             </div>
 
-            {/* Avatar */}
             {account.avatarUrl ? (
               <img
                 src={account.avatarUrl}
                 alt={privacyMode ? "" : account.displayName || account.username}
                 style={privacyMode ? { filter: "blur(16px)" } : undefined}
                 className={cn(
-                  "w-7 h-7 rounded-full border shrink-0 object-cover transition-all",
+                  "h-8 w-8 shrink-0 rounded-full border object-cover transition-all",
                   isSelected
-                    ? "border-[var(--accent-color)] shadow-[0_0_10px_rgba(var(--accent-color-rgb),0.3)]"
-                    : "border-[var(--color-border)]"
+                    ? "border-[var(--accent-color)] shadow-[0_0_12px_rgba(var(--accent-color-rgb),0.25)]"
+                    : "border-[var(--color-border)]",
                 )}
               />
             ) : (
               <div
                 className={cn(
-                  "w-7 h-7 rounded-full bg-[var(--color-surface)] border shrink-0 flex items-center justify-center transition-all",
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border bg-[var(--color-surface)] transition-all",
                   isSelected
-                    ? "border-[var(--accent-color)] shadow-[0_0_10px_rgba(var(--accent-color-rgb),0.3)] text-[var(--accent-color)]"
-                    : "border-[var(--color-border)] text-[var(--color-text-muted)]"
+                    ? "border-[var(--accent-color)] text-[var(--accent-color)] shadow-[0_0_12px_rgba(var(--accent-color-rgb),0.25)]"
+                    : "border-[var(--color-border)] text-[var(--color-text-muted)]",
                 )}
               >
                 <User size={12} />
               </div>
             )}
 
-            {/* Name + Place ID */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p
-                className="text-xs font-semibold text-[var(--color-text-primary)] truncate leading-none"
+                className="truncate text-xs font-semibold leading-none text-[var(--color-text-primary)]"
                 style={privacyMode ? { filter: "blur(16px)" } : undefined}
               >
                 {privacyMode
                   ? "Hidden"
                   : account.displayName || account.username}
               </p>
-              <p className="text-[10px] font-mono text-[var(--color-text-muted)] mt-0.5 truncate">
+              <p className="mt-1 truncate text-[10px] font-mono text-[var(--color-text-muted)]">
                 {session ? (
                   <>
                     Place {session.placeId}
@@ -187,8 +183,7 @@ export default function AccountsMonitor({
                       </span>
                     )}
                     {session.lastCrashReason && status === "crashed" && (
-                      <span className="ml-1.5 text-red-400/70 truncate">
-                        {" "}
+                      <span className="ml-1.5 text-red-400/70">
                         · {session.lastCrashReason}
                       </span>
                     )}
@@ -199,40 +194,38 @@ export default function AccountsMonitor({
               </p>
             </div>
 
-            {/* Status Badge */}
             <span
-              className={`shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded border ${cfg.badge} tracking-widest`}
+              className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[8px] font-bold tracking-[0.16em] ${cfg.badge}`}
             >
               {cfg.label}
             </span>
 
-            {/* Actions */}
-            <div className="shrink-0 flex gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               {session ? (
                 <>
                   {status === "crashed" && (
                     <button
                       onClick={() => onRelaunchSession(session)}
                       disabled={isLaunching}
-                      className="p-1.5 rounded text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-40"
+                      className="rounded-md p-1.5 text-emerald-400 transition-colors hover:bg-emerald-500/15 disabled:opacity-40"
                       title="Relaunch"
                     >
-                      <RotateCw className="w-3.5 h-3.5" />
+                      <RotateCw className="h-3.5 w-3.5" />
                     </button>
                   )}
                   <button
                     onClick={() => onStopAccount(session)}
-                    className="p-1.5 rounded text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="rounded-md p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
                     title="Stop watching (keep running)"
                   >
-                    <Square className="w-3.5 h-3.5" />
+                    <Square className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => onRemoveSession(session.id)}
-                    className="p-1.5 rounded text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                    className="rounded-md p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
                     title="Kill process and remove"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </>
               ) : (
@@ -241,10 +234,10 @@ export default function AccountsMonitor({
                   <button
                     onClick={() => onStartAccount(account)}
                     disabled={isLaunching}
-                    className="p-1.5 rounded text-[var(--color-text-muted)] hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-40"
+                    className="rounded-md p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-emerald-500/10 hover:text-emerald-400 disabled:opacity-40"
                     title="Start watching this account"
                   >
-                    <Play className="w-3.5 h-3.5" />
+                    <Play className="h-3.5 w-3.5" />
                   </button>
                 )
               )}

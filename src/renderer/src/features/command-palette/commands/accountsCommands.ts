@@ -58,12 +58,12 @@ export const createAccountsCommands: CommandFactory = (callbacks) => [
         const result = await window.api.validateCookie(account.cookie);
         if (result) {
           callbacks.showNotification(
-            `✓ Account valid: ${result.displayName}`,
+            `вњ“ Account valid: ${result.displayName}`,
             "success",
           );
         }
       } catch {
-        callbacks.showNotification("✗ Account invalid or banned", "error");
+        callbacks.showNotification("вњ— Account invalid or banned", "error");
       }
     },
   },
@@ -99,10 +99,8 @@ export const createAccountsCommands: CommandFactory = (callbacks) => [
         callbacks.showNotification("Select an account first", "error");
         return;
       }
-      // Update accounts by removing the selected one
-      const currentAccounts = callbacks.getAccounts();
-      const newAccounts = currentAccounts.filter((a) => a.id !== account.id);
-      window.api.saveAccounts(newAccounts);
+
+      callbacks.removeAccount(account.id);
       callbacks.setSelectedIds(new Set());
       callbacks.showNotification(
         `Logged out ${account.displayName}`,

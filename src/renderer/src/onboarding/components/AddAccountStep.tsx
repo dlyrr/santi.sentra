@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Cookie, LogIn, Loader2, Check, AlertTriangle } from "lucide-react";
+import {
+  Cookie,
+  LogIn,
+  Loader2,
+  Check,
+  AlertTriangle,
+  Upload,
+  Info,
+} from "lucide-react";
 import { Tabs } from "@renderer/components/UI/navigation/Tabs";
 import { Account, AccountStatus } from "@renderer/types";
 
@@ -24,14 +32,23 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
   onAccountAdded,
   onSkip,
 }) => {
-  const [method, setMethod] = useState<"cookie" | "browser">("browser");
+  const [method, setMethod] = useState<"cookie" | "browser" | "bulk">(
+    "browser",
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Cookie method state
   const [cookie, setCookie] = useState("");
   const [isCookieBlurred, setIsCookieBlurred] = useState(true);
+
+  const [bulkCookies, setBulkCookies] = useState("");
+  const [isBulkCookiesBlurred, setIsBulkCookiesBlurred] = useState(true);
+  const [bulkImportProgress, setBulkImportProgress] = useState<{
+    current: number;
+    total: number;
+    failed: string[];
+  } | null>(null);
 
   React.useEffect(() => {
     if (method === "browser") {
@@ -91,7 +108,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
     const data = await window.api.validateCookie(cookieValue);
     const avatarUrl = await window.api.getAvatarUrl(data.id.toString());
 
-    // Get existing accounts to check for duplicates
     const existingAccounts = await window.api.getAccounts();
     if (
       existingAccounts.some((acc: Account) => acc.id === data.id.toString())
@@ -99,7 +115,6 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
       throw new Error("Account already added");
     }
 
-    // Create the new account
     const newAccount: Account = {
       id: data.id.toString(),
       displayName: data.displayName,
@@ -117,13 +132,49 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
       notes: "",
     };
 
-    // Save all accounts including the new one
     await window.api.saveAccounts([...existingAccounts, newAccount]);
 
     setSuccess(true);
     setTimeout(() => {
       onAccountAdded();
     }, 1500);
+  };
+
+  const handleBulkImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkCookies.trim() || isLoading) return;
+
+    const cookiesToImport = bulkCookies
+      .split("\n")
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0);
+
+    if (cookiesToImport.length === 0) return;
+
+    setIsLoading(true);
+    setBulkImportProgress({
+      current: 0,
+      total: cookiesToImport.length,
+      failed: [],
+    });
+
+    const failed: string[] = [];
+    for (let i = 0; i < cookiesToImport.length; i++) {
+      try {
+        setBulkImportProgress((prev) =>
+          prev ? { ...prev, current: i + 1 } : null,
+        );
+        await addAccountFromCookie(cookiesToImport[i], "cookie");
+      } catch (err) {
+        failed.push(`Cookie ${i + 1}`);
+      }
+    }
+
+    setBulkImportProgress(null);
+    setIsLoading(false);
+    setBulkCookies("");
+    setSuccess(true);
+    setTimeout(() => onAccountAdded(), 1200);
   };
 
   if (success) {
@@ -161,12 +212,13 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
       <Tabs
         tabs={[
           { id: "cookie", label: "Cookie", icon: Cookie },
+          { id: "bulk", label: "Bulk Import", icon: Upload },
           { id: "browser", label: "Login / Code", icon: LogIn },
         ]}
         activeTab={method}
         onTabChange={(tabId) => {
           setError(null);
-          setMethod(tabId as "cookie" | "browser");
+          setMethod(tabId as "cookie" | "browser" | "bulk");
         }}
         layoutId="onboardingAddAccountTab"
         tabClassName="pressable"
@@ -240,6 +292,100 @@ const AddAccountStep: React.FC<AddAccountStepProps> = ({
                 )}
                 <span>{isLoading ? "Importing..." : "Import Account"}</span>
               </button>
+            </form>
+          </motion.div>
+        )}
+
+        {method === "bulk" && (
+          <motion.div
+            key="bulk"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <form onSubmit={handleBulkImport} className="space-y-4">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex gap-3 items-start">
+                <Info className="text-blue-400 shrink-0 mt-0.5" size={18} />
+                <p className="text-s text-blue-100/80 leading-relaxed">
+                  Paste multiple cookies separated by new lines (one cookie per
+                  line).
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="bulkInput"
+                    className="text-sm font-medium text-[var(--color-text-secondary)]"
+                  >
+                    Cookies List
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkCookiesBlurred((prev) => !prev)}
+                    className="pressable text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+                  >
+                    {isBulkCookiesBlurred ? "Show" : "Hide"}
+                  </button>
+                </div>
+                <textarea
+                  id="bulkInput"
+                  value={bulkCookies}
+                  onChange={(e) => setBulkCookies(e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Paste cookies here (one per line)..."
+                  className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] focus:border-[var(--accent-color)] transition-all min-h-[160px] resize-none font-mono disabled:opacity-50"
+                  style={
+                    isBulkCookiesBlurred
+                      ? ({ WebkitTextSecurity: "disc" } as React.CSSProperties)
+                      : undefined
+                  }
+                />
+              </div>
+
+              {bulkImportProgress && (
+                <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 space-y-2">
+                  <p className="text-sm text-[var(--color-text-secondary)] font-medium">
+                    Importing {bulkImportProgress.current} of{" "}
+                    {bulkImportProgress.total}
+                  </p>
+                  <div className="w-full bg-[var(--color-surface-hover)] rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-full transition-all duration-300"
+                      style={{
+                        width: `${(bulkImportProgress.current / bulkImportProgress.total) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  disabled={isLoading}
+                  className="pressable flex-1 px-4 py-3 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!bulkCookies.trim() || isLoading}
+                  className="pressable flex-[2] flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Upload size={18} />
+                  )}
+                  <span>
+                    {isLoading
+                      ? `Importing... (${bulkImportProgress?.current || 0}/${bulkImportProgress?.total || 0})`
+                      : "Import All"}
+                  </span>
+                </button>
+              </div>
             </form>
           </motion.div>
         )}

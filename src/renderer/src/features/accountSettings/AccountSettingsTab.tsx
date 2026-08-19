@@ -23,6 +23,12 @@ import {
   FileText,
   Share2,
   Cake,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  KeyRound,
+  Edit2,
+  X,
 } from "lucide-react";
 import { Account } from "../../types";
 import { cn } from "../../lib/utils";
@@ -35,6 +41,7 @@ import type {
   TradePrivacy,
   TradeValue,
   OnlineStatusPrivacy,
+  ContentRestrictionLevel,
 } from "../../../../shared/ipc-schemas/accountSettings";
 import { useNotification } from "@renderer/system/stores/useSnackbarStore";
 
@@ -43,9 +50,13 @@ interface AccountSettingsTabProps {
   privacyMode?: boolean;
 }
 
-type SettingsSection = "account" | "privacy" | "communication" | "security";
+type SettingsSection =
+  | "account"
+  | "privacy"
+  | "communication"
+  | "security"
+  | "standing";
 
-// Privacy level options for dropdowns
 const PRIVACY_OPTIONS: DropdownOption[] = [
   { value: "NoOne", label: "No One" },
   { value: "Friends", label: "Friends" },
@@ -74,6 +85,13 @@ const TRADE_VALUE_OPTIONS: DropdownOption[] = [
 const THEME_OPTIONS: DropdownOption[] = [
   { value: "Dark", label: "Dark" },
   { value: "Light", label: "Light" },
+];
+
+const CONTENT_RESTRICTION_OPTIONS: DropdownOption[] = [
+  { value: "NoRestrictions", label: "No Restrictions (13+/17+)" },
+  { value: "Teen", label: "Teen (13+)" },
+  { value: "PreTeen", label: "Pre-Teen (9+)" },
+  { value: "Child", label: "Child (All Ages)" },
 ];
 
 const ONLINE_STATUS_PRIVACY_OPTIONS: DropdownOption[] = [
@@ -183,6 +201,30 @@ const SettingRow: React.FC<{
   </div>
 );
 
+const ToggleSwitch: React.FC<{
+  enabled: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}> = ({ enabled, onClick, disabled }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={cn(
+      "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] disabled:opacity-50 disabled:cursor-not-allowed",
+      enabled ? "bg-[var(--accent-color)]" : "bg-[var(--color-surface-hover)]",
+    )}
+  >
+    <span className="sr-only">Toggle setting</span>
+    <span
+      aria-hidden="true"
+      className={cn(
+        "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out",
+        enabled ? "translate-x-4" : "translate-x-0",
+      )}
+    />
+  </button>
+);
+
 const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
   account,
   privacyMode,
@@ -192,6 +234,23 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
   const [editingDescription, setEditingDescription] = useState<string | null>(
     null,
   );
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+
+  const [twoFaChallenge, setTwoFaChallenge] = useState<{
+    id: string;
+    type: string;
+    metadata: string;
+    action: "email" | "username" | "twostep";
+    actionPayload: any;
+  } | null>(null);
+  const [twoFaCode, setTwoFaCode] = useState("");
+  const [pinChallenge, setPinChallenge] = useState<{
+    action: "lock" | "unlock";
+  } | null>(null);
+  const [pinCode, setPinCode] = useState("");
   const queryClient = useQueryClient();
   const { showNotification } = useNotification();
 
@@ -208,16 +267,14 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     enabled: !!account?.cookie,
     staleTime: 1000 * 60 * 5,
     retry: 2,
-    gcTime: 1000 * 60 * 2, // Keep in cache for 2 minutes, then garbage collect
+    gcTime: 1000 * 60 * 2,
   });
 
   const accountSettings = combinedSettings?.accountSettings;
   const userSettings = combinedSettings?.userSettings;
 
-  // Memory optimization: Cleanup old queries periodically to prevent accumulation
   React.useEffect(() => {
     const cleanupTimer = setInterval(() => {
-      // Remove stale queries from cache to reduce memory
       queryClient.removeQueries({
         queryKey: ["combined-account-settings"],
         stale: true,
@@ -229,114 +286,168 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
         queryKey: ["promotion-channels"],
         stale: true,
       });
-    }, 60000); // Cleanup every 60 seconds
+    }, 60000);
 
     return () => clearInterval(cleanupTimer);
   }, [queryClient]);
 
-  // Mutation hooks for updating settings
+  const capturedAccountId = account?.id;
 
   const updateInventoryPrivacy = useMutation({
     mutationFn: async (privacy: PrivacyLevel) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateInventoryPrivacy(account.cookie, privacy);
+      const res = await window.api.updateInventoryPrivacy(
+        account.cookie,
+        privacy,
+      );
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update inventory privacy");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updateTradePrivacy = useMutation({
     mutationFn: async (privacy: TradePrivacy) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateTradePrivacy(account.cookie, privacy);
+      const res = await window.api.updateTradePrivacy(account.cookie, privacy);
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update trade privacy");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updateTradeValue = useMutation({
     mutationFn: async (value: TradeValue) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateTradeValue(account.cookie, value);
+      const res = await window.api.updateTradeValue(account.cookie, value);
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update trade value");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updateAppChatPrivacy = useMutation({
     mutationFn: async (privacy: PrivacyLevel) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateAppChatPrivacy(account.cookie, privacy);
+      const res = await window.api.updateAppChatPrivacy(
+        account.cookie,
+        privacy,
+      );
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update app chat privacy");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updateGameChatPrivacy = useMutation({
     mutationFn: async (privacy: PrivacyLevel) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateGameChatPrivacy(account.cookie, privacy);
+      const res = await window.api.updateGameChatPrivacy(
+        account.cookie,
+        privacy,
+      );
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update game chat privacy");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updatePhoneDiscovery = useMutation({
     mutationFn: async (privacy: PrivacyLevel) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updatePrivacy(account.cookie, privacy);
+      const res = await window.api.updatePrivacy(account.cookie, privacy);
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update privacy");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updateOnlineStatusPrivacy = useMutation({
     mutationFn: async (privacy: OnlineStatusPrivacy) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateOnlineStatusPrivacy(account.cookie, privacy);
+      const res = await window.api.updateOnlineStatusPrivacy(
+        account.cookie,
+        privacy,
+      );
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update online status privacy");
+      return res;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
   const updateWhoCanJoinMeInExperiences = useMutation({
     mutationFn: async (privacy: PrivacyLevel) => {
       if (!account?.cookie) throw new Error("No cookie");
-      return window.api.updateWhoCanJoinMeInExperiences(
+      const res = await window.api.updateWhoCanJoinMeInExperiences(
         account.cookie,
         privacy,
       );
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update join privacy");
+      return res;
     },
     onSuccess: async () => {
-      // Optimistically update the UI immediately
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to update who can join me:", error);
-      showNotification(`Failed to update privacy setting: ${error.message}`, "error");
+      showNotification(
+        `Failed to update privacy setting: ${error.message}`,
+        "error",
+      );
     },
   });
 
@@ -351,9 +462,46 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       );
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["combined-account-settings", account?.id],
-      });
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
+    },
+  });
+
+  const updateContentRestrictionMutation = useMutation({
+    mutationFn: async (level: ContentRestrictionLevel) => {
+      if (!account?.cookie) throw new Error("No cookie");
+      return window.api.updateContentRestriction(account.cookie, level);
+    },
+    onSuccess: async () => {
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
+    },
+  });
+
+  const updateUserSetting = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+      if (!account?.cookie) throw new Error("No cookie");
+      const res = await window.api.updateUserSetting(
+        account.cookie,
+        key,
+        value,
+      );
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update setting");
+      return res;
+    },
+    onSuccess: async () => {
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
     },
   });
 
@@ -364,11 +512,320 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     },
   });
 
-  // ============================================================================
-  // ACCOUNT INFORMATION API QUERIES & MUTATIONS
-  // ============================================================================
+  const updateEmailMutation = useMutation({
+    mutationFn: async ({
+      email,
+      metadata,
+      id,
+      type,
+    }: {
+      email: string;
+      metadata?: string;
+      id?: string;
+      type?: string;
+    }) => {
+      if (!account?.cookie) throw new Error("No cookie");
+      const res = await window.api.updateEmail(
+        account.cookie,
+        email,
+        metadata,
+        id,
+        type,
+      );
+      if (res?.challenge) return res;
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update email");
+      return res;
+    },
+    onSuccess: async (res, vars) => {
+      if ((res as any)?.challenge) {
+        const c = (res as any).challenge;
+        setTwoFaChallenge({
+          id: c.id,
+          type: c.type,
+          metadata: c.metadata || "",
+          action: "email",
+          actionPayload: { email: vars.email },
+        });
+        return;
+      }
+      setEditingEmail(false);
+      setNewEmail("");
+      await queryClient.invalidateQueries({
+        queryKey: ["combined-account-settings", account?.id],
+      });
+      showNotification("Email updated successfully", "success");
+    },
+    onError: (err: any) => {
+      showNotification(
+        `Failed to update email: ${err?.message || err}`,
+        "error",
+      );
+    },
+  });
 
-  // Description
+  const updateUsernameMutation = useMutation({
+    mutationFn: async ({
+      username,
+      metadata,
+      id,
+      type,
+    }: {
+      username: string;
+      metadata?: string;
+      id?: string;
+      type?: string;
+    }) => {
+      if (!account?.cookie || !account?.id) throw new Error("No cookie");
+      const res = await window.api.updateUsername(
+        account.cookie,
+        Number(account.id),
+        username,
+        metadata,
+        id,
+        type,
+      );
+      if ((res as any)?.challenge) return res;
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to update username");
+      return res;
+    },
+    onSuccess: async (res, vars) => {
+      if ((res as any)?.challenge) {
+        const c = (res as any).challenge;
+        setTwoFaChallenge({
+          id: c.id,
+          type: c.type,
+          metadata: c.metadata || "",
+          action: "username",
+          actionPayload: { username: vars.username },
+        });
+        return;
+      }
+      setEditingUsername(false);
+      setNewUsername("");
+
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
+      showNotification("Username updated successfully", "success");
+    },
+    onError: (err: any) => {
+      showNotification(
+        `Failed to update username: ${err?.message || err}`,
+        "error",
+      );
+    },
+  });
+
+  const toggleTwoStepMutation = useMutation({
+    mutationFn: async ({
+      enable,
+      metadata,
+      id,
+      type,
+    }: {
+      enable: boolean;
+      metadata?: string;
+      id?: string;
+      type?: string;
+    }) => {
+      if (!account?.cookie || !account?.id) throw new Error("No cookie");
+      const res = await window.api.toggleTwoStep(
+        account.cookie,
+        Number(account.id),
+        enable,
+        metadata,
+        id,
+        type,
+      );
+      if ((res as any)?.challenge) return res;
+      if (!res || !res.success)
+        throw new Error(res?.error || "Failed to toggle 2FA");
+      return res;
+    },
+    onSuccess: async (res, vars) => {
+      if ((res as any)?.challenge) {
+        const c = (res as any).challenge;
+        setTwoFaChallenge({
+          id: c.id,
+          type: c.type,
+          metadata: c.metadata || "",
+          action: "twostep",
+          actionPayload: { enable: vars.enable },
+        });
+        return;
+      }
+
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
+      showNotification(
+        `2-Step Verification ${vars.enable ? "enabled" : "disabled"}`,
+        "success",
+      );
+    },
+    onError: (err: any) => {
+      showNotification(`Failed to toggle 2FA: ${err?.message || err}`, "error");
+    },
+  });
+
+  const verifyChallengeMutation = useMutation({
+    mutationFn: async ({
+      id,
+      type,
+      metadata,
+      code,
+    }: {
+      id: string;
+      type: string;
+      metadata: string;
+      code: string;
+    }) => {
+      if (!account?.cookie) throw new Error("No cookie");
+      return window.api.verifyChallenge(
+        account.cookie,
+        id,
+        type,
+        metadata,
+        code,
+      );
+    },
+    onSuccess: async (res) => {
+      if (!res.success) {
+        showNotification(res.error || "Invalid code", "error");
+        return;
+      }
+      if (!twoFaChallenge) return;
+      const { action, actionPayload, id, type, metadata } = twoFaChallenge;
+      const verifiedMeta = res.verificationToken
+        ? btoa(JSON.stringify({ verificationToken: res.verificationToken }))
+        : metadata;
+      setTwoFaChallenge(null);
+      setTwoFaCode("");
+      if (action === "email")
+        updateEmailMutation.mutate({
+          email: actionPayload.email,
+          metadata: verifiedMeta,
+          id,
+          type,
+        });
+      else if (action === "username")
+        updateUsernameMutation.mutate({
+          username: actionPayload.username,
+          metadata: verifiedMeta,
+          id,
+          type,
+        });
+      else if (action === "twostep")
+        toggleTwoStepMutation.mutate({
+          enable: actionPayload.enable,
+          metadata: verifiedMeta,
+          id,
+          type,
+        });
+    },
+    onError: (err: any) => {
+      showNotification(`Verification failed: ${err?.message || err}`, "error");
+    },
+  });
+
+  const setPinEnabledMutation = useMutation({
+    mutationFn: async ({
+      action,
+      pin,
+    }: {
+      action: "lock" | "unlock";
+      pin?: string;
+    }) => {
+      if (!account?.cookie) throw new Error("No cookie");
+      return window.api.setPinEnabled(account.cookie, action, pin);
+    },
+    onSuccess: async (res) => {
+      if (!res.success) {
+        showNotification(res.error || "Failed to update PIN", "error");
+        return;
+      }
+      showNotification(
+        `Account PIN ${pinChallenge?.action === "lock" ? "locked" : "unlocked"}`,
+        "success",
+      );
+      setPinChallenge(null);
+      setPinCode("");
+
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
+    },
+    onError: (err: any) => {
+      showNotification(`Failed to update PIN: ${err?.message || err}`, "error");
+    },
+  });
+
+  const updateSuperSafePrivacyModeMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!account?.cookie) throw new Error("No cookie");
+      return window.api.updateSuperSafePrivacyMode(account.cookie, enabled);
+    },
+    onSuccess: async (res, enabled) => {
+      if (!res.success) {
+        showNotification(
+          res.error || "Failed to update Super Safe Privacy Mode",
+          "error",
+        );
+        return;
+      }
+      showNotification(
+        `Super Safe Privacy Mode ${enabled ? "enabled" : "disabled"}`,
+        "success",
+      );
+
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        await queryClient.invalidateQueries({
+          queryKey: ["combined-account-settings", capturedAccountId],
+        });
+      }
+    },
+    onError: (err: any) => {
+      showNotification(
+        `Failed to update Super Safe Privacy Mode: ${err?.message || err}`,
+        "error",
+      );
+    },
+  });
+
+  const signOutAllSessionsMutation = useMutation({
+    mutationFn: async () => {
+      if (!account?.cookie) throw new Error("No cookie");
+      return window.api.signOutAllSessions(account.cookie);
+    },
+    onSuccess: async (res) => {
+      if (!res.success) {
+        showNotification(
+          res.error || "Failed to sign out of all sessions",
+          "error",
+        );
+        return;
+      }
+      showNotification(
+        "Signed out of all other sessions successfully",
+        "success",
+      );
+    },
+    onError: (err: any) => {
+      showNotification(
+        `Failed to sign out of all sessions: ${err?.message || err}`,
+        "error",
+      );
+    },
+  });
+
   const { data: descriptionData } = useQuery({
     queryKey: ["description", account?.id],
     queryFn: async () => {
@@ -386,11 +843,15 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     },
     onSuccess: () => {
       setEditingDescription(null);
-      queryClient.invalidateQueries({ queryKey: ["description", account?.id] });
+
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        queryClient.invalidateQueries({
+          queryKey: ["description", capturedAccountId],
+        });
+      }
     },
   });
 
-  // Gender
   const { data: genderData } = useQuery({
     queryKey: ["gender", account?.id],
     queryFn: async () => {
@@ -406,11 +867,15 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       if (!account?.cookie) throw new Error("No cookie");
       return window.api.updateGender(account.cookie, gender);
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["gender", account?.id] }),
+    onSuccess: () => {
+      if (capturedAccountId && account?.id === capturedAccountId) {
+        queryClient.invalidateQueries({
+          queryKey: ["gender", capturedAccountId],
+        });
+      }
+    },
   });
 
-  // Birthdate
   const { data: birthdateData } = useQuery({
     queryKey: ["birthdate", account?.id],
     queryFn: async () => {
@@ -421,7 +886,6 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     staleTime: 1000 * 60 * 5,
   });
 
-  // Promotion Channels (Social Links)
   const { data: promotionChannelsData } = useQuery({
     queryKey: ["promotion-channels", account?.id],
     queryFn: async () => {
@@ -432,7 +896,16 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     staleTime: 1000 * 60 * 5,
   });
 
-  // Birthdate display helper
+  const { data: accountStandingData, isLoading: standingLoading } = useQuery({
+    queryKey: ["account-standing", account?.id],
+    queryFn: async () => {
+      if (!account?.cookie) throw new Error("No cookie");
+      return window.api.getAccountStanding(account.cookie);
+    },
+    enabled: !!account?.cookie,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const formatBirthdate = (
     month: number,
     day: number,
@@ -459,6 +932,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
       icon: <MessageSquare size={16} />,
     },
     { id: "security", label: "Security", icon: <Shield size={16} /> },
+    { id: "standing", label: "Standing", icon: <Activity size={16} /> },
   ];
 
   const sectionIndex = sections.findIndex((s) => s.id === activeSection);
@@ -478,21 +952,9 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
     );
   }
 
-  // Cleanup: Clear old queries to prevent memory accumulation
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      queryClient.removeQueries({ queryKey: ["combined-account-settings"] });
-      queryClient.removeQueries({ queryKey: ["description"] });
-      queryClient.removeQueries({ queryKey: ["gender"] });
-      queryClient.removeQueries({ queryKey: ["birthdate"] });
-      queryClient.removeQueries({ queryKey: ["promotion-channels"] });
-    }, 60000); // Clear every 60 seconds
-    return () => clearInterval(timer);
-  }, [queryClient]);
-
   return (
     <div className="flex flex-col h-full bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
-      {/* Header */}
+      {}
       <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold text-[var(--color-text-primary)]">
@@ -526,7 +988,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
         </div>
       </div>
 
-      {/* Section Tabs */}
+      {}
       <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="max-w-4xl mx-auto">
           <div className="relative flex">
@@ -534,8 +996,8 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
               className="absolute bottom-0 h-0.5 bg-[var(--accent-color)] z-20"
               initial={false}
               animate={{
-                left: `${sectionIndex * 25}%`,
-                width: "25%",
+                left: `${sectionIndex * 20}%`,
+                width: "20%",
               }}
               transition={{ type: "spring", stiffness: 500, damping: 35 }}
             />
@@ -559,7 +1021,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
         </div>
       </div>
 
-      {/* Content */}
+      {}
       <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
         <div className="max-w-4xl mx-auto pb-8">
           {isLoading && (
@@ -583,7 +1045,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
 
           {accountSettings && userSettings && (
             <>
-              {/* Account Info Section */}
+              {}
               {activeSection === "account" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
@@ -600,11 +1062,68 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                       description="Your account identity"
                     >
                       <SettingRow label="Username">
-                        <SettingValue
-                          value={accountSettings.Name}
-                          variant="accent"
-                          blur={privacyMode}
-                        />
+                        {!editingUsername ? (
+                          <div className="flex items-center gap-2">
+                            <SettingValue
+                              value={accountSettings.Name}
+                              variant="accent"
+                              blur={privacyMode}
+                            />
+                            <button
+                              onClick={() => {
+                                setEditingUsername(true);
+                                setNewUsername(accountSettings.Name || "");
+                              }}
+                              className="p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--accent-color)] hover:bg-[var(--accent-color)]/10 transition-colors"
+                              title="Change username"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                <Edit2
+                                  size={12}
+                                  className="text-[var(--color-text-muted)]"
+                                />
+                              </div>
+                              <input
+                                value={newUsername}
+                                onChange={(e) => setNewUsername(e.target.value)}
+                                placeholder="new_username"
+                                className="pl-7 pr-2 py-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] text-xs text-[var(--color-text-primary)] w-36 focus:outline-none focus:border-[var(--accent-color)]/60 transition-colors"
+                                autoFocus
+                              />
+                            </div>
+                            <button
+                              onClick={() =>
+                                updateUsernameMutation.mutate({
+                                  username: newUsername,
+                                })
+                              }
+                              disabled={
+                                updateUsernameMutation.isPending ||
+                                !newUsername.trim()
+                              }
+                              className="px-3 py-1.5 bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-xs font-semibold rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity"
+                            >
+                              {updateUsernameMutation.isPending
+                                ? "Saving..."
+                                : "Save"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingUsername(false);
+                                setNewUsername("");
+                              }}
+                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded-full transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
                       </SettingRow>
                       <SettingRow label="Display Name">
                         <SettingValue
@@ -626,7 +1145,9 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                         <SettingBadge
                           enabled={accountSettings.UserAbove13}
                           label={
-                            accountSettings.UserAbove13 ? "13+" : "Under 13"
+                            accountSettings.UserAbove13
+                              ? "13+ (Teen/Adult)"
+                              : "Under 13 (Child)"
                           }
                         />
                       </SettingRow>
@@ -735,15 +1256,68 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                       description="Email and phone settings"
                     >
                       <SettingRow label="Email">
-                        <span className="text-sm text-[var(--color-text-secondary)]">
-                          {accountSettings.UserEmail ? (
-                            accountSettings.UserEmail
-                          ) : (
-                            <span className="text-[var(--color-text-muted)]">
-                              Not set
+                        {!editingEmail ? (
+                          <>
+                            <span className="text-sm text-[var(--color-text-secondary)]">
+                              {accountSettings.UserEmail ? (
+                                accountSettings.UserEmail
+                              ) : (
+                                <span className="text-[var(--color-text-muted)]">
+                                  Not set
+                                </span>
+                              )}
                             </span>
-                          )}
-                        </span>
+                            {accountSettings.IsUpdateEmailSectionShown && (
+                              <button
+                                onClick={() => setEditingEmail(true)}
+                                className="text-sm px-2 py-1 bg-[var(--accent-color)]/20 text-[var(--accent-color)] rounded-[var(--control-radius)] hover:bg-[var(--accent-color)]/30 transition-colors"
+                              >
+                                Change
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                                <Mail
+                                  size={12}
+                                  className="text-[var(--color-text-muted)]"
+                                />
+                              </div>
+                              <input
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                                placeholder="name@example.com"
+                                className="pl-7 pr-2 py-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] text-xs text-[var(--color-text-primary)] w-48 focus:outline-none focus:border-[var(--accent-color)]/60 transition-colors"
+                                autoFocus
+                              />
+                            </div>
+                            <button
+                              onClick={() =>
+                                updateEmailMutation.mutate({ email: newEmail })
+                              }
+                              disabled={
+                                updateEmailMutation.isPending ||
+                                !newEmail.trim()
+                              }
+                              className="px-3 py-1.5 bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-xs font-semibold rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity"
+                            >
+                              {updateEmailMutation.isPending
+                                ? "Saving..."
+                                : "Save"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingEmail(false);
+                                setNewEmail("");
+                              }}
+                              className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded-full transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
                       </SettingRow>
                       <SettingRow label="Email Verified">
                         <div className="flex items-center gap-2">
@@ -827,11 +1401,18 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                         />
                       </SettingRow>
                       <SettingRow label="Content Age Restriction">
-                        <SettingValue
+                        <CustomDropdown
                           value={
                             userSettings.contentAgeRestriction?.currentValue ||
-                            "None"
+                            "NoRestrictions"
                           }
+                          options={CONTENT_RESTRICTION_OPTIONS}
+                          onChange={(v) =>
+                            updateContentRestrictionMutation.mutate(
+                              v as ContentRestrictionLevel,
+                            )
+                          }
+                          isLoading={updateContentRestrictionMutation.isPending}
                         />
                       </SettingRow>
                       <SettingRow label="Display Names">
@@ -878,7 +1459,6 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                 </div>
               )}
 
-              {/* Privacy Section */}
               {activeSection === "privacy" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
@@ -1080,7 +1660,6 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                 </div>
               )}
 
-              {/* Communication Section */}
               {activeSection === "communication" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
@@ -1090,7 +1669,7 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                     Manage chat, notifications, and messaging preferences.
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4 max-w-2xl">
                     <SettingCard
                       icon={<MessageSquare size={18} />}
                       title="Chat Settings"
@@ -1138,43 +1717,97 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                       description="How you receive updates"
                     >
                       <SettingRow label="Group Notifications">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={
                             userSettings.allowEnableGroupNotifications
                               ?.currentValue === "Allowed"
                           }
+                          onClick={() => {
+                            const cur =
+                              userSettings.allowEnableGroupNotifications
+                                ?.currentValue;
+                            updateUserSetting.mutate({
+                              key: "allowEnableGroupNotifications",
+                              value:
+                                cur === "Allowed" ? "NotAllowed" : "Allowed",
+                            });
+                          }}
+                          disabled={updateUserSetting.isPending}
                         />
                       </SettingRow>
                       <SettingRow label="Email Notifications">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={
                             userSettings.allowEnableEmailNotifications
                               ?.currentValue === "Allowed"
                           }
+                          onClick={() => {
+                            const cur =
+                              userSettings.allowEnableEmailNotifications
+                                ?.currentValue;
+                            updateUserSetting.mutate({
+                              key: "allowEnableEmailNotifications",
+                              value:
+                                cur === "Allowed" ? "NotAllowed" : "Allowed",
+                            });
+                          }}
+                          disabled={updateUserSetting.isPending}
                         />
                       </SettingRow>
                       <SettingRow label="Push Notifications">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={
                             userSettings.allowEnablePushNotifications
                               ?.currentValue === "Allowed"
                           }
+                          onClick={() => {
+                            const cur =
+                              userSettings.allowEnablePushNotifications
+                                ?.currentValue;
+                            updateUserSetting.mutate({
+                              key: "allowEnablePushNotifications",
+                              value:
+                                cur === "Allowed" ? "NotAllowed" : "Allowed",
+                            });
+                          }}
+                          disabled={updateUserSetting.isPending}
                         />
                       </SettingRow>
                       <SettingRow label="Experience Notifications">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={
                             userSettings.allowEnableExperienceNotifications
                               ?.currentValue === "Allowed"
                           }
+                          onClick={() => {
+                            const cur =
+                              userSettings.allowEnableExperienceNotifications
+                                ?.currentValue;
+                            updateUserSetting.mutate({
+                              key: "allowEnableExperienceNotifications",
+                              value:
+                                cur === "Allowed" ? "NotAllowed" : "Allowed",
+                            });
+                          }}
+                          disabled={updateUserSetting.isPending}
                         />
                       </SettingRow>
                       <SettingRow label="Marketing Emails">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={
                             userSettings.allowMarketingEmailNotifications
                               ?.currentValue === "Enabled"
                           }
+                          onClick={() => {
+                            const cur =
+                              userSettings.allowMarketingEmailNotifications
+                                ?.currentValue;
+                            updateUserSetting.mutate({
+                              key: "allowMarketingEmailNotifications",
+                              value: cur === "Enabled" ? "Disabled" : "Enabled",
+                            });
+                          }}
+                          disabled={updateUserSetting.isPending}
                         />
                       </SettingRow>
                     </SettingCard>
@@ -1185,11 +1818,19 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                       description="Quiet hours settings"
                     >
                       <SettingRow label="Status">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={
                             userSettings.doNotDisturb?.currentValue ===
                             "Enabled"
                           }
+                          onClick={() => {
+                            const cur = userSettings.doNotDisturb?.currentValue;
+                            updateUserSetting.mutate({
+                              key: "doNotDisturb",
+                              value: cur === "Enabled" ? "Disabled" : "Enabled",
+                            });
+                          }}
+                          disabled={updateUserSetting.isPending}
                         />
                       </SettingRow>
                       {userSettings.doNotDisturbTimeWindow && (
@@ -1209,7 +1850,6 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                 </div>
               )}
 
-              {/* Security Section */}
               {activeSection === "security" && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
@@ -1252,6 +1892,34 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                           }
                         />
                       </SettingRow>
+                      {accountSettings.IsTwoStepToggleEnabled && (
+                        <SettingRow label="Toggle 2FA">
+                          <button
+                            onClick={() =>
+                              toggleTwoStepMutation.mutate({
+                                enable:
+                                  !accountSettings.MyAccountSecurityModel
+                                    .IsTwoStepEnabled,
+                              })
+                            }
+                            disabled={toggleTwoStepMutation.isPending}
+                            className={cn(
+                              "text-sm px-3 py-1.5 rounded-[var(--control-radius)] transition-colors disabled:opacity-50 font-medium",
+                              accountSettings.MyAccountSecurityModel
+                                .IsTwoStepEnabled
+                                ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                : "bg-[var(--accent-color)]/20 text-[var(--accent-color)] hover:bg-[var(--accent-color)]/30",
+                            )}
+                          >
+                            {toggleTwoStepMutation.isPending
+                              ? "Updating..."
+                              : accountSettings.MyAccountSecurityModel
+                                    .IsTwoStepEnabled
+                                ? "Disable 2FA"
+                                : "Enable 2FA"}
+                          </button>
+                        </SettingRow>
+                      )}
                     </SettingCard>
 
                     <SettingCard
@@ -1260,14 +1928,35 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                       description="PIN and restrictions"
                     >
                       <SettingRow label="Account PIN">
-                        <SettingBadge
-                          enabled={accountSettings.IsAccountPinEnabled}
-                          label={
-                            accountSettings.IsAccountPinEnabled
-                              ? "Set"
-                              : "Not Set"
-                          }
-                        />
+                        <div className="flex items-center gap-2">
+                          <SettingBadge
+                            enabled={accountSettings.IsAccountPinEnabled}
+                            label={
+                              accountSettings.IsAccountPinEnabled
+                                ? "Set"
+                                : "Not Set"
+                            }
+                          />
+                          <button
+                            onClick={() =>
+                              setPinChallenge({
+                                action: accountSettings.IsAccountPinEnabled
+                                  ? "unlock"
+                                  : "lock",
+                              })
+                            }
+                            className={cn(
+                              "text-xs px-2 py-1 rounded-[var(--control-radius)] font-medium transition-colors",
+                              accountSettings.IsAccountPinEnabled
+                                ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                                : "bg-[var(--accent-color)]/20 text-[var(--accent-color)] hover:bg-[var(--accent-color)]/30",
+                            )}
+                          >
+                            {accountSettings.IsAccountPinEnabled
+                              ? "Unlock PIN"
+                              : "Lock PIN"}
+                          </button>
+                        </div>
                       </SettingRow>
                       <SettingRow label="Account Restrictions">
                         <SettingBadge
@@ -1284,8 +1973,16 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                         />
                       </SettingRow>
                       <SettingRow label="Super Safe Privacy Mode">
-                        <SettingBadge
+                        <ToggleSwitch
                           enabled={accountSettings.UseSuperSafePrivacyMode}
+                          onClick={() =>
+                            updateSuperSafePrivacyModeMutation.mutate(
+                              !accountSettings.UseSuperSafePrivacyMode,
+                            )
+                          }
+                          disabled={
+                            updateSuperSafePrivacyModeMutation.isPending
+                          }
                         />
                       </SettingRow>
                     </SettingCard>
@@ -1318,13 +2015,19 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                         />
                       </SettingRow>
                       <SettingRow label="Sign Out All Sessions">
-                        <SettingBadge
-                          enabled={
-                            accountSettings.MyAccountSecurityModel
+                        <button
+                          onClick={() => signOutAllSessionsMutation.mutate()}
+                          disabled={
+                            signOutAllSessionsMutation.isPending ||
+                            !accountSettings.MyAccountSecurityModel
                               .ShowSignOutFromAllSessions
                           }
-                          label="Available"
-                        />
+                          className="text-sm px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-[var(--control-radius)] transition-colors disabled:opacity-50 font-medium"
+                        >
+                          {signOutAllSessionsMutation.isPending
+                            ? "Signing out..."
+                            : "Sign Out"}
+                        </button>
                       </SettingRow>
                     </SettingCard>
 
@@ -1366,10 +2069,270 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                   </div>
                 </div>
               )}
+
+              {activeSection === "standing" && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity
+                      size={20}
+                      className="text-[var(--accent-color)]"
+                    />
+                    <h2 className="text-xl font-bold text-[var(--color-text-primary)]">
+                      Account Standing
+                    </h2>
+                  </div>
+
+                  {standingLoading ? (
+                    <div className="flex justify-center p-8">
+                      <div className="w-8 h-8 rounded-full border-2 border-[var(--accent-color)] border-t-transparent animate-spin" />
+                    </div>
+                  ) : accountStandingData ? (
+                    <div className="space-y-4">
+                      <SettingCard
+                        icon={<Activity size={18} />}
+                        title="Moderation Status"
+                      >
+                        <SettingRow label="Status">
+                          <div className="flex items-center gap-2">
+                            {accountStandingData.statusInfo?.status ===
+                            "all_good" ? (
+                              <CheckCircle
+                                size={16}
+                                className="text-green-500"
+                              />
+                            ) : accountStandingData.statusInfo?.status ===
+                              "critical" ? (
+                              <AlertTriangle
+                                size={16}
+                                className="text-red-500"
+                              />
+                            ) : (
+                              <AlertTriangle
+                                size={16}
+                                className="text-yellow-500"
+                              />
+                            )}
+                            <span
+                              className={cn(
+                                "text-sm font-medium",
+                                accountStandingData.statusInfo?.status ===
+                                  "critical"
+                                  ? "text-red-500"
+                                  : "text-[var(--color-text-primary)]",
+                              )}
+                            >
+                              {accountStandingData.statusInfo?.status ||
+                                "Unknown"}
+                            </span>
+                          </div>
+                        </SettingRow>
+                        {accountStandingData.statusInfo?.statusDescription && (
+                          <SettingRow label="Description">
+                            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                              {accountStandingData.statusInfo.statusDescription}
+                            </span>
+                          </SettingRow>
+                        )}
+                        {accountStandingData.worstPlatformIntervention && (
+                          <SettingRow label="Platform Intervention">
+                            <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+                              {JSON.stringify(
+                                accountStandingData.worstPlatformIntervention,
+                              )}
+                            </span>
+                          </SettingRow>
+                        )}
+                      </SettingCard>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm flex items-center justify-center">
+                      Failed to load account standing data.
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
+
+      {twoFaChallenge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[var(--color-surface)]/90 backdrop-blur-xl border border-[var(--color-border-strong)] rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-[var(--accent-color)]/15 flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.15)]">
+                <KeyRound size={24} className="text-[var(--accent-color)]" />
+              </div>
+              <h3 className="text-xl font-bold text-[var(--color-text-primary)]">
+                Verification Required
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)] mt-1">
+                Roblox requires a 6-digit{" "}
+                {twoFaChallenge.type === "twostepverification"
+                  ? "authenticator"
+                  : "email"}{" "}
+                code to continue.
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-2 mb-6">
+              {[0, 1, 2, 3, 4, 5].map((index) => (
+                <input
+                  key={index}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={twoFaCode[index] || ""}
+                  onChange={(e) => {
+                    const char = e.target.value.replace(/\D/g, "");
+                    const newCode = twoFaCode.split("");
+                    newCode[index] = char;
+                    const finalCode = newCode.join("").slice(0, 6);
+                    setTwoFaCode(finalCode);
+
+                    if (char && index < 5) {
+                      const nextInput = document.getElementById(
+                        `twofa-${index + 1}`,
+                      );
+                      if (nextInput) nextInput.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Backspace" &&
+                      !twoFaCode[index] &&
+                      index > 0
+                    ) {
+                      const prevInput = document.getElementById(
+                        `twofa-${index - 1}`,
+                      );
+                      if (prevInput) prevInput.focus();
+                    } else if (e.key === "Enter" && twoFaCode.length >= 6) {
+                      verifyChallengeMutation.mutate({
+                        id: twoFaChallenge.id,
+                        type: twoFaChallenge.type,
+                        metadata: twoFaChallenge.metadata,
+                        code: twoFaCode,
+                      });
+                    }
+                  }}
+                  id={`twofa-${index}`}
+                  className="w-10 h-12 text-center text-xl font-bold rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--accent-color)]/60 focus:bg-[var(--color-surface)] transition-all shadow-inner"
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setTwoFaChallenge(null);
+                  setTwoFaCode("");
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  verifyChallengeMutation.mutate({
+                    id: twoFaChallenge.id,
+                    type: twoFaChallenge.type,
+                    metadata: twoFaChallenge.metadata,
+                    code: twoFaCode,
+                  })
+                }
+                disabled={
+                  verifyChallengeMutation.isPending || twoFaCode.length < 6
+                }
+                className="flex-1 py-2.5 rounded-xl bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-sm font-bold hover:brightness-110 disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(var(--accent-color-rgb),0.2)]"
+              >
+                {verifyChallengeMutation.isPending ? "Verifying..." : "Verify"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pinChallenge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[var(--color-surface)]/90 backdrop-blur-xl border border-[var(--color-border-strong)] rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-[var(--accent-color)]/15 flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(var(--accent-color-rgb),0.15)]">
+                <Lock size={24} className="text-[var(--accent-color)]" />
+              </div>
+              <h3 className="text-xl font-bold text-[var(--color-text-primary)]">
+                Account PIN
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)] mt-1">
+                Enter your 4-digit Account PIN to{" "}
+                {pinChallenge.action === "lock" ? "lock" : "unlock"} this
+                setting.
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-3 mb-6">
+              {[0, 1, 2, 3].map((index) => (
+                <input
+                  key={index}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={pinCode[index] || ""}
+                  onChange={(e) => {
+                    const char = e.target.value.replace(/\D/g, "");
+                    const newCode = pinCode.split("");
+                    newCode[index] = char;
+                    const finalCode = newCode.join("").slice(0, 4);
+                    setPinCode(finalCode);
+
+                    if (char && index < 3) {
+                      const nextInput = document.getElementById(
+                        `pin-${index + 1}`,
+                      );
+                      if (nextInput) nextInput.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace" && !pinCode[index] && index > 0) {
+                      const prevInput = document.getElementById(
+                        `pin-${index - 1}`,
+                      );
+                      if (prevInput) prevInput.focus();
+                    } else if (e.key === "Enter" && pinCode.length >= 4) {
+                    }
+                  }}
+                  id={`pin-${index}`}
+                  className="w-12 h-14 text-center text-2xl font-bold rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--accent-color)]/60 focus:bg-[var(--color-surface)] transition-all shadow-inner"
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setPinChallenge(null);
+                  setPinCode("");
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setPinEnabledMutation.mutate({
+                    action: pinChallenge.action,
+                    pin: pinCode,
+                  });
+                }}
+                disabled={pinCode.length < 4 || setPinEnabledMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-sm font-bold hover:brightness-110 disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(var(--accent-color-rgb),0.2)]"
+              >
+                {setPinEnabledMutation.isPending ? "Saving..." : "Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

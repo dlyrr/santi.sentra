@@ -27,7 +27,6 @@ const BulkActionModal: React.FC<BulkActionModalProps> = ({
 }) => {
   const [targetIdStr, setTargetIdStr] = useState("");
 
-  // Reset input when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setTargetIdStr("");

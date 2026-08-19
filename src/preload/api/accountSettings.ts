@@ -5,10 +5,11 @@ import * as S from "../../shared/ipc-schemas/accountSettings";
 const updateResultSchema = z.object({
   success: z.boolean(),
   error: z.string().optional(),
+  challenge: z.any().optional(),
+  verificationToken: z.string().optional(),
 });
 
 export const accountSettingsApi = {
-  // GET methods
   getAccountSettingsJson: (cookie: string) =>
     invoke("get-account-settings-json", S.accountSettingsJsonSchema, cookie),
 
@@ -29,7 +30,6 @@ export const accountSettingsApi = {
   getThemeTypes: (cookie: string) =>
     invoke("get-theme-types", z.array(z.string()), cookie),
 
-  // UPDATE methods
   updateInventoryPrivacy: (cookie: string, privacyLevel: S.PrivacyLevel) =>
     invoke(
       "update-inventory-privacy",
@@ -82,31 +82,98 @@ export const accountSettingsApi = {
       privacy,
     ),
 
+  updateUserSetting: (cookie: string, key: string, value: string) =>
+    invoke("update-user-setting", updateResultSchema, cookie, key, value),
+  updateEmail: (
+    cookie: string,
+    email: string,
+    metadata?: string,
+    id?: string,
+    type?: string,
+  ) =>
+    invoke(
+      "update-email",
+      updateResultSchema,
+      cookie,
+      email,
+      metadata,
+      id,
+      type,
+    ),
+
+  updateUsername: (
+    cookie: string,
+    userId: number,
+    username: string,
+    metadata?: string,
+    id?: string,
+    type?: string,
+  ) =>
+    invoke(
+      "update-username",
+      updateResultSchema,
+      cookie,
+      userId,
+      username,
+      metadata,
+      id,
+      type,
+    ),
+
+  toggleTwoStep: (
+    cookie: string,
+    userId: number,
+    enable: boolean,
+    metadata?: string,
+    id?: string,
+    type?: string,
+  ) =>
+    invoke(
+      "toggle-twostep",
+      updateResultSchema,
+      cookie,
+      userId,
+      enable,
+      metadata,
+      id,
+      type,
+    ),
+
+  verifyChallenge: (
+    cookie: string,
+    id: string,
+    type: string,
+    metadata: string,
+    code: string,
+  ) =>
+    invoke(
+      "verify-challenge",
+      updateResultSchema,
+      cookie,
+      id,
+      type,
+      metadata,
+      code,
+    ),
+
   sendVerificationEmail: (cookie: string, freeItem?: boolean) =>
     invoke("send-verification-email", updateResultSchema, cookie, freeItem),
 
   redeemPromoCode: (cookie: string, code: string) =>
     invoke("redeem-promo-code", S.redeemPromoCodeResponseSchema, cookie, code),
 
-  // ============================================================================
-  // ACCOUNT INFORMATION API METHODS
-  // ============================================================================
-
-  // Description methods
   getDescription: (cookie: string) =>
     invoke("get-description", S.descriptionResponseSchema, cookie),
 
   updateDescription: (cookie: string, description: string) =>
     invoke("update-description", updateResultSchema, cookie, description),
 
-  // Gender methods
   getGender: (cookie: string) =>
     invoke("get-gender", S.genderResponseSchema, cookie),
 
   updateGender: (cookie: string, gender: string) =>
     invoke("update-gender", updateResultSchema, cookie, gender),
 
-  // Birthdate methods
   getBirthdate: (cookie: string) =>
     invoke("get-birthdate", S.birthdateResponseSchema, cookie),
 
@@ -125,7 +192,6 @@ export const accountSettingsApi = {
       birthYear,
     ),
 
-  // Promotion channels methods
   getPromotionChannels: (cookie: string) =>
     invoke("get-promotion-channels", S.promotionChannelsResponseSchema, cookie),
 
@@ -140,4 +206,21 @@ export const accountSettingsApi = {
     },
   ) =>
     invoke("update-promotion-channels", updateResultSchema, cookie, channels),
+
+  getAccountStanding: (cookie: string) =>
+    invoke("get-account-standing", S.accountStandingResponseSchema, cookie),
+
+  signOutAllSessions: (cookie: string) =>
+    invoke("sign-out-all-sessions", updateResultSchema, cookie),
+
+  setPinEnabled: (cookie: string, action: "lock" | "unlock", pin?: string) =>
+    invoke("set-pin-enabled", updateResultSchema, cookie, action, pin),
+
+  updateSuperSafePrivacyMode: (cookie: string, enabled: boolean) =>
+    invoke(
+      "update-super-safe-privacy-mode",
+      updateResultSchema,
+      cookie,
+      enabled,
+    ),
 };

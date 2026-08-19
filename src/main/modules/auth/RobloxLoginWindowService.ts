@@ -2,12 +2,13 @@ import {
   BrowserWindow,
   BrowserWindowConstructorOptions,
   session,
-  shell,
   BrowserView,
   ipcMain,
 } from "electron";
 import type { Cookie, Event as ElectronEvent } from "electron";
+import { randomUUID } from "crypto";
 import { UserAgentService } from "./UserAgentService";
+import { openExternalSafely, normalizeWebUrl } from "../../lib/safeShell";
 
 export class RobloxLoginWindowService {
   private static readonly PARTITION = "persist:roblox-login";
@@ -28,6 +29,61 @@ export class RobloxLoginWindowService {
 
   private static loginWindow: BrowserWindow | null = null;
   private static pendingPromise: Promise<string> | null = null;
+
+  private static lockToolbarView(toolbarView: BrowserView): void {
+    const wc = toolbarView.webContents;
+    wc.on("will-navigate", (event) => {
+      event.preventDefault();
+      console.warn("[Toolbar] Blocked navigation attempt in toolbar view");
+    });
+    wc.on("will-redirect", (event) => {
+      event.preventDefault();
+    });
+    wc.setWindowOpenHandler(() => ({ action: "deny" }));
+    wc.on("will-attach-webview", (event) => {
+      event.preventDefault();
+    });
+  }
+
+  private static toolbarHtml(channel: string): string {
+    return `<!doctype html>
+          <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+            <style>
+              :root{ --bg:#0b0b0b; --btn:#1a1a1a; --btn-border:#333; --btn-hover:#252525; --text:#ddd; --accent:75,140,255 }
+              body { margin:0; background:var(--bg); color:var(--text); font-family:Inter, Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased }
+              .bar { height:40px; display:flex; align-items:center; gap:8px; padding:6px; box-sizing:border-box; opacity:0; transform:translateY(-6px); animation:toolbarFade 220ms ease forwards }
+              button{ background:var(--btn); border:1px solid var(--btn-border); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; transition:transform 140ms cubic-bezier(.2,.9,.2,1), background-color 140ms, box-shadow 140ms; box-shadow:0 3px 8px rgba(0,0,0,0.35); display:inline-flex; align-items:center; justify-content:center; font-weight:600 }
+              button:hover{ transform:translateY(-2px); background:var(--btn-hover); box-shadow:0 8px 20px rgba(0,0,0,0.45) }
+              button:active{ transform:translateY(0) scale(0.985) }
+              button:disabled{ opacity:.45; transform:none; cursor:not-allowed; box-shadow:none }
+              input{ flex:1; padding:8px 10px; border-radius:10px; border:1px solid #2b2b2b; background:#0f0f0f; color:#fff; transition:box-shadow 140ms, border-color 140ms, transform 140ms; outline:none }
+              input:focus{ box-shadow:0 6px 24px rgba(var(--accent),0.12); border-color: rgba(75,140,255,0.6); transform:translateY(-1px) }
+              @keyframes toolbarFade{ to{ opacity:1; transform:translateY(0) } }
+            </style>
+          </head>
+          <body>
+            <div class="bar">
+              <button id="back">◀</button>
+              <button id="forward">▶</button>
+              <button id="reload">⟳</button>
+              <input id="url" placeholder="https://example.com" />
+              <button id="go">Go</button>
+            </div>
+            <script>
+              const { ipcRenderer } = require('electron')
+              const $ = (id) => document.getElementById(id)
+              $('back').addEventListener('click', () => ipcRenderer.send('${channel}', 'back'))
+              $('forward').addEventListener('click', () => ipcRenderer.send('${channel}', 'forward'))
+              $('reload').addEventListener('click', () => ipcRenderer.send('${channel}', 'reload'))
+              $('go').addEventListener('click', () => { const v = $('url').value || ''; ipcRenderer.send('${channel}', 'load', v) })
+              $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click() })
+            </script>
+          </body>
+          </html>`;
+  }
 
   static async openLoginWindow(): Promise<string> {
     if (this.pendingPromise) {
@@ -166,7 +222,7 @@ export class RobloxLoginWindowService {
         });
 
         this.loginWindow.webContents.setWindowOpenHandler(({ url }) => {
-          shell.openExternal(url);
+          openExternalSafely(url);
           return { action: "deny" };
         });
 
@@ -218,7 +274,7 @@ export class RobloxLoginWindowService {
     windowWidth?: number,
     windowHeight?: number,
   ): Promise<void> {
-    const partition = `persist:account-browser-${Date.now()}`;
+    const partition = `account-browser-${randomUUID()}`;
     const browserSession = session.fromPartition(partition, { cache: true });
 
     let browserWindow: BrowserWindow | null = null;
@@ -317,10 +373,21 @@ export class RobloxLoginWindowService {
       resizeViews();
       browserWindow.on("resize", resizeViews);
 
-      const ipcChannel = "sentra-browser-cmd";
+      const ipcChannel = `sentra-browser-cmd-${randomUUID()}`;
 
-      const ipcHandler = (_event: any, cmd: string, payload?: any) => {
-        if (!contentView?.webContents) return;
+      const ipcHandler = (
+        event: Electron.IpcMainEvent,
+        cmd: string,
+        payload?: any,
+      ) => {
+        if (
+          toolbarView.webContents.isDestroyed() ||
+          event.sender !== toolbarView.webContents
+        ) {
+          return;
+        }
+        if (!contentView?.webContents || contentView.webContents.isDestroyed())
+          return;
         switch (cmd) {
           case "back":
             if (contentView.webContents.canGoBack())
@@ -335,9 +402,12 @@ export class RobloxLoginWindowService {
             break;
           case "load":
             if (typeof payload === "string") {
-              let u = payload.trim();
-              if (!/^https?:\/\//i.test(u)) u = "https://" + u;
-              contentView.webContents.loadURL(u);
+              const target = normalizeWebUrl(payload);
+              if (!target) {
+                console.warn("[Browser] Rejected non-web address bar input");
+                break;
+              }
+              void contentView.webContents.loadURL(target);
             }
             break;
         }
@@ -345,55 +415,16 @@ export class RobloxLoginWindowService {
 
       ipcMain.on(ipcChannel, ipcHandler);
 
-      // Load a minimal toolbar UI into the toolbar BrowserView so navigation controls are visible.
       try {
-        const toolbarHTML = `<!doctype html>
-          <html>
-          <head>
-            <meta charset="utf-8" />
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'unsafe-eval'; connect-src *;">
-            <style>
-              :root{ --bg:#0b0b0b; --btn:#1a1a1a; --btn-border:#333; --btn-hover:#252525; --text:#ddd; --accent:75,140,255 }
-              body { margin:0; background:var(--bg); color:var(--text); font-family:Inter, Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased }
-              .bar { height:40px; display:flex; align-items:center; gap:8px; padding:6px; box-sizing:border-box; opacity:0; transform:translateY(-6px); animation:toolbarFade 220ms ease forwards }
-              button{ background:var(--btn); border:1px solid var(--btn-border); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; transition:transform 140ms cubic-bezier(.2,.9,.2,1), background-color 140ms, box-shadow 140ms; box-shadow:0 3px 8px rgba(0,0,0,0.35); display:inline-flex; align-items:center; justify-content:center; font-weight:600 }
-              button:hover{ transform:translateY(-2px); background:var(--btn-hover); box-shadow:0 8px 20px rgba(0,0,0,0.45) }
-              button:active{ transform:translateY(0) scale(0.985) }
-              button:disabled{ opacity:.45; transform:none; cursor:not-allowed; box-shadow:none }
-              input{ flex:1; padding:8px 10px; border-radius:10px; border:1px solid #2b2b2b; background:#0f0f0f; color:#fff; transition:box-shadow 140ms, border-color 140ms, transform 140ms; outline:none }
-              input:focus{ box-shadow:0 6px 24px rgba(var(--accent),0.12); border-color: rgba(75,140,255,0.6); transform:translateY(-1px) }
-              @keyframes toolbarFade{ to{ opacity:1; transform:translateY(0) } }
-            </style>
-          </head>
-          <body>
-            <div class="bar">
-              <button id="back">◀</button>
-              <button id="forward">▶</button>
-              <button id="reload">⟳</button>
-              <input id="url" placeholder="https://example.com" />
-              <button id="go">Go</button>
-            </div>
-            <script>
-              const { ipcRenderer } = require('electron')
-              const $ = (id) => document.getElementById(id)
-              $('back').addEventListener('click', () => ipcRenderer.send('${ipcChannel}', 'back'))
-              $('forward').addEventListener('click', () => ipcRenderer.send('${ipcChannel}', 'forward'))
-              $('reload').addEventListener('click', () => ipcRenderer.send('${ipcChannel}', 'reload'))
-              $('go').addEventListener('click', () => { const v = $('url').value || ''; ipcRenderer.send('${ipcChannel}', 'load', v) })
-              $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click() })
-            </script>
-          </body>
-          </html>`;
-
+        this.lockToolbarView(toolbarView);
         await toolbarView.webContents.loadURL(
-          "data:text/html;charset=utf-8," + encodeURIComponent(toolbarHTML),
+          "data:text/html;charset=utf-8," +
+            encodeURIComponent(this.toolbarHtml(ipcChannel)),
         );
       } catch (err) {
-        // Non-fatal: if toolbar fails to load, continue without it
         console.warn("[RobloxLoginWindow] Failed to load toolbar UI", err);
       }
 
-      // Update toolbar button enabled state when navigation events occur in the content view
       const updateToolbarButtons = async () => {
         try {
           if (!toolbarView?.webContents || !contentView?.webContents) return;
@@ -425,27 +456,20 @@ export class RobloxLoginWindowService {
         ipcMain.removeListener(ipcChannel, ipcHandler);
       });
 
-      // Handle popup / new tab requests from content page - open in external browser
       contentView.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url);
+        openExternalSafely(url);
         return { action: "deny" };
       });
 
-      // Handle navigation failures gracefully - only close on truly fatal errors
       contentView.webContents.on(
         "did-fail-load",
         (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-          // Ignore common non-fatal error codes:
-          // -3 = ERR_ABORTED (navigation cancelled, e.g. redirect)
-          // -6 = ERR_FILE_NOT_FOUND (url paste mid-type)
-          // -102 = ERR_CONNECTION_REFUSED (temp network issue)
           const nonFatalCodes = new Set([-3, -6, -102, -105, -106, -118]);
           if (isMainFrame && !nonFatalCodes.has(errorCode)) {
             console.warn(
               `[Browser] Load failed (${errorCode}): ${errorDescription} @ ${validatedURL}`,
             );
           }
-          // Never close the window on load failure - let user retry
         },
       );
 
@@ -455,8 +479,6 @@ export class RobloxLoginWindowService {
           userAgent: browserWindow.webContents.getUserAgent(),
         });
       } catch (loadError) {
-        // Non-fatal: URL load errors shouldn't close the browser window
-        // The user can still navigate using the toolbar
         console.warn(
           "[Browser] Initial URL load error (window still open):",
           loadError,
@@ -477,10 +499,6 @@ export class RobloxLoginWindowService {
     }
   }
 
-  /**
-   * Open signup browser with custom toolbar for account generation
-   * Returns the BrowserWindow and allows Playwright to interact with it
-   */
   static async openSignupBrowser(
     windowWidth?: number,
     windowHeight?: number,
@@ -490,7 +508,7 @@ export class RobloxLoginWindowService {
     webContents: any;
     partition: string;
   }> {
-    const partition = `persist:signup-${Date.now()}`;
+    const partition = `signup-${randomUUID()}`;
     const signupSession = session.fromPartition(partition, { cache: true });
 
     let browserWindow: BrowserWindow | null = null;
@@ -566,10 +584,21 @@ export class RobloxLoginWindowService {
       resizeViews();
       browserWindow.on("resize", resizeViews);
 
-      const ipcChannel = "sentra-signup-browser-cmd";
+      const ipcChannel = `sentra-signup-browser-cmd-${randomUUID()}`;
 
-      const ipcHandler = (_event: any, cmd: string, payload?: any) => {
-        if (!contentView?.webContents) return;
+      const ipcHandler = (
+        event: Electron.IpcMainEvent,
+        cmd: string,
+        payload?: any,
+      ) => {
+        if (
+          toolbarView.webContents.isDestroyed() ||
+          event.sender !== toolbarView.webContents
+        ) {
+          return;
+        }
+        if (!contentView?.webContents || contentView.webContents.isDestroyed())
+          return;
         switch (cmd) {
           case "back":
             if (contentView.webContents.canGoBack())
@@ -584,9 +613,14 @@ export class RobloxLoginWindowService {
             break;
           case "load":
             if (typeof payload === "string") {
-              let u = payload.trim();
-              if (!/^https?:\/\//i.test(u)) u = "https://" + u;
-              contentView.webContents.loadURL(u);
+              const target = normalizeWebUrl(payload);
+              if (!target) {
+                console.warn(
+                  "[SignupBrowser] Rejected non-web address bar input",
+                );
+                break;
+              }
+              void contentView.webContents.loadURL(target);
             }
             break;
         }
@@ -594,54 +628,16 @@ export class RobloxLoginWindowService {
 
       ipcMain.on(ipcChannel, ipcHandler);
 
-      // Load toolbar UI (same as openBrowserWithAccount)
       try {
-        const toolbarHTML = `<!doctype html>
-          <html>
-          <head>
-            <meta charset="utf-8" />
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'unsafe-eval'; connect-src *;">
-            <style>
-              :root{ --bg:#0b0b0b; --btn:#1a1a1a; --btn-border:#333; --btn-hover:#252525; --text:#ddd; --accent:75,140,255 }
-              body { margin:0; background:var(--bg); color:var(--text); font-family:Inter, Arial, Helvetica, sans-serif; -webkit-font-smoothing:antialiased }
-              .bar { height:40px; display:flex; align-items:center; gap:8px; padding:6px; box-sizing:border-box; opacity:0; transform:translateY(-6px); animation:toolbarFade 220ms ease forwards }
-              button{ background:var(--btn); border:1px solid var(--btn-border); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; transition:transform 140ms cubic-bezier(.2,.9,.2,1), background-color 140ms, box-shadow 140ms; box-shadow:0 3px 8px rgba(0,0,0,0.35); display:inline-flex; align-items:center; justify-content:center; font-weight:600 }
-              button:hover{ transform:translateY(-2px); background:var(--btn-hover); box-shadow:0 8px 20px rgba(0,0,0,0.45) }
-              button:active{ transform:translateY(0) scale(0.985) }
-              button:disabled{ opacity:.45; transform:none; cursor:not-allowed; box-shadow:none }
-              input{ flex:1; padding:8px 10px; border-radius:10px; border:1px solid #2b2b2b; background:#0f0f0f; color:#fff; transition:box-shadow 140ms, border-color 140ms, transform 140ms; outline:none }
-              input:focus{ box-shadow:0 6px 24px rgba(var(--accent),0.12); border-color: rgba(75,140,255,0.6); transform:translateY(-1px) }
-              @keyframes toolbarFade{ to{ opacity:1; transform:translateY(0) } }
-            </style>
-          </head>
-          <body>
-            <div class="bar">
-              <button id="back">◀</button>
-              <button id="forward">▶</button>
-              <button id="reload">⟳</button>
-              <input id="url" placeholder="https://example.com" />
-              <button id="go">Go</button>
-            </div>
-            <script>
-              const { ipcRenderer } = require('electron')
-              const $ = (id) => document.getElementById(id)
-              $('back').addEventListener('click', () => ipcRenderer.send('${ipcChannel}', 'back'))
-              $('forward').addEventListener('click', () => ipcRenderer.send('${ipcChannel}', 'forward'))
-              $('reload').addEventListener('click', () => ipcRenderer.send('${ipcChannel}', 'reload'))
-              $('go').addEventListener('click', () => { const v = $('url').value || ''; ipcRenderer.send('${ipcChannel}', 'load', v) })
-              $('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('go').click() })
-            </script>
-          </body>
-          </html>`;
-
+        this.lockToolbarView(toolbarView);
         await toolbarView.webContents.loadURL(
-          "data:text/html;charset=utf-8," + encodeURIComponent(toolbarHTML),
+          "data:text/html;charset=utf-8," +
+            encodeURIComponent(this.toolbarHtml(ipcChannel)),
         );
       } catch (err) {
         console.warn("[RobloxSignupBrowser] Failed to load toolbar UI", err);
       }
 
-      // Update toolbar buttons
       const updateToolbarButtons = async () => {
         try {
           if (!toolbarView?.webContents || !contentView?.webContents) return;
@@ -673,7 +669,6 @@ export class RobloxLoginWindowService {
         ipcMain.removeListener(ipcChannel, ipcHandler);
       });
 
-      // Load signup page in content view
       await contentView.webContents.loadURL("https://www.roblox.com/signup", {
         httpReferrer: "https://www.roblox.com/",
         userAgent: browserWindow.webContents.getUserAgent(),
