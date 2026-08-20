@@ -54,7 +54,6 @@ export const CreateInstallationModal: React.FC<
 
   const availableVersions = freshHistory[getApiType(newType)] || [];
 
-  // Reset form when modal opens and load versions
   useEffect(() => {
     if (isOpen && !isInstalling) {
       setActiveTab(initialTab);
@@ -63,7 +62,7 @@ export const CreateInstallationModal: React.FC<
       setNewVersion("");
       setNewChannel("live");
       setCustomPath("");
-      // Force fresh deploy history fetch when modal opens (includes macOS versions)
+
       (async () => {
         try {
           const freshData = await window.api.getDeployHistory(true);
@@ -112,7 +111,7 @@ export const CreateInstallationModal: React.FC<
       if (!version) {
         return;
       }
-      // Pass customPath as undefined if not set; onCreate expects optional string or undefined
+
       onCreate(newName, newType, version, newChannel, customPath || undefined);
     }
   };
@@ -178,7 +177,7 @@ export const CreateInstallationModal: React.FC<
               </div>
             </div>
 
-            {/* Installation Mode Tabs */}
+            {}
             <div className="pt-2 border-t border-[var(--color-border)]">
               <div className="flex gap-2 mb-4">
                 <button
@@ -205,7 +204,7 @@ export const CreateInstallationModal: React.FC<
                 </button>
               </div>
 
-              {/* Auto Install Tab */}
+              {}
               {activeTab === "auto" && (
                 <div className="grid grid-cols-2 gap-4 space-y-4">
                   <div className="space-y-2">
@@ -251,7 +250,7 @@ export const CreateInstallationModal: React.FC<
                 </div>
               )}
 
-              {/* Custom Path Tab */}
+              {}
               {activeTab === "custom" && (
                 <div className="space-y-3">
                   <p className="text-xs text-[var(--color-text-muted)]">
@@ -314,9 +313,9 @@ export const CreateInstallationModal: React.FC<
                       {installProgress.status} ({installProgress.percent}%)
                     </span>
                   </div>
-                  <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+                  <div className="w-full h-1 bg-[var(--accent-color-foreground)]/20 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-white transition-all duration-300"
+                      className="h-full bg-[var(--accent-color-foreground)] transition-all duration-300"
                       style={{ width: `${installProgress.percent}%` }}
                     />
                   </div>

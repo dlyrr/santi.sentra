@@ -85,11 +85,9 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [showHierarchy, setShowHierarchy] = useState(false);
 
-  // Rolimons data
   const { isLoading: _rolimonsLoading } = useRolimonsData();
   const rolimonsItem = useRolimonsItem(currentAssetId);
 
-  // Custom hooks - TanStack Query based
   const {
     details,
     recommendations,
@@ -103,8 +101,6 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
     isOpen,
   );
 
-  // Determine if this is a limited item for fetching detailed Rolimons page data
-  // This must be after useAssetDetails since we need details
   const isLimited =
     details?.isLimited || details?.isLimitedUnique || !!rolimonsItem;
   const { data: rolimonsPageData, isLoading: rolimonsPageLoading } =
@@ -141,7 +137,6 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
     handleRevertTryOn,
   } = useTryOn(currentAssetId, account);
 
-  // Resale data query - TanStack Query handles fetching automatically
   const isLimitedForResale = details?.isLimited || details?.isLimitedUnique;
   const { data: resaleData, isLoading: resaleDataLoading } = useResaleDataQuery(
     {
@@ -154,44 +149,50 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
     },
   );
 
-  // Initialize state when modal opens (always update id/image even if not logged in)
   useEffect(() => {
-    if (isOpen && assetId) {
-      setCurrentAssetId(assetId);
-      setCurrentImageUrl(initialData?.imageUrl || null);
-      setHas3DView(true);
-      setViewMode("3d");
+    if (!isOpen || !assetId) return;
 
-      if (account?.cookie) {
-        getSalesData(assetId).then(setSalesData);
-      } else {
-        setSalesData(null);
-      }
+    let cancelled = false;
+
+    setCurrentAssetId(assetId);
+    setCurrentImageUrl(initialData?.imageUrl || null);
+    setHas3DView(true);
+    setViewMode("3d");
+
+    if (account?.cookie) {
+      getSalesData(assetId).then(setSalesData);
+    } else {
+      setSalesData(null);
     }
+
+    if (!initialData?.imageUrl) {
+      (window as any).api
+        .getBatchThumbnails([assetId])
+        .then((res: any) => {
+          if (cancelled) return;
+          const url = res?.data?.[0]?.imageUrl;
+          if (url) setCurrentImageUrl(url);
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, assetId, account?.cookie, initialData?.imageUrl]);
 
-  // TanStack Query handles fetching automatically when currentAssetId changes
-  // No need for manual useEffect to trigger fetch
-
-  // Update 3D view support based on asset type when details load
   useEffect(() => {
     if (details?.AssetTypeId != null) {
-      const supports3D = ASSET_TYPES_WITH_3D_MODELS.has(details.AssetTypeId);
-      setHas3DView(supports3D);
-      if (!supports3D && viewMode === "3d") {
-        setViewMode("2d");
-      }
+      setHas3DView(ASSET_TYPES_WITH_3D_MODELS.has(details.AssetTypeId));
     }
-  }, [details?.AssetTypeId, viewMode]);
+  }, [details?.AssetTypeId]);
 
-  // Ensure view mode is 2D if 3D is not available
   useEffect(() => {
     if (!has3DView && viewMode === "3d") {
       setViewMode("2d");
     }
   }, [has3DView, viewMode]);
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setViewMode("3d");
@@ -201,7 +202,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
       setSalesData(null);
       setCreatorAvatarUrl(null);
       setActiveTab("info");
-      // Note: resaleData is managed by TanStack Query, no need to reset manually
+
       setImageContextMenu(null);
       setShowCreatorProfile(false);
       setCreatorProfileId(null);
@@ -211,7 +212,6 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
     }
   }, [isOpen]);
 
-  // Fetch creator avatar when details change
   useEffect(() => {
     if (details?.creatorType === "User" && details.creatorTargetId) {
       (window as any).api
@@ -223,12 +223,10 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
     }
   }, [details?.creatorTargetId, details?.creatorType]);
 
-  // Refresh owners after purchase
   const handleBuyResellerWithRefresh = async (reseller: any) => {
     await handleBuyReseller(reseller);
-    // Refresh owners after purchase
+
     if (currentAssetId && account?.cookie) {
-      // Owners will be refreshed automatically via useAssetOwners hook
     }
   };
 
@@ -257,7 +255,10 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
         console.error("Failed to download OBJ");
       }
     } catch (err: any) {
-      showNotification(`Failed to download OBJ: ${err.message || String(err)}`, "error");
+      showNotification(
+        `Failed to download OBJ: ${err.message || String(err)}`,
+        "error",
+      );
       console.error("Failed to download OBJ:", err);
     }
   };
@@ -274,7 +275,10 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
         console.error("Failed to download texture");
       }
     } catch (err: any) {
-      showNotification(`Failed to download texture: ${err.message || String(err)}`, "error");
+      showNotification(
+        `Failed to download texture: ${err.message || String(err)}`,
+        "error",
+      );
       console.error("Failed to download texture:", err);
     }
   };
@@ -287,11 +291,17 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
         account?.cookie,
       );
       if (!result.success) {
-        showNotification(`Failed to download template: ${result.message}`, "error");
+        showNotification(
+          `Failed to download template: ${result.message}`,
+          "error",
+        );
         console.error("Failed to download template:", result.message);
       }
     } catch (err: any) {
-      showNotification(`Failed to download template: ${err.message || String(err)}`, "error");
+      showNotification(
+        `Failed to download template: ${err.message || String(err)}`,
+        "error",
+      );
       console.error("Failed to download template:", err);
     }
   };
@@ -299,7 +309,6 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
   const handleRecommendationClick = (item: RecommendationItem) => {
     if (!item.id) return;
 
-    // Reset state for new item
     if (account?.cookie) {
       getSalesData(item.id)
         .then(setSalesData)
@@ -310,12 +319,11 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
     setActiveTab("info");
     setPurchaseSuccess(null);
     setPurchaseError(null);
-    // Note: resaleData is managed by TanStack Query and will refetch automatically
+
     setHas3DView(true);
     setViewMode("3d");
     setCurrentAssetId(item.id);
 
-    // Fetch thumbnail for the new item
     (window as any).api
       .getBatchThumbnails([item.id])
       .then((res: any) => {
@@ -324,8 +332,6 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
         }
       })
       .catch(() => setCurrentImageUrl(null));
-
-    // TanStack Query handles fetching automatically when currentAssetId changes
   };
 
   const getImageUrl = () => {
@@ -402,7 +408,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
           ) : details ? (
             <div className="flex flex-col h-full">
               <div className="flex flex-col lg:flex-row flex-1 min-h-0">
-                {/* LEFT SIDE: Preview */}
+                {}
                 <AssetPreview
                   viewMode={viewMode}
                   has3DView={has3DView}
@@ -425,7 +431,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
                   onRevertTryOn={handleRevertTryOn}
                 />
 
-                {/* RIGHT SIDE: Info */}
+                {}
                 <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-[var(--color-app-bg)]">
                   <Tabs
                     tabs={[
@@ -516,7 +522,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
             </div>
           )}
 
-          {/* Context Menu for Image */}
+          {}
           <AssetImageContextMenu
             activeMenu={imageContextMenu}
             onClose={() => setImageContextMenu(null)}
@@ -525,7 +531,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
             onDownloadTemplate={handleDownloadTemplate}
           />
 
-          {/* Asset Hierarchy Modal */}
+          {}
           <AssetHierarchyModal
             isOpen={showHierarchy}
             onClose={() => setShowHierarchy(false)}
@@ -533,7 +539,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
             assetName={details?.name || "Asset"}
           />
 
-          {/* Creator Profile Modal */}
+          {}
           {showCreatorProfile &&
             details?.creatorType === "User" &&
             details.creatorTargetId &&
@@ -551,7 +557,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
               />
             )}
 
-          {/* Owner/Hoarder Profile Modal */}
+          {}
           {creatorProfileId && (
             <UniversalProfileModal
               isOpen={!!creatorProfileId}
@@ -561,7 +567,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
             />
           )}
 
-          {/* Purchase Success Dialog */}
+          {}
           {purchaseSuccess && (
             <PurchaseSuccessDialog
               isOpen={!!purchaseSuccess}
@@ -573,7 +579,7 @@ const AccessoryDetailsModal: React.FC<AccessoryDetailsModalProps> = ({
             />
           )}
 
-          {/* Purchase Error Dialog */}
+          {}
           <PurchaseErrorDialog
             isOpen={!!purchaseError}
             onClose={() => setPurchaseError(null)}

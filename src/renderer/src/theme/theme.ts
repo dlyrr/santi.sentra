@@ -137,7 +137,6 @@ const tintPalettes: Record<
   },
 };
 
-
 const setCssVariable = (key: string, value: string) => {
   if (typeof document === "undefined") return;
   document.documentElement.style.setProperty(key, value);

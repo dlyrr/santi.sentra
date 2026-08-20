@@ -105,7 +105,6 @@ interface SettingsTabProps {
 
 const isMac = window.platform?.isMac ?? false;
 
-// Simple generator used by admin panel to produce GitHub-friendly snippet
 const NewsGenerator: React.FC = () => {
   const [entries, setEntries] = useState<string[]>([]);
   const [newEntry, setNewEntry] = useState("");
@@ -300,7 +299,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   const [isAddingFont, setIsAddingFont] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
-  // User Agent state
   const [currentUserAgent, setCurrentUserAgent] = useState<string>("");
   const [userAgentIndex, setUserAgentIndex] = useState<number>(0);
   const [allUserAgents, setAllUserAgents] = useState<string[]>([]);
@@ -308,7 +306,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   const [autoSwapInterval, setAutoSwapInterval] = useState<number>(30);
   const [isLoadingUserAgent, setIsLoadingUserAgent] = useState(false);
 
-  // Derive admin flag from KeyAuth license and accounts
   const {
     data: adminData,
     isLoading: loadingAdmin,
@@ -325,13 +322,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   const licenseAdmin = (adminData as AdminStatus | undefined)?.isAdmin ?? false;
   const isAdmin = licenseAdmin || accounts.some((a) => a.isAdmin);
 
-  // if license indicates admin but accounts missing flag, patch them
   useEffect(() => {
     if (licenseAdmin && !accounts.every((a) => a.isAdmin)) {
-      // mark existing accounts as admin so they persist
       const updated = accounts.map((a) => ({ ...a, isAdmin: true }));
-      // optimistic update via onUpdateSettings? we don't have setter here; use save-through API
-      // using query client from above
+
       queryClient.setQueryData(queryKeys.accounts.list(), updated);
       window.api.saveAccounts(updated).catch(() => {});
     }
@@ -341,7 +335,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   const restorePinRefs = useRef<(HTMLInputElement | null)[]>([]);
   const restoreBackupPinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Reset refs when dialogs close or step changes
   useEffect(() => {
     if (!isBackupDialogOpen) {
       backupPinRefs.current = [];
@@ -356,7 +349,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     }
   }, [isRestoreDialogOpen]);
 
-  // Reliable focus helper: try RAF then timeout fallback
   const focusFirstRef = (
     refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
   ) => {
@@ -368,9 +360,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             el.focus();
             el.select && el.select();
             return true;
-          } catch (e) {
-            // ignore
-          }
+          } catch (e) {}
         }
       }
       return false;
@@ -388,7 +378,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   const setAppUnlocked = useSetAppUnlocked();
   const addNotification = useNotificationTrayStore((s) => s.addNotification);
 
-  // Use shared installations store instead of local state + localStorage
   const installations = useInstallations();
 
   const sidebarTabOrder = useMemo(
@@ -411,7 +400,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     [sidebarHiddenTabs],
   );
 
-  // Custom fonts queries
   const { data: customFonts = [] } = useQuery({
     queryKey: ["customFonts"],
     queryFn: () => window.api.getCustomFonts(),
@@ -424,7 +412,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     staleTime: Infinity,
   });
 
-  // Load fonts and apply active font on mount
   useEffect(() => {
     customFonts.forEach((font) => {
       loadFont(font).catch(console.error);
@@ -435,22 +422,25 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     applyFont(activeFont);
   }, [activeFont]);
 
-  // Load user agent state on component mount
   useEffect(() => {
     const loadUserAgentState = async () => {
       try {
         console.log("[SettingsTab] Loading user agent state...");
         setIsLoadingUserAgent(true);
-        const state = await window.api.getUserAgentState();
-        console.log("[SettingsTab] User agent state loaded:", state);
-        setCurrentUserAgent(state.currentUserAgent);
-        setUserAgentIndex(state.currentIndex);
-        setIsAutoSwapEnabled(state.autoSwapEnabled);
-        setAutoSwapInterval(state.autoSwapIntervalMinutes);
 
-        const agents = await window.api.getAllUserAgents();
+        const [state, agents] = await Promise.all([
+          window.api.getUserAgentState(),
+          window.api.getAllUserAgents(),
+        ]);
+        console.log("[SettingsTab] User agent state loaded:", state);
         console.log("[SettingsTab] All user agents:", agents);
-        setAllUserAgents(agents);
+        if (state) {
+          setCurrentUserAgent(state.currentUserAgent);
+          setUserAgentIndex(state.currentIndex);
+          setIsAutoSwapEnabled(state.autoSwapEnabled);
+          setAutoSwapInterval(state.autoSwapIntervalMinutes);
+        }
+        setAllUserAgents(agents || []);
       } catch (error) {
         console.error("[SettingsTab] Failed to load user agent state:", error);
       } finally {
@@ -462,10 +452,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     loadUserAgentState();
   }, []);
 
-  // Focus first PIN input when dialogs open
   useEffect(() => {
     if (isBackupDialogOpen && backupStep === "pin") {
-      // Clear all refs when entering PIN verification step
       backupPinRefs.current = new Array(6).fill(null);
       backupPinConfirmRefs.current = new Array(6).fill(null);
       focusFirstRef(backupPinRefs);
@@ -474,7 +462,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
   useEffect(() => {
     if (isBackupDialogOpen && backupStep === "backuppin") {
-      // Clear all refs when entering backup PIN setup step
       backupPinRefs.current = new Array(6).fill(null);
       backupPinConfirmRefs.current = new Array(6).fill(null);
       focusFirstRef(backupPinRefs);
@@ -483,7 +470,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
   useEffect(() => {
     if (isRestoreDialogOpen && restoreStep === "pin") {
-      // Clear all refs when entering PIN verification step
       restorePinRefs.current = new Array(6).fill(null);
       restoreBackupPinRefs.current = new Array(6).fill(null);
       focusFirstRef(restorePinRefs);
@@ -492,7 +478,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
   useEffect(() => {
     if (isRestoreDialogOpen && restoreStep === "backuppin") {
-      // Clear all refs when entering backup PIN step
       restorePinRefs.current = new Array(6).fill(null);
       restoreBackupPinRefs.current = new Array(6).fill(null);
       focusFirstRef(restoreBackupPinRefs);
@@ -549,7 +534,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
       return;
     }
 
-    // Check if font already exists
     if (
       customFonts.some(
         (f) => f.family.toLowerCase() === trimmedFamily.toLowerCase(),
@@ -572,12 +556,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     }
   };
 
-  // Backup handlers
   const handleBackupAccounts = async () => {
     setBackupError(null);
 
     if (backupStep === "pin") {
-      // Verify user PIN first
       const pinStr = backupPin.join("");
       if (backupPin.some((digit) => digit === "")) {
         setBackupError("Please enter all 6 digits");
@@ -601,7 +583,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         setBackupPin(Array(6).fill(""));
       }
     } else if (backupStep === "backuppin") {
-      // Create backup with backup PIN
       const pin1 = backupPin.join("");
       const pin2 = backupPinConfirm.join("");
 
@@ -620,13 +601,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         return;
       }
 
-      // Store PIN before clearing, then move to location selection step
       setStoredBackupPin(pin1);
       setBackupStep("location");
       setBackupPin(Array(6).fill(""));
       setBackupPinConfirm(Array(6).fill(""));
     } else if (backupStep === "location") {
-      // User has chosen auto or custom location - proceed with backup
       if (!storedBackupPin) {
         setBackupError("Backup PIN was lost, please restart");
         return;
@@ -634,7 +613,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
       setIsBackupLoading(true);
       try {
-        // Ensure we have the latest accounts after PIN verification.
         let accountsData =
           (queryClient.getQueryData(["accounts"]) as Account[] | undefined) ||
           [];
@@ -691,7 +669,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     setRestoreError(null);
 
     if (restoreStep === "pin") {
-      // Verify user PIN first
       const pinStr = restorePin.join("");
       if (restorePin.some((digit) => digit === "")) {
         setRestoreError("Please enter all 6 digits");
@@ -714,7 +691,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         setRestorePin(Array(6).fill(""));
       }
     } else if (restoreStep === "file") {
-      // Open file picker
       try {
         const filepath = await window.api.pickBackupFile();
         if (filepath) {
@@ -728,7 +704,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         );
       }
     } else if (restoreStep === "backuppin") {
-      // Restore with backup PIN
       const pinStr = restoreBackupPin.join("");
       if (restoreBackupPin.some((digit) => digit === "")) {
         setRestoreError("Please enter all 6 digits");
@@ -745,8 +720,26 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
           selectedBackupFile,
           pinStr,
         );
-        // Save restored accounts to storage
-        await window.api.saveAccounts(restoredAccounts as Account[]);
+
+        const normalized = (restoredAccounts as any[]).map((a) => ({
+          id: String(
+            a?.id ?? a?.uuid ?? a?.uid ?? crypto?.randomUUID?.() ?? "",
+          ),
+          displayName: String(
+            a?.displayName ?? a?.display_name ?? a?.name ?? "",
+          ),
+          username: String(a?.username ?? a?.user ?? a?.handle ?? ""),
+          userId: String(a?.userId ?? a?.user_id ?? a?.uid ?? ""),
+
+          ...a,
+        }));
+
+        console.debug(
+          "[SettingsTab] Restored accounts count:",
+          normalized.length,
+        );
+
+        await window.api.saveAccounts(normalized as Account[]);
         addNotification({
           type: "success",
           title: "Backup restored",
@@ -758,7 +751,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         setRestoreBackupPin(Array(6).fill(""));
         setSelectedBackupFile(null);
         setRestoreError(null);
-        // Refresh accounts from storage
+
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -774,7 +767,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     }
   };
 
-  // PIN input handler with proper ref management (matches PinSetupDialog)
   const handlePinInputChange = useCallback(
     (
       index: number,
@@ -822,12 +814,33 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             return newPin;
           });
         }
+        return;
+      }
+
+      if (e.key === "ArrowLeft" && index > 0) {
+        refs.current[index - 1]?.focus();
+        return;
+      } else if (e.key === "ArrowRight" && index < 5) {
+        refs.current[index + 1]?.focus();
+        return;
+      }
+
+      if (/^\d$/.test(e.key) || /^Numpad/.test((e as any).code || "")) {
+        e.preventDefault();
+        const digit = e.key.match(/\d/)?.[0] ?? "";
+        if (!digit) return;
+        setter((prev: string[]) => {
+          const newPin = [...prev];
+          newPin[index] = digit;
+          return newPin;
+        });
+        if (index < 5) refs.current[index + 1]?.focus();
+        return;
       }
     },
     [],
   );
 
-  // PIN input grid renderer
   const renderPinInputs = (
     values: string[],
     setter: any,
@@ -864,7 +877,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 }
                 return next;
               });
-              // focus the last pasted digit (or next available)
+
               requestAnimationFrame(() => {
                 const lastIndex = Math.min(
                   index + digits.length - 1,
@@ -872,31 +885,22 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 );
                 refs.current[lastIndex]?.focus();
               });
-            } catch (err) {
-              // ignore
-            }
+            } catch (err) {}
           }}
           onPointerDown={() => {
-            // Ensure input receives focus on pointer interaction; do not stop propagation
             try {
               refs.current[index]?.focus();
-            } catch (err) {
-              /* ignore */
-            }
+            } catch (err) {}
           }}
           onTouchStart={() => {
             try {
               refs.current[index]?.focus();
-            } catch (err) {
-              /* ignore */
-            }
+            } catch (err) {}
           }}
           onClick={() => {
             try {
               refs.current[index]?.focus();
-            } catch (err) {
-              /* ignore */
-            }
+            } catch (err) {}
           }}
           aria-label={`PIN digit ${index + 1}`}
           tabIndex={0}
@@ -907,7 +911,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     </div>
   );
 
-  // Notification settings from store
   const notifyFriendOnline = useNotifyFriendOnline();
   const notifyFriendInGame = useNotifyFriendInGame();
   const notifyFriendRemoved = useNotifyFriendRemoved();
@@ -925,7 +928,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     (state) => state.setNotifyServerLocation,
   );
 
-  // Discord Rich Presence
   const { data: discordRPCEnabled = false, refetch: refetchDiscordRPC } =
     useQuery({
       queryKey: ["discordRPCEnabled"],
@@ -1011,14 +1013,12 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   };
 
   const handlePinSave = async (newPin: string | null, currentPin?: string) => {
-    // Use secure setPin API - requires current PIN if one is already set
     const result = await window.api.setPin(newPin, currentPin);
     if (result.success) {
-      // If PIN is set, mark app as unlocked so user isn't immediately locked out
       if (newPin) {
         setAppUnlocked(true);
       }
-      // Invalidate settings query to update UI (pinCode: 'SET')
+
       await queryClient.invalidateQueries({
         queryKey: queryKeys.settings.snapshot(),
       });
@@ -1052,13 +1052,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
 
   const { setCustomTheme, customTheme: contextCustomTheme } = useTheme();
 
-  // Use settings.customTheme if available, otherwise use context customTheme
   const displayedCustomTheme =
     (settings.customTheme as CustomThemeName) ||
     contextCustomTheme ||
     "default";
 
-  // Sync context with settings when settings change
   useEffect(() => {
     if (settings.customTheme && contextCustomTheme !== settings.customTheme) {
       setCustomTheme(settings.customTheme as CustomThemeName);
@@ -1103,7 +1101,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     };
 
     if (newTheme === "default") {
-      // Restore previous colors
       try {
         const prevSettings = localStorage.getItem(PREV_KEY);
         if (prevSettings) {
@@ -1119,7 +1116,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         console.warn("[SettingsTab] Failed to restore previous colors:", e);
       }
     } else {
-      // Save current colors before applying theme
       if (displayedCustomTheme === "default") {
         try {
           const snapshot = {
@@ -1133,7 +1129,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         }
       }
 
-      // Apply theme-specific colors; always disable dynamic accent color
       const themeColors = themeColorMap[newTheme];
       onUpdateSettings({
         useDynamicAccentColor: false,
@@ -1159,7 +1154,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
     try {
       const res = await (window.api as any).logout();
       if (res && res.success) {
-        // Clear onboarding persisted state in renderer and reload to show license screen
         try {
           localStorage.removeItem("onboarding-storage");
         } catch {}
@@ -1190,11 +1184,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         </h2>
       </div>
 
-      {/* Tabs Header */}
+      {}
       <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="max-w-2xl mx-auto">
           <div className="relative flex">
-            {/* Animated sliding indicator */}
+            {}
             {(() => {
               const tabs = [
                 "general",
@@ -1303,10 +1297,10 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
       </div>
 
-      {/* Content Area */}
+      {}
       <div className="flex-1 overflow-y-auto p-8 scrollbar-thin">
         <div className="max-w-2xl mx-auto pb-8">
-          {/* General Settings */}
+          {}
           {activeTab === "general" && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1555,11 +1549,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 </SettingsCard>
               </Section>
 
-              {/* Advanced section removed: moved Multiple Instances toggle into Security */}
+              {}
             </div>
           )}
 
-          {/* Appearance Settings */}
+          {}
           {activeTab === "appearance" && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1834,7 +1828,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           )}
 
-          {/* Notifications Settings */}
           {activeTab === "notifications" && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -1904,7 +1897,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           )}
 
-          {/* Security Settings */}
           {activeTab === "security" && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -2170,7 +2162,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           )}
 
-          {/* About Settings */}
           {activeTab === "about" && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>
@@ -2195,8 +2186,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                 </SettingsCard>
               </Section>
 
-              {/* About Sentra removed per request (no open-source references) */}
-
               <Section title="Legal" description="Terms and policies.">
                 <SettingsCard
                   title="Privacy Policy"
@@ -2211,8 +2200,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                   </button>
                 </SettingsCard>
               </Section>
-
-              {/* Reset HWID removed: functionality is unsupported */}
 
               <Section
                 title="Session"
@@ -2234,7 +2221,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             </div>
           )}
 
-          {/* Admin Settings */}
           {activeTab === "admin" && isAdmin && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div>

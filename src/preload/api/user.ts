@@ -2,10 +2,6 @@ import { z } from "zod";
 import { invoke } from "./invoke";
 import * as S from "../../shared/ipc-schemas";
 
-// ============================================================================
-// ACCOUNT API
-// ============================================================================
-
 export const accountApi = {
   validateCookie: (cookie: string) =>
     invoke("validate-cookie", S.userSummarySchema, cookie),
@@ -44,10 +40,6 @@ export const accountApi = {
       accountId,
     ),
 };
-
-// ============================================================================
-// USERS API
-// ============================================================================
 
 export const usersApi = {
   getUserByUsername: (username: string) =>
@@ -106,10 +98,6 @@ export const usersApi = {
       newDisplayName,
     ),
 };
-
-// ============================================================================
-// FRIENDS API
-// ============================================================================
 
 export const friendsApi = {
   getFriendsStatuses: (cookie: string, userIds: number[]) =>
@@ -175,4 +163,6 @@ export const friendsApi = {
     ),
   unfriend: (cookie: string, targetUserId: number) =>
     invoke("unfriend", S.successResponseSchema, cookie, targetUserId),
+  blockUser: (cookie: string, targetUserId: number) =>
+    invoke("block-user", S.successResponseSchema, cookie, targetUserId),
 };

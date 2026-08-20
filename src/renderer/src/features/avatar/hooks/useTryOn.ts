@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Account } from "@renderer/types";
 
 interface UseTryOnResult {
@@ -18,6 +18,13 @@ export function useTryOn(
   const [tryOnLoading, setTryOnLoading] = useState(false);
   const [tryOnImageUrl, setTryOnImageUrl] = useState<string | null>(null);
   const [tryOnManifestUrl, setTryOnManifestUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsTryingOn(false);
+    setTryOnLoading(false);
+    setTryOnImageUrl(null);
+    setTryOnManifestUrl(null);
+  }, [currentAssetId]);
 
   const handleTryOn = async () => {
     if (!account?.cookie || !currentAssetId || !account.userId) {
@@ -41,7 +48,6 @@ export function useTryOn(
     setIsTryingOn(false);
 
     try {
-      // Use the render preview API to generate a preview without modifying the avatar
       const result = await (window as any).api.renderAvatarPreview(
         account.cookie,
         userId,
@@ -57,7 +63,6 @@ export function useTryOn(
       );
 
       if (result.imageUrl) {
-        // Extract URL string - handle case where it might be wrapped
         const imageUrlStr =
           typeof result.imageUrl === "string"
             ? result.imageUrl
@@ -65,11 +70,9 @@ export function useTryOn(
 
         console.log("[useTryOn] Extracted URL string:", imageUrlStr);
 
-        // Trust the API's renderType if provided, otherwise auto-detect
         let renderType = result.renderType;
 
         if (!renderType) {
-          // Fallback detection based on URL
           const normalized = imageUrlStr.toLowerCase();
           renderType =
             normalized.endsWith(".json") ||
@@ -111,7 +114,6 @@ export function useTryOn(
   };
 
   const handleRevertTryOn = () => {
-    // Simply clear the try-on state - no need to revert anything since we didn't modify the avatar
     setIsTryingOn(false);
     setTryOnImageUrl(null);
     setTryOnManifestUrl(null);

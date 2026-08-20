@@ -11,10 +11,6 @@ import { applyAccentColor } from "@renderer/utils/themeUtils";
 import { applyTint, getCurrentThemeNameFromDom } from "@renderer/theme/theme";
 import { initializeFonts, CustomFont } from "@renderer/utils/fontUtils";
 
-// ============================================================================
-// Default Settings
-// ============================================================================
-
 const DEFAULT_SETTINGS: Settings = {
   primaryAccountId: null,
   allowMultipleInstances: false,
@@ -28,25 +24,41 @@ const DEFAULT_SETTINGS: Settings = {
   sidebarTabOrder: DEFAULT_SIDEBAR_TAB_ORDER,
   sidebarHiddenTabs: [],
   pinCode: null,
-  
-  // View Preferences Defaults
+
   catalogViewMode: "default",
   inventoryViewMode: "default",
   uiDensity: "default",
   motionSpeed: "default",
-  
-  // UI State Defaults
+
   isSidebarCollapsed: false,
   navLayout: "sidebar",
+
+  defaultPhysicsEngine: "Terrain" as const,
+  enableOptimizations: false,
+  memoryLimit: 0,
+  useDirectX12: false,
+  lowEndGraphics: false,
+  disableDualChannelAudio: false,
+  antiAfkEnabled: false,
+  renameWindowsEnabled: false,
+  framerateCapEnabled: false,
+  framerateCapValue: 60,
+  optimizeRamEnabled: false,
+  ramOptimization: 2048,
+  cpuOptimization: 0,
+  headlessModeEnabled: false,
+  timeoutRelaunchEnabled: false,
+  timeoutRelaunchSeconds: 3600,
+  windowLayoutEnabled: false,
+  windowLayoutPattern: "grid" as const,
+  windowLayoutSpacing: 12,
+  windowLayoutColumns: 3,
+  windowLayoutWidth: 0,
+  windowLayoutHeight: 0,
 };
 
 const LEGACY_DEFAULT_ACCENT_COLORS = ["#1e66f5", "#3b82f6", "#2563eb"];
 
-// ============================================================================
-// Basic Queries
-// ============================================================================
-
-// Fetch all settings
 export function useSettings() {
   return useQuery({
     queryKey: queryKeys.settings.snapshot(),
@@ -61,7 +73,6 @@ export function useSettings() {
           ? DEFAULT_ACCENT_COLOR
           : rawAccent;
 
-      // Merge with defaults to ensure all fields exist
       return {
         ...DEFAULT_SETTINGS,
         ...data,
@@ -71,23 +82,81 @@ export function useSettings() {
         showSidebarProfileCard: data?.showSidebarProfileCard ?? true,
         privacyMode: data?.privacyMode ?? false,
         sidebarTabOrder: sanitizeSidebarOrder(data?.sidebarTabOrder as any),
-        sidebarHiddenTabs: sanitizeSidebarHidden(data?.sidebarHiddenTabs as any),
-        
-        // Ensure UI defaults are preserved if missing from config
-        catalogViewMode: (data?.catalogViewMode ?? DEFAULT_SETTINGS.catalogViewMode) as Settings["catalogViewMode"],
-        inventoryViewMode: (data?.inventoryViewMode ?? DEFAULT_SETTINGS.inventoryViewMode) as Settings["inventoryViewMode"],
-        uiDensity: (data?.uiDensity ?? DEFAULT_SETTINGS.uiDensity) as Settings["uiDensity"],
-        motionSpeed: (data?.motionSpeed ?? DEFAULT_SETTINGS.motionSpeed) as Settings["motionSpeed"],
-        
-        isSidebarCollapsed: data?.isSidebarCollapsed ?? DEFAULT_SETTINGS.isSidebarCollapsed,
-        navLayout: (data?.navLayout ?? DEFAULT_SETTINGS.navLayout) as Settings["navLayout"],
+        sidebarHiddenTabs: sanitizeSidebarHidden(
+          data?.sidebarHiddenTabs as any,
+        ),
+
+        catalogViewMode: (data?.catalogViewMode ??
+          DEFAULT_SETTINGS.catalogViewMode) as Settings["catalogViewMode"],
+        inventoryViewMode: (data?.inventoryViewMode ??
+          DEFAULT_SETTINGS.inventoryViewMode) as Settings["inventoryViewMode"],
+        uiDensity: (data?.uiDensity ??
+          DEFAULT_SETTINGS.uiDensity) as Settings["uiDensity"],
+        motionSpeed: (data?.motionSpeed ??
+          DEFAULT_SETTINGS.motionSpeed) as Settings["motionSpeed"],
+        contentRadius: (data?.contentRadius ??
+          "rounded") as Settings["contentRadius"],
+        navBorderStyle: (data?.navBorderStyle ??
+          "solid") as Settings["navBorderStyle"],
+        blurIntensity: (data?.blurIntensity ??
+          "medium") as Settings["blurIntensity"],
+        iconWeight: (data?.iconWeight ?? "regular") as Settings["iconWeight"],
+        fontWeight: (data?.fontWeight ?? "regular") as Settings["fontWeight"],
+
+        isSidebarCollapsed:
+          data?.isSidebarCollapsed ?? DEFAULT_SETTINGS.isSidebarCollapsed,
+        navLayout: (data?.navLayout ??
+          DEFAULT_SETTINGS.navLayout) as Settings["navLayout"],
+
+        defaultPhysicsEngine: (data?.defaultPhysicsEngine ??
+          DEFAULT_SETTINGS.defaultPhysicsEngine) as Settings["defaultPhysicsEngine"],
+        enableOptimizations:
+          data?.enableOptimizations ?? DEFAULT_SETTINGS.enableOptimizations,
+        memoryLimit: data?.memoryLimit ?? DEFAULT_SETTINGS.memoryLimit,
+        useDirectX12: data?.useDirectX12 ?? DEFAULT_SETTINGS.useDirectX12,
+        lowEndGraphics: data?.lowEndGraphics ?? DEFAULT_SETTINGS.lowEndGraphics,
+        disableDualChannelAudio:
+          data?.disableDualChannelAudio ??
+          DEFAULT_SETTINGS.disableDualChannelAudio,
+        antiAfkEnabled: data?.antiAfkEnabled ?? DEFAULT_SETTINGS.antiAfkEnabled,
+        renameWindowsEnabled:
+          data?.renameWindowsEnabled ?? DEFAULT_SETTINGS.renameWindowsEnabled,
+        framerateCapEnabled:
+          data?.framerateCapEnabled ?? DEFAULT_SETTINGS.framerateCapEnabled,
+        framerateCapValue:
+          data?.framerateCapValue ?? DEFAULT_SETTINGS.framerateCapValue,
+        optimizeRamEnabled:
+          data?.optimizeRamEnabled ?? DEFAULT_SETTINGS.optimizeRamEnabled,
+        ramOptimization:
+          data?.ramOptimization ?? DEFAULT_SETTINGS.ramOptimization,
+        cpuOptimization:
+          data?.cpuOptimization ?? DEFAULT_SETTINGS.cpuOptimization,
+        headlessModeEnabled:
+          data?.headlessModeEnabled ?? DEFAULT_SETTINGS.headlessModeEnabled,
+        timeoutRelaunchEnabled:
+          data?.timeoutRelaunchEnabled ??
+          DEFAULT_SETTINGS.timeoutRelaunchEnabled,
+        timeoutRelaunchSeconds:
+          data?.timeoutRelaunchSeconds ??
+          DEFAULT_SETTINGS.timeoutRelaunchSeconds,
+        windowLayoutEnabled:
+          data?.windowLayoutEnabled ?? DEFAULT_SETTINGS.windowLayoutEnabled,
+        windowLayoutPattern: (data?.windowLayoutPattern ??
+          DEFAULT_SETTINGS.windowLayoutPattern) as Settings["windowLayoutPattern"],
+        windowLayoutSpacing:
+          data?.windowLayoutSpacing ?? DEFAULT_SETTINGS.windowLayoutSpacing,
+        windowLayoutColumns:
+          data?.windowLayoutColumns ?? DEFAULT_SETTINGS.windowLayoutColumns,
+        windowLayoutWidth:
+          data?.windowLayoutWidth ?? DEFAULT_SETTINGS.windowLayoutWidth,
+        windowLayoutHeight:
+          data?.windowLayoutHeight ?? DEFAULT_SETTINGS.windowLayoutHeight,
       };
     },
-    staleTime: Infinity, // Settings are managed locally
+    staleTime: Infinity,
   });
 }
 
-// Update settings mutation (optimistic)
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
 
@@ -95,17 +164,14 @@ export function useUpdateSettings() {
     mutationFn: (settings: Partial<Settings>) =>
       window.api.setSettings(settings),
     onMutate: async (newSettings) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({
         queryKey: queryKeys.settings.snapshot(),
       });
 
-      // Snapshot previous value
       const previousSettings = queryClient.getQueryData<Settings>(
         queryKeys.settings.snapshot(),
       );
 
-      // Optimistically update
       queryClient.setQueryData(
         queryKeys.settings.snapshot(),
         (old: Settings | undefined) => ({
@@ -118,7 +184,6 @@ export function useUpdateSettings() {
       return { previousSettings };
     },
     onError: (_err, _newSettings, context) => {
-      // Rollback on error
       if (context?.previousSettings) {
         queryClient.setQueryData(
           queryKeys.settings.snapshot(),
@@ -126,24 +191,13 @@ export function useUpdateSettings() {
         );
       }
     },
-    // Don't invalidate - we manage the cache ourselves
   });
 }
 
-// ============================================================================
-// Settings Manager Hook (Single Source of Truth)
-// ============================================================================
-
-/**
- * Hook that provides settings data and management functions.
- * Uses React Query as the single source of truth with optimistic updates.
- * Automatically applies accent color when it changes.
- */
 export function useSettingsManager() {
   const { data: settings = DEFAULT_SETTINGS, isLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
 
-  // Apply accent color when settings change
   useEffect(() => {
     if (settings.accentColor && !settings.useDynamicAccentColor) {
       applyAccentColor(settings.accentColor);
@@ -157,7 +211,6 @@ export function useSettingsManager() {
     applyTint(getCurrentThemeNameFromDom(), tint);
   }, [settings.tint]);
 
-  // Persist one-time migrations so the UI (and future sessions) match.
   useEffect(() => {
     const raw =
       typeof settings.accentColor === "string"
@@ -172,7 +225,6 @@ export function useSettingsManager() {
     }
   }, [settings.accentColor, updateSettingsMutation]);
 
-  // Initialize custom fonts on first load
   useEffect(() => {
     const loadFonts = async () => {
       try {
@@ -186,9 +238,8 @@ export function useSettingsManager() {
       }
     };
     loadFonts();
-  }, []); // Only run once on mount
+  }, []);
 
-  // Update settings (partial, optimistic)
   const updateSettings = useCallback(
     (newSettings: Partial<Settings>) => {
       updateSettingsMutation.mutate(newSettings);
@@ -203,11 +254,6 @@ export function useSettingsManager() {
   };
 }
 
-// ============================================================================
-// Individual Setting Hooks (for granular subscriptions)
-// ============================================================================
-
-// Sidebar width
 export function useSidebarWidth() {
   return useQuery({
     queryKey: queryKeys.settings.sidebarWidth(),
@@ -227,7 +273,6 @@ export function useSetSidebarWidth() {
   });
 }
 
-// Accounts view mode
 export function useAccountsViewMode() {
   return useQuery({
     queryKey: queryKeys.settings.accountsViewMode(),
@@ -247,7 +292,6 @@ export function useSetAccountsViewMode() {
   });
 }
 
-// Avatar render width
 export function useAvatarRenderWidth() {
   return useQuery({
     queryKey: queryKeys.settings.avatarRenderWidth(),

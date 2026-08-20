@@ -102,9 +102,17 @@ export const CustomizeInstallationModal: React.FC<
 
   const handleInstallFont = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!install || !e.target.files?.[0]) return;
-    const file = e.target.files[0] as File & { path: string };
+    const file = e.target.files[0];
     try {
-      await window.api.installFont(install.path, file.path);
+      const fontPath = window.api.getPathForFile(file);
+      if (!fontPath) {
+        showNotification(
+          "Could not resolve the selected font file path",
+          "error",
+        );
+        return;
+      }
+      await window.api.installFont(install.path, fontPath);
       showNotification("Font installed successfully", "success");
     } catch (err) {
       console.error(err);
@@ -117,9 +125,17 @@ export const CustomizeInstallationModal: React.FC<
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     if (!install || !e.target.files?.[0]) return;
-    const file = e.target.files[0] as File & { path: string };
+    const file = e.target.files[0];
     try {
-      await window.api.installCursor(install.path, file.path);
+      const cursorPath = window.api.getPathForFile(file);
+      if (!cursorPath) {
+        showNotification(
+          "Could not resolve the selected cursor file path",
+          "error",
+        );
+        return;
+      }
+      await window.api.installCursor(install.path, cursorPath);
       showNotification("Cursor installed successfully", "success");
     } catch (err) {
       console.error(err);
@@ -132,8 +148,8 @@ export const CustomizeInstallationModal: React.FC<
     if (!newFlagKey) return;
     let val: any = newFlagValue;
     if (val === "true") val = true;
-    if (val === "false") val = false;
-    if (!isNaN(Number(val)) && val.trim() !== "") val = Number(val);
+    else if (val === "false") val = false;
+    else if (val.trim() !== "" && !isNaN(Number(val))) val = Number(val);
 
     setFFlags((prev) => ({ ...prev, [newFlagKey]: val }));
     setNewFlagKey("");
@@ -161,7 +177,7 @@ export const CustomizeInstallationModal: React.FC<
           <DialogClose />
         </DialogHeader>
 
-        {/* Tabs */}
+        {}
         <Tabs
           layoutId="customize-modal-tabs"
           activeTab={customizeTab}
@@ -177,7 +193,7 @@ export const CustomizeInstallationModal: React.FC<
         <DialogBody className="overflow-y-auto flex-1 p-0">
           {customizeTab === "fflags" && (
             <div className="p-6 space-y-6">
-              {/* Presets */}
+              {}
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
                   Presets
@@ -206,7 +222,6 @@ export const CustomizeInstallationModal: React.FC<
 
               <div className="h-px bg-[var(--color-surface-hover)]" />
 
-              {/* Existing Flags */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
@@ -254,7 +269,7 @@ export const CustomizeInstallationModal: React.FC<
                 </div>
               </div>
 
-              {/* Add New Flag */}
+              {}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
                   Add Custom Flag

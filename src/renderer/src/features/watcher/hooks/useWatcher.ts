@@ -57,9 +57,6 @@ export interface WatcherEvent {
   details?: any;
 }
 
-/**
- * useWatcher - Custom hook for managing Watcher state and API interactions
- */
 export function useWatcher() {
   const [sessions, setSessions] = useState<WatcherSession[]>([]);
   const [config, setConfig] = useState<WatcherConfig>({
@@ -82,11 +79,9 @@ export function useWatcher() {
     return Array.from(sessionsById.values());
   }, []);
 
-  // Initialize watcher on mount
   useEffect(() => {
     const initializeWatcher = async () => {
       try {
-        // Fetch initial state from backend
         const [initialSessions, initialConfig, initialEvents] =
           await Promise.all([
             window.api.getSessions(),
@@ -111,9 +106,8 @@ export function useWatcher() {
 
     initializeWatcher();
 
-    // Set up listeners for real-time updates
     const unlistenEvent = window.api.onEvent((event: WatcherEvent) => {
-      setEvents((prev) => [...prev, event].slice(-1000)); // Keep last 1000 events
+      setEvents((prev) => [...prev, event].slice(-1000));
     });
 
     const unlistenSessionsUpdated = window.api.onSessionsUpdated(

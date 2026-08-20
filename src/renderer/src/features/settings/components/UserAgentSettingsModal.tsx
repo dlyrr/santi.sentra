@@ -52,7 +52,7 @@ export default function UserAgentSettingsModal({
             <button
               onClick={onRotateNext}
               disabled={isLoadingUserAgent}
-              className="px-4 py-2 text-sm font-medium rounded-[var(--control-radius)] text-black bg-[var(--accent-color)] hover:brightness-110 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-[0_0_15px_rgba(var(--accent-color-rgb),0.3)]"
+              className="px-4 py-2 text-sm font-medium rounded-[var(--control-radius)] text-[var(--accent-color-foreground)] bg-[var(--accent-color)] hover:brightness-110 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-[0_0_15px_rgba(var(--accent-color-rgb),0.3)]"
             >
               <RotateCcw
                 size={14}
@@ -136,7 +136,7 @@ export default function UserAgentSettingsModal({
               disabled={isLoadingUserAgent}
               className={`shrink-0 px-4 py-2 text-xs font-bold rounded-[var(--control-radius)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                 isAutoSwapEnabled
-                  ? "text-black bg-[var(--accent-color)]"
+                  ? "text-[var(--accent-color-foreground)] bg-[var(--accent-color)]"
                   : "text-[var(--color-text-secondary)] bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-secondary)] border border-[var(--color-border)]"
               }`}
             >

@@ -3,24 +3,15 @@ import { useEffect, useState, useMemo } from "react";
 import { queryKeys } from "@shared/queryKeys";
 import { thumbnailBatchSchema } from "@shared/ipc-schemas/avatar";
 
-// ============================================================================
-// Batch Thumbnails Query Hook
-// ============================================================================
-
 interface UseBatchThumbnailsOptions {
   assetIds: number[];
   enabled?: boolean;
 }
 
-/**
- * Fetches thumbnails for a batch of asset IDs using TanStack Query.
- * Handles caching, deduplication, and automatic retries.
- */
 export function useBatchThumbnails({
   assetIds,
   enabled = true,
 }: UseBatchThumbnailsOptions) {
-  // Sort IDs to ensure stable query key
   const sortedIds = useMemo(
     () => [...assetIds].sort((a, b) => a - b),
     [assetIds],
@@ -33,7 +24,6 @@ export function useBatchThumbnails({
 
       const response = await (window as any).api.getBatchThumbnails(sortedIds);
 
-      // Validate with Zod schema
       const parsed = thumbnailBatchSchema.safeParse(response);
       if (!parsed.success) {
         console.warn(
@@ -42,7 +32,6 @@ export function useBatchThumbnails({
         );
       }
 
-      // Transform response into a map
       const thumbnailMap: Record<number, string> = {};
       if (response.data) {
         response.data.forEach((t: any) => {
@@ -55,8 +44,8 @@ export function useBatchThumbnails({
       return thumbnailMap;
     },
     enabled: enabled && sortedIds.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   return {
@@ -66,23 +55,15 @@ export function useBatchThumbnails({
   };
 }
 
-// ============================================================================
-// Batch User Avatars Query Hook
-// ============================================================================
-
 interface UseBatchUserAvatarsOptions {
   userIds: number[];
   enabled?: boolean;
 }
 
-/**
- * Fetches avatar headshots for a batch of user IDs using TanStack Query.
- */
 export function useBatchUserAvatars({
   userIds,
   enabled = true,
 }: UseBatchUserAvatarsOptions) {
-  // Sort IDs to ensure stable query key
   const sortedIds = useMemo(
     () => [...userIds].sort((a, b) => a - b),
     [userIds],
@@ -95,7 +76,6 @@ export function useBatchUserAvatars({
 
       const response = await (window as any).api.getBatchUserAvatars(sortedIds);
 
-      // Response is already a map of userId -> url
       return response as Record<number, string | null>;
     },
     enabled: enabled && sortedIds.length > 0,
@@ -110,10 +90,6 @@ export function useBatchUserAvatars({
   };
 }
 
-// ============================================================================
-// Batch User Details Query Hook
-// ============================================================================
-
 interface UseBatchUserDetailsOptions {
   userIds: number[];
   enabled?: boolean;
@@ -125,14 +101,10 @@ interface BatchUserDetail {
   displayName: string;
 }
 
-/**
- * Fetches user details for a batch of user IDs using TanStack Query.
- */
 export function useBatchUserDetails({
   userIds,
   enabled = true,
 }: UseBatchUserDetailsOptions) {
-  // Sort IDs to ensure stable query key
   const sortedIds = useMemo(
     () => [...userIds].sort((a, b) => a - b),
     [userIds],
@@ -145,7 +117,6 @@ export function useBatchUserDetails({
 
       const response = await (window as any).api.getBatchUserDetails(sortedIds);
 
-      // Response is already a map of userId -> user details
       return response as Record<number, BatchUserDetail | null>;
     },
     enabled: enabled && sortedIds.length > 0,
@@ -160,20 +131,12 @@ export function useBatchUserDetails({
   };
 }
 
-// ============================================================================
-// Combined Hook for Owner/Reseller Lists (progressive loading)
-// ============================================================================
-
 interface UseProgressiveThumbnailsOptions {
   ids: number[];
   batchSize?: number;
   enabled?: boolean;
 }
 
-/**
- * Progressively loads thumbnails for a list of IDs in batches.
- * Useful for large lists where you want to show thumbnails as they load.
- */
 export function useProgressiveThumbnails({
   ids,
   batchSize = 20,
@@ -182,12 +145,10 @@ export function useProgressiveThumbnails({
   const [thumbnails, setThumbnails] = useState<Map<number, string>>(new Map());
   const [loadedBatches, setLoadedBatches] = useState<Set<string>>(new Set());
 
-  // Get unique IDs that haven't been loaded
   const uniqueIds = useMemo(() => {
     return [...new Set(ids)].filter((id) => !thumbnails.has(id));
   }, [ids, thumbnails]);
 
-  // Create batch key for tracking
   const batchKey = uniqueIds
     .slice(0, batchSize)
     .sort((a, b) => a - b)
@@ -216,7 +177,7 @@ export function useProgressiveThumbnails({
       })
       .catch((err: any) => {
         console.error("Failed to fetch batch thumbnails:", err);
-        // Remove from loaded batches so it can retry
+
         setLoadedBatches((prev) => {
           const newSet = new Set(prev);
           newSet.delete(batchKey);

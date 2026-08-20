@@ -16,6 +16,8 @@ import {
   Loader2,
   Upload,
 } from "lucide-react";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAccountsManager } from "../auth/api/useAccounts";
 import { AccountStatus } from "@renderer/types";
 import { v4 as uuidv4 } from "uuid";
@@ -91,9 +93,7 @@ export const SniperTab = () => {
       unsubscribersRef.current.forEach((unsub) => {
         try {
           unsub();
-        } catch {
-          /* ignore cleanup errors */
-        }
+        } catch {}
       });
       unsubscribersRef.current = [];
 
@@ -161,30 +161,11 @@ export const SniperTab = () => {
       unsubscribersRef.current.forEach((unsub) => {
         try {
           unsub();
-        } catch {
-          /* ignore cleanup errors */
-        }
+        } catch {}
       });
       unsubscribersRef.current = [];
     };
   }, [autoGenerate]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && unsubscribersRef.current.length === 0) {
-        window.api.sniper.onValid((data) => {
-          setResults((prev) => ({
-            ...prev,
-            valid: [...prev.valid, data.username],
-          }));
-        });
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
 
   useEffect(() => {
     const syncSessionState = async () => {
@@ -201,12 +182,13 @@ export const SniperTab = () => {
             valid: sess.valid || [],
             taken: sess.taken || [],
             censored: sess.censored || [],
-            progress: sess.checked
-              ? (sess.checked / sess.usernames.length) * 100
-              : 0,
+            progress:
+              sess.checked && sess.usernames.length
+                ? (sess.checked / sess.usernames.length) * 100
+                : 0,
             status: sess.status as "idle" | "running" | "paused" | "completed",
             currentLoop: sess.currentLoop || 0,
-            totalLoops: sess.totalLoops || 1,
+            totalLoops: sess.totalLoops ?? sess.loopCount ?? 1,
           });
           isRunningRef.current = sess.status === "running";
         }
@@ -291,6 +273,45 @@ export const SniperTab = () => {
       console.error("Failed to start sniper:", error);
       isRunningRef.current = false;
       setResults((prev) => ({ ...prev, status: "idle" }));
+    }
+  };
+
+  const handleResumeSniper = async () => {
+    if (!sessionId) return;
+    try {
+      isRunningRef.current = true;
+
+      setResults((prev) => ({ ...prev, status: "running" }));
+      const response = await window.api.sniper.startSniper(sessionId);
+      if (!response.success) {
+        console.error("Failed to resume sniper:", response.error);
+        isRunningRef.current = false;
+
+        setResults((prev) => ({ ...prev, status: "paused" }));
+        return;
+      }
+
+      const session = await window.api.sniper.getSession(sessionId);
+      if (session.success && session.session) {
+        const sess = session.session;
+        setResults((prev) => ({
+          ...prev,
+          valid: sess.valid || prev.valid,
+          taken: sess.taken || prev.taken,
+          censored: sess.censored || prev.censored,
+          progress:
+            sess.checked && sess.usernames.length
+              ? (sess.checked / sess.usernames.length) * 100
+              : prev.progress,
+          status: "running",
+          currentLoop: sess.currentLoop || prev.currentLoop,
+          totalLoops: sess.totalLoops ?? sess.loopCount ?? prev.totalLoops,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to resume sniper:", error);
+      isRunningRef.current = false;
+      setResults((prev) => ({ ...prev, status: "paused" }));
     }
   };
 
@@ -466,88 +487,158 @@ export const SniperTab = () => {
   }[results.status];
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
-      <div className="flex flex-col gap-5 p-6 max-w-5xl mx-auto w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-              Username Sniper
-            </h1>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">
-              Rapid availability scanner
+    <div className="h-full flex flex-col p-6 overflow-y-auto space-y-6 bg-[var(--color-background)]">
+      {}
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 max-w-4xl mx-auto w-full">
+        <div className="flex items-center gap-2.5">
+          <Play className="w-4 h-4 text-[var(--accent-color)]" />
+          <h1 className="text-md font-bold tracking-tight text-[var(--color-text-primary)]">
+            Username Sniper
+          </h1>
+        </div>
+      </div>
+
+      {}
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-4xl mx-auto flex items-center justify-between bg-[var(--color-surface)] border border-[var(--color-border)] p-2.5 rounded-xl shadow-sm gap-4"
+      >
+        <div className="flex items-center gap-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt"
+            onChange={handleFileSelect}
+            disabled={!!sessionId}
+            className="hidden"
+          />
+          <div
+            onClick={() => !sessionId && fileInputRef.current?.click()}
+            className={`group cursor-pointer flex flex-col items-start gap-1 rounded-md px-3 py-2 transition ${
+              sessionId ? "opacity-60" : "hover:bg-[var(--color-surface-hover)]"
+            }`}
+          >
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              {fileName || "Upload Username List (.txt)"}
             </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${statusColor}`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${results.status === "running" ? "animate-pulse bg-emerald-400" : "bg-current"}`}
-              />
-              {results.status}
-            </span>
-            <button
-              onClick={() => setShowSettings((v) => !v)}
-              className={`rounded-xl border p-2 text-[var(--color-text-muted)] transition hover:text-[var(--color-text-primary)] ${showSettings ? "border-[var(--accent-color-border)] bg-[var(--accent-color-faint)] text-[var(--accent-color)]" : "border-[var(--color-border)] bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)]"}`}
-              title="Sniper Settings"
-            >
-              <Settings size={18} />
-            </button>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {usernames.length > 0
+                ? `${usernames.length} usernames`
+                : "No file selected"}
+            </p>
           </div>
         </div>
 
-        {/* Stats Row */}
+        <div className="flex items-center gap-2">
+          {sessionId && results.status === "idle" && (
+            <Button
+              onClick={handleStartSniper}
+              className="bg-[var(--accent-color)]"
+            >
+              Start Scan
+            </Button>
+          )}
+          {sessionId && results.status === "running" && (
+            <>
+              <Button
+                onClick={handlePauseSniper}
+                variant="outline"
+                className="text-amber-500"
+              >
+                Pause
+              </Button>
+              <Button
+                onClick={handleStopSniper}
+                variant="ghost"
+                className="text-red-500"
+              >
+                Stop
+              </Button>
+            </>
+          )}
+          {sessionId && results.status === "paused" && (
+            <>
+              <Button
+                onClick={handleResumeSniper}
+                variant="outline"
+                className="text-emerald-500"
+              >
+                Resume
+              </Button>
+              <Button
+                onClick={handleStopSniper}
+                variant="ghost"
+                className="text-red-500"
+              >
+                Stop
+              </Button>
+            </>
+          )}
+          {sessionId && results.status === "completed" && (
+            <Button onClick={handleClearSession} variant="ghost">
+              Clear Session
+            </Button>
+          )}
+
+          <Button onClick={() => setShowSettings((v) => !v)} variant="outline">
+            <Settings className="w-4 h-4" />
+          </Button>
+        </div>
+      </motion.div>
+
+      {}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full max-w-4xl mx-auto flex-1 flex flex-col"
+      >
+        {}
         {results.status !== "idle" && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             {[
               {
                 label: "Valid",
                 value: results.valid.length,
                 color: "text-emerald-500",
-                border: "border-emerald-500/20 bg-emerald-500/5",
               },
               {
                 label: "Taken",
                 value: results.taken.length,
                 color: "text-amber-500",
-                border: "border-amber-500/20 bg-amber-500/5",
               },
               {
                 label: "Censored",
                 value: results.censored.length,
                 color: "text-red-500",
-                border: "border-red-500/20 bg-red-500/5",
               },
               {
                 label: "Progress",
                 value: `${results.progress.toFixed(0)}%`,
                 color: "text-sky-500",
-                border: "border-sky-500/20 bg-sky-500/5",
               },
-            ].map((stat) => (
+            ].map((s) => (
               <div
-                key={stat.label}
-                className={`rounded-xl border p-4 ${stat.border}`}
+                key={s.label}
+                className="rounded-xl border p-3 bg-[var(--color-surface-strong)]"
               >
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                  {stat.label}
+                  {s.label}
                 </p>
-                <p className={`mt-1 text-2xl font-black ${stat.color}`}>
-                  {stat.value}
+                <p className={`mt-1 text-2xl font-black ${s.color}`}>
+                  {s.value}
                 </p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Progress Bar */}
         {results.status === "running" && (
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-4">
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-4 mb-4">
             <div className="mb-2 flex items-center justify-between text-xs text-[var(--color-text-muted)]">
               <span className="flex items-center gap-1.5">
-                <Loader2 size={12} className="animate-spin" />
-                Scanning... Loop {results.currentLoop}/{results.totalLoops}
+                <Loader2 size={12} className="animate-spin" /> Scanning... Loop{" "}
+                {results.currentLoop}/{results.totalLoops}
               </span>
               <span>{results.progress.toFixed(1)}%</span>
             </div>
@@ -560,247 +651,54 @@ export const SniperTab = () => {
           </div>
         )}
 
-        {/* Main Control Panel */}
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-5">
-          <div className="flex flex-col gap-4">
-            {/* File Upload Area */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt"
-              onChange={handleFileSelect}
-              disabled={!!sessionId}
-              className="hidden"
-            />
-
-            <div
-              onClick={() => !sessionId && fileInputRef.current?.click()}
-              className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
-                sessionId
-                  ? "cursor-default border-[var(--color-border)] opacity-60"
-                  : "border-[var(--color-border)] hover:border-[var(--accent-color)] hover:bg-[var(--color-surface-hover)]"
-              }`}
-            >
-              <Upload
-                className={`mb-3 h-8 w-8 transition-colors ${sessionId ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-muted)] group-hover:text-[var(--accent-color)]"}`}
-              />
-              <p className="font-semibold text-[var(--color-text-secondary)]">
-                {fileName ? fileName : "Upload Username List (.txt)"}
-              </p>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                {usernames.length > 0
-                  ? `${usernames.length} usernames loaded`
-                  : "Click to browse or drop a .txt file"}
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap gap-3">
-              {sessionId && results.status === "idle" && (
-                <button
-                  onClick={handleStartSniper}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent-color)] py-3 font-bold text-[var(--color-text-primary)] transition hover:brightness-110"
-                >
-                  <Play size={18} /> Start Scan
-                </button>
-              )}
-              {sessionId && results.status === "running" && (
-                <>
-                  <button
-                    onClick={handlePauseSniper}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-3 font-bold text-amber-500 transition hover:bg-amber-500/20"
-                  >
-                    <Pause size={18} /> Pause
-                  </button>
-                  <button
-                    onClick={handleStopSniper}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-3 font-bold text-red-500 transition hover:bg-red-500/20"
-                  >
-                    <Square size={18} /> Stop
-                  </button>
-                </>
-              )}
-              {sessionId && results.status === "paused" && (
-                <>
-                  <button
-                    onClick={handleStartSniper}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-3 font-bold text-emerald-500 transition hover:bg-emerald-500/20"
-                  >
-                    <Play size={18} /> Resume
-                  </button>
-                  <button
-                    onClick={handleStopSniper}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 py-3 font-bold text-red-500 transition hover:bg-red-500/20"
-                  >
-                    <Square size={18} /> Stop
-                  </button>
-                </>
-              )}
-              {sessionId && results.status === "completed" && (
-                <button
-                  onClick={handleClearSession}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-3 font-bold text-[var(--color-text-secondary)] transition hover:text-red-500"
-                >
-                  <Trash2 size={18} /> Clear Session
-                </button>
-              )}
-              {!sessionId && (
-                <div className="flex flex-1 items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-sm text-sky-500">
-                  <AlertCircle size={16} className="shrink-0" />
-                  Upload a .txt list above to start scanning usernames.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Valid Usernames Panel */}
-        {results.valid.length > 0 && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 font-semibold text-emerald-500">
-                <CheckCircle2 size={18} />
-                Valid Usernames ({results.valid.length})
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() =>
-                    void navigator.clipboard.writeText(results.valid.join("\n"))
-                  }
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/20"
-                >
-                  <Copy size={13} /> Copy All
-                </button>
-                <button
-                  onClick={handleExportValid}
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/20"
-                >
-                  <Download size={13} /> Export
-                </button>
-              </div>
-            </div>
-            <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
-              {results.valid.map((username, index) => (
-                <div
-                  key={`${username}-${index}`}
-                  className="flex items-center justify-between rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-2.5"
-                >
-                  <span className="font-mono text-sm font-medium text-[var(--color-text-primary)]">
-                    {username}
-                  </span>
-                  <button
-                    onClick={() => void navigator.clipboard.writeText(username)}
-                    className="text-[var(--color-text-muted)] transition hover:text-[var(--color-text-primary)]"
-                    title="Copy"
-                  >
-                    <Copy size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Generated Accounts Panel */}
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
-              <Sparkles size={18} className="text-[var(--accent-color)]" />
-              Generated Accounts
-              <span className="ml-1 rounded-full bg-[var(--accent-color-faint)] px-2 py-0.5 text-xs font-bold text-[var(--accent-color)]">
-                {generatedAccounts.length}
+        {}
+        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden flex flex-col h-full min-h-[240px] p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-500" /> Valid
+              Usernames{" "}
+              <span className="text-[10px] bg-[var(--accent-color-faint)] text-[var(--accent-color)] px-2 py-0.5 rounded ml-2">
+                {results.valid.length}
               </span>
-            </h3>
-            {generatedAccounts.length > 0 && (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleBulkCopy}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-hover)]"
-                >
-                  <Copy size={13} /> Bulk Copy
-                </button>
-                <button
-                  onClick={handleClearAllAccounts}
-                  className="flex h-8 items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/5 px-3 text-xs font-semibold text-red-500 transition hover:bg-red-500/10"
-                >
-                  <Trash2 size={13} /> Clear All
-                </button>
-              </div>
-            )}
+            </h2>
+            <div className="flex gap-2">
+              <Button
+                onClick={() =>
+                  void navigator.clipboard.writeText(results.valid.join("\n"))
+                }
+                size="sm"
+                variant="outline"
+              >
+                Copy All
+              </Button>
+              <Button onClick={handleExportValid} size="sm" variant="ghost">
+                Export
+              </Button>
+            </div>
           </div>
 
-          {generatedAccounts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border)] py-12 text-center">
-              <Sparkles className="mb-3 h-8 w-8 text-[var(--color-text-muted)]" />
-              <p className="text-sm text-[var(--color-text-muted)]">
-                No generated accounts yet.
-              </p>
-              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                Enable auto-generate and scan a valid username list.
-              </p>
+          {results.valid.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-[var(--color-text-muted)]">
+              No valid usernames yet
             </div>
           ) : (
-            <div className="max-h-[350px] space-y-2 overflow-y-auto pr-1">
-              {generatedAccounts.map((account) => (
+            <div className="overflow-y-auto space-y-2 max-h-[360px] pr-1">
+              {results.valid.map((username, idx) => (
                 <div
-                  key={account.id}
-                  className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 hover:bg-[var(--color-surface-hover)]"
+                  key={`${username}-${idx}`}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2 bg-[var(--color-surface)]"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-[var(--color-text-primary)]">
-                      {account.username}
-                    </p>
-                    <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-                      {account.password ? (
-                        <span className="text-emerald-500">
-                          ● Credentials available
-                        </span>
-                      ) : (
-                        <span>○ Waiting for data</span>
-                      )}
-                    </p>
+                  <div className="font-mono text-sm text-[var(--color-text-primary)] truncate">
+                    {username}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() =>
-                        void navigator.clipboard.writeText(
-                          `${account.username}:${account.password || ""}:${account.cookie || ""}`,
-                        )
+                        void navigator.clipboard.writeText(username)
                       }
-                      className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
-                      title="Copy all credentials"
+                      className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     >
-                      <Clipboard size={15} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        void navigator.clipboard.writeText(
-                          account.password || "",
-                        )
-                      }
-                      className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
-                      title="Copy password"
-                    >
-                      <Key size={15} />
-                    </button>
-                    <button
-                      onClick={() => void handleDeleteAccount(account.id)}
-                      className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-red-500/10 hover:text-red-500"
-                      title="Delete"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                    <button
-                      onClick={() => void handleAddToAccounts(account)}
-                      disabled={isAddingToAccounts === account.id}
-                      className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-emerald-500/10 hover:text-emerald-500 disabled:opacity-40"
-                      title="Add to accounts"
-                    >
-                      {isAddingToAccounts === account.id ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : (
-                        <Plus size={15} />
-                      )}
+                      <Copy size={14} />
                     </button>
                   </div>
                 </div>
@@ -808,7 +706,102 @@ export const SniperTab = () => {
             </div>
           )}
         </div>
-      </div>
+
+        {}
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-strong)] p-4 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="flex items-center gap-2 font-semibold text-[var(--color-text-primary)]">
+              <Sparkles size={16} className="text-[var(--accent-color)]" />{" "}
+              Generated Accounts{" "}
+              <span className="ml-1 rounded-full bg-[var(--accent-color-faint)] px-2 py-0.5 text-xs font-bold text-[var(--accent-color)]">
+                {generatedAccounts.length}
+              </span>
+            </h3>
+            <div className="flex gap-2">
+              {generatedAccounts.length > 0 && (
+                <>
+                  <Button onClick={handleBulkCopy} size="sm" variant="outline">
+                    Bulk Copy
+                  </Button>
+                  <Button
+                    onClick={handleClearAllAccounts}
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-500"
+                  >
+                    Clear All
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {generatedAccounts.length === 0 ? (
+            <div className="h-36 flex items-center justify-center text-[var(--color-text-muted)]">
+              No generated accounts yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto">
+              {generatedAccounts.map((account) => (
+                <div
+                  key={account.id}
+                  className="border rounded-lg p-3 flex flex-col justify-between bg-[var(--color-surface)]"
+                >
+                  <div className="truncate">
+                    <div className="font-mono text-sm font-bold text-[var(--color-text-primary)] truncate">
+                      {account.username}
+                    </div>
+                    <div className="text-[9px] text-[var(--color-text-muted)] mt-1">
+                      {account.password ? (
+                        <span className="text-emerald-500">
+                          ● Credentials available
+                        </span>
+                      ) : (
+                        <span>○ Waiting for data</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 justify-end pt-3">
+                    <button
+                      onClick={() =>
+                        void navigator.clipboard.writeText(
+                          `${account.username}:${account.password || ""}:${account.cookie || ""}`,
+                        )
+                      }
+                      className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    >
+                      <Clipboard size={14} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        void navigator.clipboard.writeText(
+                          account.password || "",
+                        )
+                      }
+                      className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    >
+                      <Key size={14} />
+                    </button>
+                    <button
+                      onClick={() => void handleDeleteAccount(account.id)}
+                      className="p-1 text-[var(--color-text-muted)] hover:text-red-500"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <Button
+                      onClick={() => void handleAddToAccounts(account)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
 
       <SniperSettingsModal
         isOpen={showSettings}

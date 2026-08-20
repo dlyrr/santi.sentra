@@ -50,9 +50,6 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   );
 };
 
-/**
- * Full-page loading spinner with centered layout
- */
 export const LoadingSpinnerFullPage: React.FC<{
   label?: string;
   variant?: SpinnerVariant;
@@ -62,9 +59,6 @@ export const LoadingSpinnerFullPage: React.FC<{
   </div>
 );
 
-/**
- * Inline loading spinner for buttons or small areas
- */
 export const LoadingSpinnerInline: React.FC<{
   size?: SpinnerSize;
   variant?: SpinnerVariant;

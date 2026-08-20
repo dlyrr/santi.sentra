@@ -5,7 +5,6 @@ import { RobloxAuthService } from "../auth/RobloxAuthService";
 import { RobloxUserService } from "../users/UserService";
 
 export const registerGroupHandlers = (): void => {
-  // Get detailed info about a specific group
   handle(
     "get-group-details",
     z.tuple([z.number(), z.string().optional()]),
@@ -17,7 +16,6 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get batch group details using V2 API
   handle(
     "get-batch-group-details",
     z.tuple([z.array(z.number())]),
@@ -26,12 +24,10 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get all roles in a group
   handle("get-group-roles", z.tuple([z.number()]), async (_, groupId) => {
     return RobloxGroupService.getGroupRoles(groupId);
   });
 
-  // Get games created by a group
   handle(
     "get-group-games",
     z.tuple([z.number(), z.string().optional(), z.number().optional()]),
@@ -40,7 +36,6 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get group wall posts
   handle(
     "get-group-wall-posts",
     z.tuple([z.number(), z.string().optional(), z.number().optional()]),
@@ -49,7 +44,6 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get group members
   handle(
     "get-group-members",
     z.tuple([
@@ -63,12 +57,10 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get all groups a user has joined
   handle("get-user-groups-full", z.tuple([z.number()]), async (_, userId) => {
     return RobloxGroupService.getUserGroups(userId);
   });
 
-  // Get pending group join requests for the authenticated user
   handle(
     "get-pending-group-requests",
     z.tuple([z.string()]),
@@ -78,7 +70,6 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get group social links
   handle(
     "get-group-social-links",
     z.tuple([z.string(), z.number()]),
@@ -88,14 +79,13 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Get group thumbnails
   handle(
     "get-group-thumbnails",
     z.tuple([z.array(z.number())]),
     async (_, groupIds) => {
       const thumbnailMap =
         await RobloxGroupService.getGroupThumbnails(groupIds);
-      // Convert Map to object for IPC serialization
+
       const result: Record<number, string> = {};
       thumbnailMap.forEach((url, id) => {
         result[id] = url;
@@ -104,7 +94,6 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Cancel a pending group join request
   handle(
     "cancel-pending-group-request",
     z.tuple([z.string(), z.number()]),
@@ -114,7 +103,6 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Join a group
   handle(
     "join-group",
     z.tuple([z.string(), z.number()]),
@@ -124,19 +112,17 @@ export const registerGroupHandlers = (): void => {
     },
   );
 
-  // Leave a group
   handle(
     "leave-group",
     z.tuple([z.string(), z.number()]),
     async (_, cookieRaw, groupId) => {
       const cookie = RobloxAuthService.extractCookie(cookieRaw);
-      // Get the authenticated user's ID
+
       const userData = await RobloxUserService.getAuthenticatedUser(cookie);
       return RobloxGroupService.leaveGroup(cookie, groupId, userData.id);
     },
   );
 
-  // Search group store items
   handle(
     "search-group-store",
     z.tuple([

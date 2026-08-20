@@ -5,6 +5,7 @@ interface ServerState {
   setRegion: (jobId: string, region: string) => void;
   setRegions: (regions: Record<string, string>) => void;
   getRegion: (jobId: string) => string | undefined;
+  clearRegions: () => void;
 }
 
 export const useServerStore = create<ServerState>((set, get) => ({
@@ -18,4 +19,5 @@ export const useServerStore = create<ServerState>((set, get) => ({
       regions: { ...state.regions, ...newRegions },
     })),
   getRegion: (jobId) => get().regions[jobId],
+  clearRegions: () => set({ regions: {} }),
 }));

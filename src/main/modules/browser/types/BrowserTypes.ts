@@ -1,11 +1,3 @@
-/**
- * Browser automation types.
- * Defines browser-related structures and contracts.
- */
-
-/**
- * Browser launch options.
- */
 export interface BrowserLaunchOptions {
   headless?: boolean;
   timeout?: number;
@@ -14,9 +6,6 @@ export interface BrowserLaunchOptions {
   args?: string[];
 }
 
-/**
- * Form field configuration for automation.
- */
 export interface FormField {
   selector: string;
   value?: string | boolean | number;
@@ -35,9 +24,6 @@ export interface FormField {
   action?: "fill" | "select" | "click" | "custom";
 }
 
-/**
- * Form configuration for automation.
- */
 export interface FormConfig {
   formSelector?: string;
   fields: FormField[];
@@ -51,18 +37,12 @@ export interface FormConfig {
   }>;
 }
 
-/**
- * Navigation configuration.
- */
 export interface NavigationConfig {
   url: string;
   timeout?: number;
   waitUntil?: "load" | "domcontentloaded" | "networkidle";
 }
 
-/**
- * Browser automation result.
- */
 export interface AutomationResult {
   success: boolean;
   url: string;
@@ -74,9 +54,6 @@ export interface AutomationResult {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Browser state.
- */
 export interface BrowserState {
   isLaunched: boolean;
   currentUrl?: string;
@@ -85,9 +62,6 @@ export interface BrowserState {
   lastActionTime?: number;
 }
 
-/**
- * Browser instance wrapper type.
- */
 export interface IBrowserInstance {
   goto(url: string, options?: any): Promise<void>;
   fill(selector: string, value: string): Promise<void>;
@@ -95,13 +69,13 @@ export interface IBrowserInstance {
   select(selector: string, value: string): Promise<void>;
   screenshot(options?: any): Promise<Buffer>;
   waitForSelector(selector: string, options?: any): Promise<void>;
-  evaluate(pageFunction: Function, ...args: any[]): Promise<any>;
+  evaluate(
+    pageFunction: (...args: any[]) => unknown,
+    ...args: any[]
+  ): Promise<any>;
   close(): Promise<void>;
 }
 
-/**
- * Browser service options.
- */
 export type BrowserType = "chromium" | "firefox" | "webkit";
 
 export interface BrowserServiceOptions {

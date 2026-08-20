@@ -40,7 +40,6 @@ export const ProfileCard = ({
   const { removeAccount } = useAccountsManager();
   const { data: accountStats } = useAccountStats(account.cookie);
 
-  // Calculate total robux balance across selected accounts if multiple are selected
   const robuxBalance = useMemo(() => {
     if (selectedAccounts.length > 1) {
       return selectedAccounts.reduce(
@@ -65,7 +64,6 @@ export const ProfileCard = ({
   };
 
   const dropdownGroups = [
-    // Roblox Account Actions
     [
       {
         icon: ArrowRightLeft,
@@ -84,7 +82,7 @@ export const ProfileCard = ({
         },
       },
     ],
-    // App Actions
+
     [
       {
         icon: Heart,
@@ -95,7 +93,7 @@ export const ProfileCard = ({
         },
       },
     ],
-    // Session Actions
+
     [
       {
         icon: LogOut,
@@ -106,7 +104,6 @@ export const ProfileCard = ({
     ],
   ];
 
-  // Animation properties based on direction
   const dropdownVariants = {
     initial: { opacity: 0, y: direction === "up" ? 8 : -8, scale: 0.95 },
     animate: { opacity: 1, y: 0, scale: 1 },
@@ -116,9 +113,7 @@ export const ProfileCard = ({
   const dropdownPositionClasses =
     direction === "up" ? "bottom-full mb-2" : "top-full mt-2";
 
-  // Collapsed state - just show avatar with tooltip
   if (isCollapsed) {
-    // ── TopNav pill variant ──────────────────────────────────────────
     if (variant === "topnav") {
       const displayLabel = isMultiSelect
         ? `${selectedAccounts.length} Accounts`
@@ -138,7 +133,7 @@ export const ProfileCard = ({
                   : "border-[var(--color-border)] bg-[var(--color-surface-muted)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
               }`}
             >
-              {/* Name pill left */}
+              {}
               <span
                 className="pl-3 pr-1.5 text-xs font-semibold text-[var(--color-text-primary)] whitespace-nowrap tracking-tight"
                 style={privacyMode ? { filter: "blur(10px)" } : undefined}
@@ -146,7 +141,7 @@ export const ProfileCard = ({
                 {displayLabel}
               </span>
 
-              {/* Avatar right */}
+              {}
               <img
                 className={`h-7 w-7 bg-[var(--color-surface)] object-cover border-2 m-0.5 transition-all duration-200 flex-shrink-0 ${
                   isDropdownOpen
@@ -162,7 +157,7 @@ export const ProfileCard = ({
               />
             </button>
 
-            {/* TopNav Dropdown */}
+            {}
             <AnimatePresence>
               {isDropdownOpen && (
                 <motion.div
@@ -173,7 +168,7 @@ export const ProfileCard = ({
                   transition={{ duration: 0.15, ease: "easeOut" }}
                   className={`absolute right-0 left-auto w-56 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl z-50 overflow-hidden ${dropdownPositionClasses}`}
                 >
-                  {/* Mini profile header */}
+                  {}
                   <div className="p-3 border-b border-[var(--color-border)]">
                     <div className="flex items-center gap-2.5">
                       <img
@@ -254,7 +249,6 @@ export const ProfileCard = ({
       );
     }
 
-    // ── Default sidebar collapsed (avatar only) ──────────────────────
     return (
       <>
         <Tooltip>
@@ -276,7 +270,7 @@ export const ProfileCard = ({
                 />
               </button>
 
-              {/* Collapsed Dropdown */}
+              {}
               <AnimatePresence>
                 {isDropdownOpen && (
                   <motion.div
@@ -287,7 +281,7 @@ export const ProfileCard = ({
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     className={`absolute right-0 left-auto w-56 bg-[var(--color-surface-strong)] border border-[var(--color-border)] rounded-[var(--menu-radius)] shadow-2xl z-50 overflow-hidden ${dropdownPositionClasses}`}
                   >
-                    {/* Mini profile header */}
+                    {}
                     <div className="p-3 border-b border-[var(--color-border)]">
                       <div className="flex items-center gap-2.5">
                         <img
@@ -385,7 +379,6 @@ export const ProfileCard = ({
     );
   }
 
-  // Expanded state
   return (
     <div className="px-3 py-3 relative" ref={containerRef}>
       <AnimatePresence>
@@ -429,7 +422,7 @@ export const ProfileCard = ({
         )}
       </AnimatePresence>
 
-      {/* Main Card */}
+      {}
       <button
         onClick={handleCardClick}
         className={`w-full rounded-xl border transition-all duration-200 text-left ${
@@ -440,7 +433,7 @@ export const ProfileCard = ({
       >
         <div className="p-3">
           <div className="flex items-center gap-3">
-            {/* Avatar */}
+            {}
             <div className="relative flex-shrink-0">
               <img
                 className={`h-10 w-10 rounded-full bg-[var(--color-surface)] object-cover border-2 transition-all duration-200 ${
@@ -454,7 +447,7 @@ export const ProfileCard = ({
               />
             </div>
 
-            {/* Name, username, and robux */}
+            {}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -490,7 +483,7 @@ export const ProfileCard = ({
               </div>
             </div>
 
-            {/* Chevron indicator */}
+            {}
             <div
               className={`flex-shrink-0 transition-transform duration-200 ${isDropdownOpen ? "" : "rotate-180"}`}
             >

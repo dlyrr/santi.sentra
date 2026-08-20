@@ -101,7 +101,6 @@ const InstallTab: React.FC = () => {
     }
   };
 
-  // Filter out detected installations that are already added by the user
   const filteredDetectedInstallations = useMemo(() => {
     const userPaths = new Set(installations.map((i) => i.path.toLowerCase()));
     return detectedInstallations.filter(
@@ -109,7 +108,6 @@ const InstallTab: React.FC = () => {
     );
   }, [detectedInstallations, installations]);
 
-  // Combine all installations into a unified list
   const allInstallations = useMemo((): UnifiedInstallation[] => {
     const userInstalls: UnifiedInstallation[] = installations.map(
       (install) => ({
@@ -182,10 +180,8 @@ const InstallTab: React.FC = () => {
       let path: string | null = null;
 
       if (customPath) {
-        // Use custom path - just verify it's accessible
         path = customPath;
       } else {
-        // Use auto-installer
         path = await window.api.installRobloxVersion(apiType, version);
       }
 
@@ -268,15 +264,13 @@ const InstallTab: React.FC = () => {
       setInstallProgress({ status, percent: progress, detail: detail || "" });
     };
 
-    // Determine target path
     let targetPath = install.path;
-    // Check if this is a versioned folder (Windows style default install)
+
     const versionString = `version-${install.version}`;
     const isVersionedFolder =
       install.isSystem && install.path.includes(versionString);
 
     if (isVersionedFolder) {
-      // Replace the LAST occurrence of the version string to be safe
       const lastIndex = install.path.lastIndexOf(versionString);
       if (lastIndex !== -1) {
         targetPath =
@@ -300,7 +294,6 @@ const InstallTab: React.FC = () => {
 
       if (successPath) {
         if (install.isSystem) {
-          // Cleanup old if we moved it
           if (isVersionedFolder && targetPath !== install.path) {
             console.log("[InstallTab] Cleaning up old version:", install.path);
             try {
@@ -310,10 +303,8 @@ const InstallTab: React.FC = () => {
             }
           }
 
-          // Delay to ensure FS operations are settled
           await new Promise((r) => setTimeout(r, 1000));
 
-          // Refresh detected installations
           console.log("[InstallTab] Refreshing detections");
           try {
             const detected = await window.api.detectDefaultInstallations();
@@ -352,7 +343,6 @@ const InstallTab: React.FC = () => {
     setIsCheckingUpdate(install.id);
 
     try {
-      // Use the install IPC directly to avoid clashing with the app updater API
       const result = await window.electron.ipcRenderer.invoke(
         "check-for-updates",
         getApiType(binaryType),
@@ -469,7 +459,6 @@ const InstallTab: React.FC = () => {
             onLaunch={handleLaunch}
             onSettings={(install) => setShowConfigModal(install)}
             onContextMenu={(e, install) => {
-              // Calculate position based on event
               const rect = e.currentTarget.getBoundingClientRect();
               setContextMenu({
                 position: { x: rect.right, y: rect.bottom + 4 },

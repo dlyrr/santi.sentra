@@ -3,10 +3,6 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-/**
- * MemoryCleanupService - Cleans up process RAM using Windows API via PowerShell
- * Only works on Windows; gracefully handles non-Windows platforms
- */
 export class MemoryCleanupService {
   private static instance: MemoryCleanupService | null = null;
   private isWindowsPlatform: boolean = false;
@@ -15,9 +11,6 @@ export class MemoryCleanupService {
     this.isWindowsPlatform = process.platform === "win32";
   }
 
-  /**
-   * Get singleton instance
-   */
   static getInstance(): MemoryCleanupService {
     if (!this.instance) {
       this.instance = new MemoryCleanupService();
@@ -25,11 +18,6 @@ export class MemoryCleanupService {
     return this.instance;
   }
 
-  /**
-   * Clean up process RAM by triggering Windows memory management via PowerShell
-   * Uses Clear-HostMemory (Windows 10+) or EmptyWorkingSet via .NET
-   * Returns true if successful, false otherwise
-   */
   async emptyWorkingSet(pid: number): Promise<boolean> {
     if (!this.isWindowsPlatform) {
       console.log(
@@ -39,12 +27,29 @@ export class MemoryCleanupService {
     }
 
     try {
-      // PowerShell script to call EmptyWorkingSet
-      // Uses .NET to call Windows API function: [System.Diagnostics.Process]::GetProcessById($pid).EmptyWorkingSet()
-      const psScript = `[GC]::Collect();[GC]::WaitForPendingFinalizers();$p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue;if($p){$p.MinWorkingSet=1MB;$p.MinWorkingSet=$p.WorkingSet64;[System.Diagnostics.Process]::GetProcessById(${pid}).EmptyWorkingSet();exit 0}else{exit 1}`;
+      const psScript = `
+$ErrorActionPreference = 'SilentlyContinue'
+Add-Type @"
+  using System;
+  using System.Runtime.InteropServices;
+  public class MemTrim {
+    [DllImport("psapi.dll")]
+    public static extern bool EmptyWorkingSet(IntPtr hProcess);
+  }
+"@
+[GC]::Collect()
+[GC]::WaitForPendingFinalizers()
+$p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue
+if ($p) {
+  [MemTrim]::EmptyWorkingSet($p.Handle) | Out-Null
+  exit 0
+} else {
+  exit 1
+}
+`;
 
       const { stderr } = await execAsync(
-        `powershell -NoProfile -Command "${psScript}"`,
+        `powershell -NoProfile -NonInteractive -Command "${psScript.replace(/"/g, '\\"')}"`,
         {
           timeout: 5000,
           windowsHide: true,
@@ -68,9 +73,6 @@ export class MemoryCleanupService {
     }
   }
 
-  /**
-   * Check if platform supports EmptyWorkingSet cleanup
-   */
   isSupported(): boolean {
     return this.isWindowsPlatform;
   }

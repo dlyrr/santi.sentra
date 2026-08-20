@@ -42,7 +42,7 @@ export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
     const getColorType = (badgeKey: string): string => {
       const badgeMeta = ROLIMONS_BADGES[badgeKey];
       if (!badgeMeta) return "neutral";
-      // Handle color classes like text-emerald-400 or text-[var(--color-text-primary)]
+
       const colorMatch = badgeMeta.color.match(/text-(\w+)(?:-\d+)?/);
       return colorMatch ? colorMatch[1] : "neutral";
     };
@@ -64,7 +64,6 @@ export const RolimonsBadges: React.FC<RolimonsBadgesProps> = ({ userId }) => {
 
   if (sortedRolimonsBadges.length === 0) return null;
 
-  // Wrap at ~half of the available header width.
   const topPadding = sortedRolimonsBadges.length <= 4 ? "pt-2" : "pt-4";
 
   const renderBadge = ({

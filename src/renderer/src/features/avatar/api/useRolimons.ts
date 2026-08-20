@@ -7,32 +7,25 @@ import {
   rolimonsItemPageSchema,
 } from "@shared/ipc-schemas/rolimons";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-// Rolimons item data structure (array format from API)
-// Array indices: [Name, Acronym, RAP, Value, DefaultValue, Demand, Trend, Projected, Hyped, Rare]
 export type RolimonsItemData = [
-  string, // 0: Name
-  string, // 1: Acronym
-  number, // 2: RAP (Recent Average Price)
-  number, // 3: Value (-1 means none set)
-  number, // 4: Default Value
-  number, // 5: Demand (-1 to 4)
-  number, // 6: Trend (-1 to 4)
-  number, // 7: Projected (-1 or 1)
-  number, // 8: Hyped (-1 or 1)
-  number, // 9: Rare (-1 or 1)
+  string,
+  string,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
 ];
 
-// Parsed item info for easy access
 export interface RolimonsItem {
   id: number;
   name: string;
   acronym: string;
   rap: number;
-  value: number | null; // null if -1
+  value: number | null;
   defaultValue: number;
   demand: number;
   demandLabel: string;
@@ -43,14 +36,12 @@ export interface RolimonsItem {
   isRare: boolean;
 }
 
-// Rolimons API response type
 interface RolimonsApiResponse {
   success: boolean;
   item_count: number;
   items: Record<string, RolimonsItemData>;
 }
 
-// Rolimons Player API response type
 export interface RolimonsPlayerData {
   name?: string;
   value?: number | null;
@@ -65,11 +56,6 @@ export interface RolimonsPlayerData {
   rolibadges?: Record<string, number>;
 }
 
-// ============================================================================
-// Constants
-// ============================================================================
-
-// Demand labels
 export const DEMAND_LABELS: Record<number, string> = {
   [-1]: "None",
   0: "Terrible",
@@ -79,7 +65,6 @@ export const DEMAND_LABELS: Record<number, string> = {
   4: "Amazing",
 };
 
-// Trend labels
 export const TREND_LABELS: Record<number, string> = {
   [-1]: "None",
   0: "Lowering",
@@ -89,7 +74,6 @@ export const TREND_LABELS: Record<number, string> = {
   4: "Fluctuating",
 };
 
-// Demand colors for UI
 export const DEMAND_COLORS: Record<number, string> = {
   [-1]: "text-neutral-500",
   0: "text-red-500",
@@ -99,7 +83,6 @@ export const DEMAND_COLORS: Record<number, string> = {
   4: "text-cyan-400",
 };
 
-// Trend colors for UI
 export const TREND_COLORS: Record<number, string> = {
   [-1]: "text-neutral-500",
   0: "text-red-500",
@@ -109,7 +92,6 @@ export const TREND_COLORS: Record<number, string> = {
   4: "text-purple-500",
 };
 
-// Rolimons badge metadata
 export const ROLIMONS_BADGES: Record<
   string,
   {
@@ -120,7 +102,6 @@ export const ROLIMONS_BADGES: Record<
     borderColor: string;
   }
 > = {
-  // Community Badges
   contributor: {
     label: "Contributor",
     description:
@@ -184,7 +165,6 @@ export const ROLIMONS_BADGES: Record<
     borderColor: "border-purple-500/20",
   },
 
-  // Website Badges
   verified: {
     label: "Verified",
     description: "Verify your account on Rolimons",
@@ -221,7 +201,6 @@ export const ROLIMONS_BADGES: Record<
     borderColor: "border-rose-500/20",
   },
 
-  // Trading Badges - Value
   value_100k: {
     label: "100K+",
     description:
@@ -287,7 +266,6 @@ export const ROLIMONS_BADGES: Record<
     borderColor: "border-yellow-500/20",
   },
 
-  // Trading Badges - Special Items
   own_lucky_cat_uaid: {
     label: "Lucky Cat",
     description: "Own the Lucky Cat item",
@@ -383,7 +361,6 @@ export const ROLIMONS_BADGES: Record<
     borderColor: "border-amber-500/20",
   },
 
-  // Trading Badges - Collection
   own_10_items: {
     label: "Collector",
     description: "Own at least 10 limiteds",
@@ -497,11 +474,6 @@ export const ROLIMONS_BADGES: Record<
   },
 };
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-// Parse raw item data into a more usable format
 function parseItemData(id: number, data: RolimonsItemData): RolimonsItem {
   return {
     id,
@@ -520,12 +492,10 @@ function parseItemData(id: number, data: RolimonsItemData): RolimonsItem {
   };
 }
 
-// Fetch all limited item data from Rolimons API via IPC (to avoid CORS issues)
 async function fetchRolimonsItemDetails(): Promise<RolimonsApiResponse> {
   const data =
     (await window.api.getRolimonsItemDetails()) as RolimonsApiResponse;
 
-  // Validate with Zod schema
   const parsed = rolimonsItemDetailsSchema.safeParse(data);
   if (!parsed.success) {
     console.warn(
@@ -537,29 +507,17 @@ async function fetchRolimonsItemDetails(): Promise<RolimonsApiResponse> {
   return data;
 }
 
-// ============================================================================
-// React Query Hooks
-// ============================================================================
-
-/**
- * Hook to fetch and cache all Rolimons limited item data.
- * Data is cached for 5 minutes.
- */
 export function useRolimonsData() {
   return useQuery({
     queryKey: queryKeys.rolimons.itemDetails(),
     queryFn: fetchRolimonsItemDetails,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 1,
-    retryDelay: 5000, // Wait 5 seconds before retry (respect rate limits)
+    retryDelay: 5000,
   });
 }
 
-/**
- * Hook to get a specific limited item's Rolimons data.
- * Reads from the React Query cache populated by useRolimonsData().
- */
 export function useRolimonsItem(assetId: number | null): RolimonsItem | null {
   const { data } = useRolimonsData();
 
@@ -571,9 +529,6 @@ export function useRolimonsItem(assetId: number | null): RolimonsItem | null {
   return parseItemData(assetId, itemData);
 }
 
-/**
- * Hook to check if an asset is a limited tracked by Rolimons.
- */
 export function useIsRolimonsLimited(assetId: number | null): boolean {
   const { data } = useRolimonsData();
 
@@ -581,10 +536,6 @@ export function useIsRolimonsLimited(assetId: number | null): boolean {
   return String(assetId) in data.items;
 }
 
-/**
- * Get Rolimons item data directly from the cache (non-reactive).
- * Use this in event handlers or callbacks where you need synchronous access.
- */
 export function getRolimonsItem(
   assetId: number,
   queryClient: ReturnType<typeof useQueryClient>,
@@ -600,19 +551,11 @@ export function getRolimonsItem(
   return parseItemData(assetId, itemData);
 }
 
-/**
- * Hook that provides getRolimonsItem bound to the current query client.
- * Useful for callbacks that need synchronous cache access.
- */
 export function useGetRolimonsItem() {
   const queryClient = useQueryClient();
   return (assetId: number) => getRolimonsItem(assetId, queryClient);
 }
 
-/**
- * Hook to fetch Rolimons player data (value, rap, badges, etc.)
- * Data is cached for 5 minutes.
- */
 export function useRolimonsPlayer(
   userId: number | null,
   enabled: boolean = true,
@@ -624,7 +567,6 @@ export function useRolimonsPlayer(
       try {
         const data = await window.api.getRolimonsPlayer(userId);
 
-        // Validate with Zod schema
         const parsed = rolimonsPlayerSchema.safeParse(data);
         if (!parsed.success) {
           console.warn(
@@ -640,33 +582,23 @@ export function useRolimonsPlayer(
       }
     },
     enabled: enabled && userId !== null && userId > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 1,
     retryDelay: 5000,
   });
 }
 
-/**
- * Hook to get loading state for Rolimons data
- */
 export function useRolimonsLoading(): boolean {
   const { isLoading, isFetching } = useRolimonsData();
   return isLoading || isFetching;
 }
 
-/**
- * Hook to get error state for Rolimons data
- */
 export function useRolimonsError(): string | null {
   const { error } = useRolimonsData();
   return error ? (error as Error).message : null;
 }
 
-/**
- * Hook to fetch detailed Rolimons item page data (value history, ownership, sales, etc.)
- * This fetches from the actual item page on rolimons.com
- */
 export function useRolimonsItemPage(
   itemId: number | null,
   enabled: boolean = true,
@@ -678,7 +610,6 @@ export function useRolimonsItemPage(
       try {
         const data = await window.api.getRolimonsItemPage(itemId);
 
-        // Validate with Zod schema
         const parsed = rolimonsItemPageSchema.safeParse(data);
         if (!parsed.success) {
           console.warn(
@@ -694,8 +625,8 @@ export function useRolimonsItemPage(
       }
     },
     enabled: enabled && itemId !== null && itemId > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     retry: 1,
     retryDelay: 5000,
   });

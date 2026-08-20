@@ -53,14 +53,14 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
         height: isLargeScreen ? "100%" : "40vh",
       }}
     >
-      {/* Viewport Controls (Overlay) */}
+      {}
       <AvatarControls
         onRefresh={onRefresh}
         onReset={onReset}
         isRendering={isRendering}
       />
 
-      {/* R15/R6 Switch - Top Left */}
+      {}
       <div className="absolute top-4 left-4 z-10">
         <AvatarTypeSwitch
           account={account || null}
@@ -68,9 +68,9 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
         />
       </div>
 
-      {/* 3D Viewport with React Three Fiber */}
+      {}
       <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800 via-neutral-900 to-neutral-950">
-        {/* Grid Floor */}
+        {}
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"
           style={{
@@ -81,7 +81,7 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
               "perspective(500px) rotateX(60deg) translateY(100px) scale(2)",
           }}
         />
-        {/* Universal 3D Model Viewer */}
+        {}
         <Suspense fallback={null}>
           <Model3DViewer
             userId={userId}
@@ -99,7 +99,7 @@ export const AvatarViewport: React.FC<AvatarViewportProps> = ({
         </Suspense>
       </div>
 
-      {/* Resize Handle - Disabled for fixed 50/50 split */}
+      {}
     </div>
   );
 };

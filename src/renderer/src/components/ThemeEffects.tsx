@@ -15,7 +15,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   hearts: {
     symbol: "❤",
     count: 12,
-    color: { r: 255, g: 68, b: 68 }, // Red
+    color: { r: 255, g: 68, b: 68 },
     animation: "fall-hearts",
     size: { min: 12, max: 28 },
     duration: { min: 10, max: 16 },
@@ -24,7 +24,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   aurora: {
     symbol: "✨",
     count: 14,
-    color: { r: 179, g: 102, b: 255 }, // Purple
+    color: { r: 179, g: 102, b: 255 },
     animation: "float-aurora",
     size: { min: 14, max: 26 },
     duration: { min: 14, max: 22 },
@@ -33,7 +33,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   ocean: {
     symbol: "●",
     count: 10,
-    color: { r: 68, g: 136, b: 255 }, // Blue
+    color: { r: 68, g: 136, b: 255 },
     animation: "rise-ocean",
     size: { min: 12, max: 26 },
     duration: { min: 9, max: 14 },
@@ -42,7 +42,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   forest: {
     symbol: "🍃",
     count: 16,
-    color: { r: 68, g: 204, b: 68 }, // Green
+    color: { r: 68, g: 204, b: 68 },
     animation: "fall-forest",
     size: { min: 14, max: 28 },
     duration: { min: 10, max: 18 },
@@ -51,7 +51,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   sunset: {
     symbol: "✦",
     count: 12,
-    color: { r: 255, g: 136, b: 68 }, // Orange
+    color: { r: 255, g: 136, b: 68 },
     animation: "drift-sunset",
     size: { min: 10, max: 20 },
     duration: { min: 12, max: 20 },
@@ -60,7 +60,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   cosmic: {
     symbol: "★",
     count: 14,
-    color: { r: 68, g: 221, b: 255 }, // Cyan
+    color: { r: 68, g: 221, b: 255 },
     animation: "twinkle-cosmic",
     size: { min: 12, max: 22 },
     duration: { min: 8, max: 12 },
@@ -69,7 +69,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   ember: {
     symbol: "•",
     count: 12,
-    color: { r: 255, g: 120, b: 60 }, // Ember orange
+    color: { r: 255, g: 120, b: 60 },
     animation: "rise-ember",
     size: { min: 12, max: 24 },
     duration: { min: 8, max: 12 },
@@ -78,7 +78,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   pixel: {
     symbol: "▪",
     count: 20,
-    color: { r: 200, g: 200, b: 200 }, // gray-ish
+    color: { r: 200, g: 200, b: 200 },
     animation: "fall-pixel",
     size: { min: 12, max: 24 },
     duration: { min: 8, max: 14 },
@@ -87,7 +87,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   breeze: {
     symbol: "·",
     count: 16,
-    color: { r: 200, g: 240, b: 255 }, // pale
+    color: { r: 200, g: 240, b: 255 },
     animation: "drift-breeze",
     size: { min: 10, max: 20 },
     duration: { min: 10, max: 18 },
@@ -96,7 +96,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   comet: {
     symbol: "✸",
     count: 10,
-    color: { r: 255, g: 220, b: 120 }, // warm
+    color: { r: 255, g: 220, b: 120 },
     animation: "streak-comet",
     size: { min: 12, max: 28 },
     duration: { min: 6, max: 10 },
@@ -105,7 +105,7 @@ const THEME_CONFIGS: Record<string, ThemeConfig> = {
   petals: {
     symbol: "❀",
     count: 14,
-    color: { r: 255, g: 182, b: 193 }, // pink
+    color: { r: 255, g: 182, b: 193 },
     animation: "fall-petals",
     size: { min: 14, max: 28 },
     duration: { min: 10, max: 18 },
@@ -195,7 +195,15 @@ export const ThemeEffects = () => {
   useEffect(() => {
     console.log("[ThemeEffects] customTheme changed to:", customTheme);
 
-    // Don't render particles when using default theme
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      if (containerRef.current) containerRef.current.innerHTML = "";
+      return;
+    }
+
     const activeTheme = customTheme;
 
     if (!THEME_CONFIGS[activeTheme]) {
@@ -217,7 +225,6 @@ export const ThemeEffects = () => {
     const config = THEME_CONFIGS[activeTheme];
     const container = containerRef.current;
 
-    // Create CSS animations if not already present
     if (!document.getElementById("theme-animations-style")) {
       const style = document.createElement("style");
       style.id = "theme-animations-style";
@@ -225,7 +232,6 @@ export const ThemeEffects = () => {
       document.head.appendChild(style);
     }
 
-    // Clear previous particles
     container.innerHTML = "";
     particlesRef.current = [];
 
@@ -238,7 +244,7 @@ export const ThemeEffects = () => {
 
       const particle = document.createElement("div");
       const left = Math.random() * 100;
-      const delay = 0; // start immediately, no delay
+      const delay = 0;
       const duration =
         config.duration.min +
         Math.random() * (config.duration.max - config.duration.min);
@@ -246,7 +252,6 @@ export const ThemeEffects = () => {
         config.size.min + Math.random() * (config.size.max - config.size.min);
       const opacity = 0.5 + Math.random() * 0.25;
 
-      // choose color from palette if provided, otherwise use base color
       let chosenRgb = config.color;
       if (config.palette && config.palette.length > 0) {
         try {
@@ -266,7 +271,7 @@ export const ThemeEffects = () => {
       particle.style.color = `rgba(${chosenRgb.r}, ${chosenRgb.g}, ${chosenRgb.b}, ${opacity})`;
       particle.style.pointerEvents = "none";
       particle.style.textShadow = `0 0 14px rgba(${chosenRgb.r}, ${chosenRgb.g}, ${chosenRgb.b}, ${opacity * 0.7})`;
-      // start the main movement animation immediately
+
       particle.style.animation = `${config.animation} ${duration}s linear ${delay}s 1 forwards`;
       particle.style.filter = `drop-shadow(0 0 8px rgba(${chosenRgb.r}, ${chosenRgb.g}, ${chosenRgb.b}, ${opacity * 0.6}))`;
       particle.style.userSelect = "none";
@@ -289,26 +294,21 @@ export const ThemeEffects = () => {
       particlesRef.current.push(particle);
     };
 
-    // Kick off an immediate small burst and then keep trying to top-up the pool
     for (let i = 0; i < Math.min(3, config.count); i++) spawnOne();
 
     intervalRef.current = window.setInterval(() => {
       if (particlesRef.current.length < config.count) spawnOne();
     }, 700);
 
-    // Store config for visibility change handler
     configRef.current = config;
 
-    // Handle window visibility change (minimize/restore) - only pause on actual minimize
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Window hidden (minimized) - pause particle spawning
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
       } else {
-        // Window visible again - resume particle spawning
         if (intervalRef.current === null && configRef.current) {
           intervalRef.current = window.setInterval(() => {
             if (particlesRef.current.length < config.count) spawnOne();

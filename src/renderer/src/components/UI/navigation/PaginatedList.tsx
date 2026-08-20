@@ -43,7 +43,7 @@ export function PaginatedList<T>({
         ))}
       </div>
 
-      {/* Pagination Controls */}
+      {}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]/50">
           <span className="text-xs text-[var(--color-text-muted)]">

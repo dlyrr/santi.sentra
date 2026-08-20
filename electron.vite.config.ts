@@ -33,7 +33,15 @@ export default defineConfig({
     resolve: {
       alias: { ...sharedAliases },
     },
-    plugins: [externalizeDepsPlugin()],
+    // The main window runs with `sandbox: true`. A sandboxed preload can only
+    // `require()` "electron" and a few Node builtins — it CANNOT require
+    // arbitrary npm packages. externalizeDepsPlugin() would leave
+    // `require("zod")` in the output, which throws at preload load time and
+    // silently prevents the contextBridge from ever running (renderer then
+    // sees `window.electron === undefined`). So bundle zod into the preload
+    // instead of externalizing it. `electron` stays external via electron-vite's
+    // defaults regardless.
+    plugins: [externalizeDepsPlugin({ exclude: ["zod"] })],
   },
   renderer: {
     resolve: {

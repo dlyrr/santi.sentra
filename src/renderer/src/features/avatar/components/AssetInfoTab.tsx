@@ -14,10 +14,8 @@ import { RecommendationsList } from "./RecommendationsList";
 import { ResellersList } from "./UserLists";
 import VerifiedIcon from "@renderer/components/UI/icons/VerifiedIcon";
 
-// Sound Hat IDs
 const SOUND_HAT_IDS = [24114402, 305888394, 24112667, 33070696];
 
-// Inline AssetMetadata component
 const AssetMetadata: React.FC<{
   details: AssetDetails;
   creatorAvatarUrl: string | null;
@@ -32,7 +30,7 @@ const AssetMetadata: React.FC<{
           className={cn(
             "w-7 h-7 rounded-full shrink-0 object-cover",
             details.creatorType === "User" &&
-              "cursor-pointer hover:ring-2 hover:ring-white/30 transition-all",
+              "cursor-pointer hover:ring-2 hover:ring-[var(--focus-ring)] transition-all",
           )}
           onClick={onCreatorClick}
         />
@@ -66,7 +64,6 @@ const AssetMetadata: React.FC<{
   </div>
 );
 
-// Inline AssetDescription component
 const AssetDescription: React.FC<{
   description: string | null | undefined;
 }> = ({ description }) => (
@@ -201,7 +198,7 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
 
       <AssetStats details={details} salesData={salesData} />
 
-      {/* Resellers - Only for limited items */}
+      {}
       {isLimited && (
         <ResellersList
           resellers={resellers}
@@ -213,7 +210,7 @@ export const AssetInfoTab: React.FC<AssetInfoTabProps> = ({
         />
       )}
 
-      {/* Recommendations Carousel */}
+      {}
       <RecommendationsList
         recommendations={recommendations}
         recommendationThumbnails={recommendationThumbnails}

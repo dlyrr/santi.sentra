@@ -1,11 +1,6 @@
 import { app } from "electron";
 import path, { join } from "path";
 
-/**
- * Returns a directory where the application should store its data.
- *
- * We use the standard userData directory on all platforms for app-specific data.
- */
 import fs from "fs";
 
 function migrateDocsConfigToUserData(docPath: string, userDataPath: string) {
@@ -48,7 +43,6 @@ function migrateDocsConfigToUserData(docPath: string, userDataPath: string) {
 
     const merged = { ...docsJson, ...userJson };
 
-    // Preserve existing PIN metadata from user data if present.
     if (userJson.settings?.pinCodeHash) {
       merged.settings = {
         ...(docsJson.settings || {}),
@@ -56,7 +50,6 @@ function migrateDocsConfigToUserData(docPath: string, userDataPath: string) {
       };
     }
 
-    // Preserve lockout state from user data if present.
     if (userJson.settings?.pinLockout) {
       merged.settings = merged.settings || {};
       merged.settings.pinLockout = userJson.settings.pinLockout;
@@ -114,9 +107,6 @@ export function getDataPath(): string {
   }
 }
 
-/**
- * Helper for getting the full path to a file inside the data directory.
- */
 export function getDataFile(...segments: string[]): string {
   return join(getDataPath(), ...segments);
 }

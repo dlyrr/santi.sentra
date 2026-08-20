@@ -1,4 +1,11 @@
-import { safeFetchText, request, requestWithCsrf } from "@main/lib/request";
+import {
+  safeFetchText,
+  request,
+  requestWithCsrf,
+  isAllowedRobloxHost,
+  RequestError,
+} from "@main/lib/request";
+
 import { z } from "zod";
 import {
   userSummarySchema,
@@ -30,9 +37,7 @@ export class RobloxUserService {
     });
   }
 
-  static async getBirthdate(
-    cookie: string,
-  ): Promise<{
+  static async getBirthdate(cookie: string): Promise<{
     birthMonth: number;
     birthDay: number;
     birthYear: number;
@@ -71,13 +76,6 @@ export class RobloxUserService {
     throw new Error("No avatar URL found in response");
   }
 
-  /**
-   * Batch fetch avatar headshots for multiple users at once using the thumbnails batch API.
-   * Much more efficient than individual requests when fetching multiple user avatars.
-   * @param userIds Array of user IDs to fetch avatars for
-   * @param size Thumbnail size (default: '420x420')
-   * @returns Map of userId to imageUrl (null if not found)
-   */
   static async getBatchUserAvatarHeadshots(
     userIds: number[],
     size: string = "420x420",
@@ -162,7 +160,6 @@ export class RobloxUserService {
       }
     };
 
-    // Process chunks sequentially to avoid hitting rate limits
     for (const chunk of chunks) {
       await fetchChunk(chunk);
     }
@@ -232,11 +229,6 @@ export class RobloxUserService {
     });
   }
 
-  /**
-   * Batch get account statuses for multiple cookies.
-   * This is more efficient than calling getAccountStatus for each cookie individually.
-   * Returns a map of cookie -> presence data (or null if failed).
-   */
   static async getBatchAccountStatuses(
     cookies: string[],
   ): Promise<Map<string, { userId: number; presence: any } | null>> {
@@ -246,7 +238,6 @@ export class RobloxUserService {
       return result;
     }
 
-    // Process auth checks sequentially to avoid rate limits with many accounts
     const cookieToUserId = new Map<string, number>();
     const userIds: number[] = [];
     let firstValidCookie: string | null = null;
@@ -266,7 +257,6 @@ export class RobloxUserService {
 
     if (userIds.length > 0 && firstValidCookie) {
       try {
-        // Presence API can handle up to 100 userIds at once, but let's chunk to be safe
         const chunkSize = 100;
         const presenceMap = new Map<number, any>();
 
@@ -313,7 +303,7 @@ export class RobloxUserService {
       (_, i) => userIds.slice(i * chunkSize, i * chunkSize + chunkSize),
     );
 
-    let allPresences: any[] = [];
+    const allPresences: any[] = [];
 
     const fetchChunk = async (chunkIds: number[]) => {
       try {
@@ -330,7 +320,6 @@ export class RobloxUserService {
       }
     };
 
-    // Process chunks sequentially
     for (const chunk of chunks) {
       const chunkResult = await fetchChunk(chunk);
       allPresences.push(...chunkResult);
@@ -434,7 +423,16 @@ export class RobloxUserService {
   }
 
   static async getAssetContent(url: string): Promise<string> {
-    return safeFetchText(url);
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      throw new RequestError(`Invalid asset URL: ${url}`);
+    }
+    if (parsed.protocol !== "https:" || !isAllowedRobloxHost(parsed.host)) {
+      throw new RequestError(`Refusing to fetch asset from ${parsed.host}`);
+    }
+    return safeFetchText(parsed.toString());
   }
 
   static async getDetailedStats(_cookie: string, userId: number) {
@@ -530,18 +528,6 @@ export class RobloxUserService {
     return { success: true };
   }
 
-  /**
-   * Batch fetch basic user details (id, name, displayName) for multiple users.
-   * Much more efficient than calling getExtendedUserDetails for each user.
-   * @param userIds Array of user IDs to fetch details for
-   * @returns Map of userId to user details (null if not found)
-   */
-  /**
-   * Batch-fetch join dates for multiple users at once.
-   * Uses the public /v1/users POST endpoint which returns the `created` field.
-   * @param userIds Array of user IDs
-   * @returns Map of userId to ISO date string (null if not found)
-   */
   static async getBatchJoinDates(
     userIds: number[],
   ): Promise<Map<number, string | null>> {
@@ -675,18 +661,6 @@ export class RobloxUserService {
     return resultMap;
   }
 
-  /**
-   * Fetch comprehensive user profile data using the profile platform API.
-   * This consolidates multiple API calls into a single request, providing:
-   * - User header info (premium, verified, admin status, counts)
-   * - About info (description, name history, join date, social links)
-   * - Currently wearing assets
-   * - Favorite experiences
-   * - Collections
-   * - Roblox badges (with full metadata)
-   * - Player badges
-   * - Statistics
-   */
   static async getUserProfile(
     cookie: string,
     userId: number,

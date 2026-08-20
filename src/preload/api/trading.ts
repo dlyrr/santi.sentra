@@ -1,7 +1,3 @@
-/**
- * Trading Module API - Expose trading analyzer to renderer process
- */
-
 import { invoke } from "./invoke";
 import { z } from "zod";
 

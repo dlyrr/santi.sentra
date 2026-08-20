@@ -6,27 +6,22 @@ import type {
 } from "@renderer/ipc/windowApi";
 
 interface CatalogState {
-  // Search state
   appliedSearchQuery: string;
 
-  // Filter state
   selectedCategory: CatalogCategory | null;
   selectedSubcategory: CatalogSubcategory | null;
   sortType: string;
   salesTypeFilter: string;
   unavailableItems: string;
 
-  // Price filter (local input values)
   minPrice: string;
   maxPrice: string;
   creatorName: string;
 
-  // Applied filters (debounced/committed values)
   appliedMinPrice: number | undefined;
   appliedMaxPrice: number | undefined;
   appliedCreatorName: string;
 
-  // Thumbnails cache
   thumbnails: Record<number, string>;
 }
 
@@ -127,7 +122,6 @@ export const useCatalogStore = create<CatalogStore>()(
   ),
 );
 
-// Selectors
 export const useCatalogAppliedSearchQuery = () =>
   useCatalogStore((state) => state.appliedSearchQuery);
 export const useSetCatalogAppliedSearchQuery = () =>

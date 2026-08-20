@@ -33,7 +33,6 @@ export const TruncatedTextWithTooltip: React.FC<
 
     let resizeObserver: ResizeObserver | null = null;
 
-    // ResizeObserver is well-supported in modern browsers and Electron environments
     resizeObserver = new ResizeObserver(() => checkTruncation());
     resizeObserver.observe(element);
 

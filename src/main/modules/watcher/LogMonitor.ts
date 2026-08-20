@@ -3,41 +3,31 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { CrashDetectionResult, CrashIndicator } from "./types";
 
-/**
- * LogMonitor - Monitors Roblox log files for crash indicators
- */
 export class LogMonitor {
   private logCache: Map<string, { size: number; content: string }> = new Map();
 
-  /**
-   * Get Roblox logs directory based on platform
-   */
   static getRobloxLogsDirectory(): string {
     if (process.platform === "win32") {
       const localAppData = process.env.LOCALAPPDATA;
       if (localAppData) {
-        // Try lowercase 'logs' first
         let logsPath = path.join(localAppData, "Roblox", "logs");
         if (existsSync(logsPath)) {
           console.log("[LogMonitor] Found logs at (lowercase):", logsPath);
           return logsPath;
         }
 
-        // Try uppercase 'Logs'
         logsPath = path.join(localAppData, "Roblox", "Logs");
         if (existsSync(logsPath)) {
           console.log("[LogMonitor] Found logs at (uppercase):", logsPath);
           return logsPath;
         }
 
-        // Return lowercase as default (even if doesn't exist, for consistent path)
         console.warn(
           "[LogMonitor] Neither logs nor Logs found under Roblox, returning default path",
         );
         return path.join(localAppData, "Roblox", "logs");
       }
 
-      // Fallback to USERPROFILE
       const userProfile = process.env.USERPROFILE;
       if (userProfile) {
         let logsPath = path.join(
@@ -79,10 +69,11 @@ export class LogMonitor {
     return "";
   }
 
-  /**
-   * Find the most recently modified log file in the Roblox logs directory
-   */
   async findLatestLogFile(): Promise<string | null> {
+    return this.findLatestLogFileAfter(0);
+  }
+
+  async findLatestLogFileAfter(sinceTimeMs: number): Promise<string | null> {
     try {
       const logsDir = LogMonitor.getRobloxLogsDirectory();
 
@@ -99,78 +90,56 @@ export class LogMonitor {
           "[LogMonitor] Roblox logs directory does NOT exist at:",
           logsDir,
         );
-        console.warn(
-          "[LogMonitor] This usually means Roblox hasn't been launched yet on this PC.",
-        );
-
-        // Check parent directory to help diagnose
-        const parentDir = path.dirname(logsDir);
-        const robloxDir = path.dirname(parentDir);
-        console.warn("[LogMonitor] Checking parent directories:");
-        console.warn(
-          "[LogMonitor]   Roblox folder exists:",
-          existsSync(robloxDir),
-        );
-        console.warn(
-          "[LogMonitor]   Logs folder exists:",
-          existsSync(parentDir),
-        );
-        console.warn(
-          "[LogMonitor] Please launch Roblox at least once on this PC to generate logs.",
-        );
-
         return null;
       }
 
       const fs = await import("fs/promises");
       const files = await fs.readdir(logsDir);
 
-      console.log(
-        "[LogMonitor] Found logs directory, scanning files:",
-        files.length,
-      );
-
       let latestFile: string | null = null;
       let latestTime = 0;
 
       for (const file of files) {
-        // Look for .log files or any file that looks like a log (e.g., no extension on macOS)
         const isLogFile =
           file.endsWith(".log") ||
           file.includes("Player") ||
           file.match(/^\d+\.log/);
-        if (isLogFile) {
-          const filePath = path.join(logsDir, file);
-          try {
-            const stat = statSync(filePath);
-            if (stat.mtimeMs > latestTime) {
-              latestTime = stat.mtimeMs;
-              latestFile = file;
-            }
-          } catch (e) {
-            console.log(`[LogMonitor] Could not stat file ${file}:`, e);
+        if (!isLogFile) continue;
+
+        const filePath = path.join(logsDir, file);
+        try {
+          const stat = statSync(filePath);
+          if (stat.mtimeMs <= sinceTimeMs) continue;
+          if (stat.mtimeMs > latestTime) {
+            latestTime = stat.mtimeMs;
+            latestFile = file;
           }
+        } catch (e) {
+          console.log(`[LogMonitor] Could not stat file ${file}:`, e);
         }
       }
 
       if (latestFile) {
         const result = path.join(logsDir, latestFile);
-        console.log("[LogMonitor] Found latest log file:", result);
+        console.log(
+          `[LogMonitor] Found latest log file after ${sinceTimeMs}:`,
+          result,
+        );
         return result;
-      } else {
-        console.warn("[LogMonitor] No log files found in directory");
-        console.warn("[LogMonitor] Launch Roblox to generate logs");
-        return null;
       }
+
+      if (sinceTimeMs > 0) {
+        console.warn(
+          `[LogMonitor] No log files newer than ${new Date(sinceTimeMs).toISOString()} were found in ${logsDir}`,
+        );
+      }
+      return null;
     } catch (error) {
       console.error("[LogMonitor] Error finding latest log file:", error);
       return null;
     }
   }
 
-  /**
-   * Get the file size of a log file
-   */
   getLogFileSize(logFilePath: string): number {
     try {
       if (!existsSync(logFilePath)) {
@@ -183,10 +152,6 @@ export class LogMonitor {
     }
   }
 
-  /**
-   * Read only new content from a log file since last read
-   * Returns the new content and updates the cache
-   */
   async readNewLogContent(
     logFilePath: string,
     lastSize: number,
@@ -199,26 +164,20 @@ export class LogMonitor {
 
       const currentSize = statSync(logFilePath).size;
 
-      // If file was truncated, read from the beginning
       if (currentSize < lastSize) {
         console.log("[LogMonitor] File was truncated, reading entire file");
         const content = await readFile(logFilePath, "utf-8");
         return content;
       }
 
-      // If file size is the same, no new content
       if (currentSize === lastSize) {
         return "";
       }
 
-      // Read entire file and get the new part
-      // We use byte offset to track position, but need to be careful with multi-byte characters
       const content = await readFile(logFilePath, "utf-8");
 
-      // Use buffer to accurately track bytes
       const buffer = Buffer.from(content, "utf-8");
 
-      // If we have a byte offset and it's valid, slice from there
       if (lastSize > 0 && lastSize < buffer.length) {
         const newBuffer = buffer.slice(lastSize);
         const newContent = newBuffer.toString("utf-8");
@@ -228,7 +187,6 @@ export class LogMonitor {
         return newContent;
       }
 
-      // Default: return entire content if we can't determine offset
       console.log("[LogMonitor] Returning entire content");
       return content;
     } catch (error) {
@@ -237,15 +195,11 @@ export class LogMonitor {
     }
   }
 
-  /**
-   * Detect crash indicators in log content with sophisticated disconnect code analysis
-   */
   detectCrashIndicators(logContent: string): CrashDetectionResult {
     if (!logContent || logContent.trim().length === 0) {
       return { crashed: false };
     }
 
-    // Normalize line endings (Windows \r\n, old Mac \r, Unix \n)
     const normalizedContent = logContent
       .replace(/\r\n/g, "\n")
       .replace(/\r/g, "\n");
@@ -254,13 +208,10 @@ export class LogMonitor {
       `[LogMonitor] Scanning ${normalizedContent.length} characters for crash indicators`,
     );
 
-    // Phase 1: Check for basic hard crash indicators first (always fatal)
-    const crashIndicators = [
+    for (const indicator of [
       CrashIndicator.Segfault,
       CrashIndicator.AccessViolation,
-    ];
-
-    for (const indicator of crashIndicators) {
+    ]) {
       if (normalizedContent.toLowerCase().includes(indicator.toLowerCase())) {
         console.log(`[LogMonitor] Found hard crash indicator: "${indicator}"`);
         return {
@@ -270,16 +221,58 @@ export class LogMonitor {
       }
     }
 
-    // Phase 2: Scan the last 100 lines for disconnect codes
     const lines = normalizedContent.split("\n");
-    const lastLines = lines.slice(-100);
+    const lastLines = lines.slice(-120);
     const lastContent = lastLines.join("\n");
+    const lowerContent = lastContent.toLowerCase();
 
     console.log(
-      `[LogMonitor] Analyzing last ${lastLines.length} lines for disconnect codes`,
+      `[LogMonitor] Analyzing last ${lastLines.length} lines for Roblox error patterns`,
     );
 
-    // Look for disconnect code pattern: "Sending disconnect with reason: <CODE>"
+    const robloxTextPatterns = [
+      {
+        pattern: /please reconnect|reconnect to continue/i,
+        reason: "Disconnect: Roblox asked the client to reconnect",
+      },
+      {
+        pattern:
+          /same account.*(?:launched|logged in).*different device|different device.*same account|already connected.*different device|same account launched elsewhere/i,
+        reason:
+          "Same-account conflict: the account is already active on another device",
+      },
+      {
+        pattern:
+          /teleport failed|teleport.*failed|failed to teleport|teleport destination/i,
+        reason: "Teleport failure: the experience could not move the client",
+      },
+      {
+        pattern:
+          /(?:not authorised|not authorized|permission denied)[^\r\n]{0,100}(?:launch|start|join|play|place)|(?:launch|start|join|play|place)[^\r\n]{0,100}(?:not authorised|not authorized|permission denied)/i,
+        reason: "Launch failure: Roblox denied permission to start this place",
+      },
+      {
+        pattern:
+          /server\s+(?:or\s+job\s+)?(?:id\s+)?no longer exists|private server\s+(?:is\s+)?no longer exists|specific server\s+(?:is\s+)?no longer exists/i,
+        reason: "Launch failure: the target server or job ID no longer exists",
+      },
+      {
+        pattern:
+          /failed to join|join failed|place launch failed|failed to launch(?:\s+(?:the|this|requested))?/i,
+        reason: "Place launch failure: the client never reached a valid server",
+      },
+    ];
+
+    for (const entry of robloxTextPatterns) {
+      if (entry.pattern.test(lastContent)) {
+        console.log(`[LogMonitor] Found Roblox text pattern: ${entry.reason}`);
+        return {
+          crashed: true,
+          reason: entry.reason,
+        };
+      }
+    }
+
     const disconnectMatch = lastContent.match(
       /Sending disconnect with reason:\s*(\d+)/i,
     );
@@ -295,7 +288,6 @@ export class LogMonitor {
       };
     }
 
-    // Alternative pattern: "Lost connection with reason : <MESSAGE>"
     const lostConnMatch = lastContent.match(
       /Lost connection with reason\s*:\s*([^\n\r]+)/i,
     );
@@ -308,7 +300,6 @@ export class LogMonitor {
       };
     }
 
-    // Phase 3: Check last 20 lines for graphics/engine crashes
     const last20Lines = lines.slice(-20);
     const last20Content = last20Lines.join("\n");
 
@@ -329,140 +320,110 @@ export class LogMonitor {
       };
     }
 
-    // Phase 4: Fallback - if we see any sign of process exit, consider it a crash
-    // Check for common Roblox exit messages
-    if (
-      lastContent.toLowerCase().includes("process exiting") ||
-      lastContent.toLowerCase().includes("shutting down") ||
-      lastContent.toLowerCase().includes("exit code")
-    ) {
-      console.log("[LogMonitor] Found process termination pattern");
-      return {
-        crashed: true,
-        reason: "Abrupt Process Termination: Game closed unexpectedly",
-      };
-    }
-
     console.log("[LogMonitor] No crash indicators detected in log");
     return { crashed: false };
   }
 
-  /**
-   * Map disconnect code to category and explanation
-   */
   private categorizeDisconnectCode(
     code: number,
     logContent: string,
   ): { status: string; explanation: string } {
-    // Category A: Account/Security Issues
-    if (code === 600) {
-      return {
-        status: "Experience Ban",
-        explanation: "Banned by the game creator via API.",
-      };
-    }
-    if (code === 273 || code === 264) {
-      return {
-        status: "Security/Duplicate",
-        explanation:
-          "Account launched from another device or joined while banned/warned.",
-      };
-    }
-    if (code === 272) {
-      return {
-        status: "Security Kick",
-        explanation: "Exploit detected or Security Key mismatch.",
-      };
-    }
-
-    // Category B: Connection/Network Issues
-    if (code === 277 || code === 279 || code === 266) {
-      return {
-        status: "Network Failure",
-        explanation: "Local internet dropped or server timed out.",
-      };
-    }
     if (code === 260 || code === 261 || code === 262) {
       return {
-        status: "Data Stream Error",
-        explanation: "Problem receiving or sending game data packets.",
+        status: "Disconnect: data stream failure",
+        explanation: "The client could not receive or send game data reliably.",
       };
     }
-    if (code === 529) {
+    if (code === 264 || code === 273) {
       return {
-        status: "Roblox Service Down",
+        status: "Same-account conflict",
         explanation:
-          "Roblox HTTP servers are experiencing technical difficulties.",
+          "The same account is active on another device or session and got evicted.",
       };
     }
-
-    // Category C: Developer/Server Actions
     if (code === 267) {
-      // Extract custom kick reason from 2 lines above
       const lines = logContent.split("\n");
       const disconnectLine = lines.findIndex((line) =>
-        line.includes("Sending disconnect with reason: 267"),
+        line.includes(`Sending disconnect with reason: ${code}`),
       );
       if (disconnectLine > 1) {
         const customReason =
           lines[disconnectLine - 2]?.trim() || "Unknown reason";
         return {
-          status: "Manual Kick",
-          explanation: `Kicked by developer: ${customReason}`,
+          status: "Developer kick",
+          explanation: `The experience kicked the user: ${customReason}`,
         };
       }
       return {
-        status: "Manual Kick",
-        explanation: "Kicked by developer (reason unavailable).",
+        status: "Developer kick",
+        explanation: "The experience kicked the user.",
       };
     }
-    if (code === 256 || code === 274) {
+    if (code === 268) {
       return {
-        status: "Server Shutdown",
-        explanation: "Developer closed the server (likely for an update).",
-      };
-    }
-    if (code === 271 || code === 278) {
-      return {
-        status: "Idle Kick",
-        explanation: "Kicked for being inactive for 20 minutes.",
-      };
-    }
-
-    // Category D: Device/System Limits
-    if (code === 286 || code === 292) {
-      return {
-        status: "Memory Crash",
+        status: "Integrity check failed",
         explanation:
-          "Device ran out of RAM. Lower graphics or close background apps.",
+          "Roblox detected a modified or interfering client environment.",
+      };
+    }
+    if (code === 271 || code === 274) {
+      return {
+        status: "Server shut down",
+        explanation:
+          "The server ended, commonly because it was idle or the developer closed it.",
+      };
+    }
+    if (code === 272) {
+      return {
+        status: "Security key mismatch",
+        explanation: "The client and server security state did not match.",
+      };
+    }
+    if (code === 277 || code === 279) {
+      return {
+        status: "Disconnect: network timeout",
+        explanation:
+          "The connection dropped before the client could remain stable.",
       };
     }
     if (code === 280) {
       return {
-        status: "Update Required",
-        explanation: "Roblox client is out of date.",
-      };
-    }
-
-    // Category E: Teleport Failures
-    if (code >= 769 && code <= 773) {
-      return {
-        status: "Teleport Error",
+        status: "Client build mismatch",
         explanation:
-          "Failed to move between places (Server full, restricted, or under review).",
+          "The client version did not match what the server expected.",
       };
     }
-
-    // Fallback for unknown codes
+    if (code >= 256 && code <= 321) {
+      return {
+        status: "Disconnect family",
+        explanation: `The client was connected and then lost the session with code ${code}.`,
+      };
+    }
+    if (code === 529) {
+      return {
+        status: "HTTP launch failure",
+        explanation:
+          "A place-launch handshake failed during Roblox HTTP processing.",
+      };
+    }
+    if (code >= 512 && code <= 611) {
+      return {
+        status: "Join failure family",
+        explanation: `The client asked to join a place and never reached a valid server (code ${code}).`,
+      };
+    }
+    if (code >= 768 && code <= 775) {
+      return {
+        status: "Teleport failure family",
+        explanation: `The experience attempted a teleport and it failed (code ${code}).`,
+      };
+    }
     return {
-      status: "Unknown Disconnect",
+      status: "Unknown disconnect",
       explanation: `Disconnected with code ${code}. Check logs for details.`,
     };
   }
 
-  /**
-   * Parse user info from log file
-   */
   async parseUserInfoFromLog(
     logFilePath: string,
   ): Promise<{ username?: string; userId?: string } | null> {
@@ -474,7 +435,6 @@ export class LogMonitor {
       const content = await readFile(logFilePath, "utf-8");
       const result: { username?: string; userId?: string } = {};
 
-      // Look for UserName patterns
       const userNameMatch = content.match(
         /\[.*\]\s+UserName[:\s=]+([^\s\n]+)/i,
       );
@@ -482,7 +442,6 @@ export class LogMonitor {
         result.username = userNameMatch[1];
       }
 
-      // Look for UserId patterns
       const userIdMatch = content.match(/\[.*\]\s+UserId[:\s=]+(\d+)/i);
       if (userIdMatch) {
         result.userId = userIdMatch[1];
@@ -495,9 +454,6 @@ export class LogMonitor {
     }
   }
 
-  /**
-   * Check if a log file contains PlaceId information
-   */
   async getPlaceIdFromLog(logFilePath: string): Promise<number | null> {
     try {
       if (!existsSync(logFilePath)) {
@@ -506,7 +462,6 @@ export class LogMonitor {
 
       const content = await readFile(logFilePath, "utf-8");
 
-      // Look for PlaceId pattern
       const placeIdMatch = content.match(/PlaceId[:\s=]+(\d+)/i);
       if (placeIdMatch) {
         return parseInt(placeIdMatch[1], 10);
@@ -519,16 +474,10 @@ export class LogMonitor {
     }
   }
 
-  /**
-   * Clear the cache for a log file
-   */
   clearCache(logFilePath: string): void {
     this.logCache.delete(logFilePath);
   }
 
-  /**
-   * Clear all cache
-   */
   clearAllCache(): void {
     this.logCache.clear();
   }

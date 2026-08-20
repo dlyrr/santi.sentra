@@ -15,9 +15,9 @@ interface UniversalProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string | number | null;
-  selectedAccount: Account | null; // Context for making API calls (needs a cookie)
+  selectedAccount: Account | null;
   privacyMode?: boolean;
-  initialData?: Partial<ExtendedProfile> | null; // Optional immediate data
+  initialData?: Partial<ExtendedProfile> | null;
   onJoinGame?: (
     placeId: number | string,
     jobId?: string,
@@ -27,25 +27,22 @@ interface UniversalProfileModalProps {
 
 export interface ExtendedProfile {
   id: number;
-  name: string; // username
+  name: string;
   displayName: string;
   description: string;
   created: string;
   isBanned: boolean;
   externalAppDisplayName: string | null;
 
-  // Stats
   followerCount: number;
   followingCount: number;
   friendCount: number;
 
-  // Extended
   isPremium: boolean;
   isAdmin: boolean;
-  avatarImageUrl: string | null; // Full body render
+  avatarImageUrl: string | null;
   headshotUrl: string | null;
 
-  // Status
   status?: AccountStatus;
   lastLocation?: string;
 }
@@ -65,7 +62,7 @@ const UniversalProfileModal: React.FC<UniversalProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      setActiveUserId(userId); // Reset/Update active user when modal opens or userId prop changes
+      setActiveUserId(userId);
     }
   }, [isOpen, userId]);
 

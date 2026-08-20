@@ -5,13 +5,17 @@ import * as crypto from "crypto";
 import { session } from "electron";
 import { getDataFile } from "../../utils/paths";
 import { storageService } from "../system/StorageService";
+import {
+  isSafeStorageAvailable,
+  safeEncrypt,
+  safeDecrypt,
+} from "../../lib/secureStore";
 import type { Account } from "../../../renderer/src/types";
-// @ts-ignore - imported for use in Account initialization
+
 import { AccountStatus } from "../../../renderer/src/types";
 import { RobloxLoginWindowService } from "../auth/RobloxLoginWindowService";
 import usernameSniperService from "../sniper/UsernameSniper";
 
-// Helper function for delays
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export type GeneratedAccountData = {
@@ -20,6 +24,7 @@ export type GeneratedAccountData = {
   password: string;
   birthDate?: string;
   createdAt: number;
+  cookie?: string;
 };
 
 export type GeneratorConfig = {
@@ -38,6 +43,10 @@ export type AccountCreationResult = {
   timestamp: number;
 };
 
+const GEN_SS_PREFIX = "sgen2:";
+
+const LEGACY_PASSPHRASE = "sentra-generator-v1";
+
 export class GeneratorService extends EventEmitter {
   private config: GeneratorConfig = {
     usernamePrefix: "sentra_",
@@ -49,16 +58,18 @@ export class GeneratorService extends EventEmitter {
   private createdAccounts: GeneratedAccountData[] = [];
   private configPath = getDataFile("generator-config.json");
   private accountsPath = getDataFile("generated-accounts.json");
-  private passwordMap: Map<string, string> = new Map(); // Store passwords by account ID
-  private cookieMap: Map<string, string> = new Map(); // Store cookies by account ID
+  private passwordMap: Map<string, string> = new Map();
+  private cookieMap: Map<string, string> = new Map();
   private browser: any = null;
   private page: any = null;
-  private signupBrowserWindow: any = null; // Custom Electron browser window for signup
-  private signupBrowserWebContents: any = null; // WebContents for injecting JavaScript
-  private signupBrowserPartition: string = ""; // Partition for cookie access
-  private creatingAccountIds: Set<string> = new Set(); // Track account IDs being created (atomic operations)
+  private signupBrowserWindow: any = null;
+  private signupBrowserWebContents: any = null;
+  private signupBrowserPartition: string = "";
+  private creatingAccountIds: Set<string> = new Set();
   private accountCreationQueue: Array<() => Promise<AccountCreationResult>> =
-    []; // Queue for rapid account creations
+    [];
+  private queueDraining = false;
+  private lastSignupAccount: GeneratedAccountData | null = null;
 
   constructor() {
     super();
@@ -66,95 +77,104 @@ export class GeneratorService extends EventEmitter {
     this.loadAccounts();
   }
 
-  /**
-   * Encrypt accounts with AES-256-GCM
-   */
   private encryptAccounts(accounts: GeneratedAccountData[]): string {
+    const plaintext = JSON.stringify(accounts);
+
+    if (isSafeStorageAvailable()) {
+      const blob = safeEncrypt(plaintext);
+      if (blob) return GEN_SS_PREFIX + blob;
+    }
+
+    console.warn(
+      "[Generator] safeStorage unavailable; generated-accounts.json is only obfuscated, not encrypted",
+    );
+    return this.encryptAccountsLegacy(plaintext);
+  }
+
+  private encryptAccountsLegacy(plaintext: string): string {
     try {
-      // Derive key from app identifier + random salt using PBKDF2
       const salt = crypto.randomBytes(16);
       const key = crypto.pbkdf2Sync(
-        "sentra-generator-v1",
+        LEGACY_PASSPHRASE,
         salt,
         100000,
         32,
         "sha256",
       );
 
-      // Generate IV
       const iv = crypto.randomBytes(12);
       const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
 
-      // Encrypt accounts JSON
-      const plaintext = JSON.stringify(accounts);
       let encrypted = cipher.update(plaintext, "utf-8", "hex");
       encrypted += cipher.final("hex");
 
-      // Get authentication tag
       const authTag = cipher.getAuthTag();
 
-      // Combine: salt + iv + authTag + encrypted (all hex)
-      const combined =
+      return (
         salt.toString("hex") +
         iv.toString("hex") +
         authTag.toString("hex") +
-        encrypted;
-
-      return combined;
+        encrypted
+      );
     } catch (error) {
       console.error("[Generator] Failed to encrypt accounts:", error);
       throw error;
     }
   }
 
-  /**
-   * Decrypt accounts with AES-256-GCM
-   * NO plaintext fallback - always encrypted
-   */
   private decryptAccounts(
     encryptedData: string,
   ): GeneratedAccountData[] | null {
-    try {
-      // Parse: salt (32 hex chars) + iv (24 hex chars) + authTag (32 hex chars) + encrypted data (rest)
-      if (encryptedData.length < 88) {
-        // Too short to be encrypted data
+    const parseAccounts = (
+      plaintext: string,
+    ): GeneratedAccountData[] | null => {
+      try {
+        const accounts = JSON.parse(plaintext);
+        return Array.isArray(accounts) ? accounts : null;
+      } catch {
         return null;
       }
+    };
+
+    if (encryptedData.startsWith(GEN_SS_PREFIX)) {
+      const plaintext = safeDecrypt(encryptedData.slice(GEN_SS_PREFIX.length));
+      if (plaintext === null) {
+        console.error(
+          "[Generator] Could not decrypt generated-accounts.json — it may have been copied from another machine or user account",
+        );
+        return null;
+      }
+      return parseAccounts(plaintext);
+    }
+
+    try {
+      if (encryptedData.length < 88) return null;
 
       const salt = Buffer.from(encryptedData.substring(0, 32), "hex");
       const iv = Buffer.from(encryptedData.substring(32, 56), "hex");
       const authTag = Buffer.from(encryptedData.substring(56, 88), "hex");
       const encrypted = encryptedData.substring(88);
 
-      // Derive key from app identifier + salt
       const key = crypto.pbkdf2Sync(
-        "sentra-generator-v1",
+        LEGACY_PASSPHRASE,
         salt,
         100000,
         32,
         "sha256",
       );
 
-      // Decrypt
       const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(authTag);
 
       let plaintext = decipher.update(encrypted, "hex", "utf-8");
       plaintext += decipher.final("utf-8");
 
-      const accounts = JSON.parse(plaintext);
-      if (Array.isArray(accounts)) {
-        return accounts;
-      }
-      return null;
+      return parseAccounts(plaintext);
     } catch (_error) {
       return null;
     }
   }
 
-  /**
-   * Generate random account data
-   */
   generateAccountData(): GeneratedAccountData {
     const username = this.generateUsername();
     const password = this.generatePassword();
@@ -169,16 +189,14 @@ export class GeneratorService extends EventEmitter {
     };
   }
 
-  /**
-   * Check if username is available and appropriate using sniper
-   */
   async checkUsernameValidity(username: string): Promise<boolean> {
     try {
       const result = await usernameSniperService.checkUsername(username);
 
-      // code: 0 = valid/available, 1 = taken, 2 = censored, -1 = error
       if (result.code === 0) {
-        console.log(`[Generator] ✓ Username "${username}" is available`);
+        console.log(
+          `[Generator] Username "${username}" is available (code: 0)`,
+        );
         return true;
       } else if (result.code === 1) {
         console.log(`[Generator] Username "${username}" is already taken`);
@@ -201,9 +219,6 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Generate suitable username (with validity check)
-   */
   async generateValidUsername(maxAttempts: number = 10): Promise<string> {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const username = this.generateUsername();
@@ -222,17 +237,15 @@ export class GeneratorService extends EventEmitter {
     );
   }
 
-  /**
-   * Generate random username
-   */
   private generateUsername(): string {
-    const randomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let randomId = "";
+    for (let i = 0; i < 6; i++) {
+      randomId += alphabet.charAt(crypto.randomInt(alphabet.length));
+    }
     return `${this.config.usernamePrefix}${randomId}`;
   }
 
-  /**
-   * Generate random password
-   */
   private generatePassword(): string {
     const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const lowercase = "abcdefghijklmnopqrstuvwxyz";
@@ -244,17 +257,19 @@ export class GeneratorService extends EventEmitter {
       chars += specialChars;
     }
 
+    const length = Math.min(
+      128,
+      Math.max(8, Math.floor(this.config.passwordLength) || 16),
+    );
+
     let password = "";
-    for (let i = 0; i < this.config.passwordLength; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < length; i++) {
+      password += chars.charAt(crypto.randomInt(chars.length));
     }
 
     return password;
   }
 
-  /**
-   * Generate random birth date (13-80 years old)
-   */
   private generateBirthDate(): string {
     const now = new Date();
     const minAge = 13;
@@ -263,18 +278,15 @@ export class GeneratorService extends EventEmitter {
     const minYear = now.getFullYear() - maxAge;
     const maxYear = now.getFullYear() - minAge;
 
-    const year = Math.floor(Math.random() * (maxYear - minYear + 1)) + minYear;
-    const month = Math.floor(Math.random() * 12) + 1;
-    const day = Math.floor(Math.random() * 28) + 1;
+    const year = crypto.randomInt(minYear, maxYear + 1);
+    const month = crypto.randomInt(1, 13);
+    const day = crypto.randomInt(1, 29);
 
     return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
 
-  /**
-   * Launch browser and navigate to Roblox signup page
-   */
-  async launchBrowser(): Promise<void> {
-    const browserLaunchTimeout = 30000; // 30 second timeout for entire launch process
+  async launchBrowser(): Promise<string> {
+    const browserLaunchTimeout = 30000;
     const launchStartTime = Date.now();
 
     try {
@@ -284,7 +296,6 @@ export class GeneratorService extends EventEmitter {
         }
       };
 
-      // Close any existing browser window first
       if (this.signupBrowserWindow && !this.signupBrowserWindow.isDestroyed()) {
         try {
           this.signupBrowserWindow.close();
@@ -295,11 +306,12 @@ export class GeneratorService extends EventEmitter {
       }
       checkTimeout();
 
-      // Get custom window dimensions from settings
+      let windowWidth = 1280;
+      let windowHeight = 800;
       try {
         const settings = storageService.getSettings();
-        const windowWidth = settings.browserWindowWidth ?? 1280;
-        const windowHeight = settings.browserWindowHeight ?? 800;
+        windowWidth = settings.browserWindowWidth ?? 1280;
+        windowHeight = settings.browserWindowHeight ?? 800;
         console.log(
           "[Generator] Opening signup browser with dimensions:",
           windowWidth,
@@ -316,10 +328,12 @@ export class GeneratorService extends EventEmitter {
       console.log("[Generator] Opening signup browser...");
       checkTimeout();
 
-      // Open the custom signup browser (with toolbar for captcha evasion)
       try {
         const signupBrowserInfo =
-          await RobloxLoginWindowService.openSignupBrowser(1280, 800);
+          await RobloxLoginWindowService.openSignupBrowser(
+            windowWidth,
+            windowHeight,
+          );
         this.signupBrowserWindow = signupBrowserInfo.browserWindow;
         this.signupBrowserWebContents = signupBrowserInfo.webContents;
         this.signupBrowserPartition = signupBrowserInfo.partition;
@@ -331,10 +345,9 @@ export class GeneratorService extends EventEmitter {
       }
       checkTimeout();
 
-      // Wait for form to load - reduced from 4s to 2s with polling
       let formLoaded = false;
       const formLoadStartTime = Date.now();
-      const formLoadTimeout = 12000; // 12 seconds max for form to load
+      const formLoadTimeout = 12000;
 
       while (!formLoaded && Date.now() - formLoadStartTime < formLoadTimeout) {
         try {
@@ -361,7 +374,6 @@ export class GeneratorService extends EventEmitter {
       }
       checkTimeout();
 
-      // Debug: Check if form inputs exist and their structure
       try {
         const formDebug = await this.signupBrowserWebContents
           .executeJavaScript(`
@@ -404,6 +416,7 @@ export class GeneratorService extends EventEmitter {
         "[Generator] Page fully loaded, ready to auto-fill signup form",
       );
       this.emit("browser-launched");
+      return this.signupBrowserPartition;
     } catch (err) {
       console.error("[Generator] Browser launch error:", err);
       console.error(
@@ -415,16 +428,12 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Detect which Roblox signup system is being used (old vs new)
-   */
   private async detectSignupSystem(): Promise<"old" | "new"> {
     if (!this.signupBrowserWebContents) {
       throw new Error("Browser not launched");
     }
 
     try {
-      // Check for old system selectors
       const hasOldSystem = await this.signupBrowserWebContents
         .executeJavaScript(`
         (() => {
@@ -437,7 +446,6 @@ export class GeneratorService extends EventEmitter {
         return "old";
       }
 
-      // Check for new system selectors (radix combobox)
       const hasNewSystem = await this.signupBrowserWebContents
         .executeJavaScript(`
         (() => {
@@ -460,9 +468,6 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Fill the Roblox signup form with account data (handles both old and new systems)
-   */
   async fillForm(accountData: GeneratedAccountData): Promise<void> {
     try {
       if (!this.signupBrowserWebContents) {
@@ -471,10 +476,8 @@ export class GeneratorService extends EventEmitter {
 
       console.log("[Generator] Filling signup form...");
 
-      // Detect which system we're using
       const system = await this.detectSignupSystem();
 
-      // Parse birth date (format: YYYY-MM-DD)
       if (
         !accountData.birthDate ||
         !accountData.birthDate.match(
@@ -510,10 +513,8 @@ export class GeneratorService extends EventEmitter {
         new Promise((resolve) => setTimeout(resolve, ms));
 
       if (system === "old") {
-        // OLD SYSTEM: Using select dropdowns with IDs
         console.log(`[Generator] Using OLD system selectors`);
 
-        // Select month dropdown
         console.log(`[Generator] Setting birthday month: ${monthValue}`);
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
@@ -529,7 +530,6 @@ export class GeneratorService extends EventEmitter {
         `);
         await sleep(500);
 
-        // Select day dropdown
         console.log(`[Generator] Setting birthday day: ${day}`);
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
@@ -545,7 +545,6 @@ export class GeneratorService extends EventEmitter {
         `);
         await sleep(500);
 
-        // Select year dropdown
         console.log(`[Generator] Setting birthday year: ${year}`);
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
@@ -561,18 +560,14 @@ export class GeneratorService extends EventEmitter {
         `);
         await sleep(500);
       } else {
-        // NEW SYSTEM: Using radix combobox buttons - simulate user clicks
         console.log(`[Generator] Using NEW system selectors (radix combobox)`);
 
         if (!this.signupBrowserWebContents) {
           throw new Error("Browser not launched - missing webContents");
         }
 
-        // For new system, we need to find and click the combobox buttons and then the menu items
-        // This is complex because it involves clicking buttons and waiting for menu to appear
         console.log(`[Generator] Setting birthday month: ${monthValue}`);
 
-        // Click month button and option
         const monthBtnClicked = await this.signupBrowserWebContents
           .executeJavaScript(`
           (() => {
@@ -588,7 +583,6 @@ export class GeneratorService extends EventEmitter {
         console.log("[Generator] Month button clicked:", monthBtnClicked);
         await sleep(800);
 
-        // Find and click the month option
         const monthOptionClicked = await this.signupBrowserWebContents
           .executeJavaScript(`
           (() => {
@@ -623,7 +617,6 @@ export class GeneratorService extends EventEmitter {
         `);
         await sleep(600);
 
-        // Find and click the day option
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
             const options = Array.from(document.querySelectorAll('[role="option"]'))
@@ -643,7 +636,6 @@ export class GeneratorService extends EventEmitter {
         `);
         await sleep(600);
 
-        // Find and click the year option
         await this.signupBrowserWebContents.executeJavaScript(`
           (() => {
             const options = Array.from(document.querySelectorAll('[role="option"]'))
@@ -654,17 +646,16 @@ export class GeneratorService extends EventEmitter {
         await sleep(600);
       }
 
-      // Fill username - try direct value injection without intermediate events
       console.log(`[Generator] Filling username: ${accountData.username}`);
       const usernameResult = await this.signupBrowserWebContents
         .executeJavaScript(`
         (() => {
           const input = document.getElementById('signup-username')
           if (input) {
-            // Direct method: set the value and immediately trigger events
+            
             const text = ${JSON.stringify(accountData.username)}
             
-            // Get the input's setter via Object.getOwnPropertyDescriptor
+            
             const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
             if (descriptor && descriptor.set) {
               descriptor.set.call(input, text)
@@ -672,11 +663,11 @@ export class GeneratorService extends EventEmitter {
               input.value = text
             }
             
-            // Trigger all necessary events in quick succession
+            
             input.dispatchEvent(new Event('input', { bubbles: true }))
             input.dispatchEvent(new Event('change', { bubbles: true }))
             
-            // Return what's in the field
+            
             return { filledValue: input.value }
           }
           return { filledValue: 'INPUT_NOT_FOUND' }
@@ -685,16 +676,15 @@ export class GeneratorService extends EventEmitter {
       console.log("[Generator] Username fill result:", usernameResult);
       await sleep(500);
 
-      // Fill password - use same direct value injection method as username
       console.log(`[Generator] Filling password`);
       await this.signupBrowserWebContents.executeJavaScript(`
         (() => {
           const input = document.getElementById('signup-password')
           if (input) {
-            // Direct method: set the value and immediately trigger events
+            
             const text = ${JSON.stringify(accountData.password)}
             
-            // Get the input's setter via Object.getOwnPropertyDescriptor
+            
             const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
             if (descriptor && descriptor.set) {
               descriptor.set.call(input, text)
@@ -702,11 +692,11 @@ export class GeneratorService extends EventEmitter {
               input.value = text
             }
             
-            // Trigger all necessary events in quick succession
+            
             input.dispatchEvent(new Event('input', { bubbles: true }))
             input.dispatchEvent(new Event('change', { bubbles: true }))
             
-            // Return what's in the field
+            
             return { filledValue: input.value }
           }
           return { filledValue: 'INPUT_NOT_FOUND' }
@@ -717,7 +707,6 @@ export class GeneratorService extends EventEmitter {
 
       console.log("[Generator] Form filled successfully");
 
-      // Verify the form values persisted (log only non-sensitive metadata)
       const verifyValues = await this.signupBrowserWebContents
         .executeJavaScript(`
         (() => {
@@ -742,9 +731,6 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Submit the signup form by clicking the signup button (handles both old and new systems)
-   */
   async submitForm(): Promise<void> {
     try {
       if (!this.signupBrowserWebContents) {
@@ -755,7 +741,6 @@ export class GeneratorService extends EventEmitter {
       const sleep = (ms: number) =>
         new Promise((resolve) => setTimeout(resolve, ms));
 
-      // Helper to safely execute JavaScript - checks if webContents still exists
       const safeExecute = async (code: string, label: string) => {
         try {
           if (!this.signupBrowserWebContents) {
@@ -768,7 +753,6 @@ export class GeneratorService extends EventEmitter {
         }
       };
 
-      // Try old system first
       let oldSubmitExists = false;
       try {
         oldSubmitExists = await safeExecute(
@@ -781,7 +765,7 @@ export class GeneratorService extends EventEmitter {
         );
       } catch (err) {
         console.warn("[Generator] Could not check for old submit button:", err);
-        return; // Browser was closed, exit gracefully
+        return;
       }
 
       if (oldSubmitExists) {
@@ -789,7 +773,6 @@ export class GeneratorService extends EventEmitter {
           "[Generator] Found OLD system submit button (#signup-button)",
         );
 
-        // Wait up to 10 seconds for button to be enabled
         let isEnabled = false;
         let attempts = 0;
         while (!isEnabled && attempts < 20) {
@@ -840,12 +823,10 @@ export class GeneratorService extends EventEmitter {
           return;
         }
       } else {
-        // Try new system - submit button with type="submit"
         console.log(
           '[Generator] Looking for NEW system submit button (button[type="submit"])',
         );
 
-        // Wait up to 10 seconds for button to be enabled
         let isEnabled = false;
         let attempts = 0;
         while (!isEnabled && attempts < 20) {
@@ -897,7 +878,6 @@ export class GeneratorService extends EventEmitter {
         }
       }
 
-      // Wait for response or navigation
       await sleep(2000);
 
       console.log("[Generator] Form submitted");
@@ -909,26 +889,19 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Close the signup browser (custom Electron window only)
-   */
   async closeBrowser(): Promise<void> {
     try {
-      // Close custom signup window if open
       if (this.signupBrowserWindow && !this.signupBrowserWindow.isDestroyed()) {
         try {
-          // First close the window
           this.signupBrowserWindow.close();
         } catch (err) {
           console.warn("[Generator] Error closing window:", err);
         }
 
-        // Clear references immediately
         this.signupBrowserWindow = null;
         this.signupBrowserWebContents = null;
         this.signupBrowserPartition = "";
 
-        // Brief wait for OS to clean up
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
 
@@ -939,31 +912,49 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Full signup workflow: generate data, launch browser, fill form, submit
-   */
   async generateAndSignup(): Promise<GeneratedAccountData> {
+    const queued = await this.enqueueCreation(async () => {
+      try {
+        const accountData = await this.runSignupWorkflow();
+        return {
+          success: true,
+          username: accountData.username,
+          password: accountData.password,
+          timestamp: Date.now(),
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: String(err),
+          timestamp: Date.now(),
+        };
+      }
+    });
+
+    if (!queued.success || !this.lastSignupAccount) {
+      throw new Error(queued.error ?? "Signup failed");
+    }
+    return this.lastSignupAccount;
+  }
+
+  private async runSignupWorkflow(): Promise<GeneratedAccountData> {
     try {
-      // Generate account data
       const accountData = this.generateAccountData();
+      this.lastSignupAccount = null;
       console.log("[Generator] Generated account data:", {
         username: accountData.username,
         birthDate: accountData.birthDate,
       });
 
-      // Launch browser
-      await this.launchBrowser();
+      const partition = await this.launchBrowser();
 
-      // Fill form
       await this.fillForm(accountData);
 
-      // Auto-click the signup button immediately after filling
       console.log(
         "[Generator] Auto-clicking signup button immediately after filling form...",
       );
       await this.submitForm();
 
-      // Monitor for .ROBLOSECURITY cookie instead of waiting for captcha timeout
       console.log(
         "[Generator] Monitoring for .ROBLOSECURITY cookie (max 5 minutes)...",
       );
@@ -972,43 +963,12 @@ export class GeneratorService extends EventEmitter {
           "Please complete the captcha in the browser window. Account will be added when logged in.",
       });
 
-      // Poll for cookie until it appears
-      let robloxSecurityCookie = "";
-      let cookieFound = false;
-      let pollAttempts = 0;
-      const maxPollAttempts = 600; // 5 minutes max (500ms * 600)
+      const robloxSecurityCookie = await this.waitForSignupCookie(
+        partition,
+        600,
+      );
 
-      while (!cookieFound && pollAttempts < maxPollAttempts) {
-        try {
-          if (this.signupBrowserPartition) {
-            const signupSession = session.fromPartition(
-              this.signupBrowserPartition,
-            );
-            const cookies = await signupSession.cookies.get({
-              name: ".ROBLOSECURITY",
-            });
-            if (cookies && cookies.length > 0) {
-              robloxSecurityCookie = cookies[0].value;
-              cookieFound = true;
-              break;
-            }
-          }
-        } catch (_err) {
-          // Silently ignore cookie retrieval errors during polling
-        }
-
-        pollAttempts++;
-        if (pollAttempts % 60 === 0) {
-          console.log(
-            "[Generator] Waiting for captcha completion... (",
-            Math.round(pollAttempts * 0.5),
-            "s elapsed)",
-          );
-        }
-        await sleep(500);
-      }
-
-      if (!cookieFound) {
+      if (!robloxSecurityCookie) {
         console.warn(
           "[Generator] Timeout waiting for cookie (5 minutes elapsed)",
         );
@@ -1018,38 +978,71 @@ export class GeneratorService extends EventEmitter {
         );
       }
 
-      // Add account to storage with the cookie we found
       await this.addAccountToStorage(accountData, robloxSecurityCookie, false);
 
       console.log("[Generator] Account signup workflow completed successfully");
+      this.lastSignupAccount = accountData;
       this.emit("signup-completed", accountData);
 
       return accountData;
     } catch (err) {
       console.error("[Generator] Signup workflow error:", err);
-      // Close browser on error
+
       await this.closeBrowser();
       this.emit("signup-error", String(err));
       throw err;
     }
   }
 
-  /**
-   * Add generated account to storage (both generator storage and main accounts)
-   */
+  private async waitForSignupCookie(
+    partition: string,
+    maxPollAttempts: number,
+  ): Promise<string> {
+    if (!partition) return "";
+    const signupSession = session.fromPartition(partition);
+
+    for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
+      try {
+        const cookies = await signupSession.cookies.get({
+          name: ".ROBLOSECURITY",
+        });
+        if (cookies && cookies.length > 0 && cookies[0].value) {
+          console.log("[Generator] Cookie extracted successfully");
+          return cookies[0].value;
+        }
+      } catch (err) {
+        console.debug(
+          "[Generator] Cookie poll attempt failed:",
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+
+      if ((attempt + 1) % 20 === 0) {
+        console.log(
+          "[Generator] Still waiting for cookie... (",
+          Math.round((attempt + 1) * 0.5),
+          "s elapsed)",
+        );
+      }
+      await sleep(500);
+    }
+
+    return "";
+  }
+
   private async addAccountToStorage(
     accountData: GeneratedAccountData,
     cookie: string,
     fromSniper: boolean = false,
   ): Promise<void> {
     try {
-      // Generate ID and store password + cookie
       const accountId = randomUUID();
-      accountData.id = accountId; // Add ID to account data
+      accountData.id = accountId;
       this.passwordMap.set(accountId, accountData.password);
       this.cookieMap.set(accountId, cookie);
 
-      // Store in generator's own storage
+      accountData.cookie = cookie;
+
       this.createdAccounts.push(accountData);
       this.persistAccounts();
 
@@ -1060,17 +1053,15 @@ export class GeneratorService extends EventEmitter {
         accountId,
       );
 
-      // If from sniper, add to sniper-generated accounts list
       if (fromSniper) {
         try {
-          // Create Account object from GeneratedAccountData
           const newAccount: Account = {
             id: accountId,
             displayName: accountData.username,
             username: accountData.username,
-            userId: "", // Will be empty until they login
+            userId: "",
             cookie: cookie || undefined,
-            password: accountData.password, // Password stored plaintext - encrypted at JSON level by StorageService
+            password: accountData.password,
             status: AccountStatus.Offline,
             importedVia: "cookie",
             avatarUrl: "",
@@ -1097,13 +1088,11 @@ export class GeneratorService extends EventEmitter {
         }
       }
 
-      // Optionally emit event for UI to know a new account was created
       this.emit("account-created", {
         accountId,
         username: accountData.username,
       });
 
-      // Close signup browser
       console.log("[Generator] Closing signup browser...");
       if (this.signupBrowserWindow && !this.signupBrowserWindow.isDestroyed()) {
         try {
@@ -1122,118 +1111,107 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Create account (end-to-end)
-   */
   async createAccount(): Promise<AccountCreationResult> {
-    try {
-      console.log("[Generator] Starting account creation...");
-
-      // Generate and validate username
-      let accountData: GeneratedAccountData;
+    return this.enqueueCreation(async () => {
       try {
-        console.log("[Generator] Generating valid username...");
-        const validUsername = await this.generateValidUsername(10);
-        accountData = this.generateAccountData();
-        accountData.username = validUsername;
-        console.log(
-          `[Generator] Generated valid account: ${accountData.username}`,
-        );
+        console.log("[Generator] Starting account creation...");
+
+        let accountData: GeneratedAccountData;
+        try {
+          console.log("[Generator] Generating valid username...");
+          const validUsername = await this.generateValidUsername(10);
+          accountData = this.generateAccountData();
+          accountData.username = validUsername;
+          console.log(
+            `[Generator] Generated valid account: ${accountData.username}`,
+          );
+        } catch (error) {
+          console.error(
+            "[Generator] Failed to generate valid username:",
+            error,
+          );
+          return {
+            success: false,
+            error: String(error),
+            timestamp: Date.now(),
+          };
+        }
+
+        return await this.processAccountCreation(accountData);
       } catch (error) {
-        console.error("[Generator] Failed to generate valid username:", error);
         return {
           success: false,
           error: String(error),
           timestamp: Date.now(),
         };
       }
-
-      return await this.processAccountCreation(accountData);
-    } catch (error) {
-      return {
-        success: false,
-        error: String(error),
-        timestamp: Date.now(),
-      };
-    }
+    });
   }
 
   async createAccountWithUsername(
     username: string,
   ): Promise<AccountCreationResult> {
-    // Add this creation task to the queue and wait for it to be processed
-    return new Promise<AccountCreationResult>((resolve) => {
-      this.accountCreationQueue.push(async () => {
-        try {
-          console.log(
-            `[Generator] Processing account creation for: ${username}`,
-          );
+    return this.enqueueCreation(async () => {
+      try {
+        console.log(`[Generator] Processing account creation for: ${username}`);
 
-          const password = this.generatePassword();
-          const birthDate = this.generateBirthDate();
+        const password = this.generatePassword();
+        const birthDate = this.generateBirthDate();
 
-          const accountData: GeneratedAccountData = {
-            id: randomUUID(),
-            username,
-            password,
-            birthDate,
-            createdAt: Date.now(),
-          };
+        const accountData: GeneratedAccountData = {
+          id: randomUUID(),
+          username,
+          password,
+          birthDate,
+          createdAt: Date.now(),
+        };
 
-          const result = await this.processAccountCreation(
-            accountData,
-            true,
-            true,
-          );
-          resolve(result);
-          return result;
-        } catch (error) {
-          console.error(
-            `[Generator] Account creation error for ${username}:`,
-            error,
-          );
-          const errorResult = {
-            success: false,
-            error: String(error),
-            timestamp: Date.now(),
-          };
-          resolve(errorResult);
-          return errorResult;
-        }
-      });
-
-      // Only process if not already processing
-      if (this.accountCreationQueue.length === 1) {
-        void this.processAccountCreationQueue();
+        return await this.processAccountCreation(accountData, true, true);
+      } catch (error) {
+        console.error(
+          `[Generator] Account creation error for ${username}:`,
+          error,
+        );
+        return {
+          success: false,
+          error: String(error),
+          timestamp: Date.now(),
+        };
       }
     });
   }
 
-  private async processAccountCreationQueue(): Promise<AccountCreationResult> {
-    // Let the queue process one task at a time if there are queued tasks
-    if (this.accountCreationQueue.length === 0) {
-      return {
-        success: true,
-        timestamp: Date.now(),
-      };
-    }
+  private enqueueCreation(
+    task: () => Promise<AccountCreationResult>,
+  ): Promise<AccountCreationResult> {
+    return new Promise<AccountCreationResult>((resolve) => {
+      this.accountCreationQueue.push(async () => {
+        const result = await task();
+        resolve(result);
+        return result;
+      });
+      void this.drainAccountCreationQueue();
+    });
+  }
 
-    // Process next task (FIFO to prevent race conditions)
-    const task = this.accountCreationQueue.shift();
-
+  private async drainAccountCreationQueue(): Promise<void> {
+    if (this.queueDraining) return;
+    this.queueDraining = true;
     try {
-      if (task) {
-        return await task();
+      while (this.accountCreationQueue.length > 0) {
+        const next = this.accountCreationQueue.shift();
+        if (!next) continue;
+        try {
+          await next();
+        } catch (err) {
+          console.error("[Generator] Queued creation threw:", err);
+        }
       }
-      return {
-        success: false,
-        error: "No task available",
-        timestamp: Date.now(),
-      };
     } finally {
-      // Process next item in queue if available
+      this.queueDraining = false;
+
       if (this.accountCreationQueue.length > 0) {
-        void this.processAccountCreationQueue();
+        void this.drainAccountCreationQueue();
       }
     }
   }
@@ -1244,14 +1222,14 @@ export class GeneratorService extends EventEmitter {
     fromSniper: boolean = false,
   ): Promise<AccountCreationResult> {
     try {
-      // Always launch browser for account creation
       console.log(
         "[Generator] Launching browser for account creation (forceLaunchBrowser=" +
           forceLaunchBrowser +
           ")",
       );
+      let partition: string;
       try {
-        await this.launchBrowser();
+        partition = await this.launchBrowser();
         console.log("[Generator] Browser launched successfully!");
       } catch (launchErr) {
         console.error(
@@ -1259,7 +1237,7 @@ export class GeneratorService extends EventEmitter {
           launchErr,
         );
         throw new Error(`Failed to launch browser: ${String(launchErr)}`);
-      } // Fill form
+      }
       try {
         console.log("[Generator] Filling form...");
         await this.fillForm(accountData);
@@ -1269,7 +1247,6 @@ export class GeneratorService extends EventEmitter {
         throw fillErr;
       }
 
-      // Submit form
       try {
         console.log("[Generator] Submitting form...");
         await this.submitForm();
@@ -1279,48 +1256,13 @@ export class GeneratorService extends EventEmitter {
         throw submitErr;
       }
 
-      // Monitor for .ROBLOSECURITY cookie
       console.log("[Generator] Monitoring for .ROBLOSECURITY cookie...");
-      let robloxSecurityCookie = "";
-      let cookieFound = false;
-      let pollAttempts = 0;
-      const maxPollAttempts = 600; // 5 minutes max
+      const robloxSecurityCookie = await this.waitForSignupCookie(
+        partition,
+        600,
+      );
 
-      while (!cookieFound && pollAttempts < maxPollAttempts) {
-        try {
-          if (this.signupBrowserPartition) {
-            const signupSession = session.fromPartition(
-              this.signupBrowserPartition,
-            );
-            const cookies = await signupSession.cookies.get({
-              name: ".ROBLOSECURITY",
-            });
-            if (cookies && cookies.length > 0) {
-              robloxSecurityCookie = cookies[0].value;
-              cookieFound = true;
-              console.log("[Generator] ✓ Cookie extracted successfully");
-              break;
-            }
-          }
-        } catch (err) {
-          console.debug(
-            "[Generator] Cookie poll attempt failed:",
-            err instanceof Error ? err.message : String(err),
-          );
-        }
-
-        pollAttempts++;
-        if (pollAttempts % 20 === 0) {
-          console.log(
-            "[Generator] Still waiting for cookie... (",
-            Math.round(pollAttempts * 0.5),
-            "s elapsed)",
-          );
-        }
-        await sleep(500);
-      }
-
-      if (!cookieFound) {
+      if (!robloxSecurityCookie) {
         console.error(
           "[Generator] CRITICAL: Failed to get .ROBLOSECURITY cookie after signup",
         );
@@ -1329,7 +1271,6 @@ export class GeneratorService extends EventEmitter {
         );
       }
 
-      // Add account to storage (closes signup browser and opens real browser)
       try {
         await this.addAccountToStorage(
           accountData,
@@ -1341,7 +1282,6 @@ export class GeneratorService extends EventEmitter {
           "[Generator] Failed to add account to storage:",
           storageErr,
         );
-        // Don't fail entirely if storage fails
       }
 
       console.log(
@@ -1366,9 +1306,6 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Update config
-   */
   updateConfig(config: Partial<GeneratorConfig>): void {
     this.config = { ...this.config, ...config };
     this.saveConfig();
@@ -1376,30 +1313,18 @@ export class GeneratorService extends EventEmitter {
     this.emit("config-updated", this.config);
   }
 
-  /**
-   * Get config
-   */
   getConfig(): GeneratorConfig {
     return { ...this.config };
   }
 
-  /**
-   * Get password for an account ID
-   */
   getPassword(accountId: string): string {
     return this.passwordMap.get(accountId) || "";
   }
 
-  /**
-   * Get cookie for an account ID
-   */
   getCookie(accountId: string): string {
     return this.cookieMap.get(accountId) || "";
   }
 
-  /**
-   * Save config to file
-   */
   private saveConfig(): void {
     try {
       writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
@@ -1408,9 +1333,6 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Load config from file
-   */
   private loadConfig(): void {
     try {
       if (existsSync(this.configPath)) {
@@ -1424,26 +1346,18 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Get all created accounts
-   */
   getAccounts(): GeneratedAccountData[] {
-    return [...this.createdAccounts]; // Return a copy
+    return [...this.createdAccounts];
   }
 
-  /**
-   * Clear all created accounts
-   */
   clearAccounts(): void {
     this.createdAccounts = [];
     this.passwordMap.clear();
+    this.cookieMap.clear();
     this.persistAccounts();
     console.log("[Generator] All accounts cleared");
   }
 
-  /**
-   * Delete a single created account by ID
-   */
   deleteAccount(accountId: string): boolean {
     const initialLength = this.createdAccounts.length;
     this.createdAccounts = this.createdAccounts.filter(
@@ -1460,9 +1374,6 @@ export class GeneratorService extends EventEmitter {
     return false;
   }
 
-  /**
-   * Persist accounts to file (encrypted)
-   */
   private persistAccounts(): void {
     try {
       const encrypted = this.encryptAccounts(this.createdAccounts);
@@ -1477,9 +1388,6 @@ export class GeneratorService extends EventEmitter {
     }
   }
 
-  /**
-   * Load accounts from file (encrypted)
-   */
   private loadAccounts(): void {
     try {
       if (existsSync(this.accountsPath)) {
@@ -1490,6 +1398,24 @@ export class GeneratorService extends EventEmitter {
           console.log(
             `[Generator] Loaded ${this.createdAccounts.length} decrypted accounts`,
           );
+
+          this.passwordMap.clear();
+          this.cookieMap.clear();
+          for (const acc of this.createdAccounts) {
+            if (acc?.id && typeof acc.password === "string") {
+              this.passwordMap.set(acc.id, acc.password);
+            }
+            if (acc?.id && typeof acc.cookie === "string" && acc.cookie) {
+              this.cookieMap.set(acc.id, acc.cookie);
+            }
+          }
+
+          if (!data.startsWith(GEN_SS_PREFIX) && isSafeStorageAvailable()) {
+            console.log(
+              "[Generator] Migrating accounts vault to OS-bound encryption",
+            );
+            this.persistAccounts();
+          }
         } else {
           console.warn(
             "[Generator] Failed to decrypt accounts, defaulting to empty array",

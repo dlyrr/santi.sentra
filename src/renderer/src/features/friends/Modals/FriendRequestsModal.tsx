@@ -119,7 +119,6 @@ const formatMutualFriends = (mutuals: string[]) => {
 const getAlias = (request: FriendRequest) =>
   request.contactName || request.senderNickname || "";
 
-// Request card item component
 const RequestCard: React.FC<{
   request: FriendRequest;
   universeNames: Record<string, string>;
@@ -144,9 +143,9 @@ const RequestCard: React.FC<{
   return (
     <div className="group relative bg-[var(--color-surface)]/40 hover:bg-[var(--color-surface)]/70 border border-[var(--color-border)]/50 hover:border-[var(--color-border-strong)]/50 rounded-xl transition-all duration-200">
       <div className="p-4">
-        {/* Main content row */}
+        {}
         <div className="flex items-start gap-3">
-          {/* Avatar */}
+          {}
           <button
             onClick={() => onOpenProfile(request)}
             className="relative shrink-0 pressable group/avatar"
@@ -158,7 +157,7 @@ const RequestCard: React.FC<{
             />
           </button>
 
-          {/* User info */}
+          {}
           <div className="flex-1 min-w-0">
             <button
               onClick={() => onOpenProfile(request)}
@@ -179,9 +178,9 @@ const RequestCard: React.FC<{
               </p>
             </button>
 
-            {/* Meta info badges */}
+            {}
             <div className="flex flex-wrap items-center gap-2 mt-2">
-              {/* Source badge */}
+              {}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--color-surface-hover)]/50 rounded-md text-xs text-[var(--color-text-secondary)]">
@@ -196,7 +195,7 @@ const RequestCard: React.FC<{
                 </TooltipContent>
               </Tooltip>
 
-              {/* Time badge */}
+              {}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[var(--color-surface-hover)]/50 rounded-md text-xs text-[var(--color-text-muted)]">
@@ -209,7 +208,7 @@ const RequestCard: React.FC<{
                 </TooltipContent>
               </Tooltip>
 
-              {/* Mutual friends badge */}
+              {}
               {mutualText && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -224,7 +223,7 @@ const RequestCard: React.FC<{
             </div>
           </div>
 
-          {/* Action buttons */}
+          {}
           <div className="flex items-center gap-2 shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -288,7 +287,6 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const { showNotification } = useNotification();
 
-  // Stats computed from requests
   const stats = useMemo(() => {
     const withMutuals = requests.filter(
       (r) => r.mutualFriendsList.length > 0,
@@ -589,7 +587,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
       <DialogContent className="w-full max-w-xl h-[85vh] bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)] flex flex-col">
-        {/* Header */}
+        {}
         <div className="flex flex-col gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 backdrop-blur-md z-10 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -619,7 +617,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
             <DialogClose />
           </div>
 
-          {/* Search Bar */}
+          {}
           <div className="relative group">
             <Search
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-text-primary)] transition-colors"
@@ -635,7 +633,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
           </div>
         </div>
 
-        {/* Bulk Actions */}
+        {}
         {requests.length > 1 && !isLoading && !error && (
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)]/50 bg-[var(--color-surface)]/30 shrink-0">
             <span className="text-xs text-[var(--color-text-muted)]">
@@ -684,7 +682,7 @@ const FriendRequestsModal: React.FC<FriendRequestsModalProps> = ({
           </div>
         )}
 
-        {/* Content */}
+        {}
         <div className="flex-1 overflow-hidden">
           {isLoading && requests.length === 0 ? (
             <div className="flex items-center justify-center h-64">

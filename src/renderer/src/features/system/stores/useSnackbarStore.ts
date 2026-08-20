@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export type SnackbarType = "success" | "error" | "info" | "warning";
 
 export interface SnackbarNotification {
@@ -29,10 +25,6 @@ interface SnackbarActions {
 }
 
 type SnackbarStore = SnackbarState & SnackbarActions;
-
-// ============================================================================
-// Store
-// ============================================================================
 
 export const useSnackbarStore = create<SnackbarStore>()(
   devtools(
@@ -72,14 +64,9 @@ export const useSnackbarStore = create<SnackbarStore>()(
   ),
 );
 
-// ============================================================================
-// Selectors
-// ============================================================================
-
 export const useSnackbarNotifications = () =>
   useSnackbarStore((state) => state.notifications);
 
-// Actions - these return stable function references
 export const useShowNotification = () =>
   useSnackbarStore((state) => state.showNotification);
 export const useRemoveSnackbar = () =>
@@ -87,14 +74,6 @@ export const useRemoveSnackbar = () =>
 export const useClearAllSnackbars = () =>
   useSnackbarStore((state) => state.clearAll);
 
-// ============================================================================
-// Hook for backward compatibility with NotificationContext
-// ============================================================================
-
-/**
- * Drop-in replacement for useNotification from NotificationContext.
- * Simply use this hook instead of useNotification() from context.
- */
 export const useNotification = () => {
   const showNotification = useSnackbarStore((state) => state.showNotification);
   return { showNotification };

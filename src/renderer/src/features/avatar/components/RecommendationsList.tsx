@@ -18,7 +18,6 @@ import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
 import { formatNumber } from "@renderer/utils/numberUtils";
 import { useHorizontalScroll } from "@renderer/hooks/useHorizontalScroll";
 
-// Inline RecommendationCard component
 const RecommendationCard: React.FC<{
   item: RecommendationItem;
   imageUrl?: string;
@@ -30,9 +29,6 @@ const RecommendationCard: React.FC<{
   const isLimitedUnique = item.isLimitedUnique;
   let displayPrice: string | number = "Off Sale";
 
-  // For limited items, prioritize resale price (secondary market).
-  // If resale price is unavailable, fall back to current price for limited items.
-  // For regular items, use the current price or show as "Free".
   if (isLimitedItem && item.lowestResalePrice && item.lowestResalePrice > 0) {
     displayPrice = item.lowestResalePrice;
   } else if (isLimitedItem && item.lowestPrice && item.lowestPrice > 0) {

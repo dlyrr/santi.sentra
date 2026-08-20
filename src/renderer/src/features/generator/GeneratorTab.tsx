@@ -128,8 +128,6 @@ export const GeneratorTab = () => {
           }));
         }
         try {
-          // Race the createAccount call against a cancellation signal so
-          // Cancel feels instant even mid-request
           const cancelPromise = new Promise<never>((_, reject) => {
             const interval = setInterval(() => {
               if (cancelGenerationRef.current) {
@@ -143,9 +141,8 @@ export const GeneratorTab = () => {
             cancelPromise,
           ]);
           if (result.success && result.accountId) {
-            // Refresh list to get the newly created account
             await loadAccounts();
-            // Auto-add to main accounts list in progress
+
             const freshAccounts = await window.api.generator.getAccounts();
             const newAcc = (freshAccounts?.accounts || []).find(
               (a: GeneratedAccountData) => a.id === result.accountId,
@@ -279,7 +276,7 @@ export const GeneratorTab = () => {
 
   return (
     <div className="h-full flex flex-col p-6 overflow-y-auto space-y-6 bg-[var(--color-background)]">
-      {/* Mini Top Row Bar Header */}
+      {}
       <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 max-w-4xl mx-auto w-full">
         <div className="flex items-center gap-2.5">
           <Wand2 className="w-4 h-4 text-[var(--accent-color)]" />
@@ -289,13 +286,13 @@ export const GeneratorTab = () => {
         </div>
       </div>
 
-      {/* Futuristic Consolidated Console Control Dock */}
+      {}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-4xl mx-auto flex items-center justify-between bg-[var(--color-surface)] border border-[var(--color-border)] p-2.5 rounded-xl shadow-sm gap-4"
       >
-        {/* Count Segment Picker Unit */}
+        {}
         <div className="flex items-center gap-1.5 bg-[var(--color-surface-strong)]/60 p-1 rounded-lg border border-[var(--color-border)]/60">
           <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider px-2">
             Batch
@@ -318,7 +315,7 @@ export const GeneratorTab = () => {
               </button>
             ))}
 
-            {/* Inline Custom Input Selector Toggler */}
+            {}
             <div
               className={`flex items-center h-7 px-1.5 rounded-md transition-all ${
                 customInputActive || !isPresetSelected
@@ -350,11 +347,11 @@ export const GeneratorTab = () => {
           </div>
         </div>
 
-        {/* Console Action Segment */}
+        {}
         <div className="flex items-center gap-2">
           {isCreating ? (
             <>
-              {/* Progress indicator */}
+              {}
               {generationProgress && (
                 <span className="text-[10px] font-mono text-[var(--color-text-muted)] tabular-nums">
                   {generationProgress.current}/{generationProgress.total}
@@ -377,7 +374,7 @@ export const GeneratorTab = () => {
           ) : (
             <Button
               onClick={handleCreateAccount}
-              className="h-10 px-5 rounded-lg bg-[var(--accent-color)] hover:bg-[var(--accent-color)] text-[var(--color-text-primary)] font-medium text-xs transition-all shadow-sm border-0 flex items-center gap-2"
+              className="h-10 px-5 rounded-lg bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--color-text-primary)] font-medium text-xs transition-all shadow-sm border-0 flex items-center gap-2"
             >
               <Zap className="w-3.5 h-3.5 fill-white/10" />
               <span>Generate ({config.multiGenerateCount})</span>
@@ -396,14 +393,14 @@ export const GeneratorTab = () => {
         </div>
       </motion.div>
 
-      {/* Generated Accounts Space Log */}
+      {}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="w-full max-w-4xl mx-auto flex-1 flex flex-col"
       >
         <div className="bg-[var(--color-surface)]/30 border border-[var(--color-border)] rounded-xl overflow-hidden flex flex-col h-full min-h-[420px]">
-          {/* Header Panel */}
+          {}
           <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-surface-strong)]/20">
             <h2 className="text-xs font-bold flex items-center gap-2 text-[var(--color-text-primary)] uppercase tracking-wider">
               Generated accounts
@@ -438,7 +435,7 @@ export const GeneratorTab = () => {
             )}
           </div>
 
-          {/* Output Card Matrix */}
+          {}
           <div className="p-4 flex-1 overflow-y-auto">
             {createdAccounts.length === 0 ? (
               <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-[var(--color-text-muted)] space-y-2">

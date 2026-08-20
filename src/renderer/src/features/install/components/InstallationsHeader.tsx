@@ -23,7 +23,9 @@ export const InstallationsHeader: React.FC<InstallationsHeaderProps> = ({
   return (
     <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Installations</h1>
+        <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+          Installations
+        </h1>
         <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-xs font-semibold tracking-tight text-[var(--color-text-secondary)]">
           {count}
         </span>

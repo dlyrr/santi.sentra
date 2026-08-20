@@ -2,10 +2,6 @@ import { z } from "zod";
 import { invoke } from "./invoke";
 import * as S from "../../shared/ipc-schemas";
 
-// ============================================================================
-// GAMES API
-// ============================================================================
-
 const gamePassPurchaseResponseSchema = z
   .object({
     purchased: z.boolean().optional(),
@@ -47,6 +43,20 @@ export const gamesApi = {
       placeId,
       jobId,
       friendId,
+      installPath,
+    ),
+  launchPrivateServer: (
+    cookie: string,
+    placeId: string | number,
+    privateServerTarget: string,
+    installPath?: string,
+  ) =>
+    invoke(
+      "launch-private-server",
+      S.successResponseSchema,
+      cookie,
+      placeId,
+      privateServerTarget,
       installPath,
     ),
   getGameServers: (
@@ -107,10 +117,6 @@ export const gamesApi = {
   saveGameImage: (imageUrl: string, gameName: string) =>
     invoke("save-game-image", S.downloadResultSchema, imageUrl, gameName),
 };
-
-// ============================================================================
-// GROUPS API
-// ============================================================================
 
 export const groupsApi = {
   getGroupDetails: (groupId: number, cookie?: string) =>

@@ -1,8 +1,3 @@
-/**
- * Macro Service - High-level API for macro operations.
- * Coordinates recording, playback, and persistence.
- */
-
 import { promises as fs } from "fs";
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
@@ -35,9 +30,6 @@ export class MacroService extends EventEmitter implements IMacroService {
     this.setupEventForwarding();
   }
 
-  /**
-   * Start recording a new macro.
-   */
   public startRecording(config: MacroRecorderConfig): void {
     try {
       this.recorder.startRecording(config);
@@ -55,9 +47,6 @@ export class MacroService extends EventEmitter implements IMacroService {
     }
   }
 
-  /**
-   * Stop recording and retrieve the macro.
-   */
   public stopRecording(): Macro | null {
     const macro = this.recorder.stopRecording();
     if (macro) {
@@ -66,9 +55,6 @@ export class MacroService extends EventEmitter implements IMacroService {
     return macro;
   }
 
-  /**
-   * Play a recorded macro.
-   */
   public async playMacro(
     macro: Macro,
     config?: MacroPlaybackConfig,
@@ -98,9 +84,6 @@ export class MacroService extends EventEmitter implements IMacroService {
     }
   }
 
-  /**
-   * Save macro to file.
-   */
   public async saveMacro(macro: Macro, filePath: string): Promise<void> {
     try {
       if (!this.validateMacro(macro)) {
@@ -130,9 +113,6 @@ export class MacroService extends EventEmitter implements IMacroService {
     }
   }
 
-  /**
-   * Load macro from file.
-   */
   public async loadMacro(filePath: string): Promise<Macro> {
     try {
       const data = await fs.readFile(filePath, "utf-8");
@@ -166,30 +146,18 @@ export class MacroService extends EventEmitter implements IMacroService {
     }
   }
 
-  /**
-   * Cancel current playback.
-   */
   public cancelPlayback(): void {
     this.player.cancel();
   }
 
-  /**
-   * Check if recording is in progress.
-   */
   public isRecording(): boolean {
     return this.recorder.isRecording();
   }
 
-  /**
-   * Check if playback is in progress.
-   */
   public isPlaying(): boolean {
     return this.player.isPlaying();
   }
 
-  /**
-   * Validate macro structure.
-   */
   public validateMacro(macro: any): macro is Macro {
     if (!macro || typeof macro !== "object") {
       return false;
@@ -211,7 +179,6 @@ export class MacroService extends EventEmitter implements IMacroService {
       return false;
     }
 
-    // Validate events
     return macro.events.every(
       (event: any) =>
         event.type &&
@@ -239,9 +206,6 @@ export class MacroService extends EventEmitter implements IMacroService {
   }
 }
 
-/**
- * Singleton-like factory for MacroService with dependency injection.
- */
 export class MacroServiceFactory {
   private static instance: MacroService | null = null;
 

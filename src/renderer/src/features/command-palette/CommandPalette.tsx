@@ -171,7 +171,6 @@ const categoryOrder = [
   "catalog",
 ];
 
-// Theme-aware surfaces that animate cleanly with framer-motion
 const SELECTED_BG =
   "color-mix(in srgb, var(--color-text-primary) 10%, transparent)";
 const UNSELECTED_BG =
@@ -194,9 +193,6 @@ interface CatalogResultItemForAccessory {
   imageUrl?: string;
 }
 
-// Memoized row components to prevent re-renders when selectedIndex changes
-// Only re-render when the item becomes selected or deselected
-
 interface UniversalLimitedRowProps {
   result: LimitedSearchResult;
   idx: number;
@@ -218,11 +214,7 @@ const UniversalLimitedRow = memo(
     return (
       <motion.button
         initial={{ opacity: 0, y: 6 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
-        }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.12 }}
         data-selected={isSelected}
         data-index={idx}
@@ -232,7 +224,10 @@ const UniversalLimitedRow = memo(
           "w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group",
           "transition-colors duration-100",
         )}
-        style={{ width: "calc(100% - 8px)" }}
+        style={{
+          width: "calc(100% - 8px)",
+          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
+        }}
       >
         <LimitedThumbnail
           assetId={result.id}
@@ -326,11 +321,7 @@ const UniversalCatalogRow = memo(
     return (
       <motion.button
         initial={{ opacity: 0, y: 6 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
-        }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.12 }}
         data-selected={isSelected}
         data-index={idx}
@@ -340,12 +331,15 @@ const UniversalCatalogRow = memo(
           "w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group",
           "transition-colors duration-100",
         )}
-        style={{ width: "calc(100% - 8px)" }}
+        style={{
+          width: "calc(100% - 8px)",
+          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
+        }}
       >
         <LimitedThumbnail
           assetId={result.id}
           name={result.name}
-          className="flex-shrink-0 w-9 h-9 rounded-lg ring-1 ring-white/5"
+          className="flex-shrink-0 w-9 h-9 rounded-lg ring-1 ring-[var(--color-border-subtle)]"
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -427,11 +421,7 @@ const UniversalCommandRow = memo(
     return (
       <motion.button
         initial={{ opacity: 0, y: 6 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
-        }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.12 }}
         data-selected={isSelected}
         data-index={idx}
@@ -441,7 +431,10 @@ const UniversalCommandRow = memo(
           "w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group",
           "transition-colors duration-100",
         )}
-        style={{ width: "calc(100% - 8px)" }}
+        style={{
+          width: "calc(100% - 8px)",
+          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
+        }}
       >
         <div
           className={cn(
@@ -524,11 +517,7 @@ const UniversalPlayerRow = memo(
     return (
       <motion.button
         initial={{ opacity: 0, y: 6 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
-        }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.12 }}
         data-selected={isSelected}
         data-index={idx}
@@ -538,7 +527,10 @@ const UniversalPlayerRow = memo(
           "w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group",
           "transition-colors duration-100",
         )}
-        style={{ width: "calc(100% - 8px)" }}
+        style={{
+          width: "calc(100% - 8px)",
+          backgroundColor: isSelected ? SELECTED_BG : UNSELECTED_BG,
+        }}
       >
         {result.avatarUrl ? (
           <img
@@ -635,7 +627,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-  // State selectors
+
   const isOpen = useCommandPaletteOpen();
   const step = useCommandPaletteStep();
   const query = useCommandPaletteQuery();
@@ -647,7 +639,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const searchResults = useCommandPaletteSearchResults();
   const resultSelectedIndex = useCommandPaletteResultSelectedIndex();
 
-  // Action selectors (individual to prevent re-renders)
   const close = useCommandPaletteClose();
   const setQuery = useCommandPaletteSetQuery();
   const setSelectedIndex = useCommandPaletteSetSelectedIndex();
@@ -662,11 +653,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
-  const searchingRef = useRef<boolean>(false);
 
   const setActiveTab = useTabTransition();
   const openModal = useOpenModal();
-  const { accounts } = useAccountsManager();
+  const { accounts, removeAccount } = useAccountsManager();
   const selectedIds = useSelectedIds();
   const setSelectedIds = useSetSelectedIds();
   const { showNotification } = useNotification();
@@ -685,7 +675,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const { data: friends = [] } = useFriends(selectedAccount);
 
-  // Limiteds search (FlexSearch powered)
   const {
     searchLimiteds,
     resetSearch: resetLimitedsSearch,
@@ -694,7 +683,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     itemCount: limitedsCount,
   } = useLimitedsSearch({ maxResults: 20 });
 
-  // Catalog search (FlexSearch powered)
   const {
     searchCatalog,
     resetSearch: resetCatalogSearch,
@@ -703,7 +691,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     itemCount: catalogCount,
   } = useCatalogSearch({ maxResults: 20 });
 
-  // Player search (username lookup + friends)
   const {
     searchPlayer,
     reset: resetPlayerSearch,
@@ -724,6 +711,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onViewAccessory,
     getSelectedAccount: () => selectedAccount,
     getAccounts: () => accounts,
+    removeAccount,
   });
 
   useEffect(() => {
@@ -737,6 +725,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       onViewAccessory,
       getSelectedAccount: () => selectedAccount,
       getAccounts: () => accounts,
+      removeAccount,
     };
   });
 
@@ -753,6 +742,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         callbacksRef.current.onViewAccessory(...args),
       getSelectedAccount: () => callbacksRef.current.getSelectedAccount(),
       getAccounts: () => callbacksRef.current.getAccounts(),
+      removeAccount: (...args) => callbacksRef.current.removeAccount(...args),
     }),
     [],
   );
@@ -761,33 +751,25 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return createAllCommands(callbacksProxy);
   }, [callbacksProxy]);
 
-  // Trigger searches when query changes
   useEffect(() => {
     if (step === "search" && query.trim()) {
-      if ((searchingRef as any).current) return;
-      (searchingRef as any).current = true;
-
       const runSearches = async () => {
         try {
-          try {
-            await Promise.resolve(searchLimiteds(query));
-          } catch (err) {
-            console.warn("[CommandPalette] searchLimiteds failed", err);
-          }
+          await Promise.resolve(searchLimiteds(query));
+        } catch (err) {
+          console.warn("[CommandPalette] searchLimiteds failed", err);
+        }
 
-          try {
-            await Promise.resolve(searchCatalog(query));
-          } catch (err) {
-            console.warn("[CommandPalette] searchCatalog failed", err);
-          }
+        try {
+          await Promise.resolve(searchCatalog(query));
+        } catch (err) {
+          console.warn("[CommandPalette] searchCatalog failed", err);
+        }
 
-          try {
-            await Promise.resolve(searchPlayer(query));
-          } catch (err) {
-            console.warn("[CommandPalette] searchPlayer failed", err);
-          }
-        } finally {
-          (searchingRef as any).current = false;
+        try {
+          await Promise.resolve(searchPlayer(query));
+        } catch (err) {
+          console.warn("[CommandPalette] searchPlayer failed", err);
         }
       };
 
@@ -795,14 +777,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [step, query, searchLimiteds, searchCatalog, searchPlayer]);
 
-  // Universal search results - combines players, limiteds, catalog items, and commands
   const universalSearchResults = useMemo<UniversalSearchResult[]>(() => {
     if (step !== "search" || !query.trim()) return [];
 
     const results: UniversalSearchResult[] = [];
     const addedPlayerIds = new Set<number>();
 
-    // Add matching friends first (friends should rank above general player lookup)
     playerFriends.forEach((friend) => {
       if (!addedPlayerIds.has(friend.id)) {
         results.push(friend);
@@ -810,7 +790,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       }
     });
 
-    // Add best player match (from API) after friend matches
     if (playerResult && !addedPlayerIds.has(playerResult.id)) {
       results.push(playerResult);
       addedPlayerIds.add(playerResult.id);
@@ -839,7 +818,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       }
     });
 
-    // Search commands
     const lowerQuery = query.toLowerCase();
     const matchingCommands = commands
       .filter((cmd) => {
@@ -848,7 +826,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         const matchKeywords = cmd.keywords?.some((k) => k.includes(lowerQuery));
         return matchLabel || matchDesc || matchKeywords;
       })
-      .slice(0, 5); // Limit commands to 5 in universal search
+      .slice(0, 5);
 
     matchingCommands.forEach((cmd) => {
       results.push({ type: "command", command: cmd });
@@ -884,7 +862,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
   }, [commands, query, recentCommandIds]);
 
-  // Group filtered commands by category
   const groupedCommands = useMemo(() => {
     const groups: Record<string, CommandType[]> = {};
 
@@ -905,7 +882,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     return sortedGroups;
   }, [filteredCommands]);
 
-  // Flatten for keyboard navigation
   const flatCommands = useMemo(() => {
     return groupedCommands.flatMap((g) => g.commands);
   }, [groupedCommands]);
@@ -980,7 +956,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     resetPlayerSearch,
   ]);
 
-  // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
 
@@ -997,7 +972,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       }
 
       if (step === "search") {
-        // In command mode (query starts with >)
         if (query.startsWith(">")) {
           const cmdQuery = query.slice(1).trim().toLowerCase();
           const filteredCmds = cmdQuery
@@ -1028,7 +1002,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             setQuery("");
           }
         } else {
-          // Normal universal search mode
           if (e.key === "ArrowDown") {
             e.preventDefault();
             setSelectedIndex(
@@ -1069,7 +1042,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           setSuggestionIndex(Math.max(suggestionIndex - 1, 0));
         } else if (e.key === "Tab" && filteredFriends.length > 0) {
           e.preventDefault();
-          // Auto-complete with selected friend
+
           const selectedFriend = filteredFriends[suggestionIndex];
           if (selectedFriend) {
             setInputValue(selectedFriend.username);
@@ -1080,7 +1053,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             const selectedFriend = filteredFriends[suggestionIndex];
             if (selectedFriend) {
               setInputValue(selectedFriend.username);
-              // Submit after setting the value
+
               setTimeout(() => submitInput(), 0);
               return;
             }
@@ -1133,7 +1106,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     commands,
   ]);
 
-  // Scroll selected item into view
   useEffect(() => {
     if (!listRef.current) return;
     const selected = listRef.current.querySelector('[data-selected="true"]');
@@ -1142,7 +1114,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [selectedIndex]);
 
-  // Scroll selected suggestion into view
   useEffect(() => {
     if (!suggestionsRef.current) return;
     const selected = suggestionsRef.current.querySelector(
@@ -1153,7 +1124,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [suggestionIndex]);
 
-  // Scroll selected result into view
   useEffect(() => {
     if (!resultsRef.current) return;
     const selected = resultsRef.current.querySelector(
@@ -1226,7 +1196,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
+          {}
           <div
             className="flex items-center gap-3 px-4 py-3.5 border-b"
             style={{
@@ -1355,7 +1325,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             )}
           </div>
 
-          {/* Universal Search Results */}
+          {}
           {step === "search" && (
             <div
               ref={listRef}
@@ -1464,19 +1434,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                           <motion.button
                             key={cmd.id}
                             initial={{ opacity: 0, y: 6 }}
-                            animate={{
-                              opacity: 1,
-                              y: 0,
-                              backgroundColor: isSelected
-                                ? SELECTED_BG
-                                : UNSELECTED_BG,
-                            }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.12 }}
                             data-selected={isSelected}
                             onClick={() => selectCommand(cmd)}
                             onMouseEnter={() => setSelectedIndex(idx)}
                             className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group transition-colors duration-100"
-                            style={{ width: "calc(100% - 8px)" }}
+                            style={{
+                              width: "calc(100% - 8px)",
+                              backgroundColor: isSelected
+                                ? SELECTED_BG
+                                : UNSELECTED_BG,
+                            }}
                           >
                             <div
                               className={cn(
@@ -1630,7 +1599,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {/* Command List */}
+          {}
           {step === "select" && (
             <div
               ref={listRef}
@@ -1682,17 +1651,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                           <motion.button
                             key={cmd.id}
                             initial={false}
-                            animate={{
-                              backgroundColor: isSelected
-                                ? SELECTED_BG
-                                : UNSELECTED_BG,
-                            }}
-                            transition={{ duration: 0.1 }}
                             data-selected={isSelected}
                             onClick={() => selectCommand(cmd)}
                             onMouseEnter={() => setSelectedIndex(idx)}
                             className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group transition-colors duration-100"
-                            style={{ width: "calc(100% - 8px)" }}
+                            style={{
+                              width: "calc(100% - 8px)",
+                              backgroundColor: isSelected
+                                ? SELECTED_BG
+                                : UNSELECTED_BG,
+                            }}
                           >
                             <div
                               className={cn(
@@ -1750,10 +1718,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {/* Input Step Content */}
+          {}
           {step === "input" && (
             <div>
-              {/* Friend Suggestions */}
+              {}
               {filteredFriends.length > 0 && (
                 <div
                   ref={suggestionsRef}
@@ -1779,12 +1747,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       <motion.button
                         key={friend.id}
                         initial={false}
-                        animate={{
-                          backgroundColor: isSelected
-                            ? SELECTED_BG
-                            : UNSELECTED_BG,
-                        }}
-                        transition={{ duration: 0.1 }}
                         data-suggestion-selected={isSelected}
                         onClick={() => {
                           setInputValue(friend.username);
@@ -1792,7 +1754,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         }}
                         onMouseEnter={() => setSuggestionIndex(idx)}
                         className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group transition-colors duration-100"
-                        style={{ width: "calc(100% - 8px)" }}
+                        style={{
+                          width: "calc(100% - 8px)",
+                          backgroundColor: isSelected
+                            ? SELECTED_BG
+                            : UNSELECTED_BG,
+                        }}
                       >
                         <img
                           src={friend.avatarUrl}
@@ -1830,7 +1797,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 </div>
               )}
 
-              {/* Help text */}
+              {}
               <div
                 className="px-4 py-3 flex items-center justify-between border-t"
                 style={{
@@ -1882,10 +1849,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {/* Results Step Content */}
+          {}
           {step === "results" && (
             <div>
-              {/* Results Header */}
+              {}
               <div
                 className="px-4 py-3 border-b flex items-center gap-3"
                 style={{
@@ -1912,7 +1879,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 </div>
               </div>
 
-              {/* Results List */}
+              {}
               <div ref={resultsRef} style={{ height: listMaxHeight }}>
                 {searchResults.length === 0 ? (
                   <div className="px-6 py-12 text-center">
@@ -1943,18 +1910,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         <motion.button
                           key={`${item.itemType}-${item.id}`}
                           initial={false}
-                          animate={{
-                            backgroundColor: isSelected
-                              ? SELECTED_BG
-                              : UNSELECTED_BG,
-                          }}
-                          transition={{ duration: 0.1 }}
                           data-result-selected={isSelected}
                           data-index={idx}
                           onClick={() => selectResult(item)}
                           onMouseEnter={() => setResultSelectedIndex(idx)}
                           className="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg mx-1 group transition-colors duration-100"
-                          style={{ width: "calc(100% - 8px)" }}
+                          style={{
+                            width: "calc(100% - 8px)",
+                            backgroundColor: isSelected
+                              ? SELECTED_BG
+                              : UNSELECTED_BG,
+                          }}
                         >
                           {item.imageUrl ? (
                             <img
@@ -2041,7 +2007,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                 )}
               </div>
 
-              {/* Results Help text */}
+              {}
               <div
                 className="px-4 py-3 flex items-center justify-between border-t"
                 style={{
@@ -2074,7 +2040,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           )}
 
-          {/* Footer */}
+          {}
           <div
             className="flex items-center justify-between px-4 py-2.5 border-t"
             style={{

@@ -30,7 +30,6 @@ type PurchaseTargetAccount = Pick<Account, "id" | "userId" | "username"> & {
   cookie: string;
 };
 
-// Inline Purchase Confirm Dialog
 const PurchaseConfirmDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -132,7 +131,6 @@ const PurchaseConfirmDialog: React.FC<{
   );
 };
 
-// Inline Purchase Success Dialog
 export const PurchaseSuccessDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -190,7 +188,6 @@ export const PurchaseSuccessDialog: React.FC<{
   </Dialog>
 );
 
-// Inline Purchase Error Dialog
 export const PurchaseErrorDialog: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -265,13 +262,11 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
 
   const [ownedAccounts, setOwnedAccounts] = useState<Set<string>>(new Set());
   const [userBalance, setUserBalance] = useState<number | null>(null);
-  const purchaseInProgressRef = useRef(false); // Guard against double purchases
+  const purchaseInProgressRef = useRef(false);
 
-  // Logic for display price
   let displayPrice: string | number = "Off Sale";
   const isLimitedItem = details.isLimited || details.isLimitedUnique;
 
-  // For limited/collectible items, prioritize the collectible resale price
   if (
     isLimitedItem &&
     details.collectibleLowestResalePrice &&
@@ -279,11 +274,9 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
   ) {
     displayPrice = details.collectibleLowestResalePrice;
   } else if (details.lowestPrice && details.lowestPrice > 0) {
-    // Catalog API lowestPrice for limiteds
     displayPrice = details.lowestPrice;
   } else if (details.price != null) {
     if (details.price === 0 && details.isPurchasable && !isLimitedItem) {
-      // Only show "Free" if it's actually purchasable and not a limited item
       displayPrice = "Free";
     } else if (details.price > 0) {
       displayPrice = details.price;
@@ -292,7 +285,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
     }
   }
 
-  // Check ownership and balance
   React.useEffect(() => {
     let isMounted = true;
     const checkStatus = async () => {
@@ -317,7 +309,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         );
         if (isMounted) setOwnedAccounts(ownedSet);
 
-        // Get balance for the primary account to show in UI (only if single mode, for simplicity)
         if (
           !isBulkMode &&
           !ownedSet.has(targetAccounts[0]?.id) &&
@@ -348,7 +339,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
     accountsNeedingPurchase.length *
     (typeof displayPrice === "number" ? displayPrice : 0);
 
-  // Check if item can be purchased (has collectibleItemId and is purchasable)
   const canPurchase =
     !isFullyOwned &&
     displayPrice !== "Off Sale" &&
@@ -359,7 +349,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
 
   const handlePurchaseClick = () => {
     if (needsLogin) {
-      // prompt user to login before purchasing
       alert("You must be logged in to purchase this item.");
       return;
     }
@@ -368,7 +357,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
   };
 
   const handleConfirmPurchase = async () => {
-    // Guard against double purchases (React StrictMode can cause double calls)
     if (purchaseInProgressRef.current) return;
     if (
       !canPurchase ||
@@ -392,8 +380,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         error?: string;
       }> = [];
 
-      // For bulk mode, execute purchases sequentially with rate limiting
-      // For single account, execute normally but still with rate limiting to be safe
       if (isBulkMode) {
         setPurchaseProgress({
           current: 0,
@@ -403,10 +389,9 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         });
         let currentSuccess = 0;
         let currentFailed = 0;
-        // Sequential execution with rate limiting for bulk purchases
+
         for (const acc of accountsNeedingPurchase) {
           try {
-            // Check cookie validity locally before attempting purchase
             const authCheck = await window.api
               .validateCookie(acc.cookie)
               .catch(() => null);
@@ -476,7 +461,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
           }
         }
 
-        // Show summary notification or success based on results
         if (currentSuccess > 0) {
           onPurchaseSuccess?.(
             details,
@@ -488,7 +472,6 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
           );
         }
       } else {
-        // Single account purchase with rate limiting
         try {
           const result = await executeWithRetry(
             catalogPurchaseLimiter,
@@ -610,7 +593,7 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         )}
       </Button>
 
-      {/* Bulk Purchase Progress Bar */}
+      {}
       {isPurchasing && purchaseProgress && isBulkMode && (
         <div className="absolute left-0 right-0 -bottom-[100px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-4 z-20 shadow-2xl flex flex-col gap-3 min-w-[300px]">
           <div className="flex justify-between items-center">
@@ -658,7 +641,7 @@ export const AssetPricing: React.FC<AssetPricingProps> = ({
         </div>
       )}
 
-      {/* Confirm Dialog */}
+      {}
       <PurchaseConfirmDialog
         isOpen={showConfirm}
         onClose={() => setShowConfirm(false)}

@@ -1,8 +1,3 @@
-/**
- * Browser Service - Manages browser lifecycle.
- * Abstraction layer for Playwright/Puppeteer integration.
- */
-
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import {
@@ -18,9 +13,6 @@ import {
 } from "../types/BrowserTypes";
 import { IBrowserService } from "../interfaces/BrowserInterfaces";
 
-/**
- * Default browser options.
- */
 const DEFAULT_BROWSER_OPTIONS: Required<BrowserLaunchOptions> = {
   headless: true,
   timeout: 30000,
@@ -44,9 +36,6 @@ export class BrowserService extends EventEmitter implements IBrowserService {
     this.options = DEFAULT_BROWSER_OPTIONS;
   }
 
-  /**
-   * Launch browser.
-   */
   public async launch(options: BrowserLaunchOptions = {}): Promise<void> {
     if (this.state.isLaunched) {
       this.logger.warn("Browser already launched");
@@ -57,12 +46,6 @@ export class BrowserService extends EventEmitter implements IBrowserService {
       this.options = { ...DEFAULT_BROWSER_OPTIONS, ...options };
       this.logger.info("Launching browser", { options: this.options });
 
-      // In a real implementation, this would use Playwright:
-      // const browser = await chromium.launch({ headless: this.options.headless });
-      // const page = await browser.newPage();
-      // this.browser = page;
-
-      // Mock implementation for type safety
       this.browser = {
         goto: async () => {},
         fill: async () => {},
@@ -90,9 +73,6 @@ export class BrowserService extends EventEmitter implements IBrowserService {
     }
   }
 
-  /**
-   * Navigate to URL.
-   */
   public async navigate(config: NavigationConfig): Promise<void> {
     if (!this.state.isLaunched || !this.browser) {
       throw new AppError(
@@ -136,9 +116,6 @@ export class BrowserService extends EventEmitter implements IBrowserService {
     }
   }
 
-  /**
-   * Close browser.
-   */
   public async close(): Promise<void> {
     if (!this.state.isLaunched || !this.browser) {
       return;
@@ -158,45 +135,35 @@ export class BrowserService extends EventEmitter implements IBrowserService {
     }
   }
 
-  /**
-   * Check if browser is launched.
-   */
   public isLaunched(): boolean {
     return this.state.isLaunched;
   }
 
-  /**
-   * Get browser state.
-   */
   public getState(): BrowserState {
     return { ...this.state };
   }
 
-  /**
-   * Execute function with timeout.
-   */
   private withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
-    return Promise.race<T>([
-      promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(
-          () =>
-            reject(
-              new AppError(
-                "Operation timeout",
-                ErrorCode.BROWSER_TIMEOUT_ERROR,
-                "BrowserService",
-              ),
+    let timer: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            new AppError(
+              "Operation timeout",
+              ErrorCode.BROWSER_TIMEOUT_ERROR,
+              "BrowserService",
             ),
-          timeout,
-        ),
-      ),
-    ]);
+          ),
+        timeout,
+      );
+    });
+
+    return Promise.race<T>([promise, timeoutPromise]).finally(() =>
+      clearTimeout(timer),
+    );
   }
 
-  /**
-   * Get underlying browser instance.
-   */
   public getBrowser(): IBrowserInstance | null {
     return this.browser;
   }

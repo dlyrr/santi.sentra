@@ -1,11 +1,5 @@
 import { useState } from "react";
 
-/**
- * Hook to persist state in localStorage
- * @param key - The localStorage key
- * @param initialValue - The initial value if not in localStorage
- * @returns [value, setValue] - Current value and setter function
- */
 export const useLocalStorage = <T>(
   key: string,
   initialValue: T,

@@ -20,6 +20,7 @@ import {
   Check,
   Server,
   Loader2,
+  Lock,
   Shield,
   MonitorSmartphone,
   Link2,
@@ -111,9 +112,9 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const [displayedGame, setDisplayedGame] = useState<Game | null>(game);
   const [thumbnails, setThumbnails] = useState<string[]>([]);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<"info" | "servers" | "store">(
-    "info",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "info" | "servers" | "private" | "store"
+  >("info");
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [selectedCreatorId, setSelectedCreatorId] = useState<
@@ -145,8 +146,8 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     imageUrl: string;
     gameName: string;
   } | null>(null);
+  const [privateServerTarget, setPrivateServerTarget] = useState("");
 
-  // Favorite logic
   const { data: favorites = [] } = useFavoriteGames();
   const addFavoriteMutation = useAddFavoriteGame();
   const removeFavoriteMutation = useRemoveFavoriteGame();
@@ -198,7 +199,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         if (result.success) {
           showNotification("Image saved successfully", "success");
         } else if (result.canceled) {
-          // User canceled, don't show notification
         } else {
           showNotification("Failed to save image", "error");
         }
@@ -254,7 +254,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       return;
     }
 
-    // We don’t yet have a direct friend join target; jump to Servers tab so they can pick.
     setActiveTab("servers");
     showNotification("Jumped to Servers — look for friends online", "info");
   }, [hasFriendsPlaying, showNotification]);
@@ -268,7 +267,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     enabled: !!game?.universeId && isOpen,
   });
 
-  // Fetch game passes
   const { data: gamePassesData, isLoading: _isLoadingPasses } = useQuery({
     queryKey: ["gamePasses", game?.universeId],
     queryFn: async () => {
@@ -278,7 +276,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     enabled: !!game?.universeId && isOpen,
   });
 
-  // Filter to only show passes that are for sale
   const gamePassesForSale =
     gamePassesData?.gamePasses?.filter(
       (p: GamePass) => p.isForSale && p.productId !== null,
@@ -297,7 +294,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           "success",
         );
 
-        // Update local state
         if (data.model) {
           setDisplayedGame((prev) => {
             if (!prev) return null;
@@ -310,7 +306,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           });
         }
 
-        // Refresh game stats
         queryClient.invalidateQueries({
           queryKey: ["gameDetails", game?.universeId],
         });
@@ -326,7 +321,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     },
   });
 
-  // Auto-advance carousel
   const startCarousel = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
@@ -389,14 +383,12 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     startCarousel();
   }, [carouselIndex, isDragging, startCarousel, thumbnails.length]);
 
-  // Update carousel transform when index changes (when not dragging)
   useEffect(() => {
     if (!isDragging && carouselRef.current) {
       carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}%))`;
     }
   }, [carouselIndex, isDragging]);
 
-  // Refresh game stats
   useEffect(() => {
     if (!isOpen || !game?.universeId) return;
 
@@ -430,10 +422,9 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       setDisplayedGame(game);
       setCarouselIndex(0);
       setActiveTab("info");
-      // Start with the fallback thumbnail
+
       setThumbnails(game.thumbnailUrl ? [game.thumbnailUrl] : []);
 
-      // Fetch high-res thumbnails
       if (game.universeId) {
         window.api
           .getGameThumbnail16x9(Number(game.universeId))
@@ -449,7 +440,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     }
   }, [game]);
 
-  // Calculate stats safely
   const totalVotes = displayedGame
     ? displayedGame.likes + displayedGame.dislikes
     : 0;
@@ -470,330 +460,472 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   return (
     <>
       <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="flex flex-col w-full max-w-4xl p-0 bg-[var(--color-app-bg)] overflow-hidden max-h-[90vh]">
-        {/* Full Bleed Hero Section */}
-        <div className="relative w-full h-[320px] shrink-0 bg-black overflow-hidden group">
-          {/* Carousel */}
-          <div
-            className="absolute inset-0 flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
-          >
-            {thumbnails.map((url, idx) => (
-              <img
-                key={idx}
-                src={url}
-                alt={displayedGame.name}
-                className="w-full h-full object-cover shrink-0 opacity-80"
-                onContextMenu={(e) => handleImageContextMenu(e, url)}
-                draggable={false}
-              />
-            ))}
-          </div>
-
-          {/* Top gradient for close button visibility */}
-          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/80 to-transparent z-10" />
-          
-          {/* Bottom gradient for title */}
-          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[var(--color-app-bg)] via-[var(--color-app-bg)]/80 to-transparent z-10" />
-
-          {/* Close & Drag Handle */}
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-            <button
-              onClick={handleFavorite}
-              className="w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-black/60 transition-colors group/fav"
+        <DialogContent className="flex flex-col w-full max-w-4xl p-0 bg-[var(--color-app-bg)] overflow-hidden max-h-[90vh]">
+          {}
+          <div className="relative w-full h-[320px] shrink-0 bg-black overflow-hidden group">
+            {}
+            <div
+              className="absolute inset-0 flex transition-transform duration-500 ease-out"
+              style={{ transform: `translateX(-${carouselIndex * 100}%)` }}
             >
-              <Star
-                size={16}
-                className={cn(
-                  "transition-all",
-                  isFavorite ? "fill-yellow-400 text-yellow-400" : "text-white group-hover/fav:text-yellow-400"
-                )}
-              />
-              <FavoriteParticles active={favoriteBurst} />
-            </button>
-            <DialogClose className="relative static w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors" />
-          </div>
-
-          {/* Carousel Controls */}
-          {showCarouselControls && (
-            <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={handleCarouselLeft}
-                className={cn(
-                  "w-10 h-10 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-black/80",
-                  !canCarouselLeft && "invisible"
-                )}
-              >
-                <ChevronLeft size={24} />
-              </button>
-              <button
-                onClick={handleCarouselRight}
-                className={cn(
-                  "w-10 h-10 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-black/80",
-                  !canCarouselRight && "invisible"
-                )}
-              >
-                <ChevronRight size={24} />
-              </button>
-            </div>
-          )}
-
-          {/* Carousel Indicators */}
-          {thumbnails.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
-              {thumbnails.map((_, idx) => (
-                <button
+              {thumbnails.map((url, idx) => (
+                <img
                   key={idx}
-                  onClick={() => {
-                    setCarouselIndex(idx);
-                    startCarousel();
-                  }}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all duration-300",
-                    idx === carouselIndex ? "w-6 bg-white" : "w-1.5 bg-white/40 hover:bg-white/60"
-                  )}
+                  src={url}
+                  alt={displayedGame.name}
+                  className="w-full h-full object-cover shrink-0 opacity-80"
+                  onContextMenu={(e) => handleImageContextMenu(e, url)}
+                  draggable={false}
                 />
               ))}
             </div>
-          )}
-        </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin z-20 -mt-16 relative">
-          <div className="px-6 sm:px-8 pb-8 max-w-4xl mx-auto space-y-6">
-            
-            {/* Header Title & Actions */}
-            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between">
-              <div className="space-y-2 flex-1">
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-md leading-tight">
-                  {displayedGame.name}
-                </h1>
-                <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
-                  <span className="text-sm font-medium flex items-center gap-1">
-                    by{" "}
-                    <button
-                      onClick={handleCreatorClick}
-                      className={cn(
-                        "hover:underline focus:outline-none transition-colors",
-                        displayedGame.creatorHasVerifiedBadge
-                          ? "text-[#5b9cf6] flex items-center gap-1"
-                          : "text-white"
-                      )}
-                    >
-                      {displayedGame.creatorName}
-                      {displayedGame.creatorHasVerifiedBadge && (
-                        <VerifiedIcon width={14} height={14} />
-                      )}
-                    </button>
-                  </span>
-                  <span className="text-white/30">•</span>
-                  <span className="flex items-center gap-1 text-sm text-emerald-400 font-semibold drop-shadow-md">
-                    <ThumbsUp size={14} /> {likePercentage}%
-                  </span>
-                  <span className="text-white/30">•</span>
-                  <span className="flex items-center gap-1 text-sm text-[var(--color-text-primary)] font-medium drop-shadow-md">
-                    <Users size={14} /> {formatNumber(displayedGame.playing)} playing
-                  </span>
+            {}
+            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/80 to-transparent z-10" />
+
+            <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[var(--color-app-bg)] via-[var(--color-app-bg)]/80 to-transparent z-10" />
+
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+              <button
+                onClick={handleFavorite}
+                className="w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-black/60 transition-colors group/fav"
+              >
+                <Star
+                  size={16}
+                  className={cn(
+                    "transition-all",
+                    isFavorite
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-white group-hover/fav:text-yellow-400",
+                  )}
+                />
+                <FavoriteParticles active={favoriteBurst} />
+              </button>
+              <DialogClose className="relative static w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors" />
+            </div>
+
+            {}
+            {showCarouselControls && (
+              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={handleCarouselLeft}
+                  className={cn(
+                    "w-10 h-10 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-black/80",
+                    !canCarouselLeft && "invisible",
+                  )}
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button
+                  onClick={handleCarouselRight}
+                  className={cn(
+                    "w-10 h-10 rounded-full bg-black/50 backdrop-blur border border-white/10 flex items-center justify-center text-white transition-colors hover:bg-black/80",
+                    !canCarouselRight && "invisible",
+                  )}
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </div>
+            )}
+
+            {}
+            {thumbnails.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                {thumbnails.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setCarouselIndex(idx);
+                      startCarousel();
+                    }}
+                    className={cn(
+                      "h-1.5 rounded-full transition-all duration-300",
+                      idx === carouselIndex
+                        ? "w-6 bg-white"
+                        : "w-1.5 bg-white/40 hover:bg-white/60",
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {}
+          <div className="flex-1 overflow-y-auto scrollbar-thin z-20 -mt-16 relative">
+            <div className="px-6 sm:px-8 pb-8 max-w-4xl mx-auto space-y-6">
+              {}
+              <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end justify-between">
+                <div className="space-y-2 flex-1">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-md leading-tight">
+                    {displayedGame.name}
+                  </h1>
+                  <div className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
+                    <span className="text-sm font-medium flex items-center gap-1">
+                      by{" "}
+                      <button
+                        onClick={handleCreatorClick}
+                        className={cn(
+                          "hover:underline focus:outline-none transition-colors",
+                          displayedGame.creatorHasVerifiedBadge
+                            ? "text-[#5b9cf6] flex items-center gap-1"
+                            : "text-white",
+                        )}
+                      >
+                        {displayedGame.creatorName}
+                        {displayedGame.creatorHasVerifiedBadge && (
+                          <VerifiedIcon width={14} height={14} />
+                        )}
+                      </button>
+                    </span>
+                    <span className="text-white/30">•</span>
+                    <span className="flex items-center gap-1 text-sm text-emerald-400 font-semibold drop-shadow-md">
+                      <ThumbsUp size={14} /> {likePercentage}%
+                    </span>
+                    <span className="text-white/30">•</span>
+                    <span className="flex items-center gap-1 text-sm text-[var(--color-text-primary)] font-medium drop-shadow-md">
+                      <Users size={14} /> {formatNumber(displayedGame.playing)}{" "}
+                      playing
+                    </span>
+                  </div>
                 </div>
+
+                {}
+                <button
+                  onClick={() => {
+                    const targetId = displayedGame.placeId || displayedGame.id;
+                    onLaunch({ method: JoinMethod.PlaceId, target: targetId });
+                    onClose();
+                  }}
+                  className="w-full sm:w-auto shrink-0 bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold text-lg py-3.5 px-8 rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] hover:-translate-y-1"
+                >
+                  <Play fill="currentColor" size={20} />
+                  <span>Play</span>
+                </button>
               </div>
 
-              {/* Primary Action */}
-              <button
-                onClick={() => {
-                  const targetId = displayedGame.placeId || displayedGame.id;
-                  onLaunch({ method: JoinMethod.PlaceId, target: targetId });
-                  onClose();
-                }}
-                className="w-full sm:w-auto shrink-0 bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold text-lg py-3.5 px-8 rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] hover:-translate-y-1"
-              >
-                <Play fill="currentColor" size={20} />
-                <span>Play</span>
-              </button>
-            </div>
+              {}
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={handleJoinFriends}
+                  className={cn(
+                    "px-4 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 transition-all",
+                    hasFriendsPlaying
+                      ? "bg-[rgba(var(--accent-color-rgb),0.1)] border-[rgba(var(--accent-color-rgb),0.3)] text-[var(--accent-color)] hover:bg-[rgba(var(--accent-color-rgb),0.15)]"
+                      : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed",
+                  )}
+                >
+                  <Users size={16} />
+                  <span className="hidden sm:inline">
+                    {hasFriendsPlaying ? "Join friends" : "No friends playing"}
+                  </span>
+                  <span className="sm:hidden">Friends</span>
+                </button>
+                <button
+                  onClick={handleRejoinLastServer}
+                  className={cn(
+                    "px-4 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 transition-all",
+                    lastServerJobId
+                      ? "bg-[var(--color-surface-hover)] border-[var(--color-border-strong)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-strong)]"
+                      : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed",
+                  )}
+                >
+                  <Clock size={16} />
+                  <span className="hidden sm:inline">
+                    {lastServerJobId
+                      ? "Rejoin last server"
+                      : "No recent server"}
+                  </span>
+                  <span className="sm:hidden">Rejoin</span>
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Link2 size={16} />
+                  <span className="hidden sm:inline">Copy link</span>
+                  <span className="sm:hidden">Share</span>
+                </button>
+              </div>
 
-            {/* Quick Actions Row */}
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={handleJoinFriends}
-                className={cn(
-                  "px-4 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 transition-all",
-                  hasFriendsPlaying
-                    ? "bg-[rgba(var(--accent-color-rgb),0.1)] border-[rgba(var(--accent-color-rgb),0.3)] text-[var(--accent-color)] hover:bg-[rgba(var(--accent-color-rgb),0.15)]"
-                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed"
-                )}
-              >
-                <Users size={16} />
-                <span className="hidden sm:inline">{hasFriendsPlaying ? "Join friends" : "No friends playing"}</span>
-                <span className="sm:hidden">Friends</span>
-              </button>
-              <button
-                onClick={handleRejoinLastServer}
-                className={cn(
-                  "px-4 py-2.5 rounded-xl border text-sm font-medium flex items-center justify-center gap-2 transition-all",
-                  lastServerJobId
-                    ? "bg-[var(--color-surface-hover)] border-[var(--color-border-strong)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-strong)]"
-                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed"
-                )}
-              >
-                <Clock size={16} />
-                <span className="hidden sm:inline">{lastServerJobId ? "Rejoin last server" : "No recent server"}</span>
-                <span className="sm:hidden">Rejoin</span>
-              </button>
-              <button
-                onClick={handleCopyLink}
-                className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-              >
-                <Link2 size={16} />
-                <span className="hidden sm:inline">Copy link</span>
-                <span className="sm:hidden">Share</span>
-              </button>
-            </div>
+              {}
+              <div className="mt-8">
+                <Tabs
+                  tabs={[
+                    { id: "info", label: "Overview", icon: Info },
+                    { id: "servers", label: "Servers", icon: Server },
+                    { id: "private", label: "Private", icon: Lock },
+                    {
+                      id: "store",
+                      label: "Store",
+                      icon: ShoppingBag,
+                      hidden: !hasGamePasses,
+                    },
+                  ]}
+                  activeTab={activeTab}
+                  onTabChange={(tabId) =>
+                    setActiveTab(
+                      tabId as "info" | "servers" | "private" | "store",
+                    )
+                  }
+                  layoutId="gameDetailsTabIndicator"
+                />
 
-            {/* Main Content Tabs */}
-            <div className="mt-8">
-              <Tabs
-                tabs={[
-                  { id: "info", label: "Overview", icon: Info },
-                  { id: "servers", label: "Servers", icon: Server },
-                  { id: "store", label: "Store", icon: ShoppingBag, hidden: !hasGamePasses },
-                ]}
-                activeTab={activeTab}
-                onTabChange={(tabId) => setActiveTab(tabId as "info" | "servers" | "store")}
-                layoutId="gameDetailsTabIndicator"
-              />
-
-              <div className="mt-6">
-                {activeTab === "info" ? (
-                  <div className="space-y-6">
-                    {/* Bento Grid Stats */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                        <Globe size={18} className="text-[var(--color-text-secondary)] mb-2" />
-                        <span className="text-xl font-bold text-[var(--color-text-primary)]">
-                          <SlidingNumber number={displayedGame.visits} formatter={(n) => formatNumber(n)} />
-                        </span>
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">Visits</span>
-                      </div>
-                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                        <Users size={18} className="text-[var(--color-text-secondary)] mb-2" />
-                        <span className="text-xl font-bold text-[var(--color-text-primary)]">
-                          <SlidingNumber number={displayedGame.playing} formatter={(n) => formatNumber(n)} />
-                        </span>
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">Active</span>
-                      </div>
-                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
-                        <Calendar size={18} className="text-[var(--color-text-secondary)] mb-2" />
-                        <span className="text-xl font-bold text-[var(--color-text-primary)]">
-                          {displayedGame.created ? new Date(displayedGame.created).getFullYear() : "-"}
-                        </span>
-                        <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">Created</span>
-                      </div>
-                      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col justify-center">
-                        <div className="flex justify-between items-end mb-2">
-                          <button
-                            onClick={() => voteMutation.mutate({ vote: true })}
-                            disabled={voteMutation.isPending}
-                            className={cn(
-                              "flex items-center gap-1.5 transition-colors group",
-                              displayedGame.userVote === true ? "text-emerald-400" : "text-[var(--color-text-secondary)] hover:text-emerald-400"
-                            )}
-                          >
-                            <ThumbsUp size={16} className={displayedGame.userVote === true ? "fill-current" : "group-hover:fill-current"} />
-                            <span className="text-sm font-bold"><SlidingNumber number={displayedGame.likes} formatter={(n) => formatNumber(n)} /></span>
-                          </button>
-                          <button
-                            onClick={() => voteMutation.mutate({ vote: false })}
-                            disabled={voteMutation.isPending}
-                            className={cn(
-                              "flex items-center gap-1.5 transition-colors group",
-                              displayedGame.userVote === false ? "text-red-400" : "text-[var(--color-text-secondary)] hover:text-red-400"
-                            )}
-                          >
-                            <span className="text-sm font-bold"><SlidingNumber number={displayedGame.dislikes} formatter={(n) => formatNumber(n)} /></span>
-                            <ThumbsDown size={16} className={displayedGame.userVote === false ? "fill-current" : "group-hover:fill-current"} />
-                          </button>
+                <div className="mt-6">
+                  {activeTab === "info" ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                          <Globe
+                            size={18}
+                            className="text-[var(--color-text-secondary)] mb-2"
+                          />
+                          <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                            <SlidingNumber
+                              number={displayedGame.visits}
+                              formatter={(n) => formatNumber(n)}
+                            />
+                          </span>
+                          <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">
+                            Visits
+                          </span>
                         </div>
-                        <div className="h-1.5 w-full bg-red-500/20 rounded-full overflow-hidden flex">
-                          <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${likePercentage}%` }} />
-                          <div className="h-full bg-red-500 transition-all duration-500 flex-1" />
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                          <Users
+                            size={18}
+                            className="text-[var(--color-text-secondary)] mb-2"
+                          />
+                          <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                            <SlidingNumber
+                              number={displayedGame.playing}
+                              formatter={(n) => formatNumber(n)}
+                            />
+                          </span>
+                          <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">
+                            Active
+                          </span>
                         </div>
-                        <span className="text-[10px] text-[var(--color-text-muted)] text-center mt-2 uppercase tracking-wider font-semibold">{likePercentage}% Rating</span>
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                          <Calendar
+                            size={18}
+                            className="text-[var(--color-text-secondary)] mb-2"
+                          />
+                          <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                            {displayedGame.created
+                              ? new Date(displayedGame.created).getFullYear()
+                              : "-"}
+                          </span>
+                          <span className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-semibold mt-1">
+                            Created
+                          </span>
+                        </div>
+                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex flex-col justify-center">
+                          <div className="flex justify-between items-end mb-2">
+                            <button
+                              onClick={() =>
+                                voteMutation.mutate({ vote: true })
+                              }
+                              disabled={voteMutation.isPending}
+                              className={cn(
+                                "flex items-center gap-1.5 transition-colors group",
+                                displayedGame.userVote === true
+                                  ? "text-emerald-400"
+                                  : "text-[var(--color-text-secondary)] hover:text-emerald-400",
+                              )}
+                            >
+                              <ThumbsUp
+                                size={16}
+                                className={
+                                  displayedGame.userVote === true
+                                    ? "fill-current"
+                                    : "group-hover:fill-current"
+                                }
+                              />
+                              <span className="text-sm font-bold">
+                                <SlidingNumber
+                                  number={displayedGame.likes}
+                                  formatter={(n) => formatNumber(n)}
+                                />
+                              </span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                voteMutation.mutate({ vote: false })
+                              }
+                              disabled={voteMutation.isPending}
+                              className={cn(
+                                "flex items-center gap-1.5 transition-colors group",
+                                displayedGame.userVote === false
+                                  ? "text-red-400"
+                                  : "text-[var(--color-text-secondary)] hover:text-red-400",
+                              )}
+                            >
+                              <span className="text-sm font-bold">
+                                <SlidingNumber
+                                  number={displayedGame.dislikes}
+                                  formatter={(n) => formatNumber(n)}
+                                />
+                              </span>
+                              <ThumbsDown
+                                size={16}
+                                className={
+                                  displayedGame.userVote === false
+                                    ? "fill-current"
+                                    : "group-hover:fill-current"
+                                }
+                              />
+                            </button>
+                          </div>
+                          <div className="h-1.5 w-full bg-red-500/20 rounded-full overflow-hidden flex">
+                            <div
+                              className="h-full bg-emerald-500 transition-all duration-500"
+                              style={{ width: `${likePercentage}%` }}
+                            />
+                            <div className="h-full bg-red-500 transition-all duration-500 flex-1" />
+                          </div>
+                          <span className="text-[10px] text-[var(--color-text-muted)] text-center mt-2 uppercase tracking-wider font-semibold">
+                            {likePercentage}% Rating
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Tags & Badges */}
-                    <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
-                        <Gamepad2 size={13} className="text-[var(--color-text-secondary)]" />
-                        {displayedGame.genre}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
-                        <Shield size={13} className="text-[var(--color-text-secondary)]" />
-                        {ageRating}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
-                        <MonitorSmartphone size={13} className="text-[var(--color-text-secondary)]" />
-                        {deviceNames}
-                      </span>
-                    </div>
+                      {}
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                          <Gamepad2
+                            size={13}
+                            className="text-[var(--color-text-secondary)]"
+                          />
+                          {displayedGame.genre}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                          <Shield
+                            size={13}
+                            className="text-[var(--color-text-secondary)]"
+                          />
+                          {ageRating}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-surface)] text-xs font-semibold text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                          <MonitorSmartphone
+                            size={13}
+                            className="text-[var(--color-text-secondary)]"
+                          />
+                          {deviceNames}
+                        </span>
+                      </div>
 
-                    {/* Description */}
-                    <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-2xl p-6">
-                      <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-4">About</h3>
-                      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed whitespace-pre-wrap">
-                        {linkify(displayedGame.description)}
-                      </p>
-                    </div>
-
-                    {/* Social Links */}
-                    {socialLinks && socialLinks.length > 0 && (
+                      {}
                       <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-2xl p-6">
-                        <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-4">Community</h3>
-                        <div className="flex flex-wrap gap-3">
-                          {socialLinks.map((link: SocialLink) => (
-                            <Tooltip key={link.id}>
-                              <TooltipTrigger asChild>
-                                <a
-                                  href={link.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] rounded-xl transition-all text-sm font-medium text-[var(--color-text-primary)] hover:-translate-y-0.5"
-                                >
-                                  {getSocialIcon(link.type)}
-                                  <span>{link.title}</span>
-                                </a>
-                              </TooltipTrigger>
-                              <TooltipContent>{getPlatformName(link.type)}</TooltipContent>
-                            </Tooltip>
-                          ))}
-                        </div>
+                        <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-4">
+                          About
+                        </h3>
+                        <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed whitespace-pre-wrap">
+                          {linkify(displayedGame.description)}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ) : activeTab === "servers" ? (
-                  <div className="h-[600px] bg-[var(--color-surface)]/30 rounded-2xl border border-[var(--color-border)] overflow-hidden">
-                    <ServersList
-                      placeId={displayedGame.placeId || displayedGame.id.toString()}
-                      onJoin={(jobId) => {
-                        const targetId = displayedGame.placeId || displayedGame.id.toString();
-                        onLaunch({ method: JoinMethod.JobId, target: `${targetId}:${jobId}` });
-                        onClose();
-                      }}
-                    />
-                  </div>
-                ) : activeTab === "store" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {gamePassesForSale.map((pass: GamePass) => (
-                      <GamePassCard key={pass.id} pass={pass} account={account} showNotification={showNotification} />
-                    ))}
-                  </div>
-                ) : null}
+
+                      {}
+                      {socialLinks && socialLinks.length > 0 && (
+                        <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-2xl p-6">
+                          <h3 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-4">
+                            Community
+                          </h3>
+                          <div className="flex flex-wrap gap-3">
+                            {socialLinks.map((link: SocialLink) => (
+                              <Tooltip key={link.id}>
+                                <TooltipTrigger asChild>
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)] hover:border-[var(--color-border-strong)] rounded-xl transition-all text-sm font-medium text-[var(--color-text-primary)] hover:-translate-y-0.5"
+                                  >
+                                    {getSocialIcon(link.type)}
+                                    <span>{link.title}</span>
+                                  </a>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {getPlatformName(link.type)}
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : activeTab === "servers" ? (
+                    <div className="h-[600px] bg-[var(--color-surface)]/30 rounded-2xl border border-[var(--color-border)] overflow-hidden">
+                      <ServersList
+                        placeId={
+                          displayedGame.placeId || displayedGame.id.toString()
+                        }
+                        onJoin={(jobId) => {
+                          const targetId =
+                            displayedGame.placeId ||
+                            displayedGame.id.toString();
+                          onLaunch({
+                            method: JoinMethod.JobId,
+                            target: `${targetId}:${jobId}`,
+                          });
+                          onClose();
+                        }}
+                      />
+                    </div>
+                  ) : activeTab === "private" ? (
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5 space-y-4">
+                      <div className="flex items-center gap-2 text-[var(--color-text-primary)] font-semibold">
+                        <Lock size={16} />
+                        Private Server Join
+                      </div>
+                      <p className="text-sm text-[var(--color-text-muted)]">
+                        Paste a private server link or use the format
+                        PlaceID:ServerCode.
+                      </p>
+                      <input
+                        value={privateServerTarget}
+                        onChange={(e) => setPrivateServerTarget(e.target.value)}
+                        placeholder="https://www.roblox.com/games/1818?privateServerLinkCode=..."
+                        className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-app-bg)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
+                      />
+                      <Button
+                        variant="default"
+                        className="w-full"
+                        disabled={!privateServerTarget.trim()}
+                        onClick={() => {
+                          const targetId =
+                            displayedGame.placeId ||
+                            displayedGame.id.toString();
+                          const raw = privateServerTarget.trim();
+                          const target = /^https?:\/\//i.test(raw)
+                            ? raw
+                            : `${targetId}:${raw}`;
+                          onLaunch({
+                            method: JoinMethod.PrivateServer,
+                            target,
+                          });
+                          onClose();
+                        }}
+                      >
+                        Join Private Server
+                      </Button>
+                    </div>
+                  ) : activeTab === "store" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {gamePassesForSale.map((pass: GamePass) => (
+                        <GamePassCard
+                          key={pass.id}
+                          pass={pass}
+                          account={account}
+                          showNotification={showNotification}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
 
       <GameImageContextMenu
         activeMenu={contextMenu}
@@ -843,7 +975,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   );
 };
 
-// Game Pass Card Component
 const GamePassCard: React.FC<{
   pass: GamePass;
   account?: Account | null;
@@ -867,7 +998,7 @@ const GamePassCard: React.FC<{
   useEffect(() => {
     if (pass.displayIconImageAssetId) {
       fetch(
-        `https://thumbnails.roblox.com/v1/assets?assetIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`,
+        `https://thumbnails.roblox.com/v1/game-passes?gamePassIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`,
       )
         .then((res) => res.json())
         .then((data) => {

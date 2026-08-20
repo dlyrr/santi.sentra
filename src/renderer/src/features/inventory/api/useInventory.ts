@@ -47,7 +47,7 @@ export function useInventoryV2({
     enabled: enabled && !!cookie && !!userId,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextPageCursor || undefined,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
@@ -81,28 +81,22 @@ export function useInventoryV2SinglePage({
       );
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-/**
- * Hook to fetch and cache thumbnails for inventory items
- * Uses zustand store for persistent cache and react-query for fetching
- */
 export function useInventoryThumbnails(assetIds: number[], enabled = true) {
   const thumbnails = useInventoryStore((state) => state.thumbnails);
   const setThumbnails = useInventoryStore((state) => state.setThumbnails);
   const markAsFetched = useInventoryStore((state) => state.markAsFetched);
   const fetchedIds = useInventoryStore((state) => state.fetchedIds);
 
-  // Filter out IDs we already have or have attempted to fetch
   const missingIds = useMemo(() => {
     return assetIds.filter(
       (id) => thumbnails[id] === undefined && !fetchedIds.has(id),
     );
   }, [assetIds, thumbnails, fetchedIds]);
 
-  // Sort for stable query key
   const sortedMissingIds = useMemo(
     () => [...missingIds].sort((a, b) => a - b),
     [missingIds],
@@ -135,19 +129,18 @@ export function useInventoryThumbnails(assetIds: number[], enabled = true) {
       }
     },
     enabled: enabled && sortedMissingIds.length > 0,
-    staleTime: Infinity, // Thumbnails don't change
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) =>
       Math.min(1000 * Math.pow(2, attemptIndex), 5000),
   });
 
-  // Sync fetched thumbnails to zustand store
   useEffect(() => {
     if (query.data && Object.keys(query.data).length > 0) {
       setThumbnails(query.data);
     }
-    // Mark IDs as fetched regardless of result (to prevent re-fetching failures)
+
     if (query.isSuccess || query.isError) {
       if (sortedMissingIds.length > 0) {
         markAsFetched(sortedMissingIds);

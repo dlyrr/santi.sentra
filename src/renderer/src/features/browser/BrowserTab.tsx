@@ -14,7 +14,7 @@ export const BrowserTab: React.FC = () => {
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Using clientX/Y to ensure it follows the mouse exactly
+
     setMenuPos({ x: e.clientX, y: e.clientY });
     setIsMenuOpen(true);
   };
@@ -41,9 +41,9 @@ export const BrowserTab: React.FC = () => {
       ref={containerRef}
       className="relative flex flex-col items-center justify-center h-full w-full min-h-[400px] bg-[#0a0a0a]"
       onClick={closeMenu}
-      onContextMenu={(e) => e.preventDefault()} // Prevent default system menu
+      onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Center UI */}
+      {}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -64,7 +64,7 @@ export const BrowserTab: React.FC = () => {
         </p>
       </motion.div>
 
-      {/* Context Menu Overlay */}
+      {}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -104,7 +104,7 @@ export const BrowserTab: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* URL Dialog */}
+      {}
       <AnimatePresence>
         {showLinkDialog && (
           <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">

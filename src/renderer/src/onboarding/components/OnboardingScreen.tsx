@@ -22,7 +22,7 @@ import NotificationsStep from "./NotificationsStep";
 
 const STEPS: { id: OnboardingStep; label: string; icon: LucideIcon }[] = [
   { id: "welcome", label: "Welcome", icon: Sparkles },
-  // { id: 'license', label: 'License', icon: Lock }, // DISABLED: Licensing system disabled
+
   { id: "pin", label: "Security", icon: Lock },
   { id: "account", label: "Account", icon: User },
   { id: "installation", label: "Install", icon: Download },
@@ -47,7 +47,6 @@ const OnboardingScreen: React.FC = () => {
 
   useEffect(() => {
     if (currentStep === "welcome") {
-      // Show content immediately on first launch, delay on subsequent launches
       const delay = isFirstLaunch ? 0 : 1500;
       const timer = setTimeout(() => setShowWelcomeContent(true), delay);
       return () => clearTimeout(timer);
@@ -83,10 +82,10 @@ const OnboardingScreen: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--color-app-bg)] overflow-hidden"
     >
-      {/* Background gradient */}
+      {}
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-surface-strong)] via-[var(--color-app-bg)] to-[var(--color-surface-strong)]" />
 
-      {/* Animated background elements */}
+      {}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute w-[600px] h-[600px] rounded-full bg-[var(--accent-color)]/5 blur-3xl"
@@ -99,7 +98,7 @@ const OnboardingScreen: React.FC = () => {
         />
       </div>
 
-      {/* Progress indicator - only show after welcome */}
+      {}
       <AnimatePresence>
         {currentStep !== "welcome" && (
           <motion.div
@@ -110,7 +109,7 @@ const OnboardingScreen: React.FC = () => {
           >
             <div className="flex items-center gap-2">
               {STEPS.slice(1).map((step, index) => {
-                const stepIndex = index + 1; // Offset by 1 since we skip welcome
+                const stepIndex = index + 1;
                 const isActive = currentStep === step.id;
                 const isCompleted = currentStepIndex > stepIndex;
 
@@ -145,10 +144,8 @@ const OnboardingScreen: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main content */}
       <div className="relative z-10 w-full max-w-md px-6 min-h-screen flex items-center justify-center">
         <AnimatePresence mode="wait">
-          {/* Welcome Step */}
           {currentStep === "welcome" && (
             <motion.div
               key="welcome"
@@ -158,7 +155,6 @@ const OnboardingScreen: React.FC = () => {
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center w-full"
             >
-              {/* Logo animation */}
               <motion.div
                 className="mb-8"
                 initial={{ scale: 0, rotate: -180 }}
@@ -182,7 +178,6 @@ const OnboardingScreen: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* App name */}
               <motion.h1
                 className="text-4xl font-black text-[var(--color-text-primary)] mb-2"
                 initial={{ opacity: 0, y: 20 }}
@@ -201,7 +196,6 @@ const OnboardingScreen: React.FC = () => {
                 Best all-in-one Roblox account manager.
               </motion.p>
 
-              {/* Welcome content */}
               <AnimatePresence>
                 {showWelcomeContent && (
                   <motion.div
@@ -254,10 +248,6 @@ const OnboardingScreen: React.FC = () => {
             </motion.div>
           )}
 
-          {/* License Step - DISABLED */}
-          {/* License step removed - licensing system disabled */}
-
-          {/* PIN Step */}
           {currentStep === "pin" && (
             <motion.div
               key="pin"
@@ -271,7 +261,6 @@ const OnboardingScreen: React.FC = () => {
             </motion.div>
           )}
 
-          {/* Account Step */}
           {currentStep === "account" && (
             <motion.div
               key="account"
@@ -288,7 +277,6 @@ const OnboardingScreen: React.FC = () => {
             </motion.div>
           )}
 
-          {/* Installation Step */}
           {currentStep === "installation" && (
             <motion.div
               key="installation"
@@ -305,7 +293,6 @@ const OnboardingScreen: React.FC = () => {
             </motion.div>
           )}
 
-          {/* Notifications Step */}
           {currentStep === "notifications" && (
             <motion.div
               key="notifications"
@@ -321,7 +308,6 @@ const OnboardingScreen: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* Titlebar drag region */}
       <div
         className="absolute top-0 left-0 right-0 h-[45px]"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
@@ -329,8 +315,5 @@ const OnboardingScreen: React.FC = () => {
     </motion.div>
   );
 };
-
-// DISABLED: LicenseStep function removed - licensing system disabled
-// function LicenseStep({ onComplete }: { onComplete: () => void }) { ... }
 
 export default OnboardingScreen;

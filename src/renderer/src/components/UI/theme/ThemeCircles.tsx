@@ -1,9 +1,3 @@
-/**
- * Theme Accent Circles Component
- * Displays 2 matching circles that match the current theme color
- * Used for visual theme representation and accent styling
- */
-
 import React, { useMemo } from "react";
 import { cn } from "@renderer/lib/utils";
 
@@ -40,10 +34,6 @@ const accentColorMap = {
   custom: "from-purple-500 to-purple-400",
 };
 
-/**
- * Theme Circles Component
- * Displays 2 animated circles that match the current theme
- */
 export const ThemeCircles: React.FC<ThemeCirclesProps> = ({
   size = "md",
   gap = "normal",
@@ -68,7 +58,7 @@ export const ThemeCircles: React.FC<ThemeCirclesProps> = ({
       onClick={onClick}
     >
       <div className={cn("flex items-center", gapMap[gap])}>
-        {/* First Circle */}
+        {}
         <div
           className={cn(
             sizeMap[size],
@@ -93,7 +83,7 @@ export const ThemeCircles: React.FC<ThemeCirclesProps> = ({
           }}
         />
 
-        {/* Second Circle */}
+        {}
         <div
           className={cn(
             sizeMap[size],
@@ -141,10 +131,6 @@ export const ThemeCircles: React.FC<ThemeCirclesProps> = ({
   );
 };
 
-/**
- * Theme Circles Grid Component
- * Display multiple theme options with circles
- */
 export interface ThemeOption {
   id: string;
   label: string;
@@ -190,14 +176,14 @@ export const ThemeCirclesGrid: React.FC<{
           onClick={() => onSelect?.(option.id)}
         >
           <div className={cn("flex items-center", gapMap[gap])}>
-            {/* First Circle */}
+            {}
             <div
               className={cn(
                 sizeMap[size],
                 "rounded-full shadow-lg transition-transform duration-300",
                 "ring-2 ring-offset-2 ring-offset-neutral-900 ring-opacity-50",
                 selected === option.id
-                  ? "ring-2 ring-white"
+                  ? "ring-2 ring-[var(--color-text-primary)]"
                   : "ring-neutral-700",
               )}
               style={{
@@ -208,14 +194,14 @@ export const ThemeCirclesGrid: React.FC<{
               }}
             />
 
-            {/* Second Circle */}
+            {}
             <div
               className={cn(
                 sizeMap[size],
                 "rounded-full shadow-lg transition-transform duration-300",
                 "ring-2 ring-offset-2 ring-offset-neutral-900 ring-opacity-50",
                 selected === option.id
-                  ? "ring-2 ring-white"
+                  ? "ring-2 ring-[var(--color-text-primary)]"
                   : "ring-neutral-700",
               )}
               style={{
@@ -249,9 +235,6 @@ export const ThemeCirclesGrid: React.FC<{
   );
 };
 
-/**
- * Default theme options with matching circles
- */
 export const DEFAULT_THEME_CIRCLES: ThemeOption[] = [
   {
     id: "neutral",

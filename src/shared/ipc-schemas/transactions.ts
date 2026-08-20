@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// TRANSACTION TYPES SCHEMAS
-// ============================================================================
-
 export const transactionTypesSchema = z.object({
   HasPurchase: z.boolean(),
   HasSale: z.boolean(),
@@ -29,10 +25,6 @@ export const transactionTypesSchema = z.object({
 });
 
 export type TransactionTypes = z.infer<typeof transactionTypesSchema>;
-
-// ============================================================================
-// TRANSACTION SCHEMAS
-// ============================================================================
 
 export const transactionAgentSchema = z.object({
   id: z.number(),
@@ -73,10 +65,6 @@ export const transactionsResponseSchema = z.object({
 
 export type TransactionsResponse = z.infer<typeof transactionsResponseSchema>;
 
-// ============================================================================
-// TRANSACTION TOTALS SCHEMA (from /transaction-totals API)
-// ============================================================================
-
 export const transactionTotalsSchema = z.object({
   salesTotal: z.number(),
   purchasesTotal: z.number(),
@@ -109,7 +97,6 @@ export const transactionTotalsSchema = z.object({
 
 export type TransactionTotals = z.infer<typeof transactionTotalsSchema>;
 
-// Time frame options for the totals API
 export const transactionTimeFrameSchema = z.enum([
   "Day",
   "Week",
@@ -119,7 +106,6 @@ export const transactionTimeFrameSchema = z.enum([
 
 export type TransactionTimeFrame = z.infer<typeof transactionTimeFrameSchema>;
 
-// Transaction type enum for API
 export const transactionTypeEnumSchema = z.enum([
   "Purchase",
   "Sale",

@@ -22,7 +22,6 @@ const prefersReducedMotion = () => {
 const getTransitionRoot = (): TransitionRoot | null => {
   if (typeof document === "undefined") return null;
 
-  // Prefer the tab surface for scoped transitions when supported
   const scopedSurface = document.querySelector<HTMLElement>(
     ".tab-transition-surface",
   );
@@ -51,10 +50,6 @@ const getStartTransition = () => {
   return null;
 };
 
-/**
- * Wraps tab changes in the View Transition API when available.
- * Falls back to a normal state update when unsupported or when reduced motion is enabled.
- */
 export const useTabTransition = () => {
   const activeTab = useActiveTab();
   const setActiveTab = useSetActiveTab();

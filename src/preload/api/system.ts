@@ -1,17 +1,33 @@
 import { z } from "zod";
+import { webUtils } from "electron";
 import { invoke } from "./invoke";
 import * as S from "../../shared/ipc-schemas";
 
-// ============================================================================
-// SYSTEM API
-// ============================================================================
-
 export const systemApi = {
-  // Window control
   focusWindow: () => invoke("focus-window", z.void()),
+  tileGameWindows: (config: {
+    pattern?: "grid" | "rows" | "columns" | "cascade";
+    monitors?: "all" | "primary" | "secondary";
+    spacing?: number;
+    columns?: number;
+  }) =>
+    invoke(
+      "tile-game-windows",
+      z.object({
+        success: z.boolean(),
+        message: z.string(),
+        data: z
+          .object({
+            count: z.number(),
+            columns: z.number(),
+            rows: z.number(),
+          })
+          .optional(),
+      }),
+      config,
+    ),
   hasConfig: () => invoke("has-config", z.boolean()),
 
-  // Sidebar settings
   getSidebarWidth: () => invoke("get-sidebar-width", z.number().optional()),
   setSidebarWidth: (width: number) =>
     invoke("set-sidebar-width", z.void(), width),
@@ -19,19 +35,20 @@ export const systemApi = {
   setSidebarCollapsed: (collapsed: boolean) =>
     invoke("set-sidebar-collapsed", z.void(), collapsed),
 
-  // Avatar render settings
+  getSettings: () => invoke("get-settings", S.settingsSchema),
+  setSettings: (settings: S.SettingsPatch) =>
+    invoke("set-settings", z.void(), settings),
+
   getAvatarRenderWidth: () =>
     invoke("get-avatar-render-width", z.number().optional()),
   setAvatarRenderWidth: (width: number) =>
     invoke("set-avatar-render-width", z.void(), width),
 
-  // Accounts view settings
   getAccountsViewMode: () =>
     invoke("get-accounts-view-mode", z.enum(["list", "grid"])),
   setAccountsViewMode: (mode: "list" | "grid") =>
     invoke("set-accounts-view-mode", z.void(), mode),
 
-  // Favorites
   getFavoriteGames: () => invoke("get-favorite-games", z.array(z.string())),
   addFavoriteGame: (placeId: string) =>
     invoke("add-favorite-game", z.void(), placeId),
@@ -41,44 +58,11 @@ export const systemApi = {
     invoke("get-favorite-items", z.array(S.favoriteItemSchema)),
   addFavoriteItem: (item: { id: number; name: string; type: string }) =>
     invoke("add-favorite-item", z.void(), item),
-  removeFavoriteItem: (itemId: number) =>
-    invoke("remove-favorite-item", z.void(), itemId),
 
-  // Settings
-  getSettings: () => invoke("get-settings", S.settingsSchema),
-  // Sanitize settings before sending to main process to avoid IPC validation
-  // failures when the running main process uses stale compiled schemas.
-  setSettings: (settings: unknown) => {
-    try {
-      const outgoing: any =
-        settings && typeof settings === "object"
-          ? { ...(settings as any) }
-          : settings;
-
-      // Normalize `tint` to values the running main process currently accepts.
-      // If the main is still on the old enum, it likely only accepts ['neutral','cool'].
-      if (outgoing && typeof outgoing === "object" && "tint" in outgoing) {
-        const allowed = ["neutral", "cool", "warm", "forest", "twilight"];
-        const t = String(outgoing.tint);
-        if (!allowed.includes(t)) {
-          outgoing.tint = "neutral";
-        }
-      }
-
-      return invoke("set-settings", z.void(), outgoing);
-    } catch (err) {
-      console.error("Error during tint sanitization in setSettings:", err);
-      // Fallback to direct send if something unexpected occurs
-      return invoke("set-settings", z.void(), settings);
-    }
-  },
-
-  // Game server settings
   getExcludeFullGames: () => invoke("get-exclude-full-games", z.boolean()),
   setExcludeFullGames: (excludeFullGames: boolean) =>
     invoke("set-exclude-full-games", z.void(), excludeFullGames),
 
-  // Logs
   getLogs: () => invoke("get-logs", z.array(S.logMetadataSchema)),
   getLogContent: (filename: string) =>
     invoke("get-log-content", z.string(), filename),
@@ -87,7 +71,6 @@ export const systemApi = {
   openLogFile: (filename: string) =>
     invoke("open-log-file", z.boolean(), filename),
 
-  // Updates
   getDeployHistory: (force?: boolean) =>
     invoke("get-deploy-history", S.deployHistorySchema, force || false),
   checkForUpdates: (binaryType: string, currentVersionHash: string) =>
@@ -98,7 +81,6 @@ export const systemApi = {
       currentVersionHash,
     ),
 
-  // Custom Fonts
   getCustomFonts: () =>
     invoke(
       "get-custom-fonts",
@@ -112,16 +94,13 @@ export const systemApi = {
   setActiveFont: (family: string | null) =>
     invoke("set-active-font", z.void(), family),
 
-  // Asset paths
   getAssetPath: (assetPath: string) =>
     invoke("get-asset-path", z.string(), assetPath),
 
-  // Roblox Settings
   getRobloxSettings: () =>
     invoke(
       "get-roblox-settings",
       z.object({
-        allowMultipleLaunches: z.boolean(),
         defaultPhysicsEngine: z.enum(["Terrain", "Legacy"]),
         enableOptimizations: z.boolean(),
         memoryLimit: z.number(),
@@ -133,12 +112,18 @@ export const systemApi = {
         framerateCapEnabled: z.boolean(),
         framerateCapValue: z.number(),
         optimizeRamEnabled: z.boolean(),
-        ramOptimizeLimit: z.number(),
+        ramOptimization: z.number(),
+        cpuOptimization: z.number(),
         headlessModeEnabled: z.boolean(),
+        timeoutRelaunchEnabled: z.boolean(),
+        timeoutRelaunchSeconds: z.number(),
+        windowLayoutEnabled: z.boolean(),
+        windowLayoutPattern: z.enum(["grid", "rows", "columns", "cascade"]),
+        windowLayoutSpacing: z.number(),
+        windowLayoutColumns: z.number(),
       }),
     ),
   setRobloxSettings: (settings: {
-    allowMultipleLaunches?: boolean;
     defaultPhysicsEngine?: "Terrain" | "Legacy";
     enableOptimizations?: boolean;
     memoryLimit?: number;
@@ -150,17 +135,22 @@ export const systemApi = {
     framerateCapEnabled?: boolean;
     framerateCapValue?: number;
     optimizeRamEnabled?: boolean;
-    ramOptimizeLimit?: number;
+    ramOptimization?: number;
+    cpuOptimization?: number;
     headlessModeEnabled?: boolean;
+    timeoutRelaunchEnabled?: boolean;
+    timeoutRelaunchSeconds?: number;
+    windowLayoutEnabled?: boolean;
+    windowLayoutPattern?: "grid" | "rows" | "columns" | "cascade";
+    windowLayoutSpacing?: number;
+    windowLayoutColumns?: number;
   }) => invoke("set-roblox-settings", z.void(), settings),
 
-  // Multiple instances setting
   getAllowMultipleInstances: () =>
     invoke("get-allow-multiple-instances", z.boolean()),
   setAllowMultipleInstances: (allow: boolean) =>
     invoke("set-allow-multiple-instances", z.void(), allow),
 
-  // User Agent Management
   swapUserAgent: () =>
     invoke(
       "swap-user-agent",
@@ -208,23 +198,13 @@ export const systemApi = {
         totalUserAgents: z.number(),
       }),
     ),
+
+  handle64IsInstalled: () => invoke("handle64:is-installed", z.boolean()),
+  handle64Install: () => invoke("handle64:install", z.boolean()),
+  handle64Uninstall: () => invoke("handle64:uninstall", z.boolean()),
 };
 
-// ============================================================================
-// LICENSE API - DISABLED
-// ============================================================================
-// Licensing system disabled; APIs commented out
-// export const licenseApi = {
-//   redeemLicense: (licenseKey: string, userPin?: string) => ...,
-//   validateStoredLicense: () => ...,
-//   checkAdminStatus: () => ...
-// }
-
 export const licenseApi = {};
-
-// ============================================================================
-// APP API
-// ============================================================================
 
 export const appApi = {
   logout: () =>
@@ -237,10 +217,6 @@ export const appApi = {
     ),
 };
 
-// ============================================================================
-// PIN API
-// ============================================================================
-
 export const pinApi = {
   verifyPin: (pin: string) =>
     invoke("verify-pin", S.pinVerifyResultSchema, pin),
@@ -250,10 +226,6 @@ export const pinApi = {
   getPinLockoutStatus: () =>
     invoke("get-pin-lockout-status", S.pinLockoutStatusSchema),
 };
-
-// ============================================================================
-// INSTALL API
-// ============================================================================
 
 export const installApi = {
   installRobloxVersion: (
@@ -301,6 +273,8 @@ export const installApi = {
     invoke("install-font", z.void(), installPath, fontPath),
   installCursor: (installPath: string, cursorPath: string) =>
     invoke("install-cursor", z.void(), installPath, cursorPath),
+
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
   createBackup: (accounts: unknown[], backupPin: string, savePath?: string) =>
     invoke("create-backup", z.string(), accounts, backupPin, savePath),
   restoreBackup: (filepath: string, backupPin: string) =>
@@ -311,20 +285,12 @@ export const installApi = {
   chooseBackupLocation: () => invoke("choose-backup-location", z.string()),
 };
 
-// ============================================================================
-// NET-LOG API
-// ============================================================================
-
 export const netlogApi = {
   getNetLogStatus: () => invoke("net-log:get-status", S.netLogStatusSchema),
   getNetLogPath: () => invoke("net-log:get-log-path", z.string()),
   stopNetLog: () => invoke("net-log:stop", S.netLogStopResponseSchema),
   startNetLog: () => invoke("net-log:start", S.netLogStartResponseSchema),
 };
-
-// ============================================================================
-// CATALOG DATABASE API
-// ============================================================================
 
 export const catalogDbApi = {
   getStatus: () => invoke("get-catalog-db-status", S.catalogDbStatusSchema),

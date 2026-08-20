@@ -12,9 +12,6 @@ export { type CatalogItem, type RolimonsSearchResult };
 
 const CATALOG_INDEX_STORAGE_KEY = "sentra_catalog_search_index";
 
-/**
- * Compute a simple hash for items to detect changes
- */
 function computeItemsHash(items: CatalogItem[]): string {
   if (items.length === 0) return "empty";
   const first = items[0]?.AssetId ?? 0;
@@ -22,9 +19,6 @@ function computeItemsHash(items: CatalogItem[]): string {
   return `v1_${items.length}_${first}_${last}`;
 }
 
-/**
- * Load persisted index from localStorage
- */
 function loadPersistedIndex(): ExportedIndexData | null {
   try {
     const stored = localStorage.getItem(CATALOG_INDEX_STORAGE_KEY);
@@ -36,9 +30,6 @@ function loadPersistedIndex(): ExportedIndexData | null {
   }
 }
 
-/**
- * Save index to localStorage
- */
 function savePersistedIndex(data: ExportedIndexData): void {
   try {
     localStorage.setItem(CATALOG_INDEX_STORAGE_KEY, JSON.stringify(data));
@@ -50,11 +41,6 @@ function savePersistedIndex(data: ExportedIndexData): void {
 let catalogInitStarted = false;
 let rolimonsInitStarted = false;
 
-/**
- * Initialize catalog search index at app startup.
- * This should be called once in the App component to preload the search index
- * before the command palette is ever opened, preventing lag on first open.
- */
 export function initCatalogSearchIndex(): void {
   if (catalogInitStarted) return;
   catalogInitStarted = true;
@@ -87,7 +73,6 @@ export function initCatalogSearchIndex(): void {
         );
       }
 
-      // Load prebuilt index from main-process worker to avoid blocking main thread
       try {
         const exported = await window.api.getCatalogIndexExport();
         const imported = await searchService.importCatalogIndex(exported);
@@ -106,8 +91,6 @@ export function initCatalogSearchIndex(): void {
         );
       }
 
-      // Fallback: check main process DB status first; if DB is absent but downloading or errored,
-      // avoid repeatedly attempting to build the index in the renderer which can cause errors.
       try {
         const dbStatus = await (window as any).api.getCatalogDbStatus();
         if (dbStatus.downloading) {
@@ -159,10 +142,6 @@ export function initCatalogSearchIndex(): void {
   });
 }
 
-/**
- * Hook for searching limiteds (Rolimons items) using FlexSearch.
- * Indexing is done in a web worker to keep the main thread responsive.
- */
 export function useLimitedsSearch(options: { maxResults?: number } = {}) {
   const { maxResults = 50 } = options;
   const {
@@ -199,7 +178,11 @@ export function useLimitedsSearch(options: { maxResults?: number } = {}) {
   }, []);
 
   const searchLimiteds = useCallback(
-    (query: string): void => {
+    (
+      query: string,
+    ): void | Promise<
+      import("../workers/searchService").RolimonsSearchResult[]
+    > => {
       if (!query.trim()) {
         latestQuery.current = "";
         setResults([]);
@@ -208,26 +191,29 @@ export function useLimitedsSearch(options: { maxResults?: number } = {}) {
 
       latestQuery.current = query;
 
-      searchService.searchRolimons(query, maxResults).then((searchResults) => {
-        if (latestQuery.current === query) {
-          const converted = searchResults.map((item) => ({
-            type: "limited" as const,
-            id: item.id,
-            name: item.name,
-            acronym: item.acronym,
-            rap: item.rap,
-            value: item.value,
-            demand: item.demand,
-            demandLabel: item.demandLabel,
-            trend: item.trend,
-            trendLabel: item.trendLabel,
-            isProjected: item.isProjected,
-            isHyped: item.isHyped,
-            isRare: item.isRare,
-          }));
-          setResults(converted);
-        }
-      });
+      return searchService
+        .searchRolimons(query, maxResults)
+        .then((searchResults) => {
+          if (latestQuery.current === query) {
+            const converted = searchResults.map((item) => ({
+              type: "limited" as const,
+              id: item.id,
+              name: item.name,
+              acronym: item.acronym,
+              rap: item.rap,
+              value: item.value,
+              demand: item.demand,
+              demandLabel: item.demandLabel,
+              trend: item.trend,
+              trendLabel: item.trendLabel,
+              isProjected: item.isProjected,
+              isHyped: item.isHyped,
+              isRare: item.isRare,
+            }));
+            setResults(converted);
+          }
+          return searchResults;
+        });
     },
     [maxResults],
   );
@@ -242,9 +228,6 @@ export function useLimitedsSearch(options: { maxResults?: number } = {}) {
   };
 }
 
-/**
- * Hook for catalog items search
- */
 export function useCatalogSearch(options: { maxResults?: number } = {}) {
   const { maxResults = 50 } = options;
 
@@ -273,7 +256,7 @@ export function useCatalogSearch(options: { maxResults?: number } = {}) {
   }, []);
 
   const searchCatalog = useCallback(
-    (query: string): void => {
+    (query: string): void | Promise<CatalogItem[]> => {
       if (!query.trim()) {
         latestQuery.current = "";
         setResults([]);
@@ -282,11 +265,14 @@ export function useCatalogSearch(options: { maxResults?: number } = {}) {
 
       latestQuery.current = query;
 
-      searchService.searchCatalog(query, maxResults).then((searchResults) => {
-        if (latestQuery.current === query) {
-          setResults(searchResults);
-        }
-      });
+      return searchService
+        .searchCatalog(query, maxResults)
+        .then((searchResults) => {
+          if (latestQuery.current === query) {
+            setResults(searchResults);
+          }
+          return searchResults;
+        });
     },
     [maxResults],
   );
@@ -301,10 +287,6 @@ export function useCatalogSearch(options: { maxResults?: number } = {}) {
   };
 }
 
-/**
- * Hook to get all limited items sorted by value/rap
- * Kept for backwards compatibility
- */
 export function useAllLimiteds() {
   const { data: rolimonsData, isLoading } = useRolimonsData();
 

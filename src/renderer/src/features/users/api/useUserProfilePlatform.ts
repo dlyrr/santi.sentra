@@ -86,7 +86,6 @@ export function useUserProfilePlatform(
   return useQuery({
     queryKey: queryKeys.userProfile.platform(userId),
     queryFn: async (): Promise<ProfilePlatformData> => {
-      // Add a timeout to the renderer-side promise to prevent indefinite loading
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("Request timed out")), 15000);
       });

@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Activity, Shield, RotateCw, Monitor, Cpu } from "lucide-react";
 import { motion } from "framer-motion";
-import { BentoCard, BentoToggle, SectionDivider, PageHeader } from "./SharedComponents";
+import {
+  BentoCard,
+  BentoToggle,
+  SectionDivider,
+  PageHeader,
+} from "./SharedComponents";
 
 interface WatcherConfig {
   autoRestart?: boolean;
@@ -41,13 +46,16 @@ export const WatcherSettingsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    window.api.watcher?.getConfig().then((c: WatcherConfig) => {
-      setConfig(c);
-      setLoading(false);
-    }).catch((e: any) => {
-      console.error(e);
-      setLoading(false);
-    });
+    window.api.watcher
+      ?.getConfig()
+      .then((c: WatcherConfig) => {
+        setConfig(c);
+        setLoading(false);
+      })
+      .catch((e: any) => {
+        console.error(e);
+        setLoading(false);
+      });
   }, []);
 
   const updateConfig = (patch: Partial<WatcherConfig>) => {
@@ -81,7 +89,7 @@ export const WatcherSettingsTab: React.FC = () => {
 
         <SectionDivider label="Automation" />
 
-        {/* Auto Restart */}
+        {}
         <BentoCard
           icon={<RotateCw size={16} />}
           title="Auto Restart"
@@ -94,7 +102,7 @@ export const WatcherSettingsTab: React.FC = () => {
           />
         </BentoCard>
 
-        {/* Client Timeout */}
+        {}
         <BentoCard
           icon={<Activity size={16} />}
           title="Client Timeout"
@@ -123,7 +131,7 @@ export const WatcherSettingsTab: React.FC = () => {
 
         <SectionDivider label="Resource Limits" />
 
-        {/* RAM Limiter */}
+        {}
         <BentoCard
           icon={<Monitor size={16} />}
           title="RAM Limiter"
@@ -150,7 +158,7 @@ export const WatcherSettingsTab: React.FC = () => {
           )}
         </BentoCard>
 
-        {/* CPU Limiter */}
+        {}
         <BentoCard
           icon={<Cpu size={16} />}
           title="CPU Limiter"

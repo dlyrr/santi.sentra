@@ -35,16 +35,13 @@ export const AssetStats: React.FC<AssetStatsProps> = ({
   details,
   salesData,
 }) => {
-  // Resolve asset type name - ASSET_TYPE_NAMES already includes fallback handling
   const assetTypeId = details.AssetTypeId || details.assetType;
   const assetTypeName = assetTypeId ? ASSET_TYPE_NAMES[assetTypeId] : undefined;
 
   const isLimited = details.isLimited || details.isLimitedUnique;
 
-  // Collect all stats into arrays for better layout control
   const primaryStats: PrimaryStat[] = [];
 
-  // Primary stats (always shown, highlighted)
   if (salesData) {
     primaryStats.push({
       icon: TrendingUp,
@@ -68,7 +65,6 @@ export const AssetStats: React.FC<AssetStatsProps> = ({
     color: "rose",
   });
 
-  // Limited stock
   if (
     isLimited &&
     details.totalQuantity !== undefined &&
@@ -94,7 +90,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({
         Statistics
       </h3>
 
-      {/* Primary Stats */}
+      {}
       <div
         className={cn(
           "grid gap-3",
@@ -117,7 +113,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({
         ))}
       </div>
 
-      {/* Metadata Stats */}
+      {}
       <div className="flex flex-wrap gap-3">
         <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50">
           <Tag size={12} className="text-[var(--color-text-muted)]" />
@@ -127,7 +123,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({
           </span>
         </div>
 
-        {/* Non-limited remaining */}
+        {}
         {!isLimited &&
           details.remaining !== undefined &&
           details.remaining > 0 && (
@@ -142,7 +138,7 @@ export const AssetStats: React.FC<AssetStatsProps> = ({
             </div>
           )}
 
-        {/* Date stats */}
+        {}
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)]/50 rounded-lg border border-[var(--color-border)]/50 cursor-default">

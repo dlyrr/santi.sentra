@@ -71,7 +71,6 @@ export const useSelectionStore = create<SelectionStore>()(
   ),
 );
 
-// Selectors
 export const useSelectedIds = () =>
   useSelectionStore((state) => state.selectedIds);
 export const useSetSelectedIds = () =>

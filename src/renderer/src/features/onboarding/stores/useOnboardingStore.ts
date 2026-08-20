@@ -64,7 +64,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
             false,
             "completeOnboarding",
           );
-          // Unlock the app after onboarding completes
+
           useUIStore.getState().setAppUnlocked(true);
         },
 
@@ -75,7 +75,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
             const hasConfig = await window.api.hasConfig();
 
             if (!hasConfig) {
-              // If no config exists, always show onboarding (first launch)
               set(
                 {
                   isFirstLaunch: true,
@@ -90,8 +89,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
               return;
             }
 
-            // DISABLED: License validation removed - licensing system disabled
-            // Skip license validation entirely; assume onboarding was completed since config exists
             set(
               { hasCompletedOnboarding: true, isInitialized: true },
               false,
@@ -120,7 +117,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
   ),
 );
 
-// Selectors
 export const useHasCompletedOnboarding = () =>
   useOnboardingStore((state) => state.hasCompletedOnboarding);
 export const useCurrentOnboardingStep = () =>

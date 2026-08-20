@@ -1,13 +1,8 @@
-/**
- * Rate limiter utility for handling Roblox API rate limits
- * Prevents rapid successive requests that trigger rate limiting
- */
-
 export interface RateLimitConfig {
-  minDelayMs?: number; // Minimum delay between requests (default: 500ms)
-  maxConcurrent?: number; // Max concurrent requests (default: 1 for bulk ops)
-  backoffMultiplier?: number; // Exponential backoff multiplier (default: 1.5)
-  maxBackoffMs?: number; // Max backoff delay (default: 5000ms)
+  minDelayMs?: number;
+  maxConcurrent?: number;
+  backoffMultiplier?: number;
+  maxBackoffMs?: number;
 }
 
 export class RateLimiter {
@@ -27,9 +22,6 @@ export class RateLimiter {
     this.maxBackoffMs = config.maxBackoffMs ?? 5000;
   }
 
-  /**
-   * Execute an operation with rate limiting
-   */
   async execute<T>(operation: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       this.queue.push(async () => {
@@ -46,9 +38,6 @@ export class RateLimiter {
     });
   }
 
-  /**
-   * Execute operation with delay enforcement
-   */
   private async executeWithDelay<T>(operation: () => Promise<T>): Promise<T> {
     while (this.activeRequests >= this.maxConcurrent) {
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -78,23 +67,15 @@ export class RateLimiter {
     }
   }
 
-  /**
-   * Process queued operations
-   */
   private processQueue(): void {
     while (this.queue.length > 0 && this.activeRequests < this.maxConcurrent) {
       const operation = this.queue.shift();
       if (operation) {
-        operation().catch(() => {
-          // Errors are already handled in execute()
-        });
+        operation().catch(() => {});
       }
     }
   }
 
-  /**
-   * Reset the limiter state
-   */
   reset(): void {
     this.lastRequestTime = 0;
     this.activeRequests = 0;
@@ -103,24 +84,20 @@ export class RateLimiter {
   }
 }
 
-// Global rate limiters for different operations
 export const catalogPurchaseLimiter = new RateLimiter({
-  minDelayMs: 750, // 750ms minimum between purchases
+  minDelayMs: 750,
   maxConcurrent: 1,
   backoffMultiplier: 1.5,
   maxBackoffMs: 3000,
 });
 
 export const bulkOperationLimiter = new RateLimiter({
-  minDelayMs: 3000, // 3s minimum between bulk operations to prevent 429 rate limits
+  minDelayMs: 800,
   maxConcurrent: 1,
-  backoffMultiplier: 2,
-  maxBackoffMs: 10000,
+  backoffMultiplier: 1.7,
+  maxBackoffMs: 6000,
 });
 
-/**
- * Execute multiple operations sequentially with rate limiting
- */
 export async function executeSequentially<T, R>(
   items: T[],
   operation: (item: T) => Promise<R>,
@@ -134,9 +111,6 @@ export async function executeSequentially<T, R>(
   return results;
 }
 
-/**
- * Execute multiple operations with batch delays
- */
 export async function executeBatched<T, R>(
   items: T[],
   operation: (item: T) => Promise<R>,

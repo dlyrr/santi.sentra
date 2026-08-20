@@ -1,5 +1,3 @@
-// idk who to credit for this
-
 import { parseStringPromise, Builder } from "xml2js";
 import crypto from "crypto";
 
@@ -126,15 +124,26 @@ export function parseProperties(properties: PropertiesXML): Properties {
   return parsed;
 }
 
-export function parseInstance(instance: { [name: string]: any }): Instance {
+const MAX_XML_DEPTH = 2048;
+
+export function parseInstance(
+  instance: { [name: string]: any },
+  depth = 0,
+): Instance {
   const { class: className, referent } = instance["$"];
   const result = new Instance(className);
 
   result.properties = parseProperties(instance.Properties[0]);
   result.referent = referent;
   if (instance.Item) {
+    if (depth >= MAX_XML_DEPTH) {
+      console.warn(
+        `[xmlReader] Instance tree deeper than ${MAX_XML_DEPTH}; truncating remaining descendants`,
+      );
+      return result;
+    }
     for (const i in instance.Item) {
-      parseInstance(instance.Item[i]).setParent(result);
+      parseInstance(instance.Item[i], depth + 1).setParent(result);
     }
   }
   return result;

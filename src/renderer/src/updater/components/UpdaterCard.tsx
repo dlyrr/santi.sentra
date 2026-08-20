@@ -81,7 +81,7 @@ const UpdaterCard: React.FC = () => {
 
   return (
     <div className="flex flex-col space-y-3">
-      {/* Status Card */}
+      {}
       <div className="p-4 bg-[var(--color-surface)]/30 rounded-lg border border-[var(--color-border)]/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -100,7 +100,7 @@ const UpdaterCard: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Button */}
+          {}
           {state?.status === "idle" ||
           state?.status === "not-available" ||
           !state ? (
@@ -158,7 +158,7 @@ const UpdaterCard: React.FC = () => {
           ) : null}
         </div>
 
-        {/* Download Progress */}
+        {}
         {state?.status === "downloading" && state.progress && (
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-xs text-[var(--color-text-secondary)]">
@@ -183,7 +183,7 @@ const UpdaterCard: React.FC = () => {
         )}
       </div>
 
-      {/* Current Version Info */}
+      {}
       <p className="text-xs text-[var(--color-text-muted)] px-1">
         Current version: {__APP_VERSION__ || "development"}
       </p>
@@ -191,7 +191,6 @@ const UpdaterCard: React.FC = () => {
   );
 };
 
-// Declare the global app version variable
 declare const __APP_VERSION__: string | undefined;
 
 export default UpdaterCard;

@@ -34,7 +34,6 @@ const InstallationStep: React.FC<InstallationStepProps> = ({
   const history = useDeployHistory();
   const { addInstallation, setDeployHistory } = useInstallationsStore();
 
-  // Load deploy history on mount
   useEffect(() => {
     window.api.getDeployHistory().then(setDeployHistory).catch(console.error);
   }, [setDeployHistory]);
@@ -139,7 +138,6 @@ const InstallationStep: React.FC<InstallationStepProps> = ({
     );
   }
 
-  // Check if there are already installations (from system detection)
   const hasExistingInstallations = installations.length > 0;
 
   return (

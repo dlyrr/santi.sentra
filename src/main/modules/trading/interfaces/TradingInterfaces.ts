@@ -1,7 +1,3 @@
-/**
- * Trading system interfaces.
- */
-
 import {
   Item,
   TradingConfig,

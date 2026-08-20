@@ -8,9 +8,6 @@ interface WatcherSettingsProps {
   onClose: () => void;
 }
 
-/**
- * WatcherSettings - Configuration settings for the watcher
- */
 export default function WatcherSettings({
   config,
   onConfigChange,
@@ -56,7 +53,7 @@ export default function WatcherSettings({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Auto-Restart Option */}
+        {}
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
@@ -73,7 +70,7 @@ export default function WatcherSettings({
           </label>
         </div>
 
-        {/* Restart Delay */}
+        {}
         <div>
           <label className="block font-medium mb-2">
             Restart Delay (seconds)
@@ -94,7 +91,7 @@ export default function WatcherSettings({
         </div>
       </div>
 
-      {/* Info Box */}
+      {}
       <div className="p-3 bg-[var(--color-surface-strong)] rounded-lg border border-[var(--color-border)]">
         <p className="text-xs text-[var(--color-text-muted)]">
           <strong>Crash Detection:</strong> The watcher monitors Roblox log
@@ -110,7 +107,7 @@ export default function WatcherSettings({
         </p>
       </div>
 
-      {/* Action Buttons */}
+      {}
       <div className="flex gap-2 justify-end pt-4 border-t border-[var(--color-border)]">
         <button
           onClick={handleCancel}

@@ -1,10 +1,6 @@
 import { invoke } from "./invoke";
 import { z } from "zod";
 
-// ============================================================================
-// GENERATOR API
-// ============================================================================
-
 const successSchema = z.object({ success: z.boolean() });
 const accountDataSchema = z.object({
   success: z.boolean(),
@@ -80,7 +76,6 @@ export const generatorApi = {
       accountId,
     ),
 
-  // Sniper-generated accounts
   sniperGetAccounts: () => invoke("sniper:get-accounts", accountsListSchema),
   sniperAddAccount: (account: any) =>
     invoke("sniper:add-account", successSchema, account),

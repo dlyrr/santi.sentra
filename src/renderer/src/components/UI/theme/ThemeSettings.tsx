@@ -1,8 +1,3 @@
-/**
- * Theme Settings Panel Component
- * Integrates theme selection with the matching circles visual
- */
-
 import React, { useCallback } from "react";
 import { Palette, Moon, Sun } from "lucide-react";
 import { cn } from "@renderer/lib/utils";
@@ -15,17 +10,13 @@ import {
 import { applyTint } from "@renderer/theme/theme";
 import { TintPreference } from "@renderer/types";
 
-/**
- * Theme Settings Component
- */
 export const ThemeSettings: React.FC<{ className?: string }> = ({
   className,
 }) => {
   const { settings, updateSettings } = useSettingsManager();
 
-    const tint = settings?.tint ?? "neutral";
+  const tint = settings?.tint ?? "neutral";
 
-  
   const handleTintChange = useCallback(
     (tintId: string) => {
       const newTint = tintId as TintPreference;
@@ -37,7 +28,7 @@ export const ThemeSettings: React.FC<{ className?: string }> = ({
 
   return (
     <div className={cn("flex flex-col gap-6 p-4", className)}>
-      {/* Color Tint Section with Theme Circles */}
+      {}
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <Palette className="w-5 h-5 text-[var(--color-text-secondary)]" />
@@ -66,16 +57,13 @@ export const ThemeSettings: React.FC<{ className?: string }> = ({
   );
 };
 
-/**
- * Minimal Theme Selector (for quick access)
- */
 export const QuickThemeSelector: React.FC<{
   className?: string;
   showLabels?: boolean;
 }> = ({ className, showLabels = false }) => {
   const { settings, updateSettings } = useSettingsManager();
 
-    const tint = settings?.tint ?? "neutral";
+  const tint = settings?.tint ?? "neutral";
 
   const handleTintChange = useCallback(
     (tintId: string) => {
@@ -106,7 +94,7 @@ export const QuickThemeSelector: React.FC<{
           title={option.label}
         >
           <div className="flex gap-0.5">
-            {/* Two mini circles */}
+            {}
             <div
               className="w-3 h-3 rounded-full shadow-sm"
               style={{

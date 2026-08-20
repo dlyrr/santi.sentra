@@ -3,10 +3,6 @@ import { BinaryType } from "../../renderer/src/types";
 import { LOCKED_SIDEBAR_TABS, SIDEBAR_TAB_IDS } from "../navigation";
 import { accountSchema } from "./user";
 
-// ============================================================================
-// UPDATE & INSTALL SCHEMAS
-// ============================================================================
-
 export const updateCheckSchema = z.object({
   hasUpdate: z.boolean(),
   latestVersion: z.string(),
@@ -38,10 +34,6 @@ export const robloxInstallationsSchema = z.array(robloxInstallationSchema);
 import type { RobloxInstallation as RobloxInstallationType } from "../../renderer/src/types";
 export type RobloxInstallation = RobloxInstallationType;
 
-// ============================================================================
-// DETECTED INSTALLATIONS SCHEMA
-// ============================================================================
-
 export const detectedInstallationSchema = z.object({
   path: z.string(),
   version: z.string(),
@@ -58,10 +50,6 @@ export const detectedInstallationsSchema = z.array(detectedInstallationSchema);
 
 export type DetectedInstallation = z.infer<typeof detectedInstallationSchema>;
 
-// ============================================================================
-// SETTINGS SCHEMAS
-// ============================================================================
-
 const nullableIdentifierSchema = z.union([z.string().min(1), z.null()]);
 const optionalPathSchema = z.union([z.string().min(1), z.null()]).optional();
 const accentColorSchema = z
@@ -77,9 +65,12 @@ const tintPreferenceSchema = z.enum([
 ]);
 const sidebarHiddenTabsSchema = z
   .array(sidebarTabIdSchema)
-  .refine((tabs) => tabs.every((tab) => !LOCKED_SIDEBAR_TABS.includes(tab as any)), {
-    message: "Locked tabs cannot be hidden",
-  });
+  .refine(
+    (tabs) => tabs.every((tab) => !LOCKED_SIDEBAR_TABS.includes(tab as any)),
+    {
+      message: "Locked tabs cannot be hidden",
+    },
+  );
 const pinCodeSchema = z.union([
   z.literal("SET"),
   z
@@ -108,9 +99,56 @@ export const settingsSchema = z.object({
   inventoryViewMode: z.string().optional(),
   uiDensity: z.string().optional(),
   motionSpeed: z.string().optional(),
-  
+
   isSidebarCollapsed: z.boolean().optional(),
   navLayout: z.enum(["sidebar", "topbar"]).optional(),
+
+  defaultPhysicsEngine: z.enum(["Terrain", "Legacy"]).optional(),
+  enableOptimizations: z.boolean().optional(),
+  memoryLimit: z.number().optional(),
+  useDirectX12: z.boolean().optional(),
+  lowEndGraphics: z.boolean().optional(),
+  disableDualChannelAudio: z.boolean().optional(),
+  antiAfkEnabled: z.boolean().optional(),
+  renameWindowsEnabled: z.boolean().optional(),
+  framerateCapEnabled: z.boolean().optional(),
+  framerateCapValue: z.number().optional(),
+  optimizeRamEnabled: z.boolean().optional(),
+  ramOptimization: z.number().optional(),
+  cpuOptimization: z.number().optional(),
+  headlessModeEnabled: z.boolean().optional(),
+  timeoutRelaunchEnabled: z.boolean().optional(),
+  timeoutRelaunchSeconds: z.number().optional(),
+
+  windowLayoutEnabled: z.boolean().optional(),
+  windowLayoutPattern: z
+    .enum(["grid", "rows", "columns", "cascade"])
+    .optional(),
+  windowLayoutSpacing: z.number().optional(),
+  windowLayoutColumns: z.number().optional(),
+  windowLayoutWidth: z.number().optional(),
+  windowLayoutHeight: z.number().optional(),
+
+  theme: z.string().optional(),
+  liquidGlass: z.boolean().optional(),
+  appBackground: z.string().optional(),
+  customTheme: z.any().optional(),
+
+  contentRadius: z.string().optional(),
+  navBorderStyle: z.string().optional(),
+  blurIntensity: z.string().optional(),
+  iconWeight: z.string().optional(),
+  fontWeight: z.string().optional(),
+
+  browserWindowWidth: z.number().nullable().optional(),
+  browserWindowHeight: z.number().nullable().optional(),
+  userAgentSettings: z
+    .object({
+      currentUserAgentIndex: z.number(),
+      autoSwapUserAgent: z.boolean(),
+      autoSwapIntervalMinutes: z.number(),
+    })
+    .optional(),
 });
 
 export const settingsPatchSchema = z.object({
@@ -132,17 +170,53 @@ export const settingsPatchSchema = z.object({
   inventoryViewMode: z.string().optional(),
   uiDensity: z.string().optional(),
   motionSpeed: z.string().optional(),
-  
+
   isSidebarCollapsed: z.boolean().optional(),
   navLayout: z.enum(["sidebar", "topbar"]).optional(),
+
+  defaultPhysicsEngine: z.enum(["Terrain", "Legacy"]).optional(),
+  enableOptimizations: z.boolean().optional(),
+  memoryLimit: z.number().optional(),
+  useDirectX12: z.boolean().optional(),
+  lowEndGraphics: z.boolean().optional(),
+  disableDualChannelAudio: z.boolean().optional(),
+  antiAfkEnabled: z.boolean().optional(),
+  renameWindowsEnabled: z.boolean().optional(),
+  framerateCapEnabled: z.boolean().optional(),
+  framerateCapValue: z.number().optional(),
+  optimizeRamEnabled: z.boolean().optional(),
+  ramOptimization: z.number().optional(),
+  cpuOptimization: z.number().optional(),
+  headlessModeEnabled: z.boolean().optional(),
+  timeoutRelaunchEnabled: z.boolean().optional(),
+  timeoutRelaunchSeconds: z.number().optional(),
+
+  windowLayoutEnabled: z.boolean().optional(),
+  windowLayoutPattern: z
+    .enum(["grid", "rows", "columns", "cascade"])
+    .optional(),
+  windowLayoutSpacing: z.number().optional(),
+  windowLayoutColumns: z.number().optional(),
+  windowLayoutWidth: z.number().optional(),
+  windowLayoutHeight: z.number().optional(),
+
+  contentRadius: z.string().optional(),
+  navBorderStyle: z.string().optional(),
+  blurIntensity: z.string().optional(),
+  iconWeight: z.string().optional(),
+  fontWeight: z.string().optional(),
+  customTheme: z.any().optional(),
+  userAgentSettings: z
+    .object({
+      currentUserAgentIndex: z.number().optional(),
+      autoSwapUserAgent: z.boolean().optional(),
+      autoSwapIntervalMinutes: z.number().optional(),
+    })
+    .optional(),
 });
 
 export type SettingsSnapshot = z.infer<typeof settingsSchema>;
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
-
-// ============================================================================
-// LOGS SCHEMAS
-// ============================================================================
 
 export const logMetadataSchema = z.object({
   filename: z.string(),
@@ -159,10 +233,6 @@ export const logMetadataSchema = z.object({
 });
 
 export type LogMetadata = z.infer<typeof logMetadataSchema>;
-
-// ============================================================================
-// NET-LOG SCHEMAS
-// ============================================================================
 
 export const netLogStatusSchema = z.object({
   isLogging: z.boolean(),
@@ -183,10 +253,6 @@ export const netLogStartResponseSchema = z.object({
 export type NetLogStatus = z.infer<typeof netLogStatusSchema>;
 export type NetLogStopResponse = z.infer<typeof netLogStopResponseSchema>;
 export type NetLogStartResponse = z.infer<typeof netLogStartResponseSchema>;
-
-// ============================================================================
-// PIN SCHEMAS
-// ============================================================================
 
 export const pinVerifyResultSchema = z.object({
   success: z.boolean(),
@@ -213,10 +279,6 @@ export const pinLockoutStatusSchema = z.object({
 export type PinVerifyResult = z.infer<typeof pinVerifyResultSchema>;
 export type PinSetResult = z.infer<typeof pinSetResultSchema>;
 export type PinLockoutStatus = z.infer<typeof pinLockoutStatusSchema>;
-
-// ============================================================================
-// CATALOG DATABASE SCHEMAS
-// ============================================================================
 
 export const catalogDbStatusSchema = z.object({
   exists: z.boolean(),

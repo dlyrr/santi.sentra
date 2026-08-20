@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Shield,
-  AlertTriangle,
-  RefreshCw,
-  ExternalLink,
-} from "lucide-react";
+import { Shield, AlertTriangle, RefreshCw, ExternalLink } from "lucide-react";
 import { UpdaterCard } from "../../updater";
 import PrivacyPolicyModal from "../../../components/Modals/PrivacyPolicyModal";
 import { BentoCard, SectionDivider, PageHeader } from "./SharedComponents";

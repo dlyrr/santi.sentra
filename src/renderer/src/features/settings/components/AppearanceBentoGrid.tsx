@@ -65,8 +65,6 @@ import {
   ColorPickerFormat,
 } from "@renderer/components/UI/inputs/ColorPicker";
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-
 const TINTS: {
   id: TintPreference;
   label: string;
@@ -122,7 +120,6 @@ const PRESETS = [
   { value: "#06b6d4", label: "Cyan" },
 ];
 
-// ─── Shared primitives ────────────────────────────────────────────────────────
 function SegmentedControl<T extends string>({
   options,
   value,
@@ -153,8 +150,6 @@ function SegmentedControl<T extends string>({
   );
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────
-
 export function AppearanceBentoGrid() {
   const queryClient = useQueryClient();
   const navLayout = useNavLayout();
@@ -174,7 +169,6 @@ export function AppearanceBentoGrid() {
     (settings?.tint as TintPreference) || "neutral";
   const currentAccent = settings?.accentColor || "#e05c1a";
 
-  // ── Font queries ────────────────────────────────
   const { data: customFonts = [] } = useQuery<CustomFont[]>({
     queryKey: ["customFonts"],
     queryFn: () => window.api.getCustomFonts(),
@@ -251,7 +245,6 @@ export function AppearanceBentoGrid() {
     }
   };
 
-  // ── Theme logic ─────────────────────────────────
   const handleTintChange = (id: TintPreference) => {
     updateSettings({ tint: id });
     applyTint("dark", id);
@@ -263,9 +256,7 @@ export function AppearanceBentoGrid() {
       updateSettings({
         accentColor: Color.rgb(rgba[0], rgba[1], rgba[2]).hex(),
       });
-    } catch {
-      /* noop */
-    }
+    } catch {}
   };
 
   const isPresetAccent = PRESETS.some(
@@ -284,10 +275,10 @@ export function AppearanceBentoGrid() {
           title="Appearance"
           description="Personalize every pixel of your experience."
         />
-        {/* ─── Theme & Colors ─── */}
+        {}
         <SectionDivider label="Theme & Colors" />
 
-        {/* Surface Tint — full width */}
+        {}
         <BentoCard
           colSpan={2}
           icon={<PaintBucket size={16} />}
@@ -333,7 +324,11 @@ export function AppearanceBentoGrid() {
                   </span>
                   {active && (
                     <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[var(--accent-color)] flex items-center justify-center">
-                      <Check size={9} strokeWidth={3} className="text-white" />
+                      <Check
+                        size={9}
+                        strokeWidth={3}
+                        className="text-[var(--accent-color-foreground)]"
+                      />
                     </div>
                   )}
                 </button>
@@ -342,7 +337,7 @@ export function AppearanceBentoGrid() {
           </div>
         </BentoCard>
 
-        {/* Accent Color — full width */}
+        {}
         <BentoCard
           colSpan={2}
           icon={<Pipette size={16} />}
@@ -420,11 +415,10 @@ export function AppearanceBentoGrid() {
           </div>
         </BentoCard>
 
-        {/* ─── Effects & Materials ─── */}
-        {/* ─── Layout & Density ─── */}
+        {}
+        {}
         <SectionDivider label="Layout & Style" />
 
-        {/* Navigation Layout — full width */}
         <BentoCard
           colSpan={2}
           icon={<LayoutTemplate size={16} />}
@@ -483,7 +477,11 @@ export function AppearanceBentoGrid() {
                 </div>
                 {navLayout === id && (
                   <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[var(--accent-color)] flex items-center justify-center">
-                    <Check size={10} strokeWidth={3} className="text-white" />
+                    <Check
+                      size={10}
+                      strokeWidth={3}
+                      className="text-[var(--accent-color-foreground)]"
+                    />
                   </div>
                 )}
               </button>
@@ -491,10 +489,9 @@ export function AppearanceBentoGrid() {
           </div>
         </BentoCard>
 
-        {/* ─── Density & Blur ─── */}
+        {}
         <SectionDivider label="Density & Effects" />
 
-        {/* UI Density */}
         <BentoCard
           icon={<Sliders size={16} />}
           title="UI Density"
@@ -511,7 +508,7 @@ export function AppearanceBentoGrid() {
           />
         </BentoCard>
 
-        {/* Motion Speed */}
+        {}
         <BentoCard
           icon={<Sparkles size={16} />}
           title="Animation Speed"
@@ -529,8 +526,8 @@ export function AppearanceBentoGrid() {
           />
         </BentoCard>
 
-        {/* ─── Content & Effects ─── */}
-        {/* Typography */}
+        {}
+        {}
         <BentoCard
           icon={<Type size={16} />}
           title="Typography"
@@ -552,7 +549,7 @@ export function AppearanceBentoGrid() {
               <button
                 onClick={handleAddFont}
                 disabled={isAddingFont || !newFontFamily.trim()}
-                className="px-3 py-2 text-xs font-bold rounded-lg bg-[var(--accent-color)] text-white hover:brightness-110 disabled:opacity-50 transition-all shrink-0"
+                className="px-3 py-2 text-xs font-bold rounded-lg bg-[var(--accent-color)] text-[var(--accent-color-foreground)] hover:brightness-110 disabled:opacity-50 transition-all shrink-0"
               >
                 {isAddingFont ? "..." : "Add"}
               </button>
@@ -610,7 +607,7 @@ export function AppearanceBentoGrid() {
         </BentoCard>
       </div>
 
-      {/* Color Picker Dialog */}
+      {}
       <Dialog
         isOpen={isColorPickerOpen}
         onClose={() => setIsColorPickerOpen(false)}

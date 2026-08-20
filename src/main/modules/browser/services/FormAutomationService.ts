@@ -1,7 +1,3 @@
-/**
- * Form Automation Service - Handles form filling and submission.
- */
-
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import {
@@ -25,9 +21,6 @@ export class FormAutomationService
     this.browser = browser;
   }
 
-  /**
-   * Fill form with provided configuration.
-   */
   public async fillForm(config: FormConfig): Promise<void> {
     if (!this.browser) {
       throw new AppError(
@@ -46,7 +39,6 @@ export class FormAutomationService
         await this.fillField(field);
       }
 
-      // Execute custom actions
       if (config.customActions) {
         for (const customAction of config.customActions) {
           try {
@@ -84,9 +76,6 @@ export class FormAutomationService
     }
   }
 
-  /**
-   * Submit form.
-   */
   public async submitForm(selector: string): Promise<void> {
     if (!this.browser) {
       throw new AppError(
@@ -114,9 +103,6 @@ export class FormAutomationService
     }
   }
 
-  /**
-   * Extract form data.
-   */
   public async extractFormData(selector: string): Promise<Record<string, any>> {
     if (!this.browser) {
       throw new AppError(
@@ -165,9 +151,6 @@ export class FormAutomationService
     }
   }
 
-  /**
-   * Wait for form submission (page navigation or success indicator).
-   */
   public async waitForFormSubmission(timeout: number = 30000): Promise<void> {
     if (!this.browser) {
       throw new AppError(
@@ -198,9 +181,6 @@ export class FormAutomationService
     }
   }
 
-  /**
-   * Fill individual field.
-   */
   private async fillField(field: FormField): Promise<void> {
     if (!this.browser) {
       return;
@@ -212,7 +192,6 @@ export class FormAutomationService
         type: field.type,
       });
 
-      // Wait for field visibility if configured
       if (field.waitForVisible) {
         await this.browser.waitForSelector(field.selector, {
           timeout: 10000,
@@ -253,7 +232,6 @@ export class FormAutomationService
           break;
 
         case "custom":
-          // Custom handling defined in form config
           break;
 
         default:
@@ -276,23 +254,22 @@ export class FormAutomationService
     }
   }
 
-  /**
-   * Execute with timeout.
-   */
   private withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
-    return Promise.race<T>([
-      promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => {
-          reject(
-            new AppError(
-              "Operation timeout",
-              ErrorCode.BROWSER_TIMEOUT_ERROR,
-              "FormAutomationService",
-            ),
-          );
-        }, timeout),
-      ),
-    ]);
+    let timer: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(
+          new AppError(
+            "Operation timeout",
+            ErrorCode.BROWSER_TIMEOUT_ERROR,
+            "FormAutomationService",
+          ),
+        );
+      }, timeout);
+    });
+
+    return Promise.race<T>([promise, timeoutPromise]).finally(() =>
+      clearTimeout(timer),
+    );
   }
 }

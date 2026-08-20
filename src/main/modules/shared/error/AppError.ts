@@ -1,8 +1,3 @@
-/**
- * Custom error classes for the application.
- * Provides structured error handling with proper typing and context.
- */
-
 export enum ErrorSeverity {
   LOW = "LOW",
   MEDIUM = "MEDIUM",
@@ -11,31 +6,26 @@ export enum ErrorSeverity {
 }
 
 export enum ErrorCode {
-  // Macro errors
   MACRO_RECORD_ERROR = "MACRO_RECORD_ERROR",
   MACRO_PLAYBACK_ERROR = "MACRO_PLAYBACK_ERROR",
   MACRO_INVALID_FORMAT = "MACRO_INVALID_FORMAT",
   MACRO_FILE_ERROR = "MACRO_FILE_ERROR",
 
-  // Trading errors
   TRADING_CALCULATION_ERROR = "TRADING_CALCULATION_ERROR",
   TRADING_INVALID_DATA = "TRADING_INVALID_DATA",
   TRADING_CONFIG_ERROR = "TRADING_CONFIG_ERROR",
 
-  // Browser errors
   BROWSER_LAUNCH_ERROR = "BROWSER_LAUNCH_ERROR",
   BROWSER_NAVIGATION_ERROR = "BROWSER_NAVIGATION_ERROR",
   BROWSER_FORM_ERROR = "BROWSER_FORM_ERROR",
   BROWSER_TIMEOUT_ERROR = "BROWSER_TIMEOUT_ERROR",
   BROWSER_SELECTOR_ERROR = "BROWSER_SELECTOR_ERROR",
 
-  // Proxy errors
   PROXY_VALIDATION_ERROR = "PROXY_VALIDATION_ERROR",
   PROXY_CONNECTION_ERROR = "PROXY_CONNECTION_ERROR",
   PROXY_POOL_EMPTY = "PROXY_POOL_EMPTY",
   PROXY_CONFIG_ERROR = "PROXY_CONFIG_ERROR",
 
-  // General errors
   CONFIGURATION_ERROR = "CONFIGURATION_ERROR",
   INTERNAL_ERROR = "INTERNAL_ERROR",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
@@ -45,9 +35,6 @@ export interface ErrorContext {
   [key: string]: unknown;
 }
 
-/**
- * Application error class with enhanced context and metadata.
- */
 export class AppError extends Error {
   public readonly code: ErrorCode;
   public readonly severity: ErrorSeverity;
@@ -70,7 +57,6 @@ export class AppError extends Error {
     this.module = module;
     this.timestamp = new Date();
 
-    // Ensure proper prototype chain for instanceof checks
     Object.setPrototypeOf(this, AppError.prototype);
   }
 
@@ -92,9 +78,6 @@ export class AppError extends Error {
   }
 }
 
-/**
- * Validation error for data validation failures.
- */
 export class ValidationError extends AppError {
   constructor(
     message: string,
@@ -113,9 +96,6 @@ export class ValidationError extends AppError {
   }
 }
 
-/**
- * Configuration error for invalid configuration.
- */
 export class ConfigError extends AppError {
   constructor(
     message: string,

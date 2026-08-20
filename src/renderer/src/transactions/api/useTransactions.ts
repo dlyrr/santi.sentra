@@ -10,7 +10,7 @@ export const useTransactionTypes = (cookie?: string) => {
     queryKey: queryKeys.transactions.types(cookie || ""),
     queryFn: () => window.api.getTransactionTypes(cookie!),
     enabled: !!cookie,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -34,7 +34,7 @@ export const useTransactions = (
     getPreviousPageParam: (firstPage) =>
       firstPage.previousPageCursor ?? undefined,
     enabled: !!cookie && enabled,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 };
 
@@ -46,6 +46,6 @@ export const useTransactionTotals = (
     queryKey: queryKeys.transactions.totals(cookie || "", timeFrame),
     queryFn: () => window.api.getTransactionTotals(cookie!, timeFrame),
     enabled: !!cookie,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 };

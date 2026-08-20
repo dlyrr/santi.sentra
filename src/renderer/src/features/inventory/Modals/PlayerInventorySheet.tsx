@@ -24,8 +24,6 @@ import {
 import InventoryItemContextMenu from "../InventoryItemContextMenu";
 import AccessoryDetailsModal from "@renderer/features/avatar/Modals/AccessoryDetailsModal";
 
-// Asset type categories based on Roblox inventory API
-// These match the AssetType enum values that the inventory API accepts
 const ASSET_TYPES: DropdownOption[] = [
   { value: "All", label: "All Items" },
   { value: "Hat", label: "Hat" },
@@ -100,7 +98,7 @@ const InventoryItemCard = ({
       onContextMenu={handleContextMenu}
       className="group relative flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden cursor-pointer hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] hover:shadow-[0_18px_40px_rgba(0,0,0,0.35)] hover:-translate-y-1 transition-all duration-300"
     >
-      {/* Image Container */}
+      {}
       <div
         className={`w-full relative overflow-hidden bg-[var(--color-surface-muted)] ${isCompact ? "aspect-square p-0" : "aspect-square p-2"}`}
       >
@@ -130,7 +128,7 @@ const InventoryItemCard = ({
         </div>
       </div>
 
-      {/* Item Info */}
+      {}
       <div
         className={`flex flex-col gap-1.5 border-t border-[var(--color-border)] bg-[var(--color-surface-strong)] ${isCompact ? "p-2" : "p-3"}`}
       >
@@ -180,7 +178,6 @@ const PlayerInventorySheet = ({
     imageUrl?: string;
   } | null>(null);
 
-  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -220,7 +217,6 @@ const PlayerInventorySheet = ({
   const items = useMemo(() => {
     const allItems = data?.pages.flatMap((page) => page.data) || [];
 
-    // Filter by search query
     if (debouncedSearchQuery.trim()) {
       const query = debouncedSearchQuery.toLowerCase();
       return allItems.filter((item) => {
@@ -232,20 +228,17 @@ const PlayerInventorySheet = ({
     return allItems;
   }, [data, debouncedSearchQuery]);
 
-  // Get unique asset IDs for thumbnail fetching
   const assetIds = useMemo(() => {
     return items
       .map((item) => item.assetId)
       .filter((id, index, self) => self.indexOf(id) === index);
   }, [items]);
 
-  // Fetch thumbnails using react-query + zustand
   const { thumbnails } = useInventoryThumbnails(
     assetIds,
     isOpen && items.length > 0,
   );
 
-  // Infinite scroll observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -272,7 +265,6 @@ const PlayerInventorySheet = ({
         : "repeat(auto-fill, minmax(200px, 1fr))",
   };
 
-  // Handle item click
   const handleItemClick = useCallback(
     (item: (typeof items)[0]) => {
       setSelectedAccessory({
@@ -284,7 +276,6 @@ const PlayerInventorySheet = ({
     [thumbnails],
   );
 
-  // Handle context menu
   const handleContextMenu = useCallback(
     (
       e: React.MouseEvent,
@@ -301,7 +292,6 @@ const PlayerInventorySheet = ({
     [],
   );
 
-  // Handle download OBJ
   const handleDownloadObj = useCallback(
     async (assetId: number, assetName: string) => {
       try {
@@ -318,7 +308,6 @@ const PlayerInventorySheet = ({
     [],
   );
 
-  // Handle download texture
   const handleDownloadTexture = useCallback(
     async (assetId: number, assetName: string) => {
       try {
@@ -340,7 +329,7 @@ const PlayerInventorySheet = ({
       await navigator.clipboard.writeText(String(assetId));
     } catch (err) {
       console.error("Failed to copy asset ID:", err);
-      // Fallback for older browsers
+
       const textArea = document.createElement("textarea");
       textArea.value = String(assetId);
       document.body.appendChild(textArea);
@@ -384,10 +373,10 @@ const PlayerInventorySheet = ({
         </SheetHeader>
 
         <SheetBody className="flex-1 overflow-hidden flex flex-col">
-          {/* Filters */}
+          {}
           <div className="shrink-0 border-b border-[var(--color-border)] p-4 space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
-              {/* Asset Type Filter */}
+              {}
               <CustomDropdown
                 options={ASSET_TYPES}
                 value={selectedAssetType}
@@ -396,7 +385,7 @@ const PlayerInventorySheet = ({
                 className="w-48"
               />
 
-              {/* Sort */}
+              {}
               <CustomDropdown
                 options={SORT_OPTIONS}
                 value={sortOrder}
@@ -405,7 +394,7 @@ const PlayerInventorySheet = ({
                 className="w-40"
               />
 
-              {/* Search */}
+              {}
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -413,7 +402,7 @@ const PlayerInventorySheet = ({
                 containerClassName="flex-1 min-w-[200px]"
               />
 
-              {/* View Mode Toggle */}
+              {}
               <div className="flex bg-[var(--color-surface)] rounded-lg p-1 border border-[var(--color-border)]">
                 <button
                   onClick={() => setViewMode("default")}
@@ -433,7 +422,7 @@ const PlayerInventorySheet = ({
             </div>
           </div>
 
-          {/* Content */}
+          {}
           <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
             <AnimatePresence mode="wait">
               {isLoading && items.length === 0 ? (
@@ -527,7 +516,6 @@ const PlayerInventorySheet = ({
         </SheetBody>
       </SheetContent>
 
-      {/* Context Menu */}
       <InventoryItemContextMenu
         activeMenu={contextMenu}
         onClose={() => setContextMenu(null)}
@@ -537,7 +525,6 @@ const PlayerInventorySheet = ({
         onCopyAssetId={handleCopyAssetId}
       />
 
-      {/* Accessory Details Modal */}
       {selectedAccessory && (
         <AccessoryDetailsModal
           isOpen={!!selectedAccessory}

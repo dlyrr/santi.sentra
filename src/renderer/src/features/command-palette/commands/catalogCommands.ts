@@ -25,7 +25,6 @@ export const createCatalogCommands: CommandFactory = (callbacks) => [
     inputLabel: "Item Name",
     onSearch: async (name: string): Promise<CatalogResultItem[]> => {
       try {
-        // Search catalog filtered by Roblox creator
         const response = await window.api.searchCatalog(name, 30, "Roblox");
         const items = response.data || [];
 
@@ -33,7 +32,6 @@ export const createCatalogCommands: CommandFactory = (callbacks) => [
           return [];
         }
 
-        // Get thumbnails for all items
         const assetIds = items.map((item) => item.id);
         try {
           const thumbnailResponse = await window.api.getBatchThumbnails(
@@ -50,14 +48,13 @@ export const createCatalogCommands: CommandFactory = (callbacks) => [
             });
           }
 
-          // Attach thumbnails to items
           return items.map((item) => ({
             ...item,
             imageUrl: thumbnailMap.get(item.id) || undefined,
           }));
         } catch (thumbError) {
           console.warn("Failed to load thumbnails:", thumbError);
-          // Return items without thumbnails
+
           return items;
         }
       } catch (e) {
@@ -67,7 +64,6 @@ export const createCatalogCommands: CommandFactory = (callbacks) => [
       }
     },
     onResultSelect: (item: CatalogResultItem) => {
-      // Open accessory details modal
       callbacks.onViewAccessory(item);
     },
   },
@@ -88,7 +84,6 @@ export const createCatalogCommands: CommandFactory = (callbacks) => [
         return;
       }
 
-      // Open accessory details modal with just the ID
       callbacks.onViewAccessory({ id, itemType: "Asset", name: `Item #${id}` });
     },
   },

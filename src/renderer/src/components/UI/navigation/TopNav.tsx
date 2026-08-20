@@ -42,7 +42,6 @@ import { ProfileCard } from "./ProfileCard";
 
 const isMac = window.platform?.isMac ?? false;
 
-// ─── Top Nav Item ─────────────────────────────────────────────────────────────
 interface TopNavItemProps {
   icon: React.ComponentType<{
     size?: number;
@@ -65,7 +64,7 @@ const TopNavItem = ({
       <button
         onMouseDown={onClick}
         className={cn(
-          "relative flex flex-col items-center justify-center h-10 w-10 rounded-xl transition-all duration-200 group",
+          "relative flex flex-col items-center justify-center h-10 w-10 rounded-lg transition-all duration-200 group",
           isActive
             ? "bg-[var(--accent-color-soft)] text-[var(--color-text-primary)]"
             : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]",
@@ -80,7 +79,7 @@ const TopNavItem = ({
             isActive ? "text-[var(--accent-color)]" : "",
           )}
         />
-        {/* Active underline indicator */}
+        {}
         {isActive && (
           <motion.div
             layoutId="topnav-active"
@@ -97,7 +96,6 @@ const TopNavItem = ({
   </Tooltip>
 );
 
-// ─── Top Nav ──────────────────────────────────────────────────────────────────
 interface TopNavProps {
   selectedAccounts?: Account[];
   primaryAccount?: Account | null;
@@ -163,7 +161,7 @@ const TopNav = ({
           } as React.CSSProperties
         }
       >
-        {/* Left: Logo */}
+        {}
         <div
           className="flex items-center gap-2 px-4 shrink-0"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -174,10 +172,10 @@ const TopNav = ({
           </span>
         </div>
 
-        {/* Separator */}
+        {}
         <div className="w-px h-5 bg-[var(--color-border)] mx-1" />
 
-        {/* Center: Nav Items */}
+        {}
         <nav
           className="flex-1 flex items-center gap-0.5 px-2 overflow-x-auto scrollbar-hide"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -203,10 +201,16 @@ const TopNav = ({
           })}
         </nav>
 
-        {/* Right: Actions */}
+        {}
         <div
           className="flex items-center gap-1.5 px-3 shrink-0"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          style={
+            {
+              WebkitAppRegion: "no-drag",
+
+              paddingRight: isMac ? undefined : "138px",
+            } as React.CSSProperties
+          }
         >
           {showProfileCard && accountForProfile && (
             <ProfileCard

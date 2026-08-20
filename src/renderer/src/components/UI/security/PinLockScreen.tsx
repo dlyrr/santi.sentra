@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, X, Delete, AlertTriangle } from "lucide-react";
+import { Lock, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@shared/queryKeys";
 
@@ -8,7 +8,6 @@ interface PinLockScreenProps {
   onUnlock: () => void;
 }
 
-// Memoized PIN input field to prevent unnecessary re-renders
 const PinInputField = memo(
   React.forwardRef<
     HTMLInputElement,
@@ -66,7 +65,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
   const [remainingAttempts, setRemainingAttempts] = useState(5);
   const [isCheckingLockout, setIsCheckingLockout] = useState(true);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const lastVerifiedPinRef = useRef<string>(""); // Track last verified PIN to prevent duplicate calls
+  const lastVerifiedPinRef = useRef<string>("");
   useEffect(() => {
     const checkLockoutStatus = async () => {
       try {
@@ -88,14 +87,12 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     checkLockoutStatus();
   }, []);
 
-  // Focus first input on mount
   useEffect(() => {
     if (!isLocked && !isCheckingLockout) {
       inputRefs.current[0]?.focus();
     }
   }, [isLocked, isCheckingLockout]);
 
-  // Countdown timer for lockout
   useEffect(() => {
     if (!isLocked || lockoutSeconds <= 0) return;
 
@@ -123,19 +120,16 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         const result = await window.api.verifyPin(enteredPin);
 
         if (result.success) {
-          // verifyPin returns accounts directly in the response — use them immediately
-          // so the cache is populated before onUnlock() triggers a re-render
           const accounts = result.accounts;
           queryClient.setQueryData(
             queryKeys.accounts.list(),
             Array.isArray(accounts) ? accounts : [],
           );
-          
-          // The main process just decrypted the settings, force a refetch
+
           queryClient.invalidateQueries({
             queryKey: queryKeys.settings.snapshot(),
           });
-          
+
           onUnlock();
         } else if (result.locked) {
           setIsLocked(true);
@@ -174,7 +168,6 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     [onUnlock, queryClient],
   );
 
-  // Verify PIN when all digits are entered
   useEffect(() => {
     const enteredPin = pin.join("");
     if (
@@ -183,7 +176,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       !isLocked &&
       enteredPin !== lastVerifiedPinRef.current
     ) {
-      lastVerifiedPinRef.current = enteredPin; // Mark this PIN as being verified
+      lastVerifiedPinRef.current = enteredPin;
       verifyPin(enteredPin);
     }
   }, [pin, isVerifying, isLocked, verifyPin]);
@@ -192,7 +185,6 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     (index: number, value: string) => {
       if (isLocked || isVerifying) return;
 
-      // Only allow single digit
       const digit = value.slice(-1);
       if (!/^\d?$/.test(digit)) return;
 
@@ -202,7 +194,6 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         return newPin;
       });
 
-      // Move to next input if digit entered
       if (digit && index < 5) {
         inputRefs.current[index + 1]?.focus();
       }
@@ -216,7 +207,6 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
 
       if (e.key === "Backspace") {
         if (!pin[index] && index > 0) {
-          // Move to previous input if current is empty
           inputRefs.current[index - 1]?.focus();
           setPin((prev) => {
             const newPin = [...prev];
@@ -239,46 +229,6 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
     [pin, isLocked, isVerifying],
   );
 
-  const handleNumpadClick = useCallback(
-    (digit: string) => {
-      if (isLocked || isVerifying) return;
-
-      const firstEmptyIndex = pin.findIndex((d) => d === "");
-      if (firstEmptyIndex !== -1) {
-        handleInputChange(firstEmptyIndex, digit);
-        if (firstEmptyIndex < 5) {
-          inputRefs.current[firstEmptyIndex + 1]?.focus();
-        }
-      }
-    },
-    [pin, handleInputChange, isLocked, isVerifying],
-  );
-
-  const handleBackspace = useCallback(() => {
-    if (isLocked || isVerifying) return;
-
-    const lastFilledIndex = pin
-      .map((d, i) => (d ? i : -1))
-      .filter((i) => i !== -1)
-      .pop();
-    if (lastFilledIndex !== undefined) {
-      setPin((prev) => {
-        const newPin = [...prev];
-        newPin[lastFilledIndex] = "";
-        return newPin;
-      });
-      inputRefs.current[lastFilledIndex]?.focus();
-    }
-  }, [pin, isLocked, isVerifying]);
-
-  const handleClear = useCallback(() => {
-    if (isLocked || isVerifying) return;
-
-    setPin(Array(6).fill(""));
-    lastVerifiedPinRef.current = ""; // Reset so user can try again
-    inputRefs.current[0]?.focus();
-  }, [isLocked, isVerifying]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -293,10 +243,9 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       transition={{ duration: 0.5, ease: "easeInOut" }}
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
     >
-      {/* Background gradient */}
+      {}
       <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-900" />
 
-      {/* Loading state while checking lockout */}
       {isCheckingLockout ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -311,13 +260,12 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           </p>
         </motion.div>
       ) : (
-        /* Content */
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="relative z-10 flex flex-col items-center w-full max-w-md px-4"
         >
-          {/* Lock Icon */}
+          {}
           <motion.div
             className={`mb-6 p-4 rounded-full border ${
               isLocked
@@ -335,7 +283,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             )}
           </motion.div>
 
-          {/* Title */}
+          {}
           <motion.h1
             className="text-2xl font-bold text-[var(--color-text-primary)] mb-2"
             initial={{ opacity: 0 }}
@@ -355,7 +303,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               : "Enter your 6-digit PIN to unlock"}
           </motion.p>
 
-          {/* PIN Input */}
+          {}
           <motion.div
             className="flex gap-2 sm:gap-3 mb-6 justify-center w-full"
             animate={shake ? { x: [0, -10, 10, -10, 10, 0] } : {}}
@@ -378,7 +326,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             ))}
           </motion.div>
 
-          {/* Error/Info Message */}
+          {}
           <AnimatePresence mode="wait">
             {error && (
               <motion.div
@@ -397,7 +345,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             )}
           </AnimatePresence>
 
-          {/* Remaining Attempts Indicator */}
+          {}
           {!isLocked && remainingAttempts < 5 && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -417,71 +365,9 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
             </motion.div>
           )}
 
-          {/* Numpad */}
-          <motion.div
-            className="grid grid-cols-3 gap-3 sm:gap-4 mt-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <motion.button
-                key={num}
-                onClick={() => handleNumpadClick(String(num))}
-                whileHover={!isLocked ? { scale: 1.05 } : {}}
-                whileTap={!isLocked ? { scale: 0.95 } : {}}
-                disabled={isLocked || isVerifying}
-                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border text-lg sm:text-xl font-medium transition-colors ${
-                  isLocked || isVerifying
-                    ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
-                    : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
-                }`}
-              >
-                {num}
-              </motion.button>
-            ))}
-            <motion.button
-              onClick={handleClear}
-              whileHover={!isLocked ? { scale: 1.05 } : {}}
-              whileTap={!isLocked ? { scale: 0.95 } : {}}
-              disabled={isLocked || isVerifying}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border transition-colors flex items-center justify-center ${
-                isLocked || isVerifying
-                  ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
-              }`}
-            >
-              <X className="w-5 h-5" />
-            </motion.button>
-            <motion.button
-              onClick={() => handleNumpadClick("0")}
-              whileHover={!isLocked ? { scale: 1.05 } : {}}
-              whileTap={!isLocked ? { scale: 0.95 } : {}}
-              disabled={isLocked || isVerifying}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border text-lg sm:text-xl font-medium transition-colors ${
-                isLocked || isVerifying
-                  ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
-              }`}
-            >
-              0
-            </motion.button>
-            <motion.button
-              onClick={handleBackspace}
-              whileHover={!isLocked ? { scale: 1.05 } : {}}
-              whileTap={!isLocked ? { scale: 0.95 } : {}}
-              disabled={isLocked || isVerifying}
-              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border transition-colors flex items-center justify-center ${
-                isLocked || isVerifying
-                  ? "bg-[var(--color-surface)]/50 border-[var(--color-border)]/50 text-[var(--color-text-muted)] cursor-not-allowed"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]"
-              }`}
-            >
-              <Delete className="w-5 h-5" />
-            </motion.button>
-          </motion.div>
+          {}
 
-          {/* Security note */}
+          {}
           <motion.p
             className="text-[var(--color-text-muted)] text-xs mt-8 text-center max-w-xs"
             initial={{ opacity: 0 }}

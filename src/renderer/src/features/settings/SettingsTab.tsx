@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sliders, Type, Bell, Shield, Info, Activity } from "lucide-react";
+import { Sliders, Type, Bell, Shield, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import { Account, Settings } from "../../types";
 import { cn } from "../../lib/utils";
@@ -9,7 +9,6 @@ import { AppearanceSettingsTab } from "./components/AppearanceSettingsTab";
 import { NotificationsSettingsTab } from "./components/NotificationsSettingsTab";
 import { SecuritySettingsTab } from "./components/SecuritySettingsTab";
 import { AboutSettingsTab } from "./components/AboutSettingsTab";
-import { WatcherSettingsTab } from "./components/WatcherSettingsTab";
 
 interface SettingsTabProps {
   accounts: Account[];
@@ -23,28 +22,30 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
   onUpdateSettings,
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "general" | "appearance" | "notifications" | "security" | "watcher" | "about"
+    "general" | "appearance" | "notifications" | "security" | "about"
   >(() => {
     try {
       const saved = localStorage.getItem("sentra-settings-active-tab");
       if (
         saved &&
-        ["general", "appearance", "notifications", "security", "watcher", "about"].includes(saved)
+        [
+          "general",
+          "appearance",
+          "notifications",
+          "security",
+          "about",
+        ].includes(saved)
       ) {
         return saved as any;
       }
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     return "general";
   });
 
   useEffect(() => {
     try {
       localStorage.setItem("sentra-settings-active-tab", activeTab);
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }, [activeTab]);
 
   return (
@@ -57,7 +58,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
       </div>
 
-      {/* Premium Floating Tabs Header */}
+      {}
       <div className="shrink-0 pt-6 px-6 pb-4 z-10 sticky top-0 bg-[var(--color-surface)]/40 backdrop-blur-xl border-b border-[var(--color-border)]/30">
         <div className="max-w-3xl mx-auto flex justify-center">
           <div className="flex items-center gap-1.5 p-1.5 bg-[var(--color-surface-strong)]/60 backdrop-blur-md border border-[var(--color-border)]/50 rounded-2xl shadow-xl shadow-black/10">
@@ -66,12 +67,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
               { id: "appearance", label: "Appearance", icon: Type },
               { id: "notifications", label: "Notifications", icon: Bell },
               { id: "security", label: "Security", icon: Shield },
-              { id: "watcher", label: "Watcher", icon: Activity },
               { id: "about", label: "About", icon: Info },
             ].map((tab) => {
               const Icon = tab.icon as any;
               const isActive = activeTab === tab.id;
-              
+
               return (
                 <button
                   key={tab.id}
@@ -87,7 +87,11 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
                     <motion.div
                       layoutId="settings-active-tab"
                       className="absolute inset-0 bg-[var(--accent-color)] rounded-xl shadow-md shadow-[var(--accent-color)]/20"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      transition={{
+                        type: "spring",
+                        bounce: 0.2,
+                        duration: 0.6,
+                      }}
                     />
                   )}
                   <div className="relative z-10 flex items-center gap-2">
@@ -101,7 +105,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
         </div>
       </div>
 
-      {/* Content Area */}
+      {}
       <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
         <div className="max-w-3xl mx-auto pb-8">
           {activeTab === "general" && (
@@ -121,7 +125,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
             />
           )}
           {activeTab === "about" && <AboutSettingsTab />}
-          {activeTab === "watcher" && <WatcherSettingsTab />}
         </div>
       </div>
     </div>

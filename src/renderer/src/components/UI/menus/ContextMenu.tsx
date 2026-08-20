@@ -7,7 +7,6 @@ import {
   Home,
   ExternalLink,
   Copy,
-  Receipt,
 } from "lucide-react";
 import { Account } from "@renderer/types";
 import GenericContextMenu, { ContextMenuSection } from "./GenericContextMenu";
@@ -60,7 +59,6 @@ const ContextMenu = ({
 
     const account = accounts.find((a) => a.id === activeMenu.id);
 
-    // If the right-clicked account is part of a multiple selection, show Bulk Actions
     if (selectedIds && selectedIds.size > 1 && selectedIds.has(activeMenu.id)) {
       return [
         {
@@ -110,8 +108,6 @@ const ContextMenu = ({
       ];
     }
 
-    // Always show single-account options when right-clicking (independent of selection state)
-    // This allows users to right-click any account to get its options without needing to select it
     return [
       {
         items: [
@@ -191,7 +187,6 @@ const ContextMenu = ({
     onBulkReauth,
     onChangeDisplayName,
     onBulkChangeDisplayName,
-    onClose,
   ]);
   return (
     <GenericContextMenu

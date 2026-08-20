@@ -3,7 +3,6 @@ import { devtools } from "zustand/middleware";
 
 export type CommandStep = "search" | "select" | "input" | "results";
 
-// Catalog search result item type
 export interface CatalogResultItem {
   id: number;
   itemType: string;
@@ -22,11 +21,10 @@ export interface CatalogResultItem {
   totalQuantity?: number;
   hasResellers?: boolean;
   isOffSale?: boolean;
-  // Thumbnail URL (loaded after search)
+
   imageUrl?: string;
 }
 
-// Universal search result types
 export type SearchResultType =
   | "limited"
   | "catalog"
@@ -100,19 +98,19 @@ export interface Command {
     | "values"
     | "catalog";
   keywords?: string[];
-  // For multi-step commands
+
   requiresInput?: boolean;
   inputPlaceholder?: string;
   inputLabel?: string;
-  // For commands that show results (like catalog search)
+
   showsResults?: boolean;
-  // Action to execute - can be immediate or return a promise
+
   action?: () => void | Promise<void>;
-  // For input commands - receives the input value
+
   onInputSubmit?: (value: string) => void | Promise<void>;
-  // For result commands - receives the input and should return results
+
   onSearch?: (value: string) => Promise<CatalogResultItem[]>;
-  // Called when a result item is selected
+
   onResultSelect?: (item: CatalogResultItem) => void;
 }
 
@@ -124,11 +122,11 @@ interface CommandPaletteState {
   activeCommand: Command | null;
   inputValue: string;
   isLoading: boolean;
-  recentCommands: string[]; // Store recent command IDs
-  // For results step
+  recentCommands: string[];
+
   searchResults: CatalogResultItem[];
   resultSelectedIndex: number;
-  // Universal search results (limiteds, commands, etc.)
+
   universalResults: UniversalSearchResult[];
 }
 
@@ -144,11 +142,11 @@ interface CommandPaletteActions {
   setLoading: (loading: boolean) => void;
   addRecentCommand: (commandId: string) => void;
   reset: () => void;
-  // For results step
+
   setSearchResults: (results: CatalogResultItem[]) => void;
   setResultSelectedIndex: (index: number) => void;
   selectResult: (item: CatalogResultItem) => void;
-  // Universal search
+
   setUniversalResults: (results: UniversalSearchResult[]) => void;
   selectUniversalResult: (result: UniversalSearchResult) => void;
 }
@@ -307,7 +305,6 @@ export const useCommandPaletteStore = create<CommandPaletteStore>()(
 
       reset: () => set({ ...initialState }, false, "reset"),
 
-      // Results step actions
       setSearchResults: (searchResults) =>
         set({ searchResults }, false, "setSearchResults"),
 
@@ -322,7 +319,6 @@ export const useCommandPaletteStore = create<CommandPaletteStore>()(
         close();
       },
 
-      // Universal search actions
       setUniversalResults: (universalResults) =>
         set({ universalResults }, false, "setUniversalResults"),
 
@@ -331,7 +327,6 @@ export const useCommandPaletteStore = create<CommandPaletteStore>()(
         if (result.type === "command") {
           selectCommand(result.command);
         } else if (result.type === "limited") {
-          // Open limited item - will be handled by the component via callback
           close();
         }
       },
@@ -340,7 +335,6 @@ export const useCommandPaletteStore = create<CommandPaletteStore>()(
   ),
 );
 
-// Selectors - State
 export const useCommandPaletteOpen = () =>
   useCommandPaletteStore((s) => s.isOpen);
 export const useCommandPaletteStep = () =>
@@ -364,7 +358,6 @@ export const useCommandPaletteResultSelectedIndex = () =>
 export const useCommandPaletteUniversalResults = () =>
   useCommandPaletteStore((s) => s.universalResults);
 
-// Selectors - Actions (individual to avoid object recreation)
 export const useCommandPaletteClose = () =>
   useCommandPaletteStore((s) => s.close);
 export const useCommandPaletteSetQuery = () =>

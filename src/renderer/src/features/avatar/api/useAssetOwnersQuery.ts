@@ -8,10 +8,6 @@ import {
 } from "@shared/ipc-schemas/avatar";
 import { useBatchUserAvatars, useBatchUserDetails } from "./useBatchQueries";
 
-// ============================================================================
-// Asset Owners Infinite Query
-// ============================================================================
-
 interface UseAssetOwnersQueryOptions {
   assetId: number | null;
   cookie: string | undefined;
@@ -38,7 +34,6 @@ export function useAssetOwnersQuery({
         pageParam || undefined,
       );
 
-      // Validate with Zod schema
       const parsed = assetOwnersResponseSchema.safeParse(response);
       if (!parsed.success) {
         console.warn(
@@ -47,7 +42,6 @@ export function useAssetOwnersQuery({
         );
       }
 
-      // Filter to only valid owners
       const validOwners = (response.data || []).filter(
         (o: AssetOwner) => o.owner && o.owner.id,
       );
@@ -60,28 +54,24 @@ export function useAssetOwnersQuery({
     initialPageParam: "" as string,
     getNextPageParam: (lastPage) => lastPage.nextPageCursor || undefined,
     enabled: enabled && isLimited && !!assetId && !!cookie,
-    staleTime: 30 * 1000, // 30 seconds - owners can change frequently for traded items
+    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  // Flatten pages into single array
   const owners = useMemo(() => {
     return query.data?.pages.flatMap((page) => page.data) || [];
   }, [query.data]);
 
-  // Extract unique owner IDs for batch fetching
   const ownerUserIds = useMemo(() => {
     return [...new Set(owners.map((o) => o.owner!.id))];
   }, [owners]);
 
-  // IDs of owners that don't have names in the response
   const ownerIdsWithoutNames = useMemo(() => {
     return [
       ...new Set(owners.filter((o) => !o.owner?.name).map((o) => o.owner!.id)),
     ];
   }, [owners]);
 
-  // Use TanStack Query hooks for batch fetching - handles caching & deduplication
   const { avatars: avatarData } = useBatchUserAvatars({
     userIds: ownerUserIds,
     enabled: ownerUserIds.length > 0,
@@ -92,7 +82,6 @@ export function useAssetOwnersQuery({
     enabled: ownerIdsWithoutNames.length > 0,
   });
 
-  // Convert to Maps for backwards compatibility
   const ownerAvatars = useMemo(() => {
     const map = new Map<number, string>();
     Object.entries(avatarData).forEach(([id, url]) => {
@@ -122,10 +111,6 @@ export function useAssetOwnersQuery({
     hasNextPage: query.hasNextPage,
   };
 }
-
-// ============================================================================
-// Convenience Hook (matches original interface)
-// ============================================================================
 
 interface UseAssetOwnersResult {
   owners: AssetOwner[];

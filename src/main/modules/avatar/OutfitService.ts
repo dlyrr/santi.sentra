@@ -65,7 +65,6 @@ export class RobloxOutfitService {
       );
     }
 
-    // Use V2 API with full asset objects for better compatibility
     if (outfit.assets && outfit.assets.length > 0) {
       const assetsPayload = outfit.assets.map((asset: any) => ({
         id: asset.id,
@@ -105,7 +104,7 @@ export class RobloxOutfitService {
 
     const response = await requestWithCsrf(updateOutfitResultSchema, {
       method: "PATCH",
-      url: `https://avatar.roblox.com/v3/outfits/${outfitId}`,
+      url: `https://avatar.roblox.com/v1/outfits/${outfitId}/details`,
       cookie,
       headers: {
         "Content-Type": "application/json",
@@ -115,7 +114,7 @@ export class RobloxOutfitService {
 
     return {
       ...response,
-      success: response.success, // Zod schema ensures success boolean
+      success: response.success,
     };
   }
 

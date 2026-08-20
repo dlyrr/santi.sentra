@@ -2,10 +2,6 @@ import { z } from "zod";
 import { invoke } from "./invoke";
 import * as S from "../../shared/ipc-schemas";
 
-// ============================================================================
-// AVATAR API
-// ============================================================================
-
 export const avatarApi = {
   getAvatarUrl: (userId: string) =>
     invoke("get-avatar-url", z.string(), userId),
@@ -79,7 +75,15 @@ export const avatarApi = {
       page,
     ),
   wearOutfit: (cookie: string, outfitId: number) =>
-    invoke("wear-outfit", S.successResponseSchema, cookie, outfitId),
+    invoke(
+      "wear-outfit",
+
+      S.successResponseSchema.extend({
+        warnings: z.array(z.string()).optional(),
+      }),
+      cookie,
+      outfitId,
+    ),
   updateOutfit: (cookie: string, outfitId: number, details: unknown) =>
     invoke(
       "update-outfit",
@@ -120,10 +124,6 @@ export const avatarApi = {
     ),
 };
 
-// ============================================================================
-// INVENTORY API
-// ============================================================================
-
 export const inventoryApi = {
   getInventory: (
     cookie: string,
@@ -160,10 +160,6 @@ export const inventoryApi = {
   getCollectibles: (cookie: string, userId: number) =>
     invoke("get-collectibles", z.any(), cookie, userId),
 };
-
-// ============================================================================
-// CATALOG API
-// ============================================================================
 
 export const catalogApi = {
   getAssetContent: (url: string) =>
@@ -320,10 +316,6 @@ export const catalogApi = {
       cookie,
     ),
 };
-
-// ============================================================================
-// CATALOG DATABASE API
-// ============================================================================
 
 export const catalogDatabaseApi = {
   getAllCatalogItems: () =>

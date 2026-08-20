@@ -18,10 +18,6 @@ interface FriendPresenceState {
   };
 }
 
-/**
- * Hook to track friend status changes and send notifications
- * when friends come online or start playing games.
- */
 export function useFriendPresenceNotifications(
   friends: Friend[],
   enabled: boolean = true,
@@ -34,19 +30,16 @@ export function useFriendPresenceNotifications(
     (state) => state.addNotification,
   );
 
-  // Track previous friend states
   const previousStatesRef = useRef<Map<string, FriendPresenceState>>(new Map());
   const isInitializedRef = useRef(false);
   const currentAccountIdRef = useRef<string | null>(null);
 
-  // Get account ID from parameter or from friends (all friends should have the same accountId)
   const resolvedAccountId =
     accountId ?? (friends.length > 0 ? friends[0]?.accountId : null);
   const storageKey = resolvedAccountId
     ? `friendList_${resolvedAccountId}`
     : null;
 
-  // Reset initialization when account changes
   useEffect(() => {
     if (currentAccountIdRef.current !== resolvedAccountId) {
       currentAccountIdRef.current = resolvedAccountId;
@@ -55,8 +48,6 @@ export function useFriendPresenceNotifications(
     }
   }, [resolvedAccountId]);
 
-  // Load persisted friend list from localStorage
-  // Memoized to prevent unnecessary re-creation
   const loadPersistedFriendList = useCallback((): Map<
     string,
     FriendPresenceState
@@ -81,8 +72,6 @@ export function useFriendPresenceNotifications(
     return new Map();
   }, [storageKey]);
 
-  // Save friend list to localStorage
-  // Memoized to prevent unnecessary re-creation
   const savePersistedFriendList = useCallback(
     (states: Map<string, FriendPresenceState>) => {
       if (!storageKey) return;
@@ -103,19 +92,14 @@ export function useFriendPresenceNotifications(
   useEffect(() => {
     if (!enabled) return;
 
-    // On first load, check for removed friends from persisted list
     if (!isInitializedRef.current) {
       const persistedStates = loadPersistedFriendList();
       const currentFriendIds = new Set(friends.map((f) => f.userId));
 
-      // Don't initialize until we have actual friend data loaded
-      // This prevents false "unfriended" notifications when the app starts
-      // and friends list is still loading (empty array)
       if (friends.length === 0 && persistedStates.size > 0) {
         return;
       }
 
-      // Check for removed friends (unfriended while app was closed)
       if (notifyFriendRemoved && persistedStates.size > 0) {
         for (const [userId, prevState] of persistedStates.entries()) {
           if (!currentFriendIds.has(userId)) {
@@ -130,7 +114,6 @@ export function useFriendPresenceNotifications(
         }
       }
 
-      // Populate current state (either from persisted or current friends)
       const initialStates = new Map<string, FriendPresenceState>();
       friends.forEach((friend) => {
         initialStates.set(friend.userId, {
@@ -148,7 +131,6 @@ export function useFriendPresenceNotifications(
       });
       previousStatesRef.current = initialStates;
 
-      // Save current state to localStorage
       savePersistedFriendList(initialStates);
 
       isInitializedRef.current = true;
@@ -157,7 +139,6 @@ export function useFriendPresenceNotifications(
 
     let hasChanges = false;
 
-    // Check for removed friends (unfriended)
     const currentFriendIds = new Set(friends.map((f) => f.userId));
     if (notifyFriendRemoved) {
       for (const [userId, prevState] of previousStatesRef.current.entries()) {
@@ -173,13 +154,11 @@ export function useFriendPresenceNotifications(
       }
     }
 
-    // Check for status changes
     friends.forEach((friend) => {
       const prevState = previousStatesRef.current.get(friend.userId);
       const currentStatus = friend.status;
       const prevStatus = prevState?.status;
 
-      // Skip if this is a new friend we haven't seen before
       if (!prevState) {
         previousStatesRef.current.set(friend.userId, {
           status: currentStatus,
@@ -197,7 +176,6 @@ export function useFriendPresenceNotifications(
         return;
       }
 
-      // Check if friend came online (was offline, now online/in-game/in-studio)
       const wasOffline = prevStatus === AccountStatus.Offline;
       const isNowOnline =
         currentStatus === AccountStatus.Online ||
@@ -214,7 +192,6 @@ export function useFriendPresenceNotifications(
         });
       }
 
-      // Check if friend started playing a game
       const wasNotInGame = prevStatus !== AccountStatus.InGame;
       const isNowInGame = currentStatus === AccountStatus.InGame;
 
@@ -237,7 +214,6 @@ export function useFriendPresenceNotifications(
         });
       }
 
-      // Update stored state
       const activityChanged =
         friend.gameActivity?.placeId !== prevState.gameActivity?.placeId;
       const statusChanged = prevStatus !== currentStatus;
@@ -259,7 +235,6 @@ export function useFriendPresenceNotifications(
       }
     });
 
-    // Clean up friends that are no longer in the list
     for (const userId of previousStatesRef.current.keys()) {
       if (!currentFriendIds.has(userId)) {
         previousStatesRef.current.delete(userId);
@@ -267,9 +242,7 @@ export function useFriendPresenceNotifications(
       }
     }
 
-    // Save current state to localStorage only if changes occurred
     if (hasChanges) {
-      // Debounce saving to avoid disk thrashing
       const timeoutId = setTimeout(() => {
         savePersistedFriendList(previousStatesRef.current);
       }, 500);
@@ -290,7 +263,6 @@ export function useFriendPresenceNotifications(
     savePersistedFriendList,
   ]);
 
-  // Reset when disabled or account changes
   useEffect(() => {
     if (!enabled) {
       previousStatesRef.current.clear();

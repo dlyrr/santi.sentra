@@ -2,11 +2,6 @@ import { ipcRenderer } from "electron";
 import { invoke } from "./invoke";
 import { z } from "zod";
 
-// ============================================================================
-// WATCHER API
-// ============================================================================
-
-// Define schemas for type safety
 const watcherSessionSchema = z.object({
   id: z.string(),
   accountId: z.string(),
@@ -68,21 +63,16 @@ const watcherEventSchema = z.object({
 });
 
 export const watcherApi = {
-  // Get all active sessions
   getSessions: () =>
     invoke("watcher:get-sessions", z.array(watcherSessionSchema)),
 
-  // Get a specific session
   getSession: (sessionId: string) =>
     invoke("watcher:get-session", watcherSessionSchema.nullable(), sessionId),
 
-  // Start watching
   start: () => invoke("watcher:start", z.object({ success: z.boolean() })),
 
-  // Stop watching
   stop: () => invoke("watcher:stop", z.object({ success: z.boolean() })),
 
-  // Add a new session
   addSession: (
     accountId: string,
     username: string,
@@ -110,7 +100,6 @@ export const watcherApi = {
       launchConfig,
     ),
 
-  // Remove a session
   removeSession: (sessionId: string, killProcess?: boolean) =>
     invoke(
       "watcher:remove-session",
@@ -119,10 +108,8 @@ export const watcherApi = {
       killProcess,
     ),
 
-  // Get watcher configuration
   getConfig: () => invoke("watcher:get-config", watcherConfigSchema),
 
-  // Update watcher configuration
   setConfig: (
     config: Partial<{
       enabled: boolean;
@@ -133,18 +120,14 @@ export const watcherApi = {
     }>,
   ) => invoke("watcher:set-config", watcherConfigSchema, config),
 
-  // Get event log
   getEvents: () => invoke("watcher:get-events", z.array(watcherEventSchema)),
 
-  // Clear event log
   clearEvents: () =>
     invoke("watcher:clear-events", z.object({ success: z.boolean() })),
 
-  // Clear all (sessions and events)
   clearAll: () =>
     invoke("watcher:clear-all", z.object({ success: z.boolean() })),
 
-  // Listen for session crashed events
   onSessionCrashed: (
     callback: (data: {
       sessionId: string;
@@ -157,13 +140,11 @@ export const watcherApi = {
     };
     ipcRenderer.on("watcher:session-crashed", handler);
 
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener("watcher:session-crashed", handler);
     };
   },
 
-  // Listen for session restarted events
   onSessionRestarted: (
     callback: (data: {
       sessionId: string;
@@ -176,13 +157,11 @@ export const watcherApi = {
     };
     ipcRenderer.on("watcher:session-restarted", handler);
 
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener("watcher:session-restarted", handler);
     };
   },
 
-  // Listen for watcher events in real-time
   onEvent: (
     callback: (event: {
       timestamp: number;
@@ -203,13 +182,11 @@ export const watcherApi = {
     };
     ipcRenderer.on("watcher:event", handler);
 
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener("watcher:event", handler);
     };
   },
 
-  // Auto-track a newly launched game
   autoTrackLaunchedGame: (
     accountId: string,
     username: string,
@@ -219,21 +196,16 @@ export const watcherApi = {
     displayName?: string,
     avatarUrl?: string,
   ) =>
-    invoke(
-      "watcher:auto-track-launch",
-      z.any(), // Returns session or null
-      {
-        accountId,
-        username,
-        userId,
-        placeId,
-        launchConfig,
-        displayName,
-        avatarUrl,
-      },
-    ),
+    invoke("watcher:auto-track-launch", z.any(), {
+      accountId,
+      username,
+      userId,
+      placeId,
+      launchConfig,
+      displayName,
+      avatarUrl,
+    }),
 
-  // Join a private server with an account
   joinPrivateServer: (accountId: string, jobId: string, placeId: number) =>
     invoke(
       "watcher:join-private-server",
@@ -243,7 +215,6 @@ export const watcherApi = {
       placeId,
     ),
 
-  // Join a public game with an account
   joinGame: (accountId: string, placeId: number) =>
     invoke(
       "watcher:join-game",
@@ -252,7 +223,6 @@ export const watcherApi = {
       placeId,
     ),
 
-  // Rejoin a watched session's private server
   rejoinPrivateServer: (sessionId: string, jobId: string) =>
     invoke(
       "watcher:rejoin-private-server",
@@ -261,7 +231,6 @@ export const watcherApi = {
       jobId,
     ),
 
-  // Launch a game with a URL (supports private server links)
   launchGameWithUrl: (accountId: string, placeId: number, url: string) =>
     invoke(
       "watcher:launch-game-with-url",
@@ -271,7 +240,6 @@ export const watcherApi = {
       url,
     ),
 
-  // Listen for sessions updates
   onSessionsUpdated: (
     callback: (sessions: typeof watcherSessionSchema) => void,
   ) => {
@@ -280,7 +248,6 @@ export const watcherApi = {
     };
     ipcRenderer.on("watcher:sessions-updated", handler);
 
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener("watcher:sessions-updated", handler);
     };

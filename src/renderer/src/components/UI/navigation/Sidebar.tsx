@@ -58,7 +58,6 @@ const Sidebar = ({
   tabOrder,
   hiddenTabs,
 }: SidebarProps) => {
-  // Using individual selectors for optimized re-renders
   const activeTab = useActiveTab();
   const setActiveTab = useTabTransition();
   const isSidebarCollapsed = useSidebarCollapsed();
@@ -94,45 +93,57 @@ const Sidebar = ({
           isSidebarCollapsed ? "min-w-[72px]" : ""
         } ${!isResizing ? "transition-[width] duration-300 ease-in-out" : ""}`}
       >
-        {/* Sidebar Header - extra top padding on macOS for traffic lights */}
+        {}
         <div
-          className={`flex items-center shrink-0 bg-[var(--color-surface)] transition-all duration-300 relative ${
-            isSidebarCollapsed
-              ? "justify-center px-0"
-              : "justify-center px-0"
+          className={`flex items-center shrink-0 bg-[var(--color-surface)] transition-all duration-300 relative select-none ${
+            isSidebarCollapsed ? "justify-center px-0" : "justify-start px-4"
           }`}
           style={{
             height: isMac ? "72px" : "72px",
             paddingTop: isMac ? "28px" : "0px",
+            ...({ WebkitAppRegion: "drag" } as React.CSSProperties),
           }}
         >
-          <div
-            className={`font-bold text-2xl tracking-tight text-[var(--color-text-primary)] transition-all duration-200 flex items-center justify-center gap-2 ${
-              isSidebarCollapsed
-                ? "opacity-0 w-0 overflow-hidden"
-                : "opacity-100 w-auto"
-            }`}
-          >
-            <SentraLogo className="h-10 w-10 shrink-0" />
-            <span>Sentra</span>
-          </div>
-          {!isMac && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebarCollapsed}
-              className="absolute right-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
-            >
-              {isSidebarCollapsed ? (
-                <Menu size={20} />
-              ) : (
-                <ChevronLeft size={20} />
+          {isSidebarCollapsed ? (
+            <div className="flex items-center justify-center w-full h-full">
+              {!isMac && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebarCollapsed}
+                  className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
+                  style={{
+                    ...({ WebkitAppRegion: "no-drag" } as React.CSSProperties),
+                  }}
+                >
+                  <Menu size={20} />
+                </Button>
               )}
-            </Button>
+            </div>
+          ) : (
+            <>
+              <div className="font-bold text-[28px] tracking-tight text-[var(--color-text-primary)] flex items-center justify-start gap-2.5">
+                <SentraLogo className="h-11 w-11 shrink-0" />
+                <span>Sentra</span>
+              </div>
+              {!isMac && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebarCollapsed}
+                  className="absolute right-3 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
+                  style={{
+                    ...({ WebkitAppRegion: "no-drag" } as React.CSSProperties),
+                  }}
+                >
+                  <ChevronLeft size={20} />
+                </Button>
+              )}
+            </>
           )}
         </div>
 
-        {/* Global Search Trigger */}
+        {}
         <div className="px-3 pb-2 pt-4">
           <button
             onClick={openCommandPalette}
@@ -159,7 +170,7 @@ const Sidebar = ({
           </button>
         </div>
 
-        {/* Nav Items */}
+        {}
         <div className="flex-1 overflow-y-auto scrollbar-hide">
           <nav>
             {sidebarTabs.map((tab, index) => {
@@ -188,7 +199,7 @@ const Sidebar = ({
           </nav>
         </div>
 
-        {/* Bottom Profile Card */}
+        {}
         {(selectedAccount || primaryAccount) && showProfileCard && (
           <div className="border-t border-[var(--color-border)] shrink-0 bg-[var(--color-surface)] relative">
             <ProfileCard
@@ -205,7 +216,7 @@ const Sidebar = ({
           </div>
         )}
 
-        {/* Resize Handle */}
+        {}
         {!isSidebarCollapsed && (
           <Tooltip>
             <TooltipTrigger asChild>

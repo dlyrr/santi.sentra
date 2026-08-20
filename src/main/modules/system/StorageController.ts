@@ -6,6 +6,7 @@ import { accountSchema } from "../../../shared/ipc-schemas/user";
 import { favoriteItemSchema } from "../../../shared/ipc-schemas/avatar";
 import { settingsPatchSchema } from "../../../shared/ipc-schemas/system";
 import { UserAgentService } from "../auth/UserAgentService";
+import { Handle64Service } from "../../lib/Handle64Service";
 
 function handle<T extends any[]>(
   channel: string,
@@ -69,7 +70,7 @@ export const registerStorageHandlers = (): void => {
         accounts.length,
         "accounts",
       );
-      // Check PIN state before calling setAccounts
+
       const pinHash = storageService.getPinHash();
       const isPinVerified = storageService.isPinCurrentlyVerified();
       console.log(
@@ -86,7 +87,7 @@ export const registerStorageHandlers = (): void => {
           throw new Error("setAccounts returned false");
         }
         console.log(
-          "[StorageController] save-accounts handler: ✓ Successfully saved",
+          "[StorageController] save-accounts handler: Successfully saved",
           accounts.length,
           "accounts",
         );
@@ -250,11 +251,10 @@ export const registerStorageHandlers = (): void => {
   );
 
   handle("get-asset-path", z.tuple([z.string()]), async (_, assetPath) => {
-    // In development, serve from source directory; in production, from app resources
     const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
     const basePath = isDev
-      ? path.join(process.cwd(), "assets") // Development: serve from source
-      : path.join(process.resourcesPath, "assets"); // Production: serve from app bundle
+      ? path.join(process.cwd(), "assets")
+      : path.join(process.resourcesPath, "assets");
     return `file://${path.join(basePath, assetPath)}`;
   });
 
@@ -266,13 +266,30 @@ export const registerStorageHandlers = (): void => {
     "set-roblox-settings",
     z.tuple([
       z.object({
-        allowMultipleLaunches: z.boolean().optional(),
         defaultPhysicsEngine: z.enum(["Terrain", "Legacy"]).optional(),
         enableOptimizations: z.boolean().optional(),
         memoryLimit: z.number().optional(),
         useDirectX12: z.boolean().optional(),
         lowEndGraphics: z.boolean().optional(),
         disableDualChannelAudio: z.boolean().optional(),
+        antiAfkEnabled: z.boolean().optional(),
+        renameWindowsEnabled: z.boolean().optional(),
+        framerateCapEnabled: z.boolean().optional(),
+        framerateCapValue: z.number().optional(),
+        optimizeRamEnabled: z.boolean().optional(),
+        ramOptimization: z.number().optional(),
+        cpuOptimization: z.number().optional(),
+        headlessModeEnabled: z.boolean().optional(),
+        timeoutRelaunchEnabled: z.boolean().optional(),
+        timeoutRelaunchSeconds: z.number().optional(),
+        windowLayoutEnabled: z.boolean().optional(),
+        windowLayoutPattern: z
+          .enum(["grid", "rows", "columns", "cascade"])
+          .optional(),
+        windowLayoutSpacing: z.number().optional(),
+        windowLayoutColumns: z.number().optional(),
+        windowLayoutWidth: z.number().optional(),
+        windowLayoutHeight: z.number().optional(),
       }),
     ]),
     async (_, settings) => {
@@ -292,7 +309,6 @@ export const registerStorageHandlers = (): void => {
     },
   );
 
-  // User Agent handlers
   handle("swap-user-agent", z.tuple([]), async () => {
     const newUA = UserAgentService.getNextUserAgent();
     const index = UserAgentService.getCurrentUserAgentIndex();
@@ -301,7 +317,6 @@ export const registerStorageHandlers = (): void => {
       `[StorageController] Swapped user agent to index ${index}: ${newUA.substring(0, 60)}...`,
     );
 
-    // Apply new UA to all existing BrowserWindows
     const windows = BrowserWindow.getAllWindows();
     console.log(`[StorageController] Applying to ${windows.length} windows`);
 
@@ -328,7 +343,6 @@ export const registerStorageHandlers = (): void => {
       `[StorageController] Set user agent to index ${currentIndex}: ${ua.substring(0, 60)}...`,
     );
 
-    // Apply new UA to all existing BrowserWindows
     const windows = BrowserWindow.getAllWindows();
     console.log(`[StorageController] Applying to ${windows.length} windows`);
 
@@ -364,7 +378,6 @@ export const registerStorageHandlers = (): void => {
     async (_, enabled, intervalMinutes) => {
       if (enabled) {
         UserAgentService.startAutoSwap(intervalMinutes || 30, (ua) => {
-          // Callback to apply UA when auto-swap triggers
           BrowserWindow.getAllWindows().forEach((window) => {
             try {
               window.webContents.setUserAgent(ua);
@@ -396,5 +409,17 @@ export const registerStorageHandlers = (): void => {
       autoSwapIntervalMinutes: UserAgentService.getAutoSwapInterval(),
       totalUserAgents: UserAgentService.getAllUserAgents().length,
     };
+  });
+
+  handle("handle64:is-installed", z.tuple([]), async () => {
+    return Handle64Service.isInstalled();
+  });
+
+  handle("handle64:install", z.tuple([]), async () => {
+    return await Handle64Service.install();
+  });
+
+  handle("handle64:uninstall", z.tuple([]), async () => {
+    return Handle64Service.uninstall();
   });
 };

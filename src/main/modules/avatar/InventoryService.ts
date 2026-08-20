@@ -15,7 +15,7 @@ export class RobloxInventoryService {
   ) {
     let url = `https://inventory.roblox.com/v2/users/${userId}/inventory/${assetTypeId}?limit=${limit}`;
     if (cursor) {
-      url += `&cursor=${cursor}`;
+      url += `&cursor=${encodeURIComponent(cursor)}`;
     }
 
     return request(inventoryPageSchema, {
@@ -61,9 +61,7 @@ export class RobloxInventoryService {
               `[InventoryV2] Invalid asset types provided: ${assetTypes.join(", ")}`,
             );
           }
-        } catch {
-          // Ignore invalid JSON in error body
-        }
+        } catch {}
       }
       throw error;
     }
@@ -91,7 +89,6 @@ export class RobloxInventoryService {
     assetId: number,
     itemType: string = "Asset",
   ) {
-    // itemType: 0 = Asset, 1 = GamePass, 2 = Badge, 3 = Bundle
     let itemTypeId = 0;
     if (itemType === "GamePass") itemTypeId = 1;
     else if (itemType === "Badge") itemTypeId = 2;

@@ -30,7 +30,6 @@ interface Macro {
   };
 }
 
-// Built-in macro names for quick lookup (matches MacroService definition)
 const BUILT_IN_NAMES = new Set([
   "Jump",
   "Move Forward",
@@ -141,7 +140,6 @@ export const MacroTab = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load macros once on mount
   useEffect(() => {
     const loadMacros = async () => {
       try {
@@ -163,7 +161,6 @@ export const MacroTab = () => {
     loadMacros();
   }, []);
 
-  // Polling for recording status (optimized interval)
   useEffect(() => {
     const checkRecording = async () => {
       try {
@@ -178,7 +175,6 @@ export const MacroTab = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Polling for recording progress (only when recording)
   useEffect(() => {
     if (!isRecording) return;
 
@@ -198,7 +194,6 @@ export const MacroTab = () => {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // Helper function to refetch macros - ensures UI state matches filesystem
   const refetchMacros = useCallback(async () => {
     try {
       const result = await window.api.macro.listMacros();
@@ -210,7 +205,6 @@ export const MacroTab = () => {
     }
   }, []);
 
-  // Memoized handlers
   const handleStartRecording = useCallback(async () => {
     try {
       await window.api.macro.startRecording();
@@ -237,7 +231,6 @@ export const MacroTab = () => {
       const saveResult = await window.api.macro.saveMacro(name, result.events);
 
       if (saveResult.success) {
-        // Refetch macros to verify save and ensure state consistency
         await refetchMacros();
         setMacroName("");
         setRecordingProgress({ eventCount: 0, duration: 0 });
@@ -275,7 +268,6 @@ export const MacroTab = () => {
       try {
         const result = await window.api.macro.deleteMacro(macroId);
         if (result.success) {
-          // Refetch macros to verify delete and ensure state consistency
           await refetchMacros();
           setError(null);
         } else {
@@ -289,12 +281,10 @@ export const MacroTab = () => {
     [refetchMacros],
   );
 
-  // Memoized sorting and filtering
   const { builtInMacros, customMacros } = useMemo(() => {
     const built = macros.filter((m) => BUILT_IN_NAMES.has(m.name));
     const custom = macros.filter((m) => !BUILT_IN_NAMES.has(m.name));
 
-    // Sort built-in macros by category order
     const categoryOrder = { Movement: 0, Actions: 1, Emotes: 2 };
     built.sort((a, b) => {
       const catA = MACRO_CATEGORIES[a.name] || "Other";
@@ -319,14 +309,14 @@ export const MacroTab = () => {
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <div className="space-y-6 max-w-full">
-        {/* Error Display */}
+        {}
         {error && (
           <div className="bg-red-50 /20 p-4 rounded-lg border border-red-200 ">
             <p className="text-sm font-medium text-red-900 ">{error}</p>
           </div>
         )}
 
-        {/* Recording Section */}
+        {}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -375,13 +365,13 @@ export const MacroTab = () => {
                 value={macroName}
                 onChange={(e) => setMacroName(e.target.value)}
                 placeholder="Enter macro name..."
-                className="w-full px-3 py-2 border rounded-md bg-background"
+                className="w-full px-3 py-2 border border-[var(--color-border)] rounded-md bg-[var(--color-app-bg)]"
               />
             </div>
           </CardContent>
         </Card>
 
-        {/* Playback Section */}
+        {}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -412,7 +402,7 @@ export const MacroTab = () => {
           </CardContent>
         </Card>
 
-        {/* Built-in Macros Section */}
+        {}
         {builtInMacros.length > 0 && (
           <Card>
             <CardHeader>
@@ -440,7 +430,7 @@ export const MacroTab = () => {
           </Card>
         )}
 
-        {/* Custom Macros Section */}
+        {}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

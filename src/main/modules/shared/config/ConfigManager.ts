@@ -1,8 +1,3 @@
-/**
- * Configuration management system.
- * Provides type-safe configuration loading and management.
- */
-
 import { AppError, ErrorCode, ErrorSeverity } from "../error/AppError";
 
 export interface IConfigManager {
@@ -12,9 +7,6 @@ export interface IConfigManager {
   toJSON(): Record<string, unknown>;
 }
 
-/**
- * Configuration manager using a simple key-value store.
- */
 export class ConfigManager implements IConfigManager {
   private config: Map<string, unknown> = new Map();
 
@@ -24,9 +16,6 @@ export class ConfigManager implements IConfigManager {
     }
   }
 
-  /**
-   * Get configuration value by key.
-   */
   public get<T = unknown>(key: string, defaultValue?: T): T {
     if (this.config.has(key)) {
       return this.config.get(key) as T;
@@ -45,25 +34,16 @@ export class ConfigManager implements IConfigManager {
     );
   }
 
-  /**
-   * Set configuration value.
-   */
   public set(key: string, value: unknown): void {
     this.config.set(key, value);
   }
 
-  /**
-   * Load configuration from object.
-   */
   public load(config: Record<string, unknown>): void {
     Object.entries(config).forEach(([key, value]) => {
       this.config.set(key, value);
     });
   }
 
-  /**
-   * Export configuration as plain object.
-   */
   public toJSON(): Record<string, unknown> {
     const result: Record<string, unknown> = {};
     this.config.forEach((value, key) => {
@@ -72,24 +52,15 @@ export class ConfigManager implements IConfigManager {
     return result;
   }
 
-  /**
-   * Check if key exists.
-   */
   public has(key: string): boolean {
     return this.config.has(key);
   }
 
-  /**
-   * Clear all configuration.
-   */
   public clear(): void {
     this.config.clear();
   }
 }
 
-/**
- * Configuration validator for strict type checking.
- */
 export class ConfigValidator {
   public static validateRequired<T>(
     config: Record<string, unknown>,

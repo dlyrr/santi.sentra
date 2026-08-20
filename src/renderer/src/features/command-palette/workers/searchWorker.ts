@@ -1,12 +1,5 @@
-/**
- * Web Worker for FlexSearch indexing and searching
- * Handles heavy lifting of indexing catalog database and rolimons data off the main thread
- * Supports importing/exporting indexes for persistence
- */
-
 import FlexSearch from "flexsearch";
 
-// Types for the indexed data
 interface CatalogItem {
   AssetId: number;
   Name: string;
@@ -34,7 +27,6 @@ interface RolimonsItem {
   isRare: boolean;
 }
 
-// Exported index data structure
 interface ExportedIndexData {
   version: number;
   catalogHash: string;
@@ -42,7 +34,6 @@ interface ExportedIndexData {
   catalogItems: [number, CatalogItem][];
 }
 
-// Message types
 type WorkerMessage =
   | { type: "INIT_CATALOG"; items: CatalogItem[] }
   | { type: "INIT_ROLIMONS"; items: Record<string, unknown[]> }
@@ -75,10 +66,8 @@ type WorkerResponse =
   | { type: "CATALOG_INDEX_IMPORTED"; count: number }
   | { type: "ERROR"; message: string };
 
-// Current index version - increment when index format changes
 const INDEX_VERSION = 1;
 
-// Demand labels
 const DEMAND_LABELS: Record<number, string> = {
   [-1]: "None",
   0: "Terrible",
@@ -88,7 +77,6 @@ const DEMAND_LABELS: Record<number, string> = {
   4: "Amazing",
 };
 
-// Trend labels
 const TREND_LABELS: Record<number, string> = {
   [-1]: "None",
   0: "Lowering",
@@ -98,7 +86,6 @@ const TREND_LABELS: Record<number, string> = {
   4: "Fluctuating",
 };
 
-// Create simple indexes using FlexSearch Index
 let catalogNameIndex = new FlexSearch.Index({
   tokenize: "forward",
   cache: 100,
@@ -114,14 +101,12 @@ const rolimonsAcronymIndex = new FlexSearch.Index({
   cache: 100,
 });
 
-// Store items for retrieval after search
 const catalogItems = new Map<number, CatalogItem>();
 const rolimonsItems = new Map<number, RolimonsItem>();
 
 let catalogReady = false;
 let rolimonsReady = false;
 
-// Parse rolimons item data array to structured object
 function parseRolimonsItem(id: number, data: unknown[]): RolimonsItem {
   const demand = (data[5] as number) ?? -1;
   const trend = (data[6] as number) ?? -1;
@@ -143,7 +128,6 @@ function parseRolimonsItem(id: number, data: unknown[]): RolimonsItem {
   };
 }
 
-// Handle messages from the main thread
 self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const message = event.data;
 
@@ -151,14 +135,13 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     switch (message.type) {
       case "INIT_CATALOG": {
         catalogItems.clear();
-        // Reset the index
+
         catalogNameIndex = new FlexSearch.Index({
           tokenize: "forward",
           cache: 100,
         });
         const items = message.items;
 
-        // Index all items
         for (const item of items) {
           catalogItems.set(item.AssetId, item);
           catalogNameIndex.add(item.AssetId, item.Name);
@@ -176,7 +159,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
       case "IMPORT_CATALOG_INDEX": {
         const { data } = message;
 
-        // Validate version
         if (data.version !== INDEX_VERSION) {
           const response: WorkerResponse = {
             type: "ERROR",
@@ -188,19 +170,16 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 
         try {
           catalogItems.clear();
-          // Reset the index
+
           catalogNameIndex = new FlexSearch.Index({
             tokenize: "forward",
             cache: 100,
           });
 
-          // Restore catalog items
           for (const [id, item] of data.catalogItems) {
             catalogItems.set(id, item);
           }
 
-          // Import the FlexSearch index data
-          // FlexSearch 0.8.x uses key-based export, so we import each key
           const indexData = data.catalogIndex as Record<string, string>;
           for (const [key, value] of Object.entries(indexData)) {
             catalogNameIndex.import(key, value);
@@ -234,8 +213,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         }
 
         try {
-          // Export the FlexSearch index
-          // FlexSearch 0.8.x export uses callbacks with key-value pairs
           const exportedData: Record<string, string> = {};
           catalogNameIndex.export((key: string, data: string) => {
             if (data !== undefined) {
@@ -243,8 +220,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
             }
           });
 
-          // Give FlexSearch time to complete the export
-          // The export is synchronous in practice for Index type
           const exportData: ExportedIndexData = {
             version: INDEX_VERSION,
             catalogHash: message.hash,
@@ -271,7 +246,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         rolimonsItems.clear();
         const items = message.items;
 
-        // Parse and index all items
         for (const [idStr, data] of Object.entries(items)) {
           const id = parseInt(idStr, 10);
           const parsed = parseRolimonsItem(id, data as unknown[]);
@@ -306,7 +280,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
           maxResults,
         );
 
-        // Collect results
         const results: CatalogItem[] = [];
         for (const id of searchResults) {
           const item = catalogItems.get(id as number);
@@ -338,18 +311,15 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
 
         const maxResults = message.maxResults || 50;
 
-        // Search both name and acronym
         const nameResults = rolimonsNameIndex.search(message.query, maxResults);
         const acronymResults = rolimonsAcronymIndex.search(
           message.query,
           maxResults,
         );
 
-        // Merge and deduplicate results
         const seenIds = new Set<number>();
         const results: RolimonsItem[] = [];
 
-        // Name matches first (more relevant)
         for (const id of nameResults) {
           if (!seenIds.has(id as number)) {
             seenIds.add(id as number);
@@ -359,7 +329,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
           if (results.length >= maxResults) break;
         }
 
-        // Then acronym matches
         if (results.length < maxResults) {
           for (const id of acronymResults) {
             if (!seenIds.has(id as number)) {
@@ -387,7 +356,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
         const catalogResults: CatalogItem[] = [];
         const rolimonsResults: RolimonsItem[] = [];
 
-        // Search catalog if ready
         if (catalogReady) {
           const searchResults = catalogNameIndex.search(message.query, halfMax);
           for (const id of searchResults) {
@@ -397,7 +365,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
           }
         }
 
-        // Search rolimons if ready
         if (rolimonsReady) {
           const nameResults = rolimonsNameIndex.search(message.query, halfMax);
           const acronymResults = rolimonsAcronymIndex.search(
@@ -467,7 +434,6 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   }
 };
 
-// Notify main thread that worker is ready
 self.postMessage({
   type: "STATUS",
   catalogReady: false,

@@ -82,8 +82,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
               return;
             }
 
-            // DISABLED: License validation removed - licensing system disabled
-            // Skip license validation entirely; initialization complete
             set(
               { isInitialized: true },
               false,
@@ -113,7 +111,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
   ),
 );
 
-// Selectors
 export const useHasCompletedOnboarding = () =>
   useOnboardingStore((state) => state.hasCompletedOnboarding);
 export const useCurrentOnboardingStep = () =>

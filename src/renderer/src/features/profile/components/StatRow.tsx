@@ -36,8 +36,8 @@ export const StatRow: React.FC<StatRowProps> = ({
     <div
       className={`group flex items-center justify-between py-2.5 px-3 -mx-3 rounded-xl transition-colors duration-200 ${
         isInteractive
-          ? "cursor-pointer hover:bg-white/5 active:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/20 outline-none"
-          : "hover:bg-white/5"
+          ? "cursor-pointer hover:bg-[var(--color-surface-hover)] active:bg-[var(--color-surface-strong)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] outline-none"
+          : "hover:bg-[var(--color-surface-hover)]"
       }`}
       onClick={onClick}
       role={isInteractive ? "button" : undefined}
@@ -48,7 +48,7 @@ export const StatRow: React.FC<StatRowProps> = ({
       }
     >
       <div className="flex items-center gap-3">
-        <div className="p-1.5 rounded-lg bg-white/5 text-[var(--color-text-primary)]/50 group-hover:text-[var(--color-text-primary)] group-hover:bg-white/10 transition-colors duration-200">
+        <div className="p-1.5 rounded-lg bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]/50 group-hover:text-[var(--color-text-primary)] group-hover:bg-[var(--color-surface-strong)] transition-colors duration-200">
           <Icon size={14} className="opacity-80" />
         </div>
         <span className="text-sm font-medium text-[var(--color-text-primary)]/60 group-hover:text-[var(--color-text-primary)]/90 transition-colors duration-200">

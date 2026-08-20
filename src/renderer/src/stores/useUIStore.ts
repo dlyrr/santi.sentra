@@ -3,7 +3,6 @@ import { devtools, persist } from "zustand/middleware";
 import { startTransition } from "react";
 import { TabId, JoinConfig, Account, Game, RobloxInstallation } from "../types";
 
-// Modal types for consolidated modal state
 export type ModalType =
   | "join"
   | "addAccount"
@@ -13,65 +12,49 @@ export type ModalType =
 export type NavLayout = "sidebar" | "topbar";
 
 interface UIState {
-  // Navigation
   activeTab: TabId;
 
-  // Sidebar (persisted)
   isSidebarCollapsed: boolean;
 
-  // Nav layout (persisted)
   navLayout: NavLayout;
 
-  // Modals - consolidated into a record
   modals: Record<ModalType, boolean>;
 
-  // Context Menus
   activeMenu: { id: string; x: number; y: number } | null;
 
-  // Temporary/Editing State
   editingAccount: Account | null;
   infoAccount: Account | null;
   selectedGame: Game | null;
   serverTabTargetPlaceId: string;
 
-  // Launch State
   pendingLaunchConfig: JoinConfig | null;
   availableInstallations: RobloxInstallation[];
 
-  // Security
   isAppUnlocked: boolean;
 }
 
 interface UIActions {
-  // Navigation
   setActiveTab: (tab: TabId) => void;
 
-  // Sidebar
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
 
-  // Nav layout
   setNavLayout: (layout: NavLayout) => void;
 
-  // Modals - unified API
   openModal: (modal: ModalType) => void;
   closeModal: (modal: ModalType) => void;
   setModalOpen: (modal: ModalType, open: boolean) => void;
 
-  // Context Menus
   setActiveMenu: (menu: { id: string; x: number; y: number } | null) => void;
 
-  // Temporary/Editing State
   setEditingAccount: (account: Account | null) => void;
   setInfoAccount: (account: Account | null) => void;
   setSelectedGame: (game: Game | null) => void;
   setServerTabTargetPlaceId: (placeId: string) => void;
 
-  // Launch State
   setPendingLaunchConfig: (config: JoinConfig | null) => void;
   setAvailableInstallations: (installations: RobloxInstallation[]) => void;
 
-  // Security
   setAppUnlocked: (unlocked: boolean) => void;
 }
 
@@ -103,13 +86,11 @@ export const useUIStore = create<UIStore>()(
       (set) => ({
         ...initialState,
 
-        // Navigation - use startTransition for non-urgent tab changes
         setActiveTab: (activeTab) =>
           startTransition(() => {
             set({ activeTab }, false, "setActiveTab");
           }),
 
-        // Sidebar
         setSidebarCollapsed: (isSidebarCollapsed) => {
           set({ isSidebarCollapsed }, false, "setSidebarCollapsed");
           window.api.setSettings({ isSidebarCollapsed });
@@ -121,13 +102,11 @@ export const useUIStore = create<UIStore>()(
             "toggleSidebarCollapsed",
           ),
 
-        // Nav layout
         setNavLayout: (navLayout) => {
           set({ navLayout }, false, "setNavLayout");
           window.api.setSettings({ navLayout });
         },
 
-        // Modals - unified API
         openModal: (modal) =>
           set(
             (state) => ({ modals: { ...state.modals, [modal]: true } }),
@@ -147,25 +126,29 @@ export const useUIStore = create<UIStore>()(
             `setModalOpen:${modal}`,
           ),
 
-        // Context Menus
-        setActiveMenu: (activeMenu) => set({ activeMenu }, false, "setActiveMenu"),
+        setActiveMenu: (activeMenu) =>
+          set({ activeMenu }, false, "setActiveMenu"),
 
-        // Temporary/Editing State
-        setEditingAccount: (editingAccount) => set({ editingAccount }, false, "setEditingAccount"),
-        setInfoAccount: (infoAccount) => set({ infoAccount }, false, "setInfoAccount"),
-        setSelectedGame: (selectedGame) => set({ selectedGame }, false, "setSelectedGame"),
-        setServerTabTargetPlaceId: (serverTabTargetPlaceId) => set({ serverTabTargetPlaceId }, false, "setServerTabTargetPlaceId"),
+        setEditingAccount: (editingAccount) =>
+          set({ editingAccount }, false, "setEditingAccount"),
+        setInfoAccount: (infoAccount) =>
+          set({ infoAccount }, false, "setInfoAccount"),
+        setSelectedGame: (selectedGame) =>
+          set({ selectedGame }, false, "setSelectedGame"),
+        setServerTabTargetPlaceId: (serverTabTargetPlaceId) =>
+          set({ serverTabTargetPlaceId }, false, "setServerTabTargetPlaceId"),
 
-        // Launch State
-        setPendingLaunchConfig: (pendingLaunchConfig) => set({ pendingLaunchConfig }, false, "setPendingLaunchConfig"),
-        setAvailableInstallations: (availableInstallations) => set({ availableInstallations }, false, "setAvailableInstallations"),
+        setPendingLaunchConfig: (pendingLaunchConfig) =>
+          set({ pendingLaunchConfig }, false, "setPendingLaunchConfig"),
+        setAvailableInstallations: (availableInstallations) =>
+          set({ availableInstallations }, false, "setAvailableInstallations"),
 
-        // Security
-        setAppUnlocked: (isAppUnlocked) => set({ isAppUnlocked }, false, "setAppUnlocked"),
+        setAppUnlocked: (isAppUnlocked) =>
+          set({ isAppUnlocked }, false, "setAppUnlocked"),
       }),
       {
         name: "ui-storage",
-        // Persist sidebar and nav layout state
+
         partialize: (state) => ({
           isSidebarCollapsed: state.isSidebarCollapsed,
           navLayout: state.navLayout,
@@ -176,7 +159,6 @@ export const useUIStore = create<UIStore>()(
   ),
 );
 
-// Selectors - use these to prevent unnecessary re-renders
 export const useActiveTab = () => useUIStore((state) => state.activeTab);
 export const useSetActiveTab = () => useUIStore((state) => state.setActiveTab);
 

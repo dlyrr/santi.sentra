@@ -2,10 +2,6 @@ import { ipcRenderer } from "electron";
 import { invoke } from "./invoke";
 import { z } from "zod";
 
-// ============================================================================
-// MACRO API
-// ============================================================================
-
 const successSchema = z.object({ success: z.boolean() });
 const eventsSchema = z.array(z.any());
 const recordingProgressSchema = z.object({

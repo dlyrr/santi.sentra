@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { X, HardDrive, Play } from "lucide-react";
 import { RobloxInstallation } from "../../types";
 import { Dialog, DialogContent } from "../UI/dialogs/Dialog";
@@ -18,17 +18,40 @@ const InstanceSelectionModal: React.FC<InstanceSelectionModalProps> = ({
 }) => {
   const [selectedPath, setSelectedPath] = useState<string>("");
 
+  const options = useMemo(
+    () => [
+      {
+        id: "default",
+        path: "",
+        name: "System Default",
+        description: "Use the default system installation",
+      },
+      ...installations.map((inst) => ({
+        id: inst.id,
+        path: inst.path,
+        name: inst.name,
+        description: inst.version,
+      })),
+    ],
+    [installations],
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedPath((prev) => prev || installations[0]?.path || "");
+  }, [isOpen, installations]);
+
   const handleConfirm = () => {
     onSelect(selectedPath || undefined);
   };
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
-      <DialogContent className="w-full max-w-md bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-app-bg)]">
+      <DialogContent className="w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden ring-1 ring-[var(--accent-color-ring)]">
+        {}
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-strong)]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[var(--color-surface)] rounded-lg">
+            <div className="p-2 bg-[var(--color-surface-hover)] rounded-lg">
               <HardDrive
                 className="text-[var(--color-text-secondary)]"
                 size={20}
@@ -45,57 +68,37 @@ const InstanceSelectionModal: React.FC<InstanceSelectionModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="pressable p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded transition-colors"
+            className="pressable p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
+        {}
         <div className="p-6 space-y-4">
           <div className="space-y-2">
-            <button
-              onClick={() => setSelectedPath("")}
-              className={`pressable w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
-                selectedPath === ""
-                  ? "bg-[rgba(var(--accent-color-rgb),0.08)] border-[var(--accent-color-border)] text-[var(--color-text-primary)] shadow-[0_5px_20px_var(--accent-color-shadow)]"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-              }`}
-            >
-              <div
-                className={`p-2 rounded shrink-0 ${selectedPath === "" ? "bg-[rgba(var(--accent-color-rgb),0.15)] text-[var(--accent-color-foreground)]" : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"}`}
-              >
-                <HardDrive size={20} />
-              </div>
-              <div>
-                <div className="font-medium text-sm">System Default</div>
-                <div className="text-xs opacity-70">
-                  Use the default system installation
-                </div>
-              </div>
-            </button>
-
-            {installations.map((inst) => (
+            {options.map((option) => (
               <button
-                key={inst.id}
-                onClick={() => setSelectedPath(inst.path)}
+                key={option.id}
+                type="button"
+                onClick={() => setSelectedPath(option.path)}
                 className={`pressable w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
-                  selectedPath === inst.path
+                  selectedPath === option.path
                     ? "bg-[rgba(var(--accent-color-rgb),0.08)] border-[var(--accent-color-border)] text-[var(--color-text-primary)] shadow-[0_5px_20px_var(--accent-color-shadow)]"
                     : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <div
-                  className={`p-2 rounded shrink-0 ${selectedPath === inst.path ? "bg-[rgba(var(--accent-color-rgb),0.15)] text-[var(--accent-color-foreground)]" : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"}`}
+                  className={`p-2 rounded shrink-0 ${selectedPath === option.path ? "bg-[rgba(var(--accent-color-rgb),0.15)] text-[var(--accent-color-foreground)]" : "bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]"}`}
                 >
                   <HardDrive size={20} />
                 </div>
                 <div className="min-w-0">
                   <div className="font-medium text-sm truncate">
-                    {inst.name}
+                    {option.name}
                   </div>
                   <div className="text-xs opacity-70 truncate">
-                    {inst.version}
+                    {option.description}
                   </div>
                 </div>
               </button>
@@ -115,4 +118,4 @@ const InstanceSelectionModal: React.FC<InstanceSelectionModalProps> = ({
   );
 };
 
-export default InstanceSelectionModal;
+export default React.memo(InstanceSelectionModal);

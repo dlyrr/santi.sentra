@@ -12,11 +12,10 @@ export function useUpdaterState() {
   const query = useQuery({
     queryKey: updaterQueryKeys.state,
     queryFn: () => window.api.getUpdaterState(),
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
     refetchInterval: false,
   });
 
-  // Subscribe to real-time updates from main process
   useEffect(() => {
     const cleanup = window.api.onUpdaterStatus((state: UpdateState) => {
       queryClient.setQueryData(updaterQueryKeys.state, state);
@@ -51,7 +50,6 @@ export function useInstallUpdate() {
   });
 }
 
-// Combined hook for common updater operations
 export function useUpdater() {
   const state = useUpdaterState();
   const checkMutation = useCheckForUpdates();

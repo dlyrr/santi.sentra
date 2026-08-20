@@ -132,6 +132,8 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const dragOffsetRef = useRef(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const latestDiffRef = useRef(0);
   const { showNotification } = useNotification();
 
   const handleCreatorClick = () => {
@@ -154,7 +156,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     gameName: string;
   } | null>(null);
 
-  // Favorite logic
   const { data: favorites = [] } = useFavoriteGames();
   const addFavoriteMutation = useAddFavoriteGame();
   const removeFavoriteMutation = useRemoveFavoriteGame();
@@ -206,7 +207,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         if (result.success) {
           showNotification("Image saved successfully", "success");
         } else if (result.canceled) {
-          // User canceled, don't show notification
         } else {
           showNotification("Failed to save image", "error");
         }
@@ -262,7 +262,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       return;
     }
 
-    // We don’t yet have a direct friend join target; jump to Servers tab so they can pick.
     setActiveTab("servers");
     showNotification("Jumped to Servers — look for friends online", "info");
   }, [hasFriendsPlaying, showNotification]);
@@ -276,7 +275,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     enabled: !!game?.universeId && isOpen,
   });
 
-  // Fetch game passes
   const { data: gamePassesData, isLoading: _isLoadingPasses } = useQuery({
     queryKey: ["gamePasses", game?.universeId],
     queryFn: async () => {
@@ -286,7 +284,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     enabled: !!game?.universeId && isOpen,
   });
 
-  // Filter to only show passes that are for sale
   const gamePassesForSale =
     gamePassesData?.gamePasses?.filter(
       (p: GamePass) => p.isForSale && p.productId !== null,
@@ -305,7 +302,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           "success",
         );
 
-        // Update local state
         if (data.model) {
           setDisplayedGame((prev) => {
             if (!prev) return null;
@@ -318,7 +314,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           });
         }
 
-        // Refresh game stats
         queryClient.invalidateQueries({
           queryKey: ["gameDetails", game?.universeId],
         });
@@ -334,7 +329,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     },
   });
 
-  // Auto-advance carousel
   const startCarousel = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
@@ -387,6 +381,11 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
     dragOffsetRef.current = 0;
 
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
     if (carouselRef.current) {
       carouselRef.current.style.transition =
         "transform 500ms cubic-bezier(0.4, 0, 0.2, 1)";
@@ -397,14 +396,21 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     startCarousel();
   }, [carouselIndex, isDragging, startCarousel, thumbnails.length]);
 
-  // Update carousel transform when index changes (when not dragging)
   useEffect(() => {
     if (!isDragging && carouselRef.current) {
       carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}%))`;
     }
   }, [carouselIndex, isDragging]);
 
-  // Refresh game stats
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!isOpen || !game?.universeId) return;
 
@@ -438,10 +444,9 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       setDisplayedGame(game);
       setCarouselIndex(0);
       setActiveTab("info");
-      // Start with the fallback thumbnail
+
       setThumbnails(game.thumbnailUrl ? [game.thumbnailUrl] : []);
 
-      // Fetch high-res thumbnails
       if (game.universeId) {
         window.api
           .getGameThumbnail16x9(Number(game.universeId))
@@ -457,7 +462,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
     }
   }, [game]);
 
-  // Calculate stats safely
   const totalVotes = displayedGame
     ? displayedGame.likes + displayedGame.dislikes
     : 0;
@@ -496,9 +500,9 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
         <SheetBody className="flex-1 overflow-y-auto scrollbar-thin">
           <div className="flex flex-col h-full">
             <div className="flex flex-col lg:flex-row flex-1 min-h-0">
-              {/* LEFT SIDE: Preview & Actions */}
+              {}
               <div className="w-full lg:w-1/2 flex flex-col bg-[var(--color-app-bg)] border-b lg:border-b-0 lg:border-r border-[var(--color-border)] relative">
-                {/* Carousel */}
+                {}
                 <div
                   className="relative w-full aspect-video bg-[var(--color-surface)] overflow-hidden cursor-grab active:cursor-grabbing group"
                   onMouseDown={(e) => {
@@ -514,7 +518,15 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     if (!isDragging || !carouselRef.current) return;
                     const diff = e.clientX - dragStartX;
                     dragOffsetRef.current = diff;
-                    carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}% + ${diff}px))`;
+                    latestDiffRef.current = diff;
+                    if (rafRef.current === null) {
+                      rafRef.current = requestAnimationFrame(() => {
+                        if (carouselRef.current) {
+                          carouselRef.current.style.transform = `translateX(calc(-${carouselIndex * 100}% + ${latestDiffRef.current}px))`;
+                        }
+                        rafRef.current = null;
+                      });
+                    }
                   }}
                   onMouseUp={finishDrag}
                   onMouseLeave={() => {
@@ -584,7 +596,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     ))}
                   </div>
 
-                  {/* Carousel indicators */}
                   {thumbnails.length > 1 && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                       {thumbnails.map((_, idx) => (
@@ -601,14 +612,13 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                   )}
                 </div>
 
-                {/* Game Title & Creator */}
                 <div className="p-6 flex flex-col gap-4">
                   <div>
                     <div className="flex items-center justify-between gap-4 mb-2">
                       <h2 className="text-2xl font-bold text-[var(--color-text-primary)]">
                         {displayedGame.name}
                       </h2>
-                      {/* Favorite Button */}
+
                       <button
                         onClick={handleFavorite}
                         className="relative w-10 h-10 shrink-0 rounded-full bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border-strong)]/50 flex items-center justify-center transition-all group"
@@ -668,7 +678,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Play Button */}
                   <button
                     className="w-full pressable bg-[rgba(var(--accent-color-rgb),0.95)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold text-base py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-[0_0_25px_var(--accent-color-shadow)] border border-[var(--accent-color-border)]"
                     onClick={() => {
@@ -728,7 +737,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 </div>
               </div>
 
-              {/* RIGHT SIDE: Info & Tabs */}
               <div className="w-full lg:w-1/2 flex flex-col overflow-hidden bg-[var(--color-app-bg)]">
                 <Tabs
                   tabs={[
@@ -758,7 +766,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 >
                   {activeTab === "info" ? (
                     <div className="p-6 space-y-6">
-                      {/* Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-[var(--color-surface)]/50 p-4 rounded-lg border border-[var(--color-border)]/50">
                           <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
@@ -784,7 +791,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Like Ratio */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
                           <button
@@ -837,7 +843,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Description */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
                           Description
@@ -852,7 +857,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </p>
                       </div>
 
-                      {/* Detail Stats Grid */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-[var(--color-surface)]/50 p-3 rounded-lg border border-[var(--color-border)]/50">
                           <div className="flex items-center gap-2 text-[var(--color-text-secondary)] mb-1 text-xs uppercase tracking-wide font-semibold">
@@ -908,7 +912,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Social Links */}
                       {socialLinks && socialLinks.length > 0 && (
                         <div className="space-y-2 pt-4 border-t border-[var(--color-border)]">
                           <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -1024,7 +1027,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   );
 };
 
-// Game Pass Card Component
 const GamePassCard: React.FC<{
   pass: GamePass;
   account?: Account | null;
@@ -1048,7 +1050,7 @@ const GamePassCard: React.FC<{
   useEffect(() => {
     if (pass.displayIconImageAssetId) {
       fetch(
-        `https://thumbnails.roblox.com/v1/assets?assetIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`,
+        `https://thumbnails.roblox.com/v1/game-passes?gamePassIds=${pass.displayIconImageAssetId}&size=150x150&format=Png&isCircular=false`,
       )
         .then((res) => res.json())
         .then((data) => {

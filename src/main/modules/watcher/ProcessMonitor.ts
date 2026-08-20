@@ -4,31 +4,40 @@ import { memoryCleanupService } from "./MemoryCleanupService";
 
 const execAsync = promisify(exec);
 
-/**
- * ProcessMonitor - Monitors process existence and status
- */
 export class ProcessMonitor {
   static async isProcessRunning(pid: number): Promise<boolean> {
     try {
-      // process.kill(pid, 0) checks if the process exists without actually killing it.
-      // This is natively supported by Node.js on Windows, macOS, and Linux.
       process.kill(pid, 0);
       return true;
-    } catch {
+    } catch (err) {
+      if (process.platform === "win32") {
+        try {
+          const allPids = await this.getRobloxProcessPids();
+          const isInList = allPids.includes(pid);
+          if (isInList) {
+            if (Math.random() < 0.2) {
+              console.warn(
+                `[ProcessMonitor] PID ${pid} failed process.kill(pid, 0) check but found in Roblox process list: ${allPids.join(", ")} - returning true (process likely exists)`,
+              );
+            }
+            return true;
+          }
+        } catch (checkErr) {
+          console.warn(
+            `[ProcessMonitor] Error verifying PID ${pid} in process list:`,
+            checkErr,
+          );
+        }
+      }
       return false;
     }
   }
 
-  /**
-   * Check if Roblox is running (any process)
-   */
   static async isRobloxRunning(): Promise<boolean> {
     const pids = await this.getRobloxProcessPids();
     return pids.length > 0;
   }
-  /**
-   * Get all running Roblox process PIDs
-   */
+
   static async getRobloxProcessPids(): Promise<number[]> {
     try {
       if (process.platform === "darwin") {
@@ -48,24 +57,66 @@ export class ProcessMonitor {
         }
         return pids;
       } else if (process.platform === "win32") {
-        // Use wmic which is significantly faster and less resource-intensive than tasklist
-        const { stdout } = await execAsync(
-          "wmic process where \"name='RobloxPlayerBeta.exe'\" get ProcessId",
-          { timeout: 3000 },
-        );
-        const pids = stdout
-          .split("\n")
-          .map((line) => parseInt(line.trim(), 10))
-          .filter((pid) => !isNaN(pid));
+        try {
+          const { stdout } = await execAsync(
+            "powershell.exe -NoProfile -Command \"$items = Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('RobloxPlayerBeta.exe','RobloxPlayer.exe','Bloxstrap.exe') -and $_.MainWindowHandle -ne 0 }; $items | Sort-Object CreationDate -Descending | Select-Object -ExpandProperty ProcessId\"",
+            { timeout: 3000, windowsHide: true },
+          );
 
-        if (pids.length > 0) {
-          // Limit logging to avoid spam
-          if (Math.random() < 0.1)
-            console.log(
-              `[ProcessMonitor] Found ${pids.length} Roblox processes on Windows`,
-            );
+          const pids = stdout
+            .trim()
+            .split(/\r?\n/)
+            .map((line) => parseInt(line.trim(), 10))
+            .filter((pid) => !isNaN(pid));
+
+          if (pids.length > 0) {
+            const ordered = [...new Set(pids)];
+            if (Math.random() < 0.1) {
+              console.log(
+                `[ProcessMonitor] Found ${ordered.length} interactive Roblox processes on Windows`,
+              );
+            }
+            return ordered;
+          }
+        } catch (interactiveError) {
+          console.warn(
+            "[ProcessMonitor] Interactive window check failed; falling back to all Roblox processes:",
+            interactiveError,
+          );
         }
-        return pids;
+
+        try {
+          const { stdout } = await execAsync(
+            "wmic process where \"name='RobloxPlayerBeta.exe' OR name='RobloxPlayer.exe' OR name='Bloxstrap.exe'\" get ProcessId",
+            { timeout: 3000, windowsHide: true },
+          );
+          const pids = stdout
+            .split("\n")
+            .map((line) => parseInt(line.trim(), 10))
+            .filter((pid) => !isNaN(pid));
+
+          const ordered = [...new Set(pids)];
+          if (ordered.length > 0 && Math.random() < 0.1) {
+            console.log(
+              `[ProcessMonitor] Found ${ordered.length} Roblox processes on Windows`,
+            );
+          }
+          return ordered;
+        } catch (error) {
+          console.warn(
+            "[ProcessMonitor] wmic multiple names failed, trying single name:",
+            error,
+          );
+          const { stdout } = await execAsync(
+            "wmic process where \"name='RobloxPlayerBeta.exe'\" get ProcessId",
+            { timeout: 3000, windowsHide: true },
+          );
+          const pids = stdout
+            .split("\n")
+            .map((line) => parseInt(line.trim(), 10))
+            .filter((pid) => !isNaN(pid));
+          return [...new Set(pids)];
+        }
       } else if (process.platform === "linux") {
         const { stdout } = await execAsync(
           "pgrep -x RobloxPlayer 2>/dev/null || true",
@@ -89,20 +140,15 @@ export class ProcessMonitor {
     return [];
   }
 
-  /**
-   * Kill a Roblox process by PID
-   */
   static async killProcess(pid: number): Promise<boolean> {
     try {
       console.log(`[ProcessMonitor] Killing Roblox process ${pid}`);
 
       if (process.platform === "darwin" || process.platform === "linux") {
-        // macOS/Linux: use kill command
         await execAsync(`kill -9 ${pid}`);
         console.log(`[ProcessMonitor] Successfully killed process ${pid}`);
         return true;
       } else if (process.platform === "win32") {
-        // Windows: use taskkill command with child-process tree support
         await execAsync(`taskkill /PID ${pid} /T /F`);
         console.log(`[ProcessMonitor] Successfully killed process ${pid}`);
         return true;
@@ -114,17 +160,12 @@ export class ProcessMonitor {
     return false;
   }
 
-  /**
-   * Get RAM usage for a process (in MB)
-   */
   static async getProcessRAM(pid: number): Promise<number | null> {
     try {
       if (process.platform === "darwin") {
-        // macOS: use ps command, get memory in KB and convert to MB
         const { stdout } = await execAsync(`ps -p ${pid} -o rss=`);
         const trimmed = stdout.trim();
 
-        // Validate that we got actual output
         if (!trimmed || trimmed.length === 0) {
           console.log(
             `[ProcessMonitor] macOS: No output from ps for PID ${pid} - process may not exist`,
@@ -134,7 +175,6 @@ export class ProcessMonitor {
 
         const ramKB = parseInt(trimmed, 10);
 
-        // Check for NaN
         if (isNaN(ramKB)) {
           console.log(
             `[ProcessMonitor] macOS: Invalid RAM value for PID ${pid}: "${trimmed}"`,
@@ -142,15 +182,15 @@ export class ProcessMonitor {
           return null;
         }
 
-        const ramMB = Math.round(ramKB / 1024); // Convert KB to MB
+        const ramMB = Math.round(ramKB / 1024);
         console.log(
           `[ProcessMonitor] macOS: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`,
         );
         return ramMB;
       } else if (process.platform === "win32") {
-        // Windows: use PowerShell CIM if available, which is more reliable than WMIC
         const { stdout } = await execAsync(
           `powershell.exe -NoProfile -Command "$p = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}' -ErrorAction SilentlyContinue; if ($p) { [int64]$p.WorkingSetSize } else { exit 1 }"`,
+          { windowsHide: true },
         );
         const trimmed = stdout.trim();
 
@@ -173,11 +213,9 @@ export class ProcessMonitor {
         );
         return ramMB;
       } else if (process.platform === "linux") {
-        // Linux: use ps command, get RSS (in KB) and convert to MB
         const { stdout } = await execAsync(`ps -p ${pid} -o rss=`);
         const trimmed = stdout.trim();
 
-        // Validate that we got actual output
         if (!trimmed || trimmed.length === 0) {
           console.log(
             `[ProcessMonitor] Linux: No output from ps for PID ${pid} - process may not exist`,
@@ -187,7 +225,6 @@ export class ProcessMonitor {
 
         const ramKB = parseInt(trimmed, 10);
 
-        // Check for NaN
         if (isNaN(ramKB)) {
           console.log(
             `[ProcessMonitor] Linux: Invalid RAM value for PID ${pid}: "${trimmed}"`,
@@ -195,7 +232,7 @@ export class ProcessMonitor {
           return null;
         }
 
-        const ramMB = Math.round(ramKB / 1024); // Convert KB to MB
+        const ramMB = Math.round(ramKB / 1024);
         console.log(
           `[ProcessMonitor] Linux: PID ${pid} RSS=${ramKB}KB -> ${ramMB}MB`,
         );
@@ -210,10 +247,21 @@ export class ProcessMonitor {
     return null;
   }
 
-  /**
-   * Attempt to clean up RAM using EmptyWorkingSet (Windows only)
-   * Returns object with cleanup result and whether process should be restarted
-   */
+  static async getProcessCpuTime(pid: number): Promise<number | null> {
+    if (process.platform !== "win32") return null;
+
+    try {
+      const { stdout } = await execAsync(
+        `powershell.exe -NoProfile -NonInteractive -Command "(Get-Process -Id ${pid} -ErrorAction Stop).CPU"`,
+        { timeout: 3000, windowsHide: true },
+      );
+      const cpuTime = Number.parseFloat(stdout.trim());
+      return Number.isFinite(cpuTime) ? cpuTime : null;
+    } catch {
+      return null;
+    }
+  }
+
   static async attemptRAMCleanup(
     pid: number,
     currentRAM: number,
@@ -225,12 +273,10 @@ export class ProcessMonitor {
     shouldRestart: boolean;
   }> {
     try {
-      // Only attempt cleanup if memory is over limit
       if (currentRAM <= maxRAMMB) {
         return { cleanedUp: false, shouldRestart: false };
       }
 
-      // If cleanup is disabled, skip attempts and go straight to restart
       if (!enableCleanup) {
         console.log(
           `[ProcessMonitor] RAM cleanup disabled - restarting process ${pid}`,
@@ -238,7 +284,6 @@ export class ProcessMonitor {
         return { cleanedUp: false, shouldRestart: true };
       }
 
-      // Only attempt cleanup on Windows
       if (process.platform !== "win32") {
         console.log(
           `[ProcessMonitor] RAM cleanup only supported on Windows - killing process ${pid}`,
@@ -250,7 +295,6 @@ export class ProcessMonitor {
         `[ProcessMonitor] Attempting RAM cleanup for PID ${pid}: ${currentRAM}MB > ${maxRAMMB}MB (failure count: ${failureCount})`,
       );
 
-      // Try to clean up memory using EmptyWorkingSet
       const cleanupSuccess = await memoryCleanupService.emptyWorkingSet(pid);
 
       if (cleanupSuccess) {
@@ -258,13 +302,11 @@ export class ProcessMonitor {
         return { cleanedUp: true, shouldRestart: false };
       }
 
-      // Cleanup failed - check if we've failed 3 times
       const newFailureCount = failureCount + 1;
       console.log(
         `[ProcessMonitor] RAM cleanup failed for PID ${pid} (attempt ${newFailureCount}/3)`,
       );
 
-      // After 3 failed cleanup attempts, restart the process
       if (newFailureCount >= 3) {
         console.log(
           `[ProcessMonitor] RAM cleanup failed 3 times for PID ${pid} - will restart client`,
@@ -272,7 +314,6 @@ export class ProcessMonitor {
         return { cleanedUp: false, shouldRestart: true };
       }
 
-      // Still have attempts left, don't restart yet
       return { cleanedUp: false, shouldRestart: false };
     } catch (error) {
       console.error(
@@ -283,12 +324,39 @@ export class ProcessMonitor {
     }
   }
 
-  /**
-   * Restart a Roblox session if RAM exceeds limit
-   * First attempts EmptyWorkingSet cleanup (Windows only) if enabled
-   * If cleanup fails 3 times with RAM still over limit, kills the process
-   * Returns true if process was killed and needs restart
-   */
+  static async getInteractiveRobloxProcessPids(): Promise<number[]> {
+    try {
+      if (process.platform === "darwin" || process.platform === "linux") {
+        return await this.getRobloxProcessPids();
+      } else if (process.platform === "win32") {
+        const { stdout } = await execAsync(
+          "powershell.exe -NoProfile -Command 'Get-Process -Name RobloxPlayerBeta -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -ExpandProperty Id'",
+          { timeout: 3000 },
+        );
+
+        const pids = stdout
+          .trim()
+          .split(/\r?\n/)
+          .map((line) => parseInt(line.trim(), 10))
+          .filter((pid) => !isNaN(pid));
+
+        if (pids.length > 0 && Math.random() < 0.2) {
+          console.log(
+            `[ProcessMonitor] Found ${pids.length} interactive Roblox processes on Windows`,
+          );
+        }
+
+        return pids;
+      }
+    } catch (error) {
+      console.error(
+        "[ProcessMonitor] Error getting interactive Roblox processes:",
+        error,
+      );
+    }
+    return [];
+  }
+
   static async checkAndLimitRAM(
     pid: number,
     maxRAMMB: number,
@@ -299,7 +367,6 @@ export class ProcessMonitor {
       const ramUsage = await this.getProcessRAM(pid);
 
       if (ramUsage === null) {
-        // Process might not exist or command failed
         console.log(
           `[ProcessMonitor] Could not get RAM for process ${pid} - process may not exist`,
         );
@@ -311,7 +378,6 @@ export class ProcessMonitor {
       );
 
       if (ramUsage > maxRAMMB) {
-        // Attempt RAM cleanup via EmptyWorkingSet before killing (if enabled)
         const { cleanedUp, shouldRestart } = await this.attemptRAMCleanup(
           pid,
           ramUsage,
@@ -335,7 +401,6 @@ export class ProcessMonitor {
           return false;
         }
 
-        // Cleanup failed but we still have attempts left - just log and continue
         return false;
       }
 

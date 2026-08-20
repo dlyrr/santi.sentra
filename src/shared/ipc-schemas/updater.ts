@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// UPDATER SCHEMAS
-// ============================================================================
-
 export const updateInfoSchema = z.object({
   version: z.string(),
   releaseDate: z.string().optional(),

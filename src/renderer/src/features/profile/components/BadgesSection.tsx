@@ -83,7 +83,7 @@ export const BadgesSection: React.FC<BadgesSectionProps> = ({
 
   return (
     <>
-      {/* Roblox Badges Section */}
+      {}
       {hasRobloxBadges && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -101,7 +101,7 @@ export const BadgesSection: React.FC<BadgesSectionProps> = ({
         </motion.div>
       )}
 
-      {/* Experience Badges Section */}
+      {}
       {hasExperienceBadges && (
         <motion.div
           initial={{ opacity: 0 }}

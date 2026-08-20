@@ -4,7 +4,7 @@ import fs from "fs/promises";
 import { existsSync } from "fs";
 import { spawn } from "child_process";
 import { z } from "zod";
-// LogMetadata defined locally to avoid import issues
+
 interface LogMetadata {
   filename: string;
   path: string;
@@ -19,7 +19,6 @@ interface LogMetadata {
   serverIp?: string;
 }
 
-// Build Windows logs path with fallbacks
 const getWindowsLogsPath = (): string => {
   const localAppData = process.env.LOCALAPPDATA;
   console.log("[LogsController] LOCALAPPDATA env var:", localAppData);
@@ -29,31 +28,34 @@ const getWindowsLogsPath = (): string => {
   );
 
   if (localAppData) {
-    // Try lowercase 'logs' first
     let logsPath = path.join(localAppData, "Roblox", "logs");
     console.log("[LogsController] Trying path (lowercase logs):", logsPath);
 
     if (existsSync(logsPath)) {
-      console.log("[LogsController] ✓ Found logs directory at:", logsPath);
+      console.log(
+        "[LogsController] Found logs directory at (success):",
+        logsPath,
+      );
       return logsPath;
     }
 
-    // Try uppercase 'Logs'
     logsPath = path.join(localAppData, "Roblox", "Logs");
     console.log("[LogsController] Trying path (uppercase Logs):", logsPath);
 
     if (existsSync(logsPath)) {
-      console.log("[LogsController] ✓ Found logs directory at:", logsPath);
+      console.log(
+        "[LogsController] Found logs directory at (success):",
+        logsPath,
+      );
       return logsPath;
     }
 
     console.warn(
       "[LogsController] Neither logs nor Logs directory found under Roblox",
     );
-    return logsPath; // Return the lowercase version even if not found, for error reporting
+    return logsPath;
   }
 
-  // Fallback to USERPROFILE
   console.warn("[LogsController] LOCALAPPDATA not set, trying USERPROFILE");
   const userProfile = process.env.USERPROFILE;
   console.log("[LogsController] USERPROFILE env var:", userProfile);
@@ -76,7 +78,10 @@ const getWindowsLogsPath = (): string => {
     );
 
     if (existsSync(fallbackPath)) {
-      console.log("[LogsController] ✓ Found logs directory at:", fallbackPath);
+      console.log(
+        "[LogsController] Found logs directory at (success):",
+        fallbackPath,
+      );
       return fallbackPath;
     }
 
@@ -87,14 +92,17 @@ const getWindowsLogsPath = (): string => {
     );
 
     if (existsSync(fallbackPath)) {
-      console.log("[LogsController] ✓ Found logs directory at:", fallbackPath);
+      console.log(
+        "[LogsController] Found logs directory at (success):",
+        fallbackPath,
+      );
       return fallbackPath;
     }
 
     console.warn(
       "[LogsController] Neither logs nor Logs directory found via USERPROFILE",
     );
-    return fallbackPath; // Return the uppercase version for error reporting
+    return fallbackPath;
   }
 
   console.error(
@@ -110,7 +118,6 @@ const LOGS_DIR =
       ? path.join(process.env.HOME || "", "Library", "Logs", "Roblox")
       : "";
 
-// Log the resolved path for debugging
 console.log("[LogsController] Resolved LOGS_DIR:", LOGS_DIR);
 console.log("[LogsController] Platform:", process.platform);
 console.log("[LogsController] LOGS_DIR exists:", existsSync(LOGS_DIR));
@@ -133,7 +140,7 @@ const handle = <T extends any[]>(
 
 const logFilenameSchema = z
   .string()
-  .regex(/^[^\/\\]+$/, "Invalid log filename format");
+  .regex(/^[^/\\]+$/, "Invalid log filename format");
 
 export const registerLogsHandlers = () => {
   handle("get-logs", z.tuple([]), async () => {
@@ -201,7 +208,6 @@ export const registerLogsHandlers = () => {
         return [];
       }
 
-      // Process log files directly without multithreading
       const logs: LogMetadata[] = [];
 
       for (const file of files) {
@@ -209,12 +215,10 @@ export const registerLogsHandlers = () => {
           const filePath = path.join(LOGS_DIR, file);
           const stats = await fs.stat(filePath);
 
-          // Skip directories
           if (!stats.isFile()) {
             continue;
           }
 
-          // Parse log content
           let content = "";
           try {
             content = await fs.readFile(filePath, "utf-8");
@@ -233,7 +237,6 @@ export const registerLogsHandlers = () => {
             size: stats.size,
           };
 
-          // Parse metadata from content
           const timestampMatch = content.match(
             /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/m,
           );

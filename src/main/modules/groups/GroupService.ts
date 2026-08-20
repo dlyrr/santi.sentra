@@ -15,9 +15,6 @@ import {
 } from "@shared/ipc-schemas/games";
 
 export class RobloxGroupService {
-  /**
-   * Get detailed info about a specific group
-   */
   static async getGroupDetails(groupId: number, cookie?: string) {
     const result = await request(groupDetailsSchema, {
       url: `https://groups.roblox.com/v1/groups/${groupId}`,
@@ -26,9 +23,6 @@ export class RobloxGroupService {
     return result;
   }
 
-  /**
-   * Get batch group details using V2 API
-   */
   static async getBatchGroupDetails(groupIds: number[]) {
     if (groupIds.length === 0) return [];
 
@@ -58,18 +52,12 @@ export class RobloxGroupService {
     return result.data;
   }
 
-  /**
-   * Get all roles in a group
-   */
   static async getGroupRoles(groupId: number) {
     return request(groupRolesResponseSchema, {
       url: `https://groups.roblox.com/v1/groups/${groupId}/roles`,
     });
   }
 
-  /**
-   * Get games created by a group
-   */
   static async getGroupGames(
     groupId: number,
     cursor?: string,
@@ -83,13 +71,10 @@ export class RobloxGroupService {
     if (cursor) queryParams.append("cursor", cursor);
 
     return request(groupGamesResponseSchema, {
-      url: `https://games.roblox.com/v2/groups/${groupId}/gamesV2?${queryParams.toString()}`,
+      url: `https://groups.roblox.com/v1/groups/${groupId}/roles`,
     });
   }
 
-  /**
-   * Get group wall posts
-   */
   static async getGroupWallPosts(
     groupId: number,
     cursor?: string,
@@ -102,13 +87,10 @@ export class RobloxGroupService {
     if (cursor) queryParams.append("cursor", cursor);
 
     return request(groupWallPostsResponseSchema, {
-      url: `https://groups.roblox.com/v2/groups/${groupId}/wall/posts?${queryParams.toString()}`,
+      url: `https://games.roblox.com/v2/groups/${groupId}/gamesV2?${queryParams.toString()}`,
     });
   }
 
-  /**
-   * Get group members
-   */
   static async getGroupMembers(
     groupId: number,
     cursor?: string,
@@ -130,9 +112,6 @@ export class RobloxGroupService {
     return request(groupMembersResponseSchema, { url });
   }
 
-  /**
-   * Get all groups a user has joined
-   */
   static async getUserGroups(userId: number) {
     const responseSchema = z.object({
       data: z.array(userGroupMembershipSchema),
@@ -145,11 +124,7 @@ export class RobloxGroupService {
     return result.data;
   }
 
-  /**
-   * Get pending group join requests for the authenticated user
-   */
   static async getPendingGroupRequests(cookie: string) {
-    // The API returns flat group data, not nested under 'group'
     const responseSchema = z.object({
       data: z.array(pendingGroupRequestRawSchema),
     });
@@ -159,7 +134,6 @@ export class RobloxGroupService {
       cookie,
     });
 
-    // Transform to the expected format with 'group' wrapper
     return result.data.map((item: PendingGroupRequestRaw) => ({
       group: {
         id: item.id,
@@ -173,9 +147,6 @@ export class RobloxGroupService {
     }));
   }
 
-  /**
-   * Get group social links
-   */
   static async getGroupSocialLinks(cookie: string, groupId: number) {
     const responseSchema = z.object({
       data: z.array(groupSocialLinkSchema),
@@ -189,9 +160,6 @@ export class RobloxGroupService {
     return result.data;
   }
 
-  /**
-   * Get group icon/thumbnail
-   */
   static async getGroupThumbnails(groupIds: number[]) {
     if (groupIds.length === 0) return new Map<number, string>();
 
@@ -219,9 +187,6 @@ export class RobloxGroupService {
     return thumbnailMap;
   }
 
-  /**
-   * Get user's role in a specific group
-   */
   static async getUserRoleInGroup(userId: number, groupId: number) {
     const responseSchema = z.object({
       groupId: z.number(),
@@ -244,9 +209,6 @@ export class RobloxGroupService {
     }
   }
 
-  /**
-   * Cancel a pending group join request
-   */
   static async cancelPendingRequest(cookie: string, groupId: number) {
     const { requestWithCsrf } = await import("@main/lib/request");
 
@@ -259,9 +221,6 @@ export class RobloxGroupService {
     return { success: true };
   }
 
-  /**
-   * Join a group
-   */
   static async joinGroup(cookie: string, groupId: number) {
     const { requestWithCsrf } = await import("@main/lib/request");
 
@@ -280,9 +239,6 @@ export class RobloxGroupService {
     );
   }
 
-  /**
-   * Leave a group
-   */
   static async leaveGroup(cookie: string, groupId: number, userId: number) {
     const { requestWithCsrf } = await import("@main/lib/request");
 
@@ -295,9 +251,6 @@ export class RobloxGroupService {
     return { success: true };
   }
 
-  /**
-   * Search group store items
-   */
   static async searchGroupStore(
     groupId: number,
     keyword?: string,

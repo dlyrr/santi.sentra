@@ -45,7 +45,6 @@ function useColorPicker() {
   return context;
 }
 
-// Simple Slider to replace Radix Slider
 const Slider = ({
   value,
   max,
@@ -76,9 +75,7 @@ const Slider = ({
     const node = containerRef.current;
     if (!node) return;
 
-    // Try to capture the pointer on the element for more reliable move/up events
     try {
-      // React PointerEvent exposes pointerId
       (
         node as Element & { setPointerCapture?: (id: number) => void }
       ).setPointerCapture?.((e as any).pointerId);
@@ -90,7 +87,6 @@ const Slider = ({
       const rect = node.getBoundingClientRect();
       let percentage: number;
       if (isVertical) {
-        // For vertical, top is 0 (min) and bottom is 1 (max)
         percentage = Math.max(
           0,
           Math.min(1, (clientY - rect.top) / rect.height),
@@ -119,14 +115,11 @@ const Slider = ({
       }
     };
 
-    // Also listen for pointercancel to cleanup if the pointer is aborted
     const handlePointerCancel = () => handlePointerUp();
 
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerCancel);
-    // Ensure we remove pointercancel when pointer is up
-    // (cleaned up inside handlePointerUp)
   };
 
   const percentage = (value[0] / max) * 100;
@@ -180,7 +173,7 @@ export type ColorPickerProps = Omit<
 > & {
   value?: string;
   defaultValue?: string;
-  onChange?: (value: [number, number, number, number]) => void; // r, g, b, a
+  onChange?: (value: [number, number, number, number]) => void;
 };
 
 export const ColorPicker = ({
@@ -190,7 +183,6 @@ export const ColorPicker = ({
   className,
   ...props
 }: ColorPickerProps) => {
-  // Use try-catch or safe parsing
   const parseColor = (v: string) => {
     try {
       return Color(v);
@@ -201,45 +193,38 @@ export const ColorPicker = ({
 
   const selectedColor = parseColor(value || defaultValue);
 
-  // Note: Color library hue() returns 0-360, saturationl() returns 0-100, lightness() returns 0-100
   const [hue, setHue] = useState(selectedColor.hue());
   const [saturation, setSaturation] = useState(selectedColor.saturationl());
   const [lightness, setLightness] = useState(selectedColor.lightness());
   const [alpha, setAlpha] = useState(selectedColor.alpha() * 100);
   const [mode, setMode] = useState("hex");
 
-  // Track if we're syncing from props to avoid infinite loops
   const isSyncingFromPropsRef = useRef(false);
   const lastNotifiedColorRef = useRef<string | null>(null);
   const lastNotifiedAlphaRef = useRef<number | null>(null);
   const onChangeRef = useRef(onChange);
   const isInitialMountRef = useRef(true);
 
-  // Initialize lastNotifiedColor immediately
   const initialColor = parseColor(value || defaultValue);
   if (lastNotifiedColorRef.current === null) {
     lastNotifiedColorRef.current = initialColor.hex();
     lastNotifiedAlphaRef.current = initialColor.alpha();
   }
 
-  // Keep onChange ref up to date
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // Mark initial mount as complete after first render
   useEffect(() => {
     isInitialMountRef.current = false;
   }, []);
 
-  // Update internal state when prop value changes
   useEffect(() => {
     if (value) {
       const color = parseColor(value);
       const hex = color.hex();
       const newAlpha = color.alpha();
 
-      // Only update if the value actually changed from outside
       if (
         lastNotifiedColorRef.current !== hex ||
         lastNotifiedAlphaRef.current !== newAlpha
@@ -252,7 +237,6 @@ export const ColorPicker = ({
         lastNotifiedColorRef.current = hex;
         lastNotifiedAlphaRef.current = newAlpha;
 
-        // Reset flag in next tick
         requestAnimationFrame(() => {
           isSyncingFromPropsRef.current = false;
         });
@@ -260,9 +244,7 @@ export const ColorPicker = ({
     }
   }, [value]);
 
-  // Notify parent (only when user interacts, not when syncing from props)
   useEffect(() => {
-    // Don't notify on initial mount or when syncing from props
     if (
       isInitialMountRef.current ||
       isSyncingFromPropsRef.current ||
@@ -276,7 +258,6 @@ export const ColorPicker = ({
     const hex = color.hex();
     const currentAlpha = alpha;
 
-    // Only notify if color actually changed
     if (rgb.length >= 3 && lastNotifiedColorRef.current !== hex) {
       lastNotifiedColorRef.current = hex;
       lastNotifiedAlphaRef.current = currentAlpha;
@@ -417,9 +398,7 @@ export const ColorPickerSelection = memo(
               activePointerIdRef.current,
             );
           }
-        } catch (err) {
-          /* ignore */
-        }
+        } catch (err) {}
         activePointerIdRef.current = null;
       };
 
@@ -443,13 +422,11 @@ export const ColorPickerSelection = memo(
           e.preventDefault();
           isUserInteractingRef.current = true;
           setIsDragging(true);
-          // Try to capture the pointer for this element
+
           try {
             activePointerIdRef.current = (e as any).pointerId;
             containerRef.current?.setPointerCapture?.((e as any).pointerId);
-          } catch (err) {
-            /* ignore */
-          }
+          } catch (err) {}
           handleMove(e);
         }}
         ref={containerRef}
@@ -608,7 +585,6 @@ export const ColorPickerFormat = ({
       .join(", ")})`,
   );
 
-  // Update local state when color changes from outside
   useEffect(() => {
     if (mode === "hex") {
       setHexValue(color.hex());
@@ -619,8 +595,6 @@ export const ColorPickerFormat = ({
         .map((v) => Math.round(v));
       setCssValue(`rgb(${rgb.join(", ")})`);
     } else if (mode === "hsl") {
-      // For HSL mode, we don't store a separate state since we have hue, saturation, lightness
-      // but we need to ensure the picker reflects the current values
     }
   }, [color, mode]);
 
@@ -637,7 +611,6 @@ export const ColorPickerFormat = ({
   };
 
   const handleHexBlur = () => {
-    // Reset to valid color on blur if invalid
     try {
       Color(hexValue);
     } catch (error) {
@@ -664,7 +637,6 @@ export const ColorPickerFormat = ({
   const handleCssChange = (value: string) => {
     setCssValue(value);
     try {
-      // Try to parse rgb(...) or rgba(...) format
       const match = value.match(
         /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
       );
@@ -689,7 +661,6 @@ export const ColorPickerFormat = ({
   };
 
   const handleCssBlur = () => {
-    // Reset to valid color on blur if invalid
     try {
       const match = cssValue.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
       if (match) {
@@ -697,7 +668,7 @@ export const ColorPickerFormat = ({
         const g = parseInt(match[2]);
         const b = parseInt(match[3]);
         if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
-          return; // Valid
+          return;
         }
       }
     } catch (error) {
@@ -715,17 +686,14 @@ export const ColorPickerFormat = ({
       const num = parseFloat(value);
       if (isNaN(num)) return;
       if (index === 0) {
-        // Hue: 0-360
         if (num >= 0 && num <= 360) {
           setHue(num);
         }
       } else if (index === 1) {
-        // Saturation: 0-100
         if (num >= 0 && num <= 100) {
           setSaturation(num);
         }
       } else if (index === 2) {
-        // Lightness: 0-100
         if (num >= 0 && num <= 100) {
           setLightness(num);
         }

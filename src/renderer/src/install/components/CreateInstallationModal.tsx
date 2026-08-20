@@ -170,7 +170,7 @@ export const CreateInstallationModal: React.FC<
               </div>
             </div>
 
-            {/* Installation Path Selection */}
+            {}
             <div className="space-y-2 pt-2 border-t border-[var(--color-border)]">
               <label className="text-sm font-medium text-[var(--color-text-secondary)] pb-1 block">
                 Import Accounts

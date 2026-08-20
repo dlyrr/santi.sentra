@@ -368,7 +368,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           className="w-full h-full object-contain drop-shadow-md transform group-hover:scale-105 transition-transform duration-200"
                         />
                       </div>
-                      {/* Always visible name overlay */}
+                      {}
                       <div className="absolute inset-x-0 bottom-0 z-20">
                         <div
                           className="absolute inset-0 pointer-events-none"
@@ -503,7 +503,7 @@ const UserProfileView: React.FC<ProfileViewProps> = ({
                           </div>
                         )}
                       </div>
-                      {/* Always visible name overlay */}
+                      {}
                       <div className="absolute inset-x-0 bottom-0 z-20">
                         <div
                           className="absolute inset-0 pointer-events-none"

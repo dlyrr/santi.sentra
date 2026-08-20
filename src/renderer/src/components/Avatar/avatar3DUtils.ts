@@ -39,8 +39,6 @@ const buildMaterialMap = async (mtlText: string) => {
 
   const texturePromises: Promise<void>[] = [];
   const textureCache: Record<string, THREE.Texture> = {};
-  // Do not store blobUrls here to immediately revoke; they must live until disposal
-  // so three.js can lazily upload them to the GPU on the first render frame.
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -73,9 +71,6 @@ const buildMaterialMap = async (mtlText: string) => {
 
         let currentBlobUrl: string | null = null;
 
-        // Use fetch() + Blob URL to bypass Electron CORS/tainted-canvas restrictions.
-        // THREE.TextureLoader uses <img crossOrigin="anonymous"> which requires
-        // the CDN to return CORS headers — fetching as a blob avoids this entirely.
         fetch(textureUrl)
           .then((res) => {
             if (!res.ok) throw new Error(`Texture fetch failed: ${res.status}`);
@@ -96,7 +91,7 @@ const buildMaterialMap = async (mtlText: string) => {
           .then((tex) => {
             tex.flipY = true;
             tex.colorSpace = THREE.SRGBColorSpace;
-            // Store the blob URL on the texture so it can be revoked upon disposal
+
             if (currentBlobUrl) {
               tex.userData = { blobUrl: currentBlobUrl };
             }
@@ -111,7 +106,7 @@ const buildMaterialMap = async (mtlText: string) => {
           })
           .catch((err) => {
             console.error("Failed to load texture for material", matName, err);
-            // Texture failed — material stays without a map, resolve so rendering isn't blocked
+
             resolve();
           });
       });
@@ -148,7 +143,6 @@ export const dispose3DObject = (obj: THREE.Object3D | null) => {
   });
 };
 
-// Legacy alias for backward compatibility
 export const disposeAvatarObject = dispose3DObject;
 
 export type ObjectType = "avatar" | "asset";
@@ -160,10 +154,6 @@ interface Load3DObjectOptions {
   objectName?: string;
 }
 
-/**
- * Fetches the manifest URL for a 3D object based on type.
- * Uses IPC API for authenticated requests with CSRF support.
- */
 const fetchManifestUrl = async (
   type: ObjectType,
   id: string | number,
@@ -235,11 +225,6 @@ const loadFromManifest = async (
     throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`);
   const manifest = await manifestResponse.json();
 
-  // Manifest formats vary. Support several shapes:
-  // - { mtl: '<hash>', obj: '<hash>' }
-  // - { mtlHash: '<hash>', objHash: '<hash>' }
-  // - { mtl: { hash: '<hash>' } , obj: { hash: '<hash>' } }
-  // - { mtl: '<url>', obj: '<url>' }
   const resolveField = (val: any): string | null => {
     if (!val) return null;
     if (typeof val === "string") return val;
@@ -281,20 +266,15 @@ const loadFromManifest = async (
   if (!objTextResponse.ok)
     throw new Error(`Failed to load OBJ: ${objTextResponse.status}`);
   const objText = await objTextResponse.text();
-  // Attempt to parse OBJ in a worker for performance. If worker bundling
-  // fails in production (Vite runtime helpers missing), fallback to
-  // parsing on the main thread so 3D still functions.
 
   const parseObjAndCenterMain = (objText: string) => {
     const loader = new OBJLoader();
     const object = loader.parse(objText);
 
-    // Center
     const box = new THREE.Box3().setFromObject(object);
     const center = new THREE.Vector3();
     box.getCenter(center);
 
-    // Translate geometries
     const translateGeometry = (geometry: THREE.BufferGeometry) => {
       geometry.translate(-center.x, -center.y, -center.z);
     };
@@ -408,11 +388,9 @@ const loadFromManifest = async (
     if (joinResult.ok) {
       resultValue = joinResult.value;
     } else {
-      // If worker failed, fallback to main-thread parser
       resultValue = parseObjAndCenterMain(objText);
     }
   } catch (err: any) {
-    // Common production failure is __vitePreload not defined — detect and fallback
     resultValue = parseObjAndCenterMain(objText);
   }
 
@@ -435,17 +413,12 @@ const loadFromManifest = async (
     }
   });
 
-  // Geometry is already centered by worker logic
   object.position.set(0, 0, 0);
   object.rotation.y = Math.PI;
 
   return object;
 };
 
-/**
- * Universal 3D object loader - works for both avatars and assets
- * Requires authentication cookie for API requests
- */
 export const load3DObject = async ({
   type,
   id,
@@ -457,9 +430,6 @@ export const load3DObject = async ({
   return loadFromManifest(manifestUrl, name);
 };
 
-/**
- * Load a 3D object directly from a manifest URL
- */
 export const load3DObjectFromUrl = async (
   manifestUrl: string,
   objectName: string = "3d_object",
@@ -467,16 +437,12 @@ export const load3DObjectFromUrl = async (
   return loadFromManifest(manifestUrl, objectName);
 };
 
-// Legacy interface for backward compatibility
 interface LoadAvatarOptions {
   userId: string;
   cookie: string;
   objectName?: string;
 }
 
-/**
- * @deprecated Use load3DObject({ type: 'avatar', id: userId, cookie }) instead
- */
 export const loadAvatarObject = async ({
   userId,
   cookie,
@@ -485,10 +451,6 @@ export const loadAvatarObject = async ({
   return load3DObject({ type: "avatar", id: userId, cookie, objectName });
 };
 
-/**
- * Load an asset's 3D model
- * Requires authentication cookie for API requests
- */
 export const loadAssetObject = async (
   assetId: number | string,
   cookie: string,

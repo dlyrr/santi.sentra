@@ -1,8 +1,3 @@
-/**
- * Macro Player implementation.
- * Plays back recorded macro events with timing accuracy.
- */
-
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import {
@@ -38,9 +33,6 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
     this.logger = new Logger("MacroPlayer");
   }
 
-  /**
-   * Play a macro with the given configuration.
-   */
   public async play(
     macro: Macro,
     config: MacroPlaybackConfig = {},
@@ -76,9 +68,6 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
     return result;
   }
 
-  /**
-   * Pause current playback.
-   */
   public pause(): void {
     if (this.state && this.state.isPlaying) {
       this.state.pausedTime = Date.now();
@@ -87,11 +76,8 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
     }
   }
 
-  /**
-   * Resume paused playback.
-   */
   public resume(): void {
-    if (this.state && !this.state.isPlaying && this.state.pausedTime) {
+    if (this.state && this.state.pausedTime) {
       const pausedDuration = Date.now() - this.state.pausedTime;
       this.state.startTime += pausedDuration;
       this.state.pausedTime = undefined;
@@ -100,9 +86,6 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
     }
   }
 
-  /**
-   * Cancel current playback.
-   */
   public cancel(): void {
     this.shouldCancel = true;
     if (this.state) {
@@ -112,16 +95,10 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
     this.emit("playbackCancelled");
   }
 
-  /**
-   * Check if currently playing.
-   */
   public isPlaying(): boolean {
     return this.state?.isPlaying ?? false;
   }
 
-  /**
-   * Register event callback.
-   */
   public onEvent(callback: MacroPlaybackCallback): void {
     this.eventCallbacks.push(callback);
   }
@@ -172,23 +149,20 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
           }
 
           const event = this.currentMacro.events[i];
-          const nextEvent = this.currentMacro.events[i + 1];
 
-          // Wait for timing
-          if (nextEvent && i > 0) {
-            const delay = nextEvent.timestamp - event.timestamp;
+          if (i > 0) {
+            const prevEvent = this.currentMacro.events[i - 1];
+            const delay = event.timestamp - prevEvent.timestamp;
             const adjustedDelay = Math.ceil(
               delay / (this.config.speedMultiplier ?? 1.0),
             );
             await this.sleep(Math.max(0, adjustedDelay));
           }
 
-          // Execute event
           await this.executeEvent(event);
           this.state.currentEventIndex = i + 1;
           totalEventsPlayed++;
 
-          // Notify callbacks
           this.eventCallbacks.forEach((callback) => {
             try {
               callback(this.state!, event);
@@ -270,8 +244,6 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
   }
 
   private async executeMouse(event: MacroEvent): Promise<void> {
-    // In a real implementation, use mouse library or Electron APIs
-    // This is a placeholder for event tracking
     if (event.x !== undefined && event.y !== undefined) {
       this.logger.debug("Mouse event", {
         action: event.action,
@@ -282,8 +254,6 @@ export class MacroPlayer extends EventEmitter implements IMacroPlayer {
   }
 
   private async executeKeyboard(event: MacroEvent): Promise<void> {
-    // In a real implementation, use keyboard library or Electron APIs
-    // This is a placeholder for event tracking
     this.logger.debug("Keyboard event", {
       action: event.action,
       key: event.key,

@@ -17,9 +17,6 @@ import {
 } from "@shared/ipc-schemas/games";
 
 export class RobloxGameService {
-  /**
-   * Helper method to split array into chunks
-   */
   private static chunk<T>(arr: T[], size: number): T[][] {
     return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
       arr.slice(i * size, i * size + size),
@@ -59,9 +56,6 @@ export class RobloxGameService {
     }
   }
 
-  /**
-   * Get game icon thumbnail (square icon - better for Discord RPC)
-   */
   static async getGameIconThumbnail(
     universeId: number,
   ): Promise<string | null> {
@@ -77,7 +71,7 @@ export class RobloxGameService {
           ),
         }),
         {
-          url: `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png&isCircular=false`,
+          url: `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&countPerUniverse=10&defaults=true&size=768x432&format=Png&isCircular=false`,
         },
       );
 
@@ -343,8 +337,6 @@ export class RobloxGameService {
         .filter(Boolean);
     }
 
-    // Deduplicate initialData by universeId and filter out entries without a valid universeId
-    // to prevent duplicate React keys (e.g. multiple items with universeId=null → id="null")
     const seenInResult = new Set<string>();
     const dedupedData = (initialData as any[]).filter((g: any) => {
       if (!g?.universeId) return false;

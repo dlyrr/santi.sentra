@@ -7,7 +7,6 @@ import { DropdownOption } from "@renderer/components/UI/menus/CustomDropdown";
 import { CatalogCategory, CatalogSubcategory } from "@renderer/ipc/windowApi";
 import { PriceInput } from "./PriceInput";
 
-// Re-use options from parent or define here
 const SALES_TYPE_OPTIONS: DropdownOption[] = [
   { value: "1", label: "All Types" },
   { value: "2", label: "Collectibles" },
@@ -15,14 +14,12 @@ const SALES_TYPE_OPTIONS: DropdownOption[] = [
 ];
 
 interface CatalogFilterSidebarProps {
-  // Categories
   categories: CatalogCategory[];
   selectedCategory: CatalogCategory | null;
   selectedSubcategory: CatalogSubcategory | null;
   onCategoryChange: (category: CatalogCategory | null) => void;
   onSubcategoryChange: (subcategory: CatalogSubcategory | null) => void;
 
-  // Filters
   minPrice: string;
   maxPrice: string;
   onMinPriceChange: (val: string) => void;
@@ -104,7 +101,6 @@ export const CatalogFilterSidebar = ({
   onClearAll,
   hasActiveFilters,
 }: CatalogFilterSidebarProps) => {
-  // Local state for creator input to avoid lag from store updates on every keystroke
   const [localCreatorName, setLocalCreatorName] = useState(creatorName);
   const isAllCategoriesSelected = !selectedCategory && !selectedSubcategory;
 
@@ -113,12 +109,10 @@ export const CatalogFilterSidebar = ({
     onSubcategoryChange(null);
   };
 
-  // Sync local state with store value when it changes externally (e.g., from clear filters)
   useEffect(() => {
     setLocalCreatorName(creatorName);
   }, [creatorName]);
 
-  // Category Tree Item
   const CategoryItem = ({ category }: { category: CatalogCategory }) => {
     const isSelected =
       selectedCategory?.categoryId === category.categoryId &&
@@ -127,7 +121,6 @@ export const CatalogFilterSidebar = ({
       selectedCategory?.categoryId === category.categoryId;
     const [isExpanded, setIsExpanded] = useState(isParentOfSelected);
 
-    // Auto-expand if children are selected
     React.useEffect(() => {
       if (isParentOfSelected) setIsExpanded(true);
     }, [isParentOfSelected]);
@@ -157,7 +150,7 @@ export const CatalogFilterSidebar = ({
               className={`transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
             />
           ) : (
-            <span className="w-3.5" /> // Spacer
+            <span className="w-3.5" />
           )}
           <span className="truncate text-left flex-1">{category.name}</span>
         </button>
@@ -215,7 +208,7 @@ export const CatalogFilterSidebar = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
-        {/* Categories */}
+        {}
         <div className="pb-4 border-b border-[var(--color-border)]">
           <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
             Categories
@@ -229,7 +222,7 @@ export const CatalogFilterSidebar = ({
                   : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] border border-transparent hover:border-[var(--color-border-strong)]"
               }`}
             >
-              <span className="w-3.5" /> {/* Spacer to align with chevron */}
+              <span className="w-3.5" />
               <span className="truncate text-left flex-1">All Categories</span>
               {isAllCategoriesSelected && (
                 <Check size={14} className="shrink-0" />
@@ -241,7 +234,7 @@ export const CatalogFilterSidebar = ({
           </div>
         </div>
 
-        {/* Sales Type */}
+        {}
         <FilterSection title="Sales Type">
           <div className="space-y-1">
             {SALES_TYPE_OPTIONS.map((option) => (
@@ -261,7 +254,7 @@ export const CatalogFilterSidebar = ({
           </div>
         </FilterSection>
 
-        {/* Price */}
+        {}
         <FilterSection title="Price Range">
           <div className="space-y-3 px-1 pb-1">
             <div className="flex items-center gap-2">
@@ -290,7 +283,7 @@ export const CatalogFilterSidebar = ({
           </div>
         </FilterSection>
 
-        {/* Creator */}
+        {}
         <FilterSection title="Creator" isOpenDefault={!!creatorName}>
           <div className="space-y-3 px-1 pb-1">
             <div className="flex gap-2">
@@ -305,7 +298,6 @@ export const CatalogFilterSidebar = ({
                   }
                 }}
                 onBlur={() => {
-                  // Sync to store on blur
                   onCreatorNameChange(localCreatorName);
                 }}
                 className="h-9 text-sm"
@@ -360,7 +352,7 @@ export const CatalogFilterSidebar = ({
           </div>
         </FilterSection>
 
-        {/* Unavailable */}
+        {}
         <FilterSection title="Availability" isOpenDefault={true}>
           <button
             onClick={() =>
@@ -377,7 +369,7 @@ export const CatalogFilterSidebar = ({
               className={`w-9 h-5 rounded-full relative transition-colors duration-200 ${unavailableItems === "show" ? "bg-[rgba(var(--accent-color-rgb),0.2)]" : "bg-[var(--color-surface-hover)]"}`}
             >
               <div
-                className={`absolute top-1 w-3 h-3 rounded-full shadow-sm transition-all duration-200 ${unavailableItems === "show" ? "translate-x-5 bg-white" : "translate-x-1 bg-[var(--color-border-strong)]"}`}
+                className={`absolute top-1 w-3 h-3 rounded-full shadow-sm transition-all duration-200 ${unavailableItems === "show" ? "translate-x-5 bg-[var(--accent-color)]" : "translate-x-1 bg-[var(--color-border-strong)]"}`}
               />
             </div>
           </button>

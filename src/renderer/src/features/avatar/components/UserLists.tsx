@@ -6,10 +6,6 @@ import { HorizontalCarousel } from "@renderer/components/UI/navigation/Horizonta
 import { PaginatedList } from "@renderer/components/UI/navigation/PaginatedList";
 import { UserCard } from "@renderer/components/UI/display/UserCard";
 
-// ============================================================================
-// Owners List
-// ============================================================================
-
 interface OwnersListProps {
   owners: AssetOwner[];
   ownersLoading: boolean;
@@ -92,10 +88,6 @@ export const OwnersList: React.FC<OwnersListProps> = ({
   );
 };
 
-// ============================================================================
-// Resellers List
-// ============================================================================
-
 interface ResellersListProps {
   resellers: ResellerItem[];
   resellersLoading: boolean;
@@ -161,10 +153,6 @@ export const ResellersList: React.FC<ResellersListProps> = ({
   );
 };
 
-// ============================================================================
-// Hoarders List
-// ============================================================================
-
 interface Hoarder {
   id?: string;
   name: string;
@@ -199,7 +187,6 @@ export const HoardersList: React.FC<HoardersListProps> = ({
 
   const { owner_ids, owner_names, quantities } = hoardsData;
 
-  // Create combined and sorted list
   const hoarders: Hoarder[] = owner_names
     .map((name, index) => ({
       id: owner_ids?.[index],

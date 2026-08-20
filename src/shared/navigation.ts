@@ -42,9 +42,6 @@ export const DEFAULT_SIDEBAR_TAB_ORDER: TabId[] = [
 
 export const LOCKED_SIDEBAR_TABS: TabId[] = ["Settings"];
 
-/**
- * Deduplicate and ensure all known tabs are present in a stable order.
- */
 export const sanitizeSidebarOrder = (order?: TabId[]): TabId[] => {
   const provided = Array.isArray(order) ? order : [];
   const seen = new Set<TabId>();
@@ -68,9 +65,6 @@ export const sanitizeSidebarOrder = (order?: TabId[]): TabId[] => {
   return valid;
 };
 
-/**
- * Remove invalid/duplicate entries and keep locked tabs visible.
- */
 export const sanitizeSidebarHidden = (hidden?: TabId[]): TabId[] => {
   if (!Array.isArray(hidden)) return [];
 
@@ -92,9 +86,6 @@ export const sanitizeSidebarHidden = (hidden?: TabId[]): TabId[] => {
   return sanitized;
 };
 
-/**
- * Return the ordered list of tabs that should be visible in the sidebar.
- */
 export const getVisibleSidebarTabs = (
   order?: TabId[],
   hidden?: TabId[],

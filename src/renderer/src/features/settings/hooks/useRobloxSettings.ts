@@ -12,7 +12,8 @@ export interface RobloxSettings {
   framerateCapEnabled: boolean;
   framerateCapValue: number;
   optimizeRamEnabled: boolean;
-  ramOptimizeLimit: number;
+  ramOptimization: number;
+  cpuOptimization: number;
   headlessModeEnabled: boolean;
   timeoutRelaunchEnabled: boolean;
   timeoutRelaunchSeconds: number;
@@ -30,21 +31,18 @@ const DEFAULT_SETTINGS: RobloxSettings = {
   framerateCapEnabled: false,
   framerateCapValue: 60,
   optimizeRamEnabled: false,
-  ramOptimizeLimit: 500,
+  ramOptimization: 500,
+  cpuOptimization: 0,
   headlessModeEnabled: false,
   timeoutRelaunchEnabled: false,
   timeoutRelaunchSeconds: 3600,
 };
 
-/**
- * useRobloxSettings - Custom hook for managing Roblox settings state and API interactions
- */
 export function useRobloxSettings() {
   const [settings, setSettings] = useState<RobloxSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load settings on mount
   useEffect(() => {
     loadSettings();
   }, []);
@@ -66,7 +64,8 @@ export function useRobloxSettings() {
         framerateCapEnabled: loaded.framerateCapEnabled,
         framerateCapValue: loaded.framerateCapValue,
         optimizeRamEnabled: loaded.optimizeRamEnabled,
-        ramOptimizeLimit: loaded.ramOptimizeLimit,
+        ramOptimization: loaded.ramOptimization,
+        cpuOptimization: loaded.cpuOptimization,
         headlessModeEnabled: loaded.headlessModeEnabled,
         timeoutRelaunchEnabled: loaded.timeoutRelaunchEnabled,
         timeoutRelaunchSeconds: loaded.timeoutRelaunchSeconds,

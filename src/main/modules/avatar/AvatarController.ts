@@ -9,11 +9,7 @@ import { RobloxThumbnailService } from "./ThumbnailService";
 import { outfitDetailsSchema } from "../../../shared/ipc-schemas/avatar";
 import { hashToServer, downloadFileToPath } from "../core/utils/downloadUtils";
 
-/**
- * Registers avatar-related IPC handlers
- */
 export const registerAvatarHandlers = (): void => {
-  // 3D Avatar Manifest - authenticated with CSRF
   handle(
     "get-avatar-3d-manifest",
     z.tuple([z.string(), z.union([z.number(), z.string()])]),
@@ -23,7 +19,6 @@ export const registerAvatarHandlers = (): void => {
     },
   );
 
-  // 3D Asset Manifest - authenticated with CSRF
   handle(
     "get-asset-3d-manifest",
     z.tuple([z.string(), z.union([z.number(), z.string()])]),
@@ -83,7 +78,6 @@ export const registerAvatarHandlers = (): void => {
     },
   );
 
-  // V2 API - accepts full asset objects with assetType and currentVersionId
   const assetObjectSchema = z.object({
     id: z.number(),
     name: z.string(),
@@ -271,13 +265,7 @@ export const registerAvatarHandlers = (): void => {
 
   handle(
     "purchase-limited-item",
-    z.tuple([
-      z.string(), // cookie
-      z.string(), // collectibleItemInstanceId
-      z.number(), // expectedPrice
-      z.number(), // sellerId
-      z.string(), // collectibleProductId
-    ]),
+    z.tuple([z.string(), z.string(), z.number(), z.number(), z.string()]),
     async (
       _,
       cookieRaw,
@@ -300,13 +288,13 @@ export const registerAvatarHandlers = (): void => {
   handle(
     "purchase-catalog-item",
     z.tuple([
-      z.string(), // cookie
-      z.string(), // collectibleItemId (UUID)
-      z.number(), // expectedPrice
-      z.number(), // expectedSellerId
-      z.string().optional(), // collectibleProductId
-      z.string().optional(), // expectedPurchaserId
-      z.string().optional(), // idempotencyKey
+      z.string(),
+      z.string(),
+      z.number(),
+      z.number(),
+      z.string().optional(),
+      z.string().optional(),
+      z.string().optional(),
     ]),
     async (
       _,
@@ -383,7 +371,6 @@ export const registerAvatarHandlers = (): void => {
     },
   );
 
-  // Rolimons API - fetch all limited item data
   handle("get-rolimons-item-details", z.tuple([]), async () => {
     const response = await net.fetch(
       "https://api.rolimons.com/items/v2/itemdetails",
@@ -412,7 +399,6 @@ export const registerAvatarHandlers = (): void => {
     return data;
   });
 
-  // Rolimons API - fetch player data (value, rap, badges, etc.)
   handle("get-rolimons-player", z.tuple([z.number()]), async (_, userId) => {
     const response = await net.fetch(
       `https://api.rolimons.com/players/v1/playerinfo/${userId}`,
@@ -438,7 +424,6 @@ export const registerAvatarHandlers = (): void => {
     return data;
   });
 
-  // Rolimons API - fetch detailed item page data (value history, ownership data, etc.)
   handle("get-rolimons-item-page", z.tuple([z.number()]), async (_, itemId) => {
     const response = await net.fetch(
       `https://www.rolimons.com/item/${itemId}`,
@@ -462,15 +447,10 @@ export const registerAvatarHandlers = (): void => {
 
     const html = await response.text();
 
-    // Helper function to extract JavaScript variable value using regex
-    // This handles the embedded JS objects/arrays in the HTML
     const extractJsVar = (varName: string): any => {
-      // Match var varName = {...}; or var varName = [...];
-      // Use a more robust pattern that captures everything until the closing semicolon
       const patterns = [
-        // Pattern for objects: var name = { ... };
         new RegExp(`var\\s+${varName}\\s*=\\s*(\\{[\\s\\S]*?\\});`, "m"),
-        // Pattern for arrays: var name = [ ... ];
+
         new RegExp(`var\\s+${varName}\\s*=\\s*(\\[[\\s\\S]*?\\]);`, "m"),
       ];
 
@@ -478,17 +458,14 @@ export const registerAvatarHandlers = (): void => {
         const match = html.match(regex);
         if (match && match[1]) {
           try {
-            // The data is already valid JavaScript, we can use Function to evaluate it safely
-            // This handles null, true, false, numbers, strings, etc. properly
             const fn = new Function(`return ${match[1]}`);
             return fn();
           } catch {
-            // If Function evaluation fails, try manual JSON parsing with fixes
             try {
               const str = match[1]
-                .replace(/'/g, '"') // Single quotes to double quotes
-                .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
-                .replace(/(\w+):/g, '"$1":'); // Quote unquoted keys
+                .replace(/'/g, '"')
+                .replace(/,(\s*[}\]])/g, "$1")
+                .replace(/(\w+):/g, '"$1":');
               return JSON.parse(str);
             } catch {
               return null;
@@ -516,7 +493,6 @@ export const registerAvatarHandlers = (): void => {
     };
   });
 
-  // Catalog search by keyword
   handle(
     "search-catalog",
     z.tuple([z.string(), z.number().optional(), z.string().optional()]),
@@ -533,7 +509,6 @@ export const registerAvatarHandlers = (): void => {
     "download-asset-3d",
     z.tuple([z.number(), z.enum(["obj", "texture"]), z.string()]),
     async (event, assetId, type, assetName) => {
-      // Fetch the 3D thumbnail manifest
       const thumbResponse = await net.fetch(
         `https://thumbnails.roblox.com/v1/assets-thumbnail-3d?assetId=${assetId}`,
       );
@@ -547,13 +522,11 @@ export const registerAvatarHandlers = (): void => {
         throw new Error("3D data not available for this asset");
       }
 
-      // Fetch the manifest
       const manifestResponse = await net.fetch(thumbData.imageUrl);
       if (!manifestResponse.ok)
         throw new Error(`Failed to fetch manifest: ${manifestResponse.status}`);
       const manifest = await manifestResponse.json();
 
-      // Manifest formats can vary; accept hashes or full URLs
       const resolveField = (val: any): string | null => {
         if (!val) return null;
         if (typeof val === "string") return val;
@@ -580,11 +553,9 @@ export const registerAvatarHandlers = (): void => {
           ? val
           : `https://t${hashToServer(val)}.rbxcdn.com/${val}`;
 
-      // Get the parent window for the dialog
       const win = BrowserWindow.fromWebContents(event.sender);
 
       if (type === "obj") {
-        // Download OBJ file
         const objUrl = makeUrl(objVal);
         const safeName = assetName.replace(/[^a-zA-Z0-9_-]/g, "_");
 
@@ -600,14 +571,12 @@ export const registerAvatarHandlers = (): void => {
         await downloadFileToPath(objUrl, result.filePath);
         return { success: true, path: result.filePath };
       } else {
-        // Download texture - need to parse MTL to find texture hash or URL
         const mtlUrl = makeUrl(mtlVal);
         const mtlResponse = await net.fetch(mtlUrl);
         if (!mtlResponse.ok)
           throw new Error(`Failed to fetch MTL: ${mtlResponse.status}`);
         const mtlText = await mtlResponse.text();
 
-        // Parse MTL to find texture reference (map_Kd line)
         const lines = mtlText.split(/\r?\n/);
         let textureRef: string | null = null;
         for (const line of lines) {

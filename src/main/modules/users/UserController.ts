@@ -5,17 +5,10 @@ import { RobloxUserService } from "./UserService";
 import { cookieRefreshService } from "../auth/CookieRefreshService";
 import { AccountSettingsService } from "../accountSettings/AccountSettingsService";
 
-/**
- * Registers user-related IPC handlers
- */
 export const registerUserHandlers = (): void => {
   handle("get-avatar-url", z.tuple([z.string()]), async (_, userId) => {
     return RobloxUserService.getAvatarUrl(userId);
   });
-
-  // ============================================================================
-  // COOKIE VALIDATION & REFRESH HANDLERS
-  // ============================================================================
 
   handle(
     "validate-refresh-cookie",
@@ -41,7 +34,6 @@ export const registerUserHandlers = (): void => {
     try {
       const cookie = RobloxAuthService.extractCookie(cookieRaw);
 
-      // Get account info to check lastActive
       const user = await RobloxUserService.getAuthenticatedUser(cookie);
       const accounts = (await (global as any)._getAccounts?.()) || [];
       const account = accounts.find(
@@ -55,7 +47,7 @@ export const registerUserHandlers = (): void => {
 
       return {
         isValid: !isExpiring,
-        isExpiring: daysUntil < 7 && !isExpiring, // Warn at 7 days
+        isExpiring: daysUntil < 7 && !isExpiring,
         daysUntilExpiry: daysUntil,
         lastValidated: new Date().toISOString(),
       };
@@ -111,7 +103,6 @@ export const registerUserHandlers = (): void => {
       const cookie = RobloxAuthService.extractCookie(cookieRaw);
       return await RobloxUserService.getVoiceSettings(cookie);
     } catch (err: any) {
-      // 401 means voice chat is not enabled for this account — return null silently
       const status = err?.statusCode ?? err?.response?.status;
       if (status === 401 || status === 403) {
         return null;
@@ -155,7 +146,6 @@ export const registerUserHandlers = (): void => {
     "get-batch-account-statuses",
     z.tuple([z.array(z.string())]),
     async (_, cookieRaws) => {
-      // Extract cookies for the service, but keep original cookies for the result keys
       const cookieMap = new Map<string, string>();
       const extractedCookies: string[] = [];
 

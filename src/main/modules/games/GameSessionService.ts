@@ -23,6 +23,8 @@ class GameSessionService extends EventEmitter {
   private pollingInterval: NodeJS.Timeout | null = null;
   private pollingTimeout: NodeJS.Timeout | null = null;
 
+  private pollGeneration = 0;
+
   getCurrentSession(): GameSession | null {
     return this.currentSession;
   }
@@ -51,9 +53,7 @@ class GameSessionService extends EventEmitter {
           thumbnailUrl =
             (await RobloxGameService.getGameIconThumbnail(universeId)) ??
             undefined;
-        } catch {
-          // Ignore thumbnail errors
-        }
+        } catch {}
       }
     } catch (error) {
       console.error("[GameSession] Failed to fetch game details:", error);
@@ -82,7 +82,11 @@ class GameSessionService extends EventEmitter {
 
   private async getRobloxProcessCount(): Promise<number> {
     try {
-      const pids = await ProcessMonitor.getRobloxProcessPids();
+      const robloxSettings = storageService.getRobloxSettings();
+      const useFullList = !!robloxSettings.headlessModeEnabled;
+      const pids = useFullList
+        ? await ProcessMonitor.getRobloxProcessPids()
+        : await ProcessMonitor.getInteractiveRobloxProcessPids();
       return pids.length;
     } catch {
       return 0;
@@ -91,15 +95,18 @@ class GameSessionService extends EventEmitter {
 
   private startPolling(): void {
     this.stopPolling();
+    const generation = ++this.pollGeneration;
 
     this.pollingTimeout = setTimeout(() => {
-      if (!this.currentSession) return;
+      if (!this.currentSession || generation !== this.pollGeneration) return;
 
       const pollLoop = async () => {
-        if (!this.currentSession) return;
+        if (!this.currentSession || generation !== this.pollGeneration) return;
 
         try {
           const count = await this.getRobloxProcessCount();
+
+          if (generation !== this.pollGeneration) return;
           if (count === 0) {
             this.endSession();
             return;
@@ -108,7 +115,7 @@ class GameSessionService extends EventEmitter {
           console.error("[GameSession] Polling error:", error);
         }
 
-        if (this.currentSession) {
+        if (this.currentSession && generation === this.pollGeneration) {
           this.pollingTimeout = setTimeout(pollLoop, POLL_INTERVAL);
         }
       };
@@ -118,6 +125,7 @@ class GameSessionService extends EventEmitter {
   }
 
   private stopPolling(): void {
+    this.pollGeneration++;
     if (this.pollingTimeout) {
       clearTimeout(this.pollingTimeout);
       this.pollingTimeout = null;

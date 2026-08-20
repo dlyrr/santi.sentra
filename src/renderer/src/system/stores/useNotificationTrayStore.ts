@@ -29,7 +29,7 @@ export interface TrayNotification {
 interface NotificationTrayState {
   notifications: TrayNotification[];
   isOpen: boolean;
-  // Settings
+
   notifyFriendOnline: boolean;
   notifyFriendInGame: boolean;
   notifyFriendRemoved: boolean;
@@ -83,7 +83,7 @@ export const useNotificationTrayStore = create<NotificationTrayStore>()(
           set(
             (state) => {
               const updated = [newNotification, ...state.notifications];
-              // Keep only the most recent notifications
+
               return {
                 notifications: updated.slice(0, state.maxNotifications),
               };
@@ -151,7 +151,6 @@ export const useNotificationTrayStore = create<NotificationTrayStore>()(
           notifyFriendInGame: state.notifyFriendInGame,
           notifyFriendRemoved: state.notifyFriendRemoved,
           notifyServerLocation: state.notifyServerLocation,
-          // Don't persist notifications - they should be fresh each session
         }),
       },
     ),
@@ -159,7 +158,6 @@ export const useNotificationTrayStore = create<NotificationTrayStore>()(
   ),
 );
 
-// Selectors
 export const useNotifications = () =>
   useNotificationTrayStore((state) => state.notifications);
 export const useUnreadCount = () =>

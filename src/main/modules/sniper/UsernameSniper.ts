@@ -14,15 +14,18 @@ export interface UsernameSession {
   endTime?: number;
   loopEnabled: boolean;
   loopCount: number;
+  totalLoops: number;
   currentLoop: number;
   proxies: string[];
   currentProxyIndex: number;
-  checkInterval: number; // ms between checks
+  checkInterval: number;
+
+  nextDispatchIndex: number;
 }
 
 export interface UsernameCheckResult {
   username: string;
-  code: 0 | 1 | 2 | 10 | -1; // 0: valid, 1: taken, 2/10: censored, -1: error
+  code: 0 | 1 | 2 | 10 | -1;
   message?: string;
 }
 
@@ -38,9 +41,11 @@ export class UsernameSniperService extends EventEmitter {
   private sessions: Map<string, UsernameSession> = new Map();
   private runningSession: string | null = null;
 
+  private activeLoops: Set<string> = new Set();
+
   constructor() {
     super();
-    // Set max listeners to avoid warnings
+
     this.setMaxListeners(100);
   }
 
@@ -60,6 +65,7 @@ export class UsernameSniperService extends EventEmitter {
     checkInterval: number = 200,
   ): Promise<string> {
     const sessionId = this.generateSessionId();
+    const totalLoops = loopEnabled ? Math.max(1, loopCount) : 1;
     const session: UsernameSession = {
       id: sessionId,
       usernames: usernames.filter((u) => u.trim().length > 0),
@@ -72,10 +78,12 @@ export class UsernameSniperService extends EventEmitter {
       endTime: undefined,
       loopEnabled,
       loopCount,
+      totalLoops,
       currentLoop: 0,
       proxies,
       currentProxyIndex: 0,
       checkInterval,
+      nextDispatchIndex: 0,
     };
     this.sessions.set(sessionId, session);
     return sessionId;
@@ -107,9 +115,19 @@ export class UsernameSniperService extends EventEmitter {
         const result = await new Promise<UsernameCheckResult>(
           (resolve, reject) => {
             let isResolved = false;
+
+            const randomYear = 1990 + Math.floor(Math.random() * 20);
+            const randomMonth = String(
+              Math.floor(Math.random() * 12) + 1,
+            ).padStart(2, "0");
+            const randomDay = String(
+              Math.floor(Math.random() * 28) + 1,
+            ).padStart(2, "0");
+            const randomBirthday = `${randomYear}-${randomMonth}-${randomDay}`;
+
             const options: any = {
               hostname: "auth.roblox.com",
-              path: `/v1/usernames/validate?Username=${encodeURIComponent(cleaned)}&Birthday=2000-01-01`,
+              path: `/v1/usernames/validate?Username=${encodeURIComponent(cleaned)}&Birthday=${randomBirthday}`,
               method: "GET",
               headers: {
                 "User-Agent": this.getRandomUserAgent(),
@@ -136,6 +154,21 @@ export class UsernameSniperService extends EventEmitter {
               res.on("end", () => {
                 if (isResolved) return;
                 isResolved = true;
+
+                if (res.statusCode === 429) {
+                  const raHeader = String(res.headers["retry-after"] ?? "");
+                  const raSeconds = parseInt(raHeader, 10);
+                  const retryAfterMs =
+                    Number.isFinite(raSeconds) && raSeconds > 0
+                      ? Math.min(raSeconds * 1000, 60000)
+                      : 2000;
+                  const err: any = new Error("Rate limited (429)");
+                  err.retryAfterMs = retryAfterMs;
+                  lastError = err;
+                  reject(err);
+                  return;
+                }
+
                 try {
                   const response = JSON.parse(data);
                   const code = response.code !== undefined ? response.code : -1;
@@ -179,12 +212,10 @@ export class UsernameSniperService extends EventEmitter {
           },
         );
 
-        // If we got a successful response (non-error), return it
         if (result.code !== -1) {
           return result;
         }
 
-        // If code is -1, it's a network error from the other side, retry
         lastError = new Error(result.message);
         if (attempt < maxRetries - 1) {
           await new Promise((resolve) =>
@@ -194,10 +225,11 @@ export class UsernameSniperService extends EventEmitter {
       } catch (error: any) {
         lastError = error;
         if (attempt < maxRetries - 1) {
-          // Wait before retry with exponential backoff
-          await new Promise((resolve) =>
-            setTimeout(resolve, 100 * (attempt + 1)),
-          );
+          const backoff =
+            typeof error?.retryAfterMs === "number"
+              ? error.retryAfterMs
+              : 100 * (attempt + 1);
+          await new Promise((resolve) => setTimeout(resolve, backoff));
         }
       }
     }
@@ -209,14 +241,6 @@ export class UsernameSniperService extends EventEmitter {
     };
   }
 
-  // Proxy swapping disabled for now
-  // private getNextProxy(session: UsernameSession): string | undefined {
-  //   if (session.proxies.length === 0) return undefined;
-  //   const proxy = session.proxies[session.currentProxyIndex];
-  //   session.currentProxyIndex = (session.currentProxyIndex + 1) % session.proxies.length;
-  //   return proxy;
-  // }
-
   async startSniper(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) {
@@ -227,141 +251,159 @@ export class UsernameSniperService extends EventEmitter {
       throw new Error("Another sniper session is already running");
     }
 
-    this.runningSession = sessionId;
-    session.status = "running";
-    if (!session.startTime) session.startTime = Date.now();
-    this.emit("status", { sessionId, status: "running" });
+    if (this.activeLoops.has(sessionId)) {
+      throw new Error("Sniper session is already running");
+    }
+    this.activeLoops.add(sessionId);
 
-    // Match Python's thread count (60 workers)
-    const maxThreads = 60;
+    try {
+      this.runningSession = sessionId;
+      session.status = "running";
+      if (!session.startTime) session.startTime = Date.now();
+      this.emit("status", { sessionId, status: "running" });
 
-    // Loop sniping logic
-    const loopTarget = session.loopEnabled ? session.loopCount : 1;
-    let startLoop = session.currentLoop > 0 ? session.currentLoop - 1 : 0;
+      const maxThreads = 60;
 
-    for (let loop = startLoop; loop < loopTarget; loop++) {
-      if (session.status !== "running") break;
+      const loopTarget = session.loopEnabled
+        ? Math.max(1, session.loopCount)
+        : 1;
+      session.totalLoops = loopTarget;
+      const startLoop = session.currentLoop > 0 ? session.currentLoop - 1 : 0;
 
-      session.currentLoop = loop + 1;
-      
-      if (session.checked >= session.usernames.length || session.checked === 0) {
-        session.checked = 0;
-        session.valid = [];
-        session.taken = [];
-        session.censored = [];
-        
-        this.emit("loop-start", {
-          sessionId,
-          loopNumber: loop + 1,
-          totalLoops: loopTarget,
-        });
-      }
+      for (let loop = startLoop; loop < loopTarget; loop++) {
+        if (session.status !== "running") break;
 
-      let activePromises = 0;
-      let startIndex = session.checked;
+        session.currentLoop = loop + 1;
 
-      for (let i = startIndex; i < session.usernames.length; i++) {
-        // Wait if we have too many active promises
-        while (activePromises >= maxThreads && session.status === "running") {
-          await new Promise((resolve) => setTimeout(resolve, 50));
+        if (
+          session.checked >= session.usernames.length ||
+          session.checked === 0
+        ) {
+          session.checked = 0;
+          session.nextDispatchIndex = 0;
+          session.valid = [];
+          session.taken = [];
+          session.censored = [];
+
+          this.emit("loop-start", {
+            sessionId,
+            loopNumber: loop + 1,
+            totalLoops: loopTarget,
+          });
+        }
+
+        let activePromises = 0;
+
+        const startIndex = session.nextDispatchIndex;
+
+        for (let i = startIndex; i < session.usernames.length; i++) {
+          while (activePromises >= maxThreads && session.status === "running") {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+
+          if (session.status !== "running") {
+            break;
+          }
+
+          const username = session.usernames[i];
+          session.nextDispatchIndex = i + 1;
+          activePromises++;
+
+          this.checkUsername(username)
+            .then((result) => {
+              session.checked++;
+
+              if (result.code === 0) {
+                session.valid.push(result.username);
+                this.emit("valid", { sessionId, username: result.username });
+              } else if (result.code === 1) {
+                session.taken.push(result.username);
+                this.emit("taken", { sessionId, username: result.username });
+              } else if (result.code === 2 || result.code === 10) {
+                session.censored.push(result.username);
+                this.emit("censored", {
+                  sessionId,
+                  username: result.username,
+                });
+              } else if (this.listenerCount("error") > 0) {
+                this.emit("error", {
+                  sessionId,
+                  username: result.username,
+                  message: result.message,
+                });
+              }
+
+              this.emit("progress", {
+                sessionId,
+                checked: session.checked,
+                total: session.usernames.length,
+                loop: session.currentLoop,
+                totalLoops: loopTarget,
+              });
+            })
+            .catch((err) => {
+              session.checked++;
+              if (this.listenerCount("error") > 0) {
+                this.emit("error", {
+                  sessionId,
+                  username,
+                  message: err.message,
+                });
+              }
+              this.emit("progress", {
+                sessionId,
+                checked: session.checked,
+                total: session.usernames.length,
+                loop: session.currentLoop,
+                totalLoops: loopTarget,
+              });
+            })
+            .finally(() => {
+              activePromises--;
+            });
+
+          const minDelay = 50;
+          const delay =
+            Math.random() * Math.max(1, session.checkInterval - minDelay) +
+            minDelay;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        while (activePromises > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
         if (session.status !== "running") {
           break;
         }
 
-        const username = session.usernames[i];
-        activePromises++;
-
-        // Don't use proxies for now
-        const hasErrorListeners = this.listenerCount("error") > 0;
-        this.checkUsername(username)
-          .then((result) => {
-            session.checked++;
-
-            if (result.code === 0) {
-              session.valid.push(result.username);
-              this.emit("valid", { sessionId, username: result.username });
-            } else if (result.code === 1) {
-              session.taken.push(result.username);
-              this.emit("taken", { sessionId, username: result.username });
-            } else if (result.code === 2 || result.code === 10) {
-              session.censored.push(result.username);
-              this.emit("censored", { sessionId, username: result.username });
-            } else if (hasErrorListeners) {
-              this.emit("error", {
-                sessionId,
-                username: result.username,
-                message: result.message,
-              });
-            }
-
-            this.emit("progress", {
-              sessionId,
-              checked: session.checked,
-              total: session.usernames.length,
-              loop: session.currentLoop,
-              totalLoops: loopTarget,
-            });
-          })
-          .catch((err) => {
-            session.checked++;
-            if (hasErrorListeners) {
-              this.emit("error", { sessionId, username, message: err.message });
-            }
-            this.emit("progress", {
-              sessionId,
-              checked: session.checked,
-              total: session.usernames.length,
-              loop: session.currentLoop,
-              totalLoops: loopTarget,
-            });
-          })
-          .finally(() => {
-            activePromises--;
+        if (loop < loopTarget - 1) {
+          this.emit("loop-end", {
+            sessionId,
+            loopNumber: loop + 1,
+            totalLoops: loopTarget,
           });
 
-        // Random delay between requests (like Python: 0.05-0.3 seconds)
-        const minDelay = 50; // Minimum 50ms to avoid being flagged
-        const delay =
-          Math.random() * Math.max(1, session.checkInterval - minDelay) +
-          minDelay;
-        await new Promise((resolve) => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
 
-      // Wait for remaining promises to complete
-      while (activePromises > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
+      if (session.status === "running") {
+        session.status = "completed";
+        session.endTime = Date.now();
+        this.runningSession = null;
 
-      if (session.status !== "running") {
-        break; // break if paused during wait
-      }
-
-      if (loop < loopTarget - 1) {
-        this.emit("loop-end", {
+        this.emit("completed", {
           sessionId,
-          loopNumber: loop + 1,
-          totalLoops: loopTarget,
+          valid: session.valid.length,
+          taken: session.taken.length,
+          censored: session.censored.length,
+          time: session.endTime - (session.startTime || 0),
+          loops: session.currentLoop,
         });
-        // Delay before next loop
-        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-    }
-
-    if (session.status === "running") {
-      session.status = "completed";
-      session.endTime = Date.now();
-      this.runningSession = null;
-
-      this.emit("completed", {
-        sessionId,
-        valid: session.valid.length,
-        taken: session.taken.length,
-        censored: session.censored.length,
-        time: session.endTime - (session.startTime || 0),
-        loops: session.currentLoop,
-      });
+    } finally {
+      this.activeLoops.delete(sessionId);
     }
   }
 
@@ -380,8 +422,15 @@ export class UsernameSniperService extends EventEmitter {
     const session = this.sessions.get(sessionId);
     if (session && session.status === "paused") {
       session.status = "running";
-      this.startSniper(sessionId).catch(() => {});
       this.emit("status", { sessionId, status: "running" });
+
+      if (!this.activeLoops.has(sessionId)) {
+        this.startSniper(sessionId).catch((err) => {
+          console.error("[Sniper] Failed to resume session:", err);
+          session.status = "paused";
+          this.emit("status", { sessionId, status: "paused" });
+        });
+      }
     }
   }
 

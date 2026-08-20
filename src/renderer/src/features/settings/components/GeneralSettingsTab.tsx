@@ -180,7 +180,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
 
         <SectionDivider label="Accounts & Launch" />
 
-        {/* Primary Account */}
+        {}
         <BentoCard
           icon={<Users size={16} />}
           title="Primary Account"
@@ -194,7 +194,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
           />
         </BentoCard>
 
-        {/* Default Installation */}
+        {}
         <BentoCard
           icon={<HardDrive size={16} />}
           title="Default Installation"
@@ -210,7 +210,6 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
 
         <SectionDivider label="Privacy & Integrations" />
 
-        {/* Privacy Mode */}
         <BentoCard
           icon={<EyeOff size={16} />}
           title="Privacy Mode"
@@ -225,7 +224,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
           />
         </BentoCard>
 
-        {/* Discord RPC — col-span-2 with expandable section */}
+        {}
         <div className="col-span-2 relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
           <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
           <div className="flex items-center justify-between z-10 relative">
@@ -254,9 +253,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
               </span>
               <BentoToggle
                 checked={discordRPCEnabled}
-                onChange={() =>
-                  toggleDiscordRPC.mutate(!discordRPCEnabled)
-                }
+                onChange={() => toggleDiscordRPC.mutate(!discordRPCEnabled)}
                 disabled={toggleDiscordRPC.isPending}
               />
             </div>
@@ -325,7 +322,6 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
 
         <SectionDivider label="Navigation" />
 
-        {/* Sidebar Profile Card */}
         <BentoCard
           icon={<Users size={16} />}
           title="Sidebar Profile Card"
@@ -342,7 +338,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
           />
         </BentoCard>
 
-        {/* Sidebar Tabs — full width */}
+        {}
         <div className="col-span-2 relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
           <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
           <div className="flex items-center justify-between mb-4 z-10 relative">

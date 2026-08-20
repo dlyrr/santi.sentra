@@ -112,7 +112,6 @@ export class RobloxThumbnailService {
     const cacheNamespace = `${resolvedType}|${resolvedSize}|${resolvedFormat}`;
     const entryMap = new Map<number, ThumbnailEntry>();
 
-    // Fetch all IDs sequentially to avoid hitting rate limits
     const chunks = this.chunkArray(sanitizedIds, this.THUMBNAIL_BATCH_LIMIT);
     const chunkResults: ThumbnailEntry[][] = [];
 
@@ -140,10 +139,6 @@ export class RobloxThumbnailService {
     return { data: orderedData };
   }
 
-  /**
-   * Fetches the 3D manifest URL for an avatar with authentication and CSRF
-   * Retry/polling is handled by TanStack Query on the renderer side
-   */
   static async getAvatar3DManifest(
     cookie: string,
     userId: number | string,
@@ -169,10 +164,6 @@ export class RobloxThumbnailService {
     return { imageUrl: imageUrl || "", state };
   }
 
-  /**
-   * Fetches the 3D manifest URL for an asset with authentication and CSRF
-   * Note: Caching is handled by TanStack Query on the renderer side
-   */
   static async getAsset3DManifest(
     cookie: string,
     assetId: number | string,

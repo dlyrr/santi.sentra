@@ -27,6 +27,11 @@ import {
 } from "../../../shared/navigation";
 import * as crypto from "crypto";
 import { getDataFile } from "../../utils/paths";
+import {
+  isSafeStorageAvailable,
+  safeEncrypt,
+  safeDecrypt,
+} from "../../lib/secureStore";
 
 const customFontSchema = z.object({
   family: z.string(),
@@ -50,18 +55,18 @@ const storeDataSchema = z.object({
   avatarRenderWidth: z.number().optional(),
   windowWidth: z.number().optional(),
   windowHeight: z.number().optional(),
-  // Encrypted accounts stored as base64 string
+
   encryptedAccounts: z.string().optional(),
-  // Encrypted sniper-generated accounts
+
   encryptedSniperAccounts: z.string().optional(),
-  // Encrypted license key (AES + user PIN)
+
   encryptedLicense: z.string().optional(),
   favoriteGames: z.array(z.string()).optional(),
   favoriteItems: z.array(favoriteItemSchema).optional(),
   excludeFullGames: z.boolean().optional(),
   customFonts: z.array(customFontSchema).optional(),
   activeFont: z.string().nullable().optional(),
-  // Watcher/Multi-Account settings
+
   watcherConfig: z
     .object({
       autoRestart: z.boolean().optional(),
@@ -73,26 +78,34 @@ const storeDataSchema = z.object({
       cpuLimitPercent: z.number().optional(),
     })
     .optional(),
-  // Roblox-specific advanced settings
+
   robloxSettings: z
     .object({
-      allowMultipleLaunches: z.boolean().optional(),
       defaultPhysicsEngine: z.enum(["Terrain", "Legacy"]).optional(),
       enableOptimizations: z.boolean().optional(),
       memoryLimit: z.number().optional(),
       useDirectX12: z.boolean().optional(),
       lowEndGraphics: z.boolean().optional(),
       disableDualChannelAudio: z.boolean().optional(),
-      // Performance & Utility
+
       antiAfkEnabled: z.boolean().optional(),
       renameWindowsEnabled: z.boolean().optional(),
       framerateCapEnabled: z.boolean().optional(),
       framerateCapValue: z.number().optional(),
       optimizeRamEnabled: z.boolean().optional(),
-      ramOptimizeLimit: z.number().optional(),
+      ramOptimization: z.number().optional(),
+      cpuOptimization: z.number().optional(),
       headlessModeEnabled: z.boolean().optional(),
       timeoutRelaunchEnabled: z.boolean().optional(),
       timeoutRelaunchSeconds: z.number().optional(),
+      windowLayoutEnabled: z.boolean().optional(),
+      windowLayoutPattern: z
+        .enum(["grid", "rows", "columns", "cascade"])
+        .optional(),
+      windowLayoutSpacing: z.number().optional(),
+      windowLayoutColumns: z.number().optional(),
+      windowLayoutWidth: z.number().optional(),
+      windowLayoutHeight: z.number().optional(),
     })
     .optional(),
   settings: z
@@ -103,13 +116,16 @@ const storeDataSchema = z.object({
       defaultInstallationPath: z.string().nullable().optional(),
       accentColor: z.string().optional(),
       useDynamicAccentColor: z.boolean().optional(),
+      theme: themePreferenceEnum.optional(),
       tint: tintPreferenceEnum.optional(),
       privacyMode: z.boolean().optional(),
       showSidebarProfileCard: z.boolean().optional(),
       sidebarTabOrder: z.array(sidebarTabIdEnum).optional(),
       sidebarHiddenTabs: z.array(sidebarTabIdEnum).optional(),
-      // pinCodeHash stores the encrypted, hashed PIN (not plain text)
+
       pinCodeHash: z.string().nullable().optional(),
+      browserWindowWidth: z.number().nullable().optional(),
+      browserWindowHeight: z.number().nullable().optional(),
       pinLockout: z
         .object({
           count: z.number(),
@@ -124,7 +140,7 @@ const storeDataSchema = z.object({
       motionSpeed: z.string().optional(),
       isSidebarCollapsed: z.boolean().optional(),
       navLayout: z.enum(["sidebar", "topbar"]).optional(),
-      // User Agent settings
+
       userAgentSettings: z
         .object({
           currentUserAgentIndex: z.number().default(0).optional(),
@@ -144,20 +160,21 @@ class StorageService {
   private decryptedAccounts: Account[] | null = null;
   private decryptedSniperAccounts: Account[] | null = null;
   private currentVerifiedPin: string | null = null;
-  // holds the raw encrypted payload when config.json is encrypted
+
   private encryptedBlob: string | null = null;
-  // PIN lockout state for persistence
+
+  private diskUnreadable = false;
+
   private pinLockoutState = {
     count: 0,
     lastAttempt: 0,
     lockedUntil: null as number | null,
   };
   private pinVerificationInProgress: boolean = false;
-  // Debounce timer for coalescing rapid save() calls
+
   private _saveTimer: NodeJS.Timeout | null = null;
 
   constructor() {
-    // determine current path and try migrating any prior config
     this.path = getDataFile("config.json");
     this.init();
   }
@@ -219,12 +236,6 @@ class StorageService {
     }
   }
 
-  /**
-   * Decrypts the full configuration blob if it was previously stored encrypted
-   * and we currently have a valid encryption key (i.e. PIN has been verified).
-   * This merges the decrypted data back into `this.data` and clears
-   * `this.encryptedBlob` so future operations operate on real state.
-   */
   #decryptConfigBlobIfNeeded(): void {
     if (!this.encryptedBlob) return;
     if (!pinService.hasEncryptionKey()) return;
@@ -248,27 +259,69 @@ class StorageService {
         console.error(
           "[StorageService] failed to decrypt config blob with verified key",
         );
-        // Reset to empty to allow new saves
+
         this.data = {};
       }
     } catch (e) {
       console.error("[StorageService] error decrypting config blob", e);
-      // Reset to empty to allow new saves
+
       this.data = {};
     }
 
     this.encryptedBlob = null;
   }
 
+  #atomicWrite(content: string): void {
+    const dir = dirname(this.path);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    const tmpPath = this.path + ".tmp";
+    writeFileSync(tmpPath, content);
+    renameSync(tmpPath, this.path);
+  }
+
+  #wrapForDisk(inner: string): string {
+    if (isSafeStorageAvailable()) {
+      const ss = safeEncrypt(inner);
+      if (ss) {
+        return JSON.stringify({ v: 2, ss });
+      }
+    }
+    return inner;
+  }
+
+  #unwrapDiskContent(raw: string): string {
+    const trimmed = raw.replace(/^﻿/, "").trim();
+    if (!trimmed.startsWith("{")) return trimmed;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        parsed.v === 2 &&
+        typeof parsed.ss === "string"
+      ) {
+        const decrypted = safeDecrypt(parsed.ss);
+        if (decrypted !== null) return decrypted;
+        console.error(
+          "[StorageService] failed to decrypt safeStorage envelope; " +
+            "config may have been copied from another machine/user",
+        );
+
+        return trimmed;
+      }
+    } catch {}
+    return trimmed;
+  }
+
   private load(): void {
     try {
-      const fileContent = readFileSync(this.path, "utf-8").replace(
-        /^\uFEFF/,
-        "",
-      );
+      const rawFileContent = readFileSync(this.path, "utf-8");
+
+      const fileContent = this.#unwrapDiskContent(rawFileContent);
       const trimmed = fileContent.trim();
 
-      // attempt to parse as JSON; if it fails we treat the whole file as encrypted
       let rawData: unknown;
       try {
         rawData = JSON.parse(trimmed);
@@ -281,11 +334,25 @@ class StorageService {
         return;
       }
 
-      // check for wrapped encrypted format
       if (
         rawData &&
         typeof rawData === "object" &&
-        "encrypted" in (rawData as any) &&
+        (rawData as any).v === 2 &&
+        typeof (rawData as any).ss === "string"
+      ) {
+        console.error(
+          "[StorageService] config is an undecryptable safeStorage envelope; " +
+            "preserving on disk (will not overwrite)",
+        );
+        this.encryptedBlob = trimmed;
+        this.data = {};
+        this.diskUnreadable = true;
+        return;
+      }
+
+      if (
+        rawData &&
+        typeof rawData === "object" &&
         typeof (rawData as any).encrypted === "string"
       ) {
         const encryptedPayload = (rawData as any).encrypted.replace(
@@ -326,9 +393,8 @@ class StorageService {
       const result = storeDataSchema.safeParse(rawData);
       if (result.success) {
         this.data = result.data;
-        this.encryptedBlob = null; // Clear any previous encrypted blob state
+        this.encryptedBlob = null;
 
-        // Migrate legacy PIN metadata from root-level fields into settings for current schema.
         if (!this.data.settings) {
           this.data.settings = {};
         }
@@ -343,10 +409,9 @@ class StorageService {
         }
 
         this.migratePin();
-        // Load PIN lockout state (with sanitization)
+
         const loadedLockout = this.data.settings?.pinLockout;
         if (loadedLockout) {
-          // coerce numbers in case something was corrupted
           const count = Number(loadedLockout.count) || 0;
           const lastAttempt = Number(loadedLockout.lastAttempt) || 0;
           const lockedUntil =
@@ -368,7 +433,7 @@ class StorageService {
         );
         try {
           const backupPath = this.path + ".bak";
-          writeFileSync(backupPath, fileContent);
+          writeFileSync(backupPath, rawFileContent);
         } catch (e) {
           console.error("Failed to backup config:", e);
         }
@@ -390,10 +455,9 @@ class StorageService {
   }
 
   private migratePin(): void {
-    // Remove any legacy unencrypted PIN data for security
     if (this.data.settings && "pinCode" in this.data.settings) {
       delete (this.data.settings as any).pinCode;
-  this.save();
+      this.save();
     }
   }
 
@@ -500,21 +564,27 @@ class StorageService {
     }
   }
 
-  /**
-   * Debounced save: coalesces rapid successive writes into a single disk flush
-   * after a short idle window. Use this for all non-security-critical setters.
-   */
   private _saveDebounced(delayMs = 100): void {
     if (this._saveTimer) clearTimeout(this._saveTimer);
     this._saveTimer = setTimeout(() => {
       this._saveTimer = null;
-  this.save();
+      this.save();
     }, delayMs);
   }
 
+  public flush(): void {
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+      this.save();
+    }
+  }
+
   private save(): void {
-    // if the config is still stored as an encrypted blob and we do not have
-    // the derived encryption key available, we cannot safely overwrite it.
+    if (this.diskUnreadable) {
+      return;
+    }
+
     if (this.encryptedBlob && !pinService.hasEncryptionKey()) {
       return;
     }
@@ -524,7 +594,6 @@ class StorageService {
     }
 
     try {
-      // make sure the directory is still there (macOS cleaners may remove it)
       const dir = dirname(this.path);
       if (!existsSync(dir)) {
         mkdirSync(dir, { recursive: true });
@@ -532,7 +601,6 @@ class StorageService {
 
       let output: string;
 
-      // Update PIN lockout state in data before saving
       if (!this.data.settings) {
         this.data.settings = {};
       }
@@ -557,7 +625,6 @@ class StorageService {
           output = JSON.stringify(this.data, null, 2);
         }
       } else if (this.data.settings?.pinCodeHash && this.encryptedBlob) {
-        // PIN is set but encryption key unavailable - preserve encrypted blob wrapper without decrypting
         const wrapper: Record<string, unknown> = {
           encrypted: this.encryptedBlob,
         };
@@ -569,43 +636,19 @@ class StorageService {
         }
         output = JSON.stringify(wrapper, null, 2);
       } else {
-        // No PIN set, save as plaintext
         output = JSON.stringify(this.data, null, 2);
       }
 
-      // Atomic write: write to a temp file first, then rename.
-      // This prevents config.json from being left in a corrupted state
-      // if the app crashes or loses power mid-write.
-      const tmpPath = this.path + ".tmp";
-      writeFileSync(tmpPath, output);
-      renameSync(tmpPath, this.path);
+      this.#atomicWrite(this.#wrapForDisk(output));
     } catch (error) {
       console.error("Failed to save storage:", error);
     }
   }
 
-  /**
-   * Update only the PIN hash in the file while preserving encrypted blob
-   * This bypasses the save() guard to allow lockout state updates during verification
-   */
-  #updatePinHashOnly(newPinHash: string): void {
-    try {
-      const fileContent = readFileSync(this.path, "utf-8");
-      const parsed = JSON.parse(fileContent.trim());
-
-      // Update only the PIN hash, preserve everything else (especially encrypted blob)
-      parsed.pinCodeHash = newPinHash;
-
-      writeFileSync(this.path, JSON.stringify(parsed, null, 2));
-      console.log(
-        "[StorageService] PIN hash updated (lockout state persisted)",
-      );
-    } catch (err) {
-      console.warn("[StorageService] Failed to update PIN hash in file:", err);
-    }
-  }
-
   #persistPinMetadata(): void {
+    if (this.diskUnreadable) {
+      return;
+    }
     if (!this.data.settings) {
       this.data.settings = {};
     }
@@ -613,13 +656,15 @@ class StorageService {
 
     if (this.encryptedBlob && !pinService.hasEncryptionKey()) {
       try {
-        const fileContent = readFileSync(this.path, "utf-8");
-        const parsed = JSON.parse(fileContent.trim());
+        const raw = readFileSync(this.path, "utf-8");
+        const inner = this.#unwrapDiskContent(raw);
+        const parsed = JSON.parse(inner.trim());
         if (parsed && typeof parsed === "object") {
           if (this.data.settings.pinCodeHash)
             parsed.pinCodeHash = this.data.settings.pinCodeHash;
           parsed.pinLockout = this.pinLockoutState;
-          writeFileSync(this.path, JSON.stringify(parsed, null, 2));
+
+          this.#atomicWrite(this.#wrapForDisk(JSON.stringify(parsed, null, 2)));
           return;
         }
       } catch (err) {
@@ -630,7 +675,7 @@ class StorageService {
       }
     }
 
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   private encryptAccountsWithPin(
@@ -638,23 +683,18 @@ this._saveDebounced();
     pin: string,
   ): string | null {
     try {
-      // Derive key from PIN using PBKDF2 (256-bit key)
       const salt = crypto.randomBytes(16);
       const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, "sha256");
 
-      // Generate IV and encryption cipher
       const iv = crypto.randomBytes(12);
       const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
 
-      // Encrypt the accounts JSON
       const plaintext = JSON.stringify(accounts);
       let encrypted = cipher.update(plaintext, "utf-8", "hex");
       encrypted += cipher.final("hex");
 
-      // Get authentication tag
       const authTag = cipher.getAuthTag();
 
-      // Combine: salt + iv + authTag + encrypted data (all hex encoded)
       const combined =
         salt.toString("hex") +
         iv.toString("hex") +
@@ -668,17 +708,12 @@ this._saveDebounced();
     }
   }
 
-  /**
-   * Decrypt accounts with PIN using AES-256-GCM (NO plaintext fallback)
-   */
   private decryptAccountsWithPin(
     encryptedData: string,
     pin: string,
   ): Account[] | null {
     try {
-      // Parse: salt (32 hex chars) + iv (24 hex chars) + authTag (32 hex chars) + encrypted data (rest)
       if (encryptedData.length < 88) {
-        // Too short to be encrypted data
         console.warn("[StorageService] PIN-based decrypt: data too short");
         return null;
       }
@@ -688,10 +723,8 @@ this._saveDebounced();
       const authTag = Buffer.from(encryptedData.substring(56, 88), "hex");
       const encrypted = encryptedData.substring(88);
 
-      // Derive key from PIN
       const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, "sha256");
 
-      // Decrypt
       const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
       decipher.setAuthTag(authTag);
 
@@ -712,7 +745,7 @@ this._saveDebounced();
 
   public setSidebarWidth(width: number): void {
     this.data.sidebarWidth = width;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getSidebarCollapsed(): boolean {
@@ -721,7 +754,7 @@ this._saveDebounced();
 
   public setSidebarCollapsed(collapsed: boolean): void {
     this.data.sidebarCollapsed = collapsed;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getAccountsViewMode(): "list" | "grid" {
@@ -730,16 +763,11 @@ this._saveDebounced();
 
   public setAccountsViewMode(mode: "list" | "grid"): void {
     this.data.accountsViewMode = mode;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
-  /**
-   * Get accounts - ALWAYS decrypted, no plaintext fallback
-   */
   public getAccounts(): Account[] {
-    // if the entire config is still encrypted we have no data yet
     if (this.encryptedBlob) {
-      // attempt decryption if we have the key available (PIN verified)
       this.#decryptConfigBlobIfNeeded();
       if (this.encryptedBlob) {
         return [];
@@ -748,7 +776,6 @@ this._saveDebounced();
 
     const pinHash = this.getPinHash();
 
-    // If we haven't decrypted yet, try to decrypt
     if (this.decryptedAccounts === null && this.data.encryptedAccounts) {
       console.log(
         "[StorageService] getAccounts: need to decrypt accounts. pinHash:",
@@ -775,9 +802,7 @@ this._saveDebounced();
                 if (Array.isArray(parsed)) {
                   this.decryptedAccounts = parsed;
                 }
-              } catch {
-                // ignore malformed plaintext fallback
-              }
+              } catch {}
             }
             this.decryptedAccounts = this.decryptedAccounts ?? [];
           }
@@ -801,7 +826,6 @@ this._saveDebounced();
       }
     }
 
-    // If PIN is set but not verified and we still don't have decrypted accounts, return empty
     if (
       pinHash &&
       !this.currentVerifiedPin &&
@@ -813,9 +837,6 @@ this._saveDebounced();
     return this.decryptedAccounts || [];
   }
 
-  /**
-   * Set accounts - PIN-based encryption only (matches old working code)
-   */
   public setAccounts(accounts: Account[]): boolean {
     console.log(
       "[StorageService] setAccounts: Called with",
@@ -827,14 +848,12 @@ this._saveDebounced();
     );
     const pinHash = this.getPinHash();
 
-    // If PIN is set, encrypt with current verified PIN
     if (pinHash) {
       if (!this.currentVerifiedPin) {
         console.error(
           "[StorageService] setAccounts: PIN hash exists but PIN not currently verified. Cannot save encrypted accounts.",
         );
-        // Instead of throwing, we need a mechanism to get the PIN verified
-        // For now, throw so the caller can handle it
+
         throw new Error("PIN must be verified before saving accounts");
       }
 
@@ -857,7 +876,7 @@ this._saveDebounced();
       );
       this.data.encryptedAccounts = encrypted;
       this.decryptedAccounts = accounts;
-  this._saveDebounced();
+      this._saveDebounced();
       console.log(
         "[StorageService] setAccounts: ✓ Saved",
         accounts.length,
@@ -865,7 +884,6 @@ this._saveDebounced();
       );
       return true;
     } else {
-      // No PIN yet - store plaintext for now
       console.log(
         "[StorageService] setAccounts: Saving",
         accounts.length,
@@ -873,7 +891,7 @@ this._saveDebounced();
       );
       this.data.encryptedAccounts = JSON.stringify(accounts);
       this.decryptedAccounts = accounts;
-  this._saveDebounced();
+      this._saveDebounced();
       console.log(
         "[StorageService] setAccounts: ✓ Saved",
         accounts.length,
@@ -886,14 +904,10 @@ this._saveDebounced();
     if (!password) {
       return "";
     }
-    // Passwords are now stored plaintext in Account objects
-    // Encryption happens at the JSON level in config.json
+
     return password;
   }
 
-  /**
-   * Add accounts to storage for auto-generated accounts
-   */
   public addAccountsToStorage(newAccounts: Account[]): boolean {
     try {
       const existingAccounts = this.getAccounts() || [];
@@ -920,19 +934,14 @@ this._saveDebounced();
     return false;
   }
 
-  /**
-   * Get sniper-generated accounts (separate from main accounts)
-   */
   public getSniperAccounts(): Account[] {
     const pinHash = this.getPinHash();
 
-    // If we haven't decrypted yet, try to decrypt
     if (
       this.decryptedSniperAccounts === null &&
       this.data.encryptedSniperAccounts
     ) {
       if (pinHash) {
-        // PIN is set - need verified PIN to decrypt
         if (this.currentVerifiedPin) {
           this.decryptedSniperAccounts = this.decryptAccountsWithPin(
             this.data.encryptedSniperAccounts,
@@ -945,7 +954,6 @@ this._saveDebounced();
           this.decryptedSniperAccounts = [];
         }
       } else {
-        // No PIN set - try to load as plaintext
         try {
           const parsed = JSON.parse(this.data.encryptedSniperAccounts);
           this.decryptedSniperAccounts = Array.isArray(parsed) ? parsed : [];
@@ -958,9 +966,6 @@ this._saveDebounced();
     return this.decryptedSniperAccounts || [];
   }
 
-  /**
-   * Set sniper-generated accounts
-   */
   public setSniperAccounts(accounts: Account[]): boolean {
     const pinHash = this.getPinHash();
 
@@ -979,30 +984,26 @@ this._saveDebounced();
 
       this.data.encryptedSniperAccounts = encrypted;
       this.decryptedSniperAccounts = accounts;
-  this._saveDebounced();
+      this._saveDebounced();
       return true;
     } else {
       this.data.encryptedSniperAccounts = JSON.stringify(accounts);
       this.decryptedSniperAccounts = accounts;
-  this._saveDebounced();
+      this._saveDebounced();
       return true;
     }
   }
 
-  /**
-   * Add a sniper-generated account (prevent duplicates by username)
-   */
   public addSniperAccount(newAccount: Account): boolean {
     try {
       const existing = this.getSniperAccounts() || [];
 
-      // Check if account with same username already exists
       if (existing.some((acc) => acc.username === newAccount.username)) {
         console.log(
           "[StorageService] Sniper account already exists:",
           newAccount.username,
         );
-        return true; // Don't add duplicate
+        return true;
       }
 
       const combined = [newAccount, ...existing];
@@ -1013,27 +1014,19 @@ this._saveDebounced();
     }
   }
 
-  /**
-   * Remove a sniper account
-   */
   public removeSniperAccount(accountId: string): boolean {
     const accounts = this.getSniperAccounts();
     return this.setSniperAccounts(accounts.filter((a) => a.id !== accountId));
   }
 
-  /**
-   * Move sniper account to main accounts
-   */
   public moveSniperAccountToMain(accountId: string): boolean {
     const sniperAccounts = this.getSniperAccounts();
     const account = sniperAccounts.find((a) => a.id === accountId);
 
     if (!account) return false;
 
-    // Add to main accounts
     this.addAccountsToStorage([account]);
 
-    // Remove from sniper accounts
     return this.removeSniperAccount(accountId);
   }
 
@@ -1045,14 +1038,14 @@ this._saveDebounced();
     const favorites = this.data.favoriteGames || [];
     if (!favorites.includes(placeId)) {
       this.data.favoriteGames = [...favorites, placeId];
-  this._saveDebounced();
+      this._saveDebounced();
     }
   }
 
   public removeFavoriteGame(placeId: string): void {
     const favorites = this.data.favoriteGames || [];
     this.data.favoriteGames = favorites.filter((id) => id !== placeId);
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getFavoriteItems(): { id: number; name: string; type: string }[] {
@@ -1067,14 +1060,14 @@ this._saveDebounced();
     const favorites = this.data.favoriteItems || [];
     if (!favorites.some((i) => i.id === item.id)) {
       this.data.favoriteItems = [...favorites, item];
-  this._saveDebounced();
+      this._saveDebounced();
     }
   }
 
   public removeFavoriteItem(itemId: number): void {
     const favorites = this.data.favoriteItems || [];
     this.data.favoriteItems = favorites.filter((i) => i.id !== itemId);
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getSettings() {
@@ -1095,12 +1088,11 @@ this._saveDebounced();
           : storedAccent!
         : DEFAULT_ACCENT_COLOR;
 
-    // Persist the migration so future sessions match.
     if (legacyAccent && LEGACY_DEFAULT_ACCENT_COLORS.includes(legacyAccent)) {
       if (!this.data.settings) this.data.settings = {};
       if (this.data.settings.accentColor !== DEFAULT_ACCENT_COLOR) {
         this.data.settings.accentColor = DEFAULT_ACCENT_COLOR;
-    this._saveDebounced();
+        this._saveDebounced();
       }
     }
 
@@ -1134,9 +1126,11 @@ this._saveDebounced();
         autoSwapIntervalMinutes:
           this.data.settings?.userAgentSettings?.autoSwapIntervalMinutes ?? 30,
       },
-      // View Preferences (persisted UI state)
-      catalogViewMode: (this.data.settings as any)?.catalogViewMode ?? "default",
-      inventoryViewMode: (this.data.settings as any)?.inventoryViewMode ?? "default",
+
+      catalogViewMode:
+        (this.data.settings as any)?.catalogViewMode ?? "default",
+      inventoryViewMode:
+        (this.data.settings as any)?.inventoryViewMode ?? "default",
       contentRadius: (this.data.settings as any)?.contentRadius ?? "rounded",
       navBorderStyle: (this.data.settings as any)?.navBorderStyle ?? "subtle",
       uiDensity: (this.data.settings as any)?.uiDensity ?? "default",
@@ -1147,21 +1141,69 @@ this._saveDebounced();
       liquidGlass: (this.data.settings as any)?.liquidGlass ?? false,
       appBackground: (this.data.settings as any)?.appBackground ?? "solid",
       customTheme: (this.data.settings as any)?.customTheme ?? undefined,
-      // UI State
-      isSidebarCollapsed: (this.data.settings as any)?.isSidebarCollapsed ?? false,
+
+      isSidebarCollapsed:
+        (this.data.settings as any)?.isSidebarCollapsed ?? false,
       navLayout: (this.data.settings as any)?.navLayout ?? "sidebar",
-      antiAfkEnabled: (this.data.settings as any)?.antiAfkEnabled ?? false,
-      renameWindowsEnabled: (this.data.settings as any)?.renameWindowsEnabled ?? false,
-      framerateCapEnabled: (this.data.settings as any)?.framerateCapEnabled ?? false,
-      framerateCapValue: (this.data.settings as any)?.framerateCapValue ?? 60,
-      optimizeRamEnabled: (this.data.settings as any)?.optimizeRamEnabled ?? false,
-      ramOptimizeLimit: (this.data.settings as any)?.ramOptimizeLimit ?? 1024,
+      antiAfkEnabled:
+        this.data.robloxSettings?.antiAfkEnabled ??
+        (this.data.settings as any)?.antiAfkEnabled ??
+        false,
+      renameWindowsEnabled:
+        this.data.robloxSettings?.renameWindowsEnabled ??
+        (this.data.settings as any)?.renameWindowsEnabled ??
+        false,
+      framerateCapEnabled:
+        this.data.robloxSettings?.framerateCapEnabled ??
+        (this.data.settings as any)?.framerateCapEnabled ??
+        false,
+      framerateCapValue:
+        this.data.robloxSettings?.framerateCapValue ??
+        (this.data.settings as any)?.framerateCapValue ??
+        60,
+      optimizeRamEnabled:
+        this.data.robloxSettings?.optimizeRamEnabled ??
+        (this.data.settings as any)?.optimizeRamEnabled ??
+        false,
+      ramOptimization:
+        this.data.robloxSettings?.ramOptimization ??
+        (this.data.settings as any)?.ramOptimization ??
+        1024,
+      cpuOptimization:
+        this.data.robloxSettings?.cpuOptimization ??
+        (this.data.settings as any)?.cpuOptimization ??
+        0,
+
+      defaultPhysicsEngine:
+        this.data.robloxSettings?.defaultPhysicsEngine ?? "Terrain",
+      enableOptimizations:
+        this.data.robloxSettings?.enableOptimizations ?? false,
+      memoryLimit: this.data.robloxSettings?.memoryLimit ?? 0,
+      useDirectX12: this.data.robloxSettings?.useDirectX12 ?? false,
+      lowEndGraphics: this.data.robloxSettings?.lowEndGraphics ?? false,
+      disableDualChannelAudio:
+        this.data.robloxSettings?.disableDualChannelAudio ?? false,
+      headlessModeEnabled:
+        this.data.robloxSettings?.headlessModeEnabled ?? false,
+      timeoutRelaunchEnabled:
+        this.data.robloxSettings?.timeoutRelaunchEnabled ?? false,
+      timeoutRelaunchSeconds:
+        this.data.robloxSettings?.timeoutRelaunchSeconds ?? 3600,
+      windowLayoutEnabled:
+        (this.data.robloxSettings as any)?.windowLayoutEnabled ?? false,
+      windowLayoutPattern:
+        (this.data.robloxSettings as any)?.windowLayoutPattern ?? "grid",
+      windowLayoutSpacing:
+        (this.data.robloxSettings as any)?.windowLayoutSpacing ?? 12,
+      windowLayoutColumns:
+        (this.data.robloxSettings as any)?.windowLayoutColumns ?? 3,
+      windowLayoutWidth:
+        (this.data.robloxSettings as any)?.windowLayoutWidth ?? 0,
+      windowLayoutHeight:
+        (this.data.robloxSettings as any)?.windowLayoutHeight ?? 0,
     };
   }
 
-  /**
-   * Get the raw encrypted PIN hash for verification
-   */
   private isBase64PinHash(raw: string): boolean {
     return /^[A-Za-z0-9+/]+={0,2}$/.test(raw) && raw.length % 4 === 0;
   }
@@ -1191,42 +1233,30 @@ this._saveDebounced();
       delete this.data.settings.pinLockout;
     }
     this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null };
-this._saveDebounced();
+    this._saveDebounced();
     return null;
   }
 
-  /**
-   * Get encrypted license (if any)
-   */
   public getEncryptedLicense(): string | null {
     return this.data.encryptedLicense ?? null;
   }
 
-  /**
-   * Store an encrypted license string (or null to clear)
-   */
   public setEncryptedLicense(encrypted: string | null): void {
     if (encrypted === null) {
       if (this.data.encryptedLicense) delete this.data.encryptedLicense;
     } else {
       this.data.encryptedLicense = encrypted;
     }
-this._saveDebounced();
+    this._saveDebounced();
   }
 
-  /**
-   * Delete encrypted license
-   */
   public deleteEncryptedLicense(): void {
     if (this.data.encryptedLicense) {
       delete this.data.encryptedLicense;
-  this._saveDebounced();
+      this._saveDebounced();
     }
   }
 
-  /**
-   * Clear all stored data and delete any existing config files.
-   */
   public clearAll(): void {
     this.data = {};
     this.decryptedAccounts = null;
@@ -1235,11 +1265,11 @@ this._saveDebounced();
     this.currentVerifiedPin = null;
     this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null };
 
+    this.diskUnreadable = false;
+
     try {
       MultiInstance.Disable();
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
 
     const legacyPaths = [
       this.path,
@@ -1263,9 +1293,6 @@ this._saveDebounced();
     }
   }
 
-  /**
-   * Set a new PIN (will be hashed and encrypted)
-   */
   public setPin(
     pin: string | null,
     currentPin?: string,
@@ -1279,8 +1306,6 @@ this._saveDebounced();
     const existingHash = this.getPinHash();
     const now = Date.now();
 
-    // Ensure we can access accounts before changing PIN
-    // If accounts haven't been decrypted yet, decrypt them with current PIN
     let accounts = this.decryptedAccounts;
     if (
       !accounts &&
@@ -1288,13 +1313,11 @@ this._saveDebounced();
       existingHash &&
       currentPin?.trim()
     ) {
-      // Decrypt existing accounts with current PIN so we can re-encrypt with new PIN
       accounts = this.decryptAccountsWithPin(
         this.data.encryptedAccounts,
         currentPin.trim(),
       );
       if (!accounts) {
-        // If decryption fails, return error
         return {
           success: false,
           error: "Failed to prepare accounts for re-encryption",
@@ -1303,8 +1326,6 @@ this._saveDebounced();
     } else {
       accounts = accounts || [];
 
-      // If we're creating a new PIN and the stored accounts are still plaintext JSON,
-      // parse them so they can be migrated into the new encrypted format.
       if (
         !existingHash &&
         this.data.encryptedAccounts &&
@@ -1315,13 +1336,11 @@ this._saveDebounced();
           if (Array.isArray(parsedAccounts)) {
             accounts = parsedAccounts;
           }
-        } catch {
-          // if parsing fails, keep the empty array and continue
-        }
+        } catch {}
       }
     }
 
-    if (existingHash && accounts.length > 0) {
+    if (existingHash) {
       if (!currentPin) {
         return {
           success: false,
@@ -1329,7 +1348,6 @@ this._saveDebounced();
         };
       }
 
-      // Check if currently locked from previous failed attempts
       if (
         this.pinLockoutState.lockedUntil &&
         now < this.pinLockoutState.lockedUntil
@@ -1351,20 +1369,18 @@ this._saveDebounced();
         existingHash,
       );
       if (!verifyResult.success) {
-        // Track failed PIN verification attempt
         this.pinLockoutState.count++;
         this.pinLockoutState.lastAttempt = now;
         const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count);
 
         if (this.pinLockoutState.count >= 5) {
-          // Apply lockout after 5 failed attempts
           const lockoutMultiplier = Math.min(
             this.pinLockoutState.count - 4,
             12,
           );
           const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier;
           this.pinLockoutState.lockedUntil = now + lockoutDuration;
-      this._saveDebounced();
+          this._saveDebounced();
           return {
             success: false,
             error: "Too many failed attempts",
@@ -1374,7 +1390,7 @@ this._saveDebounced();
           };
         }
 
-    this._saveDebounced();
+        this._saveDebounced();
         return {
           success: false,
           error: "Incorrect current PIN",
@@ -1383,7 +1399,6 @@ this._saveDebounced();
         };
       }
 
-      // Reset lockout state on successful verification
       this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null };
     }
 
@@ -1395,9 +1410,9 @@ this._saveDebounced();
       pinService.markVerified();
       this.currentVerifiedPin = null;
       this.decryptedAccounts = null;
-      // Reset lockout state when removing PIN
+
       this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null };
-  this._saveDebounced();
+      this._saveDebounced();
       return { success: true };
     }
 
@@ -1416,16 +1431,13 @@ this._saveDebounced();
 
     this.data.settings.pinCodeHash = hash;
 
-    // Reset PIN lockout state for new PIN
     this.pinLockoutState = { count: 0, lastAttempt: 0, lockedUntil: null };
 
-    // Verify the new PIN to set the internal encryption key state
     pinService.verifyPin(pin.trim(), hash);
     pinService.resetAttempts();
     pinService.markVerified();
     this.currentVerifiedPin = pin.trim();
 
-    // Re-encrypt accounts with new PIN
     if (accounts.length > 0) {
       const encrypted = this.encryptAccountsWithPin(accounts, pin);
       if (encrypted) {
@@ -1433,14 +1445,10 @@ this._saveDebounced();
       }
     }
 
-this._saveDebounced();
+    this._saveDebounced();
     return { success: true };
   }
 
-  /**
-   * Verify a PIN attempt for app unlock
-   * Uses PinService.verifyPinEncrypted which properly handles lockout state
-   */
   public verifyPin(pin: string): {
     success: boolean;
     locked: boolean;
@@ -1460,7 +1468,6 @@ this._saveDebounced();
 
     const now = Date.now();
 
-    // Check if currently locked
     if (
       this.pinLockoutState.lockedUntil &&
       now < this.pinLockoutState.lockedUntil
@@ -1476,7 +1483,6 @@ this._saveDebounced();
       };
     }
 
-    // Check if attempts should reset (15 minutes since last attempt)
     if (
       this.pinLockoutState.lastAttempt &&
       now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000
@@ -1498,32 +1504,27 @@ this._saveDebounced();
       pinService.resetAttempts();
       pinService.markVerified();
 
-      // Reset lockout state on successful verification
       this.pinLockoutState.count = 0;
       this.pinLockoutState.lastAttempt = 0;
       this.pinLockoutState.lockedUntil = null;
-      this.save(); // This also decrypts the config blob via #decryptConfigBlobIfNeeded
+      this.save();
 
-      this.#decryptConfigBlobIfNeeded(); // Ensure blob is decrypted (no-op if already done)
-      this.decryptedAccounts = null; // Force fresh decryption via getAccounts()
+      this.#decryptConfigBlobIfNeeded();
+      this.decryptedAccounts = null;
       console.log(
-        "[StorageService] verifyPin: ✓ PIN verified, decryptedAccounts cache cleared for re-decryption",
+        "[StorageService] verifyPin: PIN verified, decryptedAccounts cache cleared for re-decryption",
       );
 
-      // Decrypt accounts now and return them directly so the renderer
-      // doesn't need a separate getAccounts() IPC round-trip
       const accounts = this.getAccounts();
       return { success: true, locked: false, remainingAttempts: 5, accounts };
     }
 
-    // Failed attempt - update lockout state
     this.pinLockoutState.count++;
     this.pinLockoutState.lastAttempt = now;
 
     const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count);
 
     if (this.pinLockoutState.count >= 5) {
-      // Calculate lockout duration with progressive penalty
       const lockoutMultiplier = Math.min(this.pinLockoutState.count - 4, 12);
       const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier;
       this.pinLockoutState.lockedUntil = now + lockoutDuration;
@@ -1540,16 +1541,10 @@ this._saveDebounced();
     return { success: false, locked: false, remainingAttempts };
   }
 
-  /**
-   * Check if PIN is currently verified (delegates to PinService)
-   */
   public isPinCurrentlyVerified(): boolean {
     return pinService.isPinCurrentlyVerified();
   }
 
-  /**
-   * Get PIN lockout status
-   */
   public getPinLockoutStatus(): {
     locked: boolean;
     lockoutSeconds?: number;
@@ -1557,7 +1552,6 @@ this._saveDebounced();
   } {
     const now = Date.now();
 
-    // Check if currently locked
     if (
       this.pinLockoutState.lockedUntil &&
       now < this.pinLockoutState.lockedUntil
@@ -1568,7 +1562,6 @@ this._saveDebounced();
       return { locked: true, lockoutSeconds: seconds, remainingAttempts: 0 };
     }
 
-    // Check if attempts should reset
     if (
       this.pinLockoutState.lastAttempt &&
       now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000
@@ -1604,7 +1597,7 @@ this._saveDebounced();
       autoSwapUserAgent?: boolean;
       autoSwapIntervalMinutes?: number;
     };
-    // View Preferences
+
     catalogViewMode?: string;
     inventoryViewMode?: string;
     contentRadius?: string;
@@ -1615,7 +1608,7 @@ this._saveDebounced();
     motionSpeed?: string;
     fontWeight?: string;
     customTheme?: string;
-    // UI State
+
     isSidebarCollapsed?: boolean;
     navLayout?: string;
     antiAfkEnabled?: boolean;
@@ -1623,7 +1616,8 @@ this._saveDebounced();
     framerateCapEnabled?: boolean;
     framerateCapValue?: number;
     optimizeRamEnabled?: boolean;
-    ramOptimizeLimit?: number;
+    ramOptimization?: number;
+    cpuOptimization?: number;
   }): void {
     const nextSettings = { ...this.getSettings() };
 
@@ -1684,7 +1678,7 @@ this._saveDebounced();
       );
     }
 
-    if ("pinCode" in settings) {
+    if ("pinCode" in settings && settings.pinCode !== "SET") {
       this.setPin(settings.pinCode ?? null);
     }
 
@@ -1714,24 +1708,41 @@ this._saveDebounced();
       };
     }
 
-    // View Preferences & UI State
     const simpleStringKeys = [
-      "catalogViewMode", "inventoryViewMode", "contentRadius", "navBorderStyle",
-      "uiDensity", "blurIntensity", "iconWeight", "motionSpeed", "fontWeight",
-      "customTheme", "navLayout",
+      "catalogViewMode",
+      "inventoryViewMode",
+      "contentRadius",
+      "navBorderStyle",
+      "uiDensity",
+      "blurIntensity",
+      "iconWeight",
+      "motionSpeed",
+      "fontWeight",
+      "customTheme",
+      "navLayout",
     ] as const;
     for (const key of simpleStringKeys) {
       if (key in settings && typeof (settings as any)[key] === "string") {
         (nextSettings as any)[key] = (settings as any)[key];
       }
     }
-    const simpleBoolKeys = ["isSidebarCollapsed", "antiAfkEnabled", "renameWindowsEnabled", "framerateCapEnabled", "optimizeRamEnabled"] as const;
+    const simpleBoolKeys = [
+      "isSidebarCollapsed",
+      "antiAfkEnabled",
+      "renameWindowsEnabled",
+      "framerateCapEnabled",
+      "optimizeRamEnabled",
+    ] as const;
     for (const key of simpleBoolKeys) {
       if (key in settings && typeof (settings as any)[key] === "boolean") {
         (nextSettings as any)[key] = (settings as any)[key];
       }
     }
-    const simpleNumKeys = ["framerateCapValue", "ramOptimizeLimit"] as const;
+    const simpleNumKeys = [
+      "framerateCapValue",
+      "ramOptimization",
+      "cpuOptimization",
+    ] as const;
     for (const key of simpleNumKeys) {
       if (key in settings && typeof (settings as any)[key] === "number") {
         (nextSettings as any)[key] = (settings as any)[key];
@@ -1751,7 +1762,48 @@ this._saveDebounced();
       ...(this.data.settings ?? {}),
       ...(settingsWithoutPin as any),
     };
-this._saveDebounced();
+
+    const robloxSettingsKeys = [
+      "defaultPhysicsEngine",
+      "enableOptimizations",
+      "memoryLimit",
+      "useDirectX12",
+      "lowEndGraphics",
+      "disableDualChannelAudio",
+      "headlessModeEnabled",
+      "timeoutRelaunchEnabled",
+      "timeoutRelaunchSeconds",
+      "windowLayoutEnabled",
+      "windowLayoutPattern",
+      "windowLayoutSpacing",
+      "windowLayoutColumns",
+      "windowLayoutWidth",
+      "windowLayoutHeight",
+
+      "antiAfkEnabled",
+      "renameWindowsEnabled",
+      "framerateCapEnabled",
+      "framerateCapValue",
+      "optimizeRamEnabled",
+      "ramOptimization",
+      "cpuOptimization",
+    ] as const;
+
+    const robloxChanges: Partial<any> = {};
+    for (const key of robloxSettingsKeys) {
+      if (key in settings) {
+        robloxChanges[key] = (settings as any)[key];
+      }
+    }
+
+    if (Object.keys(robloxChanges).length > 0) {
+      if (!this.data.robloxSettings) {
+        this.data.robloxSettings = {};
+      }
+      Object.assign(this.data.robloxSettings, robloxChanges);
+    }
+
+    this._saveDebounced();
 
     if (this.data.settings?.allowMultipleInstances) {
       MultiInstance.Enable(this.data.settings?.multiInstanceMethod || "mutex");
@@ -1766,7 +1818,7 @@ this._saveDebounced();
 
   public setExcludeFullGames(excludeFullGames: boolean): void {
     this.data.excludeFullGames = excludeFullGames;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getAvatarRenderWidth(): number | undefined {
@@ -1775,7 +1827,7 @@ this._saveDebounced();
 
   public setAvatarRenderWidth(width: number): void {
     this.data.avatarRenderWidth = width;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getWindowWidth(): number | undefined {
@@ -1784,7 +1836,7 @@ this._saveDebounced();
 
   public setWindowWidth(width: number): void {
     this.data.windowWidth = width;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getWindowHeight(): number | undefined {
@@ -1793,7 +1845,7 @@ this._saveDebounced();
 
   public setWindowHeight(height: number): void {
     this.data.windowHeight = height;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getCustomFonts(): { family: string; url: string }[] {
@@ -1804,7 +1856,7 @@ this._saveDebounced();
     const fonts = this.data.customFonts || [];
     if (!fonts.some((f) => f.family === font.family)) {
       this.data.customFonts = [...fonts, font];
-  this._saveDebounced();
+      this._saveDebounced();
     }
   }
 
@@ -1814,7 +1866,7 @@ this._saveDebounced();
     if (this.data.activeFont === family) {
       this.data.activeFont = null;
     }
-this._saveDebounced();
+    this._saveDebounced();
   }
 
   public getActiveFont(): string | null {
@@ -1823,12 +1875,9 @@ this._saveDebounced();
 
   public setActiveFont(family: string | null): void {
     this.data.activeFont = family;
-this._saveDebounced();
+    this._saveDebounced();
   }
 
-  /**
-   * Get watcher configuration
-   */
   public getWatcherConfig(): {
     autoRestart: boolean;
     enableRAMLimiter: boolean;
@@ -1845,15 +1894,12 @@ this._saveDebounced();
       enableClientTimeout:
         this.data.watcherConfig?.enableClientTimeout ?? false,
       clientTimeoutSeconds:
-        this.data.watcherConfig?.clientTimeoutSeconds ?? 3600, // 1 hour default
+        this.data.watcherConfig?.clientTimeoutSeconds ?? 3600,
       enableCPULimiter: this.data.watcherConfig?.enableCPULimiter ?? false,
       cpuLimitPercent: this.data.watcherConfig?.cpuLimitPercent ?? 80,
     };
   }
 
-  /**
-   * Set watcher configuration
-   */
   public setWatcherConfig(config: {
     autoRestart?: boolean;
     enableRAMLimiter?: boolean;
@@ -1888,31 +1934,25 @@ this._saveDebounced();
     if (config.cpuLimitPercent !== undefined) {
       this.data.watcherConfig.cpuLimitPercent = config.cpuLimitPercent;
     }
-this._saveDebounced();
+    this._saveDebounced();
   }
 
-  /**
-   * Get allow multiple instances setting
-   */
   public getAllowMultipleInstances(): boolean {
     return this.data.settings?.allowMultipleInstances ?? false;
   }
 
-  /**
-   * Set allow multiple instances setting
-   */
   public setAllowMultipleInstances(allow: boolean): void {
     if (!this.data.settings) {
       this.data.settings = {};
     }
-    // Windows only
+
     if (process.platform === "win32") {
       this.data.settings.allowMultipleInstances = allow;
     } else {
       this.data.settings.allowMultipleInstances = false;
     }
-this._saveDebounced();
-    // Update MultiInstance state
+    this._saveDebounced();
+
     if (this.data.settings.allowMultipleInstances) {
       MultiInstance.Enable(this.data.settings.multiInstanceMethod || "mutex");
     } else {
@@ -1920,13 +1960,8 @@ this._saveDebounced();
     }
   }
 
-  /**
-   * Get Roblox settings
-   */
   public getRobloxSettings() {
     return {
-      allowMultipleLaunches:
-        this.data.robloxSettings?.allowMultipleLaunches ?? false,
       defaultPhysicsEngine:
         this.data.robloxSettings?.defaultPhysicsEngine ?? "Terrain",
       enableOptimizations:
@@ -1943,21 +1978,26 @@ this._saveDebounced();
         this.data.robloxSettings?.framerateCapEnabled ?? false,
       framerateCapValue: this.data.robloxSettings?.framerateCapValue ?? 60,
       optimizeRamEnabled: this.data.robloxSettings?.optimizeRamEnabled ?? false,
-      ramOptimizeLimit: this.data.robloxSettings?.ramOptimizeLimit ?? 500,
+      ramOptimization: this.data.robloxSettings?.ramOptimization ?? 2048,
+      cpuOptimization: this.data.robloxSettings?.cpuOptimization ?? 0,
       headlessModeEnabled:
         this.data.robloxSettings?.headlessModeEnabled ?? false,
       timeoutRelaunchEnabled:
         this.data.robloxSettings?.timeoutRelaunchEnabled ?? false,
       timeoutRelaunchSeconds:
         this.data.robloxSettings?.timeoutRelaunchSeconds ?? 3600,
+      windowLayoutEnabled:
+        this.data.robloxSettings?.windowLayoutEnabled ?? false,
+      windowLayoutPattern:
+        this.data.robloxSettings?.windowLayoutPattern ?? "grid",
+      windowLayoutSpacing: this.data.robloxSettings?.windowLayoutSpacing ?? 12,
+      windowLayoutColumns: this.data.robloxSettings?.windowLayoutColumns ?? 3,
+      windowLayoutWidth: this.data.robloxSettings?.windowLayoutWidth ?? 0,
+      windowLayoutHeight: this.data.robloxSettings?.windowLayoutHeight ?? 0,
     };
   }
 
-  /**
-   * Set Roblox settings
-   */
   public setRobloxSettings(settings: {
-    allowMultipleLaunches?: boolean;
     defaultPhysicsEngine?: "Terrain" | "Legacy";
     enableOptimizations?: boolean;
     memoryLimit?: number;
@@ -1969,17 +2009,20 @@ this._saveDebounced();
     framerateCapEnabled?: boolean;
     framerateCapValue?: number;
     optimizeRamEnabled?: boolean;
-    ramOptimizeLimit?: number;
+    ramOptimization?: number;
+    cpuOptimization?: number;
     headlessModeEnabled?: boolean;
     timeoutRelaunchEnabled?: boolean;
     timeoutRelaunchSeconds?: number;
+    windowLayoutEnabled?: boolean;
+    windowLayoutPattern?: "grid" | "rows" | "columns" | "cascade";
+    windowLayoutSpacing?: number;
+    windowLayoutColumns?: number;
+    windowLayoutWidth?: number;
+    windowLayoutHeight?: number;
   }): void {
     if (!this.data.robloxSettings) {
       this.data.robloxSettings = {};
-    }
-    if (settings.allowMultipleLaunches !== undefined) {
-      this.data.robloxSettings.allowMultipleLaunches =
-        settings.allowMultipleLaunches;
     }
     if (settings.defaultPhysicsEngine !== undefined) {
       this.data.robloxSettings.defaultPhysicsEngine =
@@ -2019,8 +2062,11 @@ this._saveDebounced();
     if (settings.optimizeRamEnabled !== undefined) {
       this.data.robloxSettings.optimizeRamEnabled = settings.optimizeRamEnabled;
     }
-    if (settings.ramOptimizeLimit !== undefined) {
-      this.data.robloxSettings.ramOptimizeLimit = settings.ramOptimizeLimit;
+    if (settings.ramOptimization !== undefined) {
+      this.data.robloxSettings.ramOptimization = settings.ramOptimization;
+    }
+    if (settings.cpuOptimization !== undefined) {
+      this.data.robloxSettings.cpuOptimization = settings.cpuOptimization;
     }
     if (settings.headlessModeEnabled !== undefined) {
       this.data.robloxSettings.headlessModeEnabled =
@@ -2034,8 +2080,30 @@ this._saveDebounced();
       this.data.robloxSettings.timeoutRelaunchSeconds =
         settings.timeoutRelaunchSeconds;
     }
+    if (settings.windowLayoutEnabled !== undefined) {
+      this.data.robloxSettings.windowLayoutEnabled =
+        settings.windowLayoutEnabled;
+    }
+    if (settings.windowLayoutPattern !== undefined) {
+      this.data.robloxSettings.windowLayoutPattern =
+        settings.windowLayoutPattern;
+    }
+    if (settings.windowLayoutSpacing !== undefined) {
+      this.data.robloxSettings.windowLayoutSpacing =
+        settings.windowLayoutSpacing;
+    }
+    if (settings.windowLayoutColumns !== undefined) {
+      this.data.robloxSettings.windowLayoutColumns =
+        settings.windowLayoutColumns;
+    }
+    if (settings.windowLayoutWidth !== undefined) {
+      this.data.robloxSettings.windowLayoutWidth = settings.windowLayoutWidth;
+    }
+    if (settings.windowLayoutHeight !== undefined) {
+      this.data.robloxSettings.windowLayoutHeight = settings.windowLayoutHeight;
+    }
 
-this._saveDebounced();
+    this._saveDebounced();
   }
 }
 

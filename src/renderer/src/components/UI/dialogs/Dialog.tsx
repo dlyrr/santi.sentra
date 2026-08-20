@@ -4,7 +4,6 @@ import type { HTMLMotionProps } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "../../../lib/utils";
 
-// Global modal stack to track which modal is on top
 const modalStack: (() => void)[] = [];
 
 const registerModal = (onClose: () => void) => {
@@ -21,7 +20,6 @@ const isTopModal = (onClose: () => void) => {
   return modalStack.length > 0 && modalStack[modalStack.length - 1] === onClose;
 };
 
-// Export for Sheet.tsx to use
 export { registerModal, isTopModal };
 
 const DialogContext = React.createContext<{
@@ -76,7 +74,6 @@ const Dialog: React.FC<DialogProps> = ({
     };
   }, [isOpen]);
 
-  // Register with modal stack
   React.useEffect(() => {
     if (isOpen) {
       const unregister = registerModal(onClose);
@@ -112,7 +109,6 @@ const Dialog: React.FC<DialogProps> = ({
             animate={{ opacity: isOpen ? 1 : 0, backdropFilter: "blur(8px)" }}
             exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            // GPU acceleration for overlay
             style={{
               willChange: "opacity, backdrop-filter",
               transform: "translateZ(0)",
@@ -151,7 +147,6 @@ const DialogContent = React.forwardRef<HTMLDivElement, HTMLMotionProps<"div">>(
         }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ type: "spring", bounce: 0, duration: 0.35 }}
-        // GPU acceleration: force compositor layer for smoother animations
         style={{
           willChange: "transform, opacity",
           transform: "translateZ(0)",

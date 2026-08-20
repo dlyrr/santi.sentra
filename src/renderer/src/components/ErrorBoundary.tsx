@@ -20,7 +20,6 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: any) {
-    // Log to console for dev
     console.error("[ErrorBoundary] error", error, info);
   }
 
@@ -29,7 +28,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   };
 
   render() {
-    if (this.state.hasError && this.state.error) {
+    if (this.state.hasError) {
       return (
         <div
           style={{
@@ -47,7 +46,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
               color: "var(--color-text-secondary)",
             }}
           >
-            {this.state.error.message}
+            {this.state.error?.message ?? String(this.state.error)}
           </pre>
           <button
             type="button"
@@ -67,7 +66,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
           <details style={{ color: "var(--color-text-muted)", marginTop: 12 }}>
             <summary>Stack trace</summary>
             <pre style={{ whiteSpace: "pre-wrap" }}>
-              {this.state.error.stack}
+              {this.state.error?.stack}
             </pre>
           </details>
         </div>

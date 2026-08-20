@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-// ============================================================================
-// View Preferences Store
-// ============================================================================
-
 export type ViewMode = "default" | "compact";
 export type ContentRadius = "sharp" | "rounded" | "pill";
 export type NavBorderStyle = "solid" | "subtle" | "none";
@@ -15,23 +11,22 @@ export type MotionSpeed = "none" | "fast" | "default" | "slow";
 export type FontWeight = "light" | "regular" | "medium";
 
 interface ViewPreferencesState {
-  // Catalog view mode
   catalogViewMode: ViewMode;
-  // Inventory view mode
+
   inventoryViewMode: ViewMode;
-  // UI corner radius
+
   contentRadius: ContentRadius;
-  // Nav border style
+
   navBorderStyle: NavBorderStyle;
-  // Global UI density
+
   uiDensity: UIDensity;
-  // Global background blur intensity
+
   blurIntensity: BlurIntensity;
-  // Icon stroke weight
+
   iconWeight: IconWeight;
-  // UI motion/animation speed
+
   motionSpeed: MotionSpeed;
-  // Base font weight
+
   fontWeight: FontWeight;
 }
 
@@ -80,12 +75,10 @@ export const useViewPreferencesStore = create<ViewPreferencesStore>()(
 
         setContentRadius: (contentRadius) => {
           set({ contentRadius }, false, "setContentRadius");
-          
         },
 
         setNavBorderStyle: (navBorderStyle) => {
           set({ navBorderStyle }, false, "setNavBorderStyle");
-          
         },
 
         setUIDensity: (uiDensity) => {
@@ -95,12 +88,10 @@ export const useViewPreferencesStore = create<ViewPreferencesStore>()(
 
         setBlurIntensity: (blurIntensity) => {
           set({ blurIntensity }, false, "setBlurIntensity");
-          
         },
 
         setIconWeight: (iconWeight) => {
           set({ iconWeight }, false, "setIconWeight");
-          
         },
 
         setMotionSpeed: (motionSpeed) => {
@@ -110,7 +101,6 @@ export const useViewPreferencesStore = create<ViewPreferencesStore>()(
 
         setFontWeight: (fontWeight) => {
           set({ fontWeight }, false, "setFontWeight");
-          
         },
 
         resetViewPreferences: () =>
@@ -118,7 +108,7 @@ export const useViewPreferencesStore = create<ViewPreferencesStore>()(
       }),
       {
         name: "view-preferences-storage",
-        // Persist all view preferences
+
         partialize: (state) => ({
           catalogViewMode: state.catalogViewMode,
           inventoryViewMode: state.inventoryViewMode,
@@ -136,16 +126,8 @@ export const useViewPreferencesStore = create<ViewPreferencesStore>()(
   ),
 );
 
-// ============================================================================
-// Bootstrap from backend config.json on first load
-// ============================================================================
-
 import { useEffect } from "react";
 
-/**
- * Call this once near the app root to hydrate the view preferences store
- * from the backend config.json, overriding any stale localStorage values.
- */
 export function useInitViewPreferencesFromBackend(): void {
   useEffect(() => {
     if (!(window as any).api?.getSettings) return;
@@ -155,7 +137,8 @@ export function useInitViewPreferencesFromBackend(): void {
         const store = useViewPreferencesStore.getState();
         const s = settings as any;
         if (s?.catalogViewMode) store.setCatalogViewMode(s.catalogViewMode);
-        if (s?.inventoryViewMode) store.setInventoryViewMode(s.inventoryViewMode);
+        if (s?.inventoryViewMode)
+          store.setInventoryViewMode(s.inventoryViewMode);
         if (s?.contentRadius) store.setContentRadius(s.contentRadius);
         if (s?.navBorderStyle) store.setNavBorderStyle(s.navBorderStyle);
         if (s?.uiDensity) store.setUIDensity(s.uiDensity);
@@ -164,14 +147,9 @@ export function useInitViewPreferencesFromBackend(): void {
         if (s?.motionSpeed) store.setMotionSpeed(s.motionSpeed);
         if (s?.fontWeight) store.setFontWeight(s.fontWeight);
       })
-      .catch(() => {/* ignore — localStorage fallback still applies */});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => {});
   }, []);
 }
-
-// ============================================================================
-// Selectors
-// ============================================================================
 
 export const useCatalogViewMode = () =>
   useViewPreferencesStore((state) => state.catalogViewMode);

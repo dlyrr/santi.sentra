@@ -11,7 +11,6 @@ type MainCategory =
   | "Animation";
 
 interface AvatarState {
-  // Navigation State
   mainCategory: MainCategory;
   subCategory: string;
   searchQuery: string;
@@ -55,7 +54,6 @@ export const useAvatarStore = create<AvatarStore>()(
   ),
 );
 
-// Selectors
 export const useAvatarMainCategory = () =>
   useAvatarStore((state) => state.mainCategory);
 export const useSetAvatarMainCategory = () =>

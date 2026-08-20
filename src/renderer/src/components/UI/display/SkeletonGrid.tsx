@@ -9,19 +9,12 @@ import {
   SkeletonInventoryCard,
 } from "./SkeletonCard";
 
-// ============================================================================
-// SkeletonGrid - Reusable skeleton grid layouts for loading states
-// ============================================================================
-
 interface SkeletonGridProps {
   count?: number;
   className?: string;
   gridClassName?: string;
 }
 
-/**
- * Grid of friend card skeletons (2 columns)
- */
 export const SkeletonFriendGrid: React.FC<SkeletonGridProps> = ({
   count = 12,
   className,
@@ -36,9 +29,6 @@ export const SkeletonFriendGrid: React.FC<SkeletonGridProps> = ({
   </div>
 );
 
-/**
- * Grid of game card skeletons with custom grid style
- */
 export const SkeletonGameGrid: React.FC<
   SkeletonGridProps & {
     gridStyle?: React.CSSProperties;
@@ -53,9 +43,6 @@ export const SkeletonGameGrid: React.FC<
   );
 };
 
-/**
- * Grid of square card skeletons (for outfits, badges, collections)
- */
 export const SkeletonSquareGrid: React.FC<
   SkeletonGridProps & {
     columns?: string;
@@ -74,9 +61,6 @@ export const SkeletonSquareGrid: React.FC<
   );
 };
 
-/**
- * Horizontal scroll row of user card skeletons (for profile sections)
- */
 export const SkeletonUserRow: React.FC<
   SkeletonGridProps & {
     variant?: "friend" | "group";
@@ -93,9 +77,6 @@ export const SkeletonUserRow: React.FC<
   </div>
 );
 
-/**
- * Grid of inventory item skeletons
- */
 export const SkeletonInventoryGrid: React.FC<
   SkeletonGridProps & {
     columns?: string;
@@ -112,9 +93,6 @@ export const SkeletonInventoryGrid: React.FC<
   </div>
 );
 
-/**
- * List of user card skeletons (for modals)
- */
 export const SkeletonUserList: React.FC<SkeletonGridProps> = ({
   count = 8,
   className,

@@ -1,396 +1,580 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { Lock, Globe, RotateCcw, Zap, Sliders, AlertTriangle } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { BentoCard, BentoToggle, SectionDivider, PageHeader } from './SharedComponents'
-import BackupIcon from '../../../components/UI/icons/BackupIcon'
-import { Account, Settings } from '../../../types'
-import { useSetAppUnlocked } from '../../../stores/useUIStore'
-import { useNotificationTrayStore } from '../../system/stores/useNotificationTrayStore'
-import { queryKeys } from '../../../../../shared/queryKeys'
-import PinSetupDialog from '../../../components/UI/security/PinSetupDialog'
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import {
+  Lock,
+  Globe,
+  RotateCcw,
+  Zap,
+  Sliders,
+  AlertTriangle,
+  Download,
+  Trash2,
+  RotateCw,
+} from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  BentoCard,
+  BentoToggle,
+  SectionDivider,
+  PageHeader,
+} from "./SharedComponents";
+import CustomDropdown from "../../../components/UI/menus/CustomDropdown";
+import BackupIcon from "../../../components/UI/icons/BackupIcon";
+import { Account, Settings } from "../../../types";
+import { useSetAppUnlocked } from "../../../stores/useUIStore";
+import { useNotificationTrayStore } from "../../system/stores/useNotificationTrayStore";
+import { queryKeys } from "../../../../../shared/queryKeys";
+import PinSetupDialog from "../../../components/UI/security/PinSetupDialog";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogBody
-} from '../../../components/UI/dialogs/Dialog'
-import RobloxAdvancedSettings from './RobloxAdvancedSettings'
-import UserAgentSettingsModal from './UserAgentSettingsModal'
-import { useRobloxSettings } from '../hooks/useRobloxSettings'
+  DialogBody,
+} from "../../../components/UI/dialogs/Dialog";
+import RobloxAdvancedSettings from "./RobloxAdvancedSettings";
+import UserAgentSettingsModal from "./UserAgentSettingsModal";
 
 interface SecuritySettingsTabProps {
-  accounts: Account[]
-  settings: Settings
-  onUpdateSettings: (newSettings: Partial<Settings>) => void
+  accounts: Account[];
+  settings: Settings;
+  onUpdateSettings: (newSettings: Partial<Settings>) => void;
 }
 
-const isMac = window.platform?.isMac ?? false
+const isMac = window.platform?.isMac ?? false;
 
 export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
   accounts,
   settings,
-  onUpdateSettings
+  onUpdateSettings,
 }) => {
-  const queryClient = useQueryClient()
-  const setAppUnlocked = useSetAppUnlocked()
-  const addNotification = useNotificationTrayStore((s) => s.addNotification)
+  const queryClient = useQueryClient();
+  const setAppUnlocked = useSetAppUnlocked();
+  const addNotification = useNotificationTrayStore((s) => s.addNotification);
 
-  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false)
-  const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false)
-  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
-  const [backupStep, setBackupStep] = useState<'pin' | 'backuppin'>('pin')
-  const [restoreStep, setRestoreStep] = useState<'pin' | 'backuppin' | 'file'>('pin')
-  const [backupPin, setBackupPin] = useState<string[]>(Array(6).fill(''))
-  const [backupPinConfirm, setBackupPinConfirm] = useState<string[]>(Array(6).fill(''))
-  const [restorePin, setRestorePin] = useState<string[]>(Array(6).fill(''))
-  const [restoreBackupPin, setRestoreBackupPin] = useState<string[]>(Array(6).fill(''))
-  const [selectedBackupFile, setSelectedBackupFile] = useState<string | null>(null)
-  const [isBackupLoading, setIsBackupLoading] = useState(false)
-  const [isRestoreLoading, setIsRestoreLoading] = useState(false)
-  const [backupError, setBackupError] = useState<string | null>(null)
-  const [restoreError, setRestoreError] = useState<string | null>(null)
-  const [isRobloxSettingsOpen, setIsRobloxSettingsOpen] = useState(false)
-  const [isUserAgentModalOpen, setIsUserAgentModalOpen] = useState(false)
-  const { settings: robloxSettings, updateSettings: updateRobloxSettings, isLoading: isRobloxSettingsLoading } = useRobloxSettings()
-  
-  // User Agent state
-  const [currentUserAgent, setCurrentUserAgent] = useState<string>('')
-  const [userAgentIndex, setUserAgentIndex] = useState<number>(0)
-  const [allUserAgents, setAllUserAgents] = useState<string[]>([])
-  const [isAutoSwapEnabled, setIsAutoSwapEnabled] = useState<boolean>(false)
-  const [autoSwapInterval, setAutoSwapInterval] = useState<number>(30)
-  const [isLoadingUserAgent, setIsLoadingUserAgent] = useState(false)
-  
-  // PIN input refs
-  const backupPinRefs = useRef<(HTMLInputElement | null)[]>([])
-  const backupPinConfirmRefs = useRef<(HTMLInputElement | null)[]>([])
-  const restorePinRefs = useRef<(HTMLInputElement | null)[]>([])
-  const restoreBackupPinRefs = useRef<(HTMLInputElement | null)[]>([])
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [backupStep, setBackupStep] = useState<"pin" | "backuppin">("pin");
+  const [restoreStep, setRestoreStep] = useState<"pin" | "backuppin" | "file">(
+    "pin",
+  );
+  const [backupPin, setBackupPin] = useState<string[]>(Array(6).fill(""));
+  const [backupPinConfirm, setBackupPinConfirm] = useState<string[]>(
+    Array(6).fill(""),
+  );
+  const [restorePin, setRestorePin] = useState<string[]>(Array(6).fill(""));
+  const [restoreBackupPin, setRestoreBackupPin] = useState<string[]>(
+    Array(6).fill(""),
+  );
+  const [selectedBackupFile, setSelectedBackupFile] = useState<string | null>(
+    null,
+  );
+  const [isBackupLoading, setIsBackupLoading] = useState(false);
+  const [isRestoreLoading, setIsRestoreLoading] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [isRobloxSettingsOpen, setIsRobloxSettingsOpen] = useState(false);
+  const [isUserAgentModalOpen, setIsUserAgentModalOpen] = useState(false);
+  const [handle64IsInstalled, setHandle64IsInstalled] = useState(false);
+  const [handle64IsLoading, setHandle64IsLoading] = useState(false);
+
+  const handleRobloxSettingsChange = useCallback(
+    async (updates: Partial<Settings>) => {
+      onUpdateSettings(updates);
+    },
+    [onUpdateSettings],
+  );
+
+  const [currentUserAgent, setCurrentUserAgent] = useState<string>("");
+  const [userAgentIndex, setUserAgentIndex] = useState<number>(0);
+  const [allUserAgents, setAllUserAgents] = useState<string[]>([]);
+  const [isAutoSwapEnabled, setIsAutoSwapEnabled] = useState<boolean>(false);
+  const [autoSwapInterval, setAutoSwapInterval] = useState<number>(30);
+  const [isLoadingUserAgent, setIsLoadingUserAgent] = useState(false);
+
+  const backupPinRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const backupPinConfirmRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const restorePinRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const restoreBackupPinRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (!isBackupDialogOpen) {
-      backupPinRefs.current = []
-      backupPinConfirmRefs.current = []
+      backupPinRefs.current = [];
+      backupPinConfirmRefs.current = [];
     }
-  }, [isBackupDialogOpen])
+  }, [isBackupDialogOpen]);
 
   useEffect(() => {
     if (!isRestoreDialogOpen) {
-      restorePinRefs.current = []
-      restoreBackupPinRefs.current = []
+      restorePinRefs.current = [];
+      restoreBackupPinRefs.current = [];
     }
-  }, [isRestoreDialogOpen])
+  }, [isRestoreDialogOpen]);
 
   useEffect(() => {
     const loadUserAgentState = async () => {
       try {
-        setIsLoadingUserAgent(true)
-        const state = await window.api.getUserAgentState()
-        setCurrentUserAgent(state.currentUserAgent)
-        setUserAgentIndex(state.currentIndex)
-        setIsAutoSwapEnabled(state.autoSwapEnabled)
-        setAutoSwapInterval(state.autoSwapIntervalMinutes)
-        const agents = await window.api.getAllUserAgents()
-        setAllUserAgents(agents)
+        setIsLoadingUserAgent(true);
+        const state = await window.api.getUserAgentState();
+        setCurrentUserAgent(state.currentUserAgent);
+        setUserAgentIndex(state.currentIndex);
+        setIsAutoSwapEnabled(state.autoSwapEnabled);
+        setAutoSwapInterval(state.autoSwapIntervalMinutes);
+        const agents = await window.api.getAllUserAgents();
+        setAllUserAgents(agents);
       } catch (error) {
-        console.error('[Settings] Failed to load user agent state:', error)
+        console.error("[Settings] Failed to load user agent state:", error);
       } finally {
-        setIsLoadingUserAgent(false)
+        setIsLoadingUserAgent(false);
       }
-    }
-    loadUserAgentState()
-  }, [])
+    };
+    loadUserAgentState();
+  }, []);
+
+  useEffect(() => {
+    const checkHandle64Status = async () => {
+      if (
+        settings.allowMultipleInstances &&
+        settings.multiInstanceMethod === "handle64"
+      ) {
+        try {
+          const installed = await window.api.handle64IsInstalled();
+          setHandle64IsInstalled(installed);
+        } catch (error) {
+          console.error("[Settings] Failed to check handle64 status:", error);
+        }
+      }
+    };
+    checkHandle64Status();
+  }, [settings.allowMultipleInstances, settings.multiInstanceMethod]);
 
   const handleRotateNext = async () => {
     try {
-      setIsLoadingUserAgent(true)
-      const result = await window.api.swapUserAgent()
-      setCurrentUserAgent(result.userAgent)
-      setUserAgentIndex(result.index)
+      setIsLoadingUserAgent(true);
+      const result = await window.api.swapUserAgent();
+      setCurrentUserAgent(result.userAgent);
+      setUserAgentIndex(result.index);
       addNotification({
-        type: 'success',
-        title: 'User Agent Swapped',
-        message: `Rotated to user agent #${result.index + 1}`
-      })
+        type: "success",
+        title: "User Agent Swapped",
+        message: `Rotated to user agent #${result.index + 1}`,
+      });
     } catch (error) {
-      console.error('[SettingsTab] Failed to swap user agent:', error)
+      console.error("[SettingsTab] Failed to swap user agent:", error);
       addNotification({
-        type: 'error',
-        title: 'Swap Failed',
-        message: error instanceof Error ? error.message : 'Failed to swap user agent'
-      })
+        type: "error",
+        title: "Swap Failed",
+        message:
+          error instanceof Error ? error.message : "Failed to swap user agent",
+      });
     } finally {
-      setIsLoadingUserAgent(false)
+      setIsLoadingUserAgent(false);
     }
-  }
+  };
 
   const handleSelectAgent = async (index: number) => {
     try {
-      setIsLoadingUserAgent(true)
-      const result = await window.api.setUserAgentIndex(index)
-      setCurrentUserAgent(result.userAgent)
-      setUserAgentIndex(result.index)
+      setIsLoadingUserAgent(true);
+      const result = await window.api.setUserAgentIndex(index);
+      setCurrentUserAgent(result.userAgent);
+      setUserAgentIndex(result.index);
       addNotification({
-        type: 'success',
-        title: 'User Agent Selected',
-        message: `Switched to user agent #${result.index + 1}`
-      })
+        type: "success",
+        title: "User Agent Selected",
+        message: `Switched to user agent #${result.index + 1}`,
+      });
     } catch (error) {
-      console.error('[SettingsTab] Failed to set user agent:', error)
+      console.error("[SettingsTab] Failed to set user agent:", error);
       addNotification({
-        type: 'error',
-        title: 'Selection Failed',
-        message: error instanceof Error ? error.message : 'Failed to select user agent'
-      })
+        type: "error",
+        title: "Selection Failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to select user agent",
+      });
     } finally {
-      setIsLoadingUserAgent(false)
+      setIsLoadingUserAgent(false);
     }
-  }
+  };
 
   const handleToggleAutoSwap = async () => {
     try {
-      setIsLoadingUserAgent(true)
-      const result = await window.api.setAutoSwapUserAgent(!isAutoSwapEnabled, autoSwapInterval)
-      setIsAutoSwapEnabled(result.autoSwapEnabled)
+      setIsLoadingUserAgent(true);
+      const result = await window.api.setAutoSwapUserAgent(
+        !isAutoSwapEnabled,
+        autoSwapInterval,
+      );
+      setIsAutoSwapEnabled(result.autoSwapEnabled);
       addNotification({
-        type: 'success',
-        title: result.autoSwapEnabled ? 'Auto-rotate Enabled' : 'Auto-rotate Disabled',
+        type: "success",
+        title: result.autoSwapEnabled
+          ? "Auto-rotate Enabled"
+          : "Auto-rotate Disabled",
         message: result.autoSwapEnabled
           ? `User agent will rotate every ${result.intervalMinutes} minutes`
-          : 'Automatic user agent rotation disabled'
-      })
+          : "Automatic user agent rotation disabled",
+      });
     } catch (error) {
-      console.error('[SettingsTab] Failed to toggle auto-swap:', error)
+      console.error("[SettingsTab] Failed to toggle auto-swap:", error);
       addNotification({
-        type: 'error',
-        title: 'Toggle Failed',
-        message: error instanceof Error ? error.message : 'Failed to toggle auto-rotate'
-      })
+        type: "error",
+        title: "Toggle Failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to toggle auto-rotate",
+      });
     } finally {
-      setIsLoadingUserAgent(false)
+      setIsLoadingUserAgent(false);
     }
-  }
-  
-  const focusFirstRef = (refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => {
+  };
+
+  const handleHandle64Install = async () => {
+    try {
+      setHandle64IsLoading(true);
+      const success = await window.api.handle64Install();
+      if (success) {
+        setHandle64IsInstalled(true);
+        addNotification({
+          type: "success",
+          title: "Handle64 Installed",
+          message: "Multi-instance driver installed successfully",
+        });
+      } else {
+        addNotification({
+          type: "error",
+          title: "Installation Failed",
+          message: "Failed to install Handle64",
+        });
+      }
+    } catch (error) {
+      console.error("[SettingsTab] Failed to install handle64:", error);
+      addNotification({
+        type: "error",
+        title: "Installation Error",
+        message:
+          error instanceof Error ? error.message : "Failed to install Handle64",
+      });
+    } finally {
+      setHandle64IsLoading(false);
+    }
+  };
+
+  const handleHandle64Refresh = async () => {
+    try {
+      setHandle64IsLoading(true);
+      const installed = await window.api.handle64IsInstalled();
+      setHandle64IsInstalled(installed);
+      addNotification({
+        type: "success",
+        title: "Status Updated",
+        message: installed
+          ? "Handle64 is installed"
+          : "Handle64 is not installed",
+      });
+    } catch (error) {
+      console.error("[SettingsTab] Failed to refresh handle64 status:", error);
+      addNotification({
+        type: "error",
+        title: "Refresh Failed",
+        message:
+          error instanceof Error ? error.message : "Failed to check status",
+      });
+    } finally {
+      setHandle64IsLoading(false);
+    }
+  };
+
+  const handleHandle64Uninstall = async () => {
+    if (!confirm("Remove Handle64 driver? You can reinstall it anytime."))
+      return;
+
+    try {
+      setHandle64IsLoading(true);
+      const success = await window.api.handle64Uninstall();
+      if (success) {
+        setHandle64IsInstalled(false);
+        addNotification({
+          type: "success",
+          title: "Handle64 Uninstalled",
+          message: "Multi-instance driver removed",
+        });
+      } else {
+        addNotification({
+          type: "error",
+          title: "Uninstall Failed",
+          message: "Failed to uninstall Handle64",
+        });
+      }
+    } catch (error) {
+      console.error("[SettingsTab] Failed to uninstall handle64:", error);
+      addNotification({
+        type: "error",
+        title: "Uninstall Error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to uninstall Handle64",
+      });
+    } finally {
+      setHandle64IsLoading(false);
+    }
+  };
+
+  const focusFirstRef = (
+    refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
+  ) => {
     const tryFocus = () => {
       for (let i = 0; i < refs.current.length; i++) {
-        const el = refs.current[i]
+        const el = refs.current[i];
         if (el) {
           try {
-            el.focus()
-            el.select && el.select()
-            return true
+            el.focus();
+            el.select && el.select();
+            return true;
           } catch (e) {
-            console.warn('Failed to load FFlags:', e instanceof Error ? e.message : String(e))
+            console.warn(
+              "Failed to load FFlags:",
+              e instanceof Error ? e.message : String(e),
+            );
           }
         }
       }
-      return false
-    }
+      return false;
+    };
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       requestAnimationFrame(() => {
-        if (!tryFocus()) setTimeout(tryFocus, 50)
-      })
+        if (!tryFocus()) setTimeout(tryFocus, 50);
+      });
     } else {
-      tryFocus()
+      tryFocus();
     }
-  }
+  };
 
   useEffect(() => {
-    if (isBackupDialogOpen && backupStep === 'pin') {
-      backupPinRefs.current = new Array(6).fill(null)
-      backupPinConfirmRefs.current = new Array(6).fill(null)
-      focusFirstRef(backupPinRefs)
+    if (isBackupDialogOpen && backupStep === "pin") {
+      backupPinRefs.current = new Array(6).fill(null);
+      backupPinConfirmRefs.current = new Array(6).fill(null);
+      focusFirstRef(backupPinRefs);
     }
-  }, [isBackupDialogOpen, backupStep])
+  }, [isBackupDialogOpen, backupStep]);
 
   useEffect(() => {
-    if (isBackupDialogOpen && backupStep === 'backuppin') {
-      backupPinRefs.current = new Array(6).fill(null)
-      backupPinConfirmRefs.current = new Array(6).fill(null)
-      focusFirstRef(backupPinRefs)
+    if (isBackupDialogOpen && backupStep === "backuppin") {
+      backupPinRefs.current = new Array(6).fill(null);
+      backupPinConfirmRefs.current = new Array(6).fill(null);
+      focusFirstRef(backupPinRefs);
     }
-  }, [isBackupDialogOpen, backupStep])
+  }, [isBackupDialogOpen, backupStep]);
 
   useEffect(() => {
-    if (isRestoreDialogOpen && restoreStep === 'pin') {
-      restorePinRefs.current = new Array(6).fill(null)
-      restoreBackupPinRefs.current = new Array(6).fill(null)
-      focusFirstRef(restorePinRefs)
+    if (isRestoreDialogOpen && restoreStep === "pin") {
+      restorePinRefs.current = new Array(6).fill(null);
+      restoreBackupPinRefs.current = new Array(6).fill(null);
+      focusFirstRef(restorePinRefs);
     }
-  }, [isRestoreDialogOpen, restoreStep])
+  }, [isRestoreDialogOpen, restoreStep]);
 
   useEffect(() => {
-    if (isRestoreDialogOpen && restoreStep === 'backuppin') {
-      restorePinRefs.current = new Array(6).fill(null)
-      restoreBackupPinRefs.current = new Array(6).fill(null)
-      focusFirstRef(restoreBackupPinRefs)
+    if (isRestoreDialogOpen && restoreStep === "backuppin") {
+      restorePinRefs.current = new Array(6).fill(null);
+      restoreBackupPinRefs.current = new Array(6).fill(null);
+      focusFirstRef(restoreBackupPinRefs);
     }
-  }, [isRestoreDialogOpen, restoreStep])
+  }, [isRestoreDialogOpen, restoreStep]);
 
   const handleBackupAccounts = async () => {
-    setBackupError(null)
-    
-    if (backupStep === 'pin') {
-      const pinStr = backupPin.join('')
-      if (backupPin.some(digit => digit === '')) {
-        setBackupError('Please enter all 6 digits')
-        return
+    setBackupError(null);
+
+    if (backupStep === "pin") {
+      const pinStr = backupPin.join("");
+      if (backupPin.some((digit) => digit === "")) {
+        setBackupError("Please enter all 6 digits");
+        return;
       }
       try {
-        const result = await window.api.verifyPin(pinStr)
+        const result = await window.api.verifyPin(pinStr);
         if (result.success) {
-          setBackupStep('backuppin')
-          setBackupPin(Array(6).fill(''))
-          setBackupPinConfirm(Array(6).fill(''))
+          setBackupStep("backuppin");
+          setBackupPin(Array(6).fill(""));
+          setBackupPinConfirm(Array(6).fill(""));
         } else {
-          setBackupError('Incorrect PIN')
-          setBackupPin(Array(6).fill(''))
+          setBackupError("Incorrect PIN");
+          setBackupPin(Array(6).fill(""));
         }
       } catch (error) {
-        setBackupError('PIN verification failed: ' + (error instanceof Error ? error.message : String(error)))
-        setBackupPin(Array(6).fill(''))
+        setBackupError(
+          "PIN verification failed: " +
+            (error instanceof Error ? error.message : String(error)),
+        );
+        setBackupPin(Array(6).fill(""));
       }
-    } else if (backupStep === 'backuppin') {
-      const pin1 = backupPin.join('')
-      const pin2 = backupPinConfirm.join('')
-      
-      if (backupPin.some(digit => digit === '')) {
-        setBackupError('Please enter all 6 digits for encryption PIN')
-        return
+    } else if (backupStep === "backuppin") {
+      const pin1 = backupPin.join("");
+      const pin2 = backupPinConfirm.join("");
+
+      if (backupPin.some((digit) => digit === "")) {
+        setBackupError("Please enter all 6 digits for encryption PIN");
+        return;
       }
-      if (backupPinConfirm.some(digit => digit === '')) {
-        setBackupError('Please enter all 6 digits for confirmation PIN')
-        return
+      if (backupPinConfirm.some((digit) => digit === "")) {
+        setBackupError("Please enter all 6 digits for confirmation PIN");
+        return;
       }
       if (pin1 !== pin2) {
-        setBackupError('Backup PINs do not match')
-        setBackupPin(Array(6).fill(''))
-        setBackupPinConfirm(Array(6).fill(''))
-        return
+        setBackupError("Backup PINs do not match");
+        setBackupPin(Array(6).fill(""));
+        setBackupPinConfirm(Array(6).fill(""));
+        return;
       }
 
-      setIsBackupLoading(true)
+      setIsBackupLoading(true);
       try {
-        let accountsData = accounts
-        let saveLocation: string | undefined
+        const accountsData = accounts;
+        let saveLocation: string | undefined;
         try {
-          saveLocation = await window.api.chooseBackupLocation()
+          saveLocation = await window.api.chooseBackupLocation();
         } catch (e) {
-          throw new Error('Backup cancelled')
+          throw new Error("Backup cancelled");
         }
 
-        const filepath = await window.api.createBackup(accountsData, pin1, saveLocation)
+        const filepath = await window.api.createBackup(
+          accountsData,
+          pin1,
+          saveLocation,
+        );
         addNotification({
-          type: 'success',
-          title: 'Backup created',
-          message: `Saved backup to ${filepath}`
-        })
-        setIsBackupDialogOpen(false)
-        setBackupStep('pin')
-        setBackupPin(Array(6).fill(''))
-        setBackupPinConfirm(Array(6).fill(''))
-        setBackupError(null)
+          type: "success",
+          title: "Backup created",
+          message: `Saved backup to ${filepath}`,
+        });
+        setIsBackupDialogOpen(false);
+        setBackupStep("pin");
+        setBackupPin(Array(6).fill(""));
+        setBackupPinConfirm(Array(6).fill(""));
+        setBackupError(null);
       } catch (error) {
-        const msg = (error instanceof Error ? error.message : String(error))
-        addNotification({ type: 'error', title: 'Backup failed', message: msg })
-        setBackupError('Backup failed: ' + msg)
+        const msg = error instanceof Error ? error.message : String(error);
+        addNotification({
+          type: "error",
+          title: "Backup failed",
+          message: msg,
+        });
+        setBackupError("Backup failed: " + msg);
       } finally {
-        setIsBackupLoading(false)
+        setIsBackupLoading(false);
       }
     }
-  }
+  };
 
   const handleRestoreBackup = async () => {
-    setRestoreError(null)
-    
-    if (restoreStep === 'pin') {
-      const pinStr = restorePin.join('')
-      if (restorePin.some(digit => digit === '')) {
-        setRestoreError('Please enter all 6 digits')
-        return
+    setRestoreError(null);
+
+    if (restoreStep === "pin") {
+      const pinStr = restorePin.join("");
+      if (restorePin.some((digit) => digit === "")) {
+        setRestoreError("Please enter all 6 digits");
+        return;
       }
       try {
-        const result = await window.api.verifyPin(pinStr)
+        const result = await window.api.verifyPin(pinStr);
         if (result.success) {
-          setRestoreStep('file')
-          setRestorePin(Array(6).fill(''))
+          setRestoreStep("file");
+          setRestorePin(Array(6).fill(""));
         } else {
-          setRestoreError('Incorrect PIN')
-          setRestorePin(Array(6).fill(''))
+          setRestoreError("Incorrect PIN");
+          setRestorePin(Array(6).fill(""));
         }
       } catch (error) {
-        setRestoreError('PIN verification failed: ' + (error instanceof Error ? error.message : String(error)))
-        setRestorePin(Array(6).fill(''))
+        setRestoreError(
+          "PIN verification failed: " +
+            (error instanceof Error ? error.message : String(error)),
+        );
+        setRestorePin(Array(6).fill(""));
       }
-    } else if (restoreStep === 'file') {
+    } else if (restoreStep === "file") {
       try {
-        const filepath = await window.api.pickBackupFile()
+        const filepath = await window.api.pickBackupFile();
         if (filepath) {
-          setSelectedBackupFile(filepath)
-          setRestoreStep('backuppin')
+          setSelectedBackupFile(filepath);
+          setRestoreStep("backuppin");
         }
       } catch (error) {
-        setRestoreError('File selection failed: ' + (error instanceof Error ? error.message : String(error)))
+        setRestoreError(
+          "File selection failed: " +
+            (error instanceof Error ? error.message : String(error)),
+        );
       }
-    } else if (restoreStep === 'backuppin') {
-      const pinStr = restoreBackupPin.join('')
-      if (restoreBackupPin.some(digit => digit === '')) {
-        setRestoreError('Please enter all 6 digits')
-        return
+    } else if (restoreStep === "backuppin") {
+      const pinStr = restoreBackupPin.join("");
+      if (restoreBackupPin.some((digit) => digit === "")) {
+        setRestoreError("Please enter all 6 digits");
+        return;
       }
       if (!selectedBackupFile) {
-        setRestoreError('No backup file selected')
-        return
+        setRestoreError("No backup file selected");
+        return;
       }
 
-      setIsRestoreLoading(true)
+      setIsRestoreLoading(true);
       try {
-        const restoredAccounts = await window.api.restoreBackup(selectedBackupFile, pinStr)
-        await window.api.saveAccounts(restoredAccounts as Account[])
+        const restoredAccounts = await window.api.restoreBackup(
+          selectedBackupFile,
+          pinStr,
+        );
+        await window.api.saveAccounts(restoredAccounts as Account[]);
         addNotification({
-          type: 'success',
-          title: 'Backup restored',
-          message: `Imported ${restoredAccounts.length} accounts from backup`
-        })
-        setIsRestoreDialogOpen(false)
-        setRestoreStep('pin')
-        setRestorePin(Array(6).fill(''))
-        setRestoreBackupPin(Array(6).fill(''))
-        setSelectedBackupFile(null)
-        setRestoreError(null)
-        queryClient.invalidateQueries({ queryKey: ['accounts'] })
+          type: "success",
+          title: "Backup restored",
+          message: `Imported ${restoredAccounts.length} accounts from backup`,
+        });
+        setIsRestoreDialogOpen(false);
+        setRestoreStep("pin");
+        setRestorePin(Array(6).fill(""));
+        setRestoreBackupPin(Array(6).fill(""));
+        setSelectedBackupFile(null);
+        setRestoreError(null);
+        queryClient.invalidateQueries({ queryKey: ["accounts"] });
       } catch (error) {
-        const msg = (error instanceof Error ? error.message : String(error))
-        addNotification({ type: 'error', title: 'Restore failed', message: msg })
-        setRestoreError('Restore failed: ' + msg)
+        const msg = error instanceof Error ? error.message : String(error);
+        addNotification({
+          type: "error",
+          title: "Restore failed",
+          message: msg,
+        });
+        setRestoreError("Restore failed: " + msg);
       } finally {
-        setIsRestoreLoading(false)
+        setIsRestoreLoading(false);
       }
     }
-  }
+  };
 
   const handlePinInputChange = useCallback(
-    (index: number, value: string, setter: any, refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => {
-      const digit = value.slice(-1)
-      if (!/^\d?$/.test(digit)) return
+    (
+      index: number,
+      value: string,
+      setter: any,
+      refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
+    ) => {
+      const digit = value.slice(-1);
+      if (!/^\d?$/.test(digit)) return;
 
       setter((prev: string[]) => {
-        const newPin = [...prev]
-        newPin[index] = digit
-        return newPin
-      })
+        const newPin = [...prev];
+        newPin[index] = digit;
+        return newPin;
+      });
 
       if (digit && index < 5) {
-        refs.current[index + 1]?.focus()
+        refs.current[index + 1]?.focus();
       }
     },
-    []
-  )
+    [],
+  );
 
   const handlePinKeyDown = useCallback(
     (
@@ -398,95 +582,117 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
       e: React.KeyboardEvent<HTMLInputElement>,
       currentPin: string[],
       setter: any,
-      refs: React.MutableRefObject<(HTMLInputElement | null)[]>
+      refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
     ) => {
-      if (e.key === 'Backspace') {
-        e.preventDefault()
+      if (e.key === "Backspace") {
+        e.preventDefault();
         if (!currentPin[index] && index > 0) {
-          refs.current[index - 1]?.focus()
+          refs.current[index - 1]?.focus();
           setter((prev: string[]) => {
-            const newPin = [...prev]
-            newPin[index - 1] = ''
-            return newPin
-          })
+            const newPin = [...prev];
+            newPin[index - 1] = "";
+            return newPin;
+          });
         } else {
           setter((prev: string[]) => {
-            const newPin = [...prev]
-            newPin[index] = ''
-            return newPin
-          })
+            const newPin = [...prev];
+            newPin[index] = "";
+            return newPin;
+          });
         }
       }
     },
-    []
-  )
+    [],
+  );
 
   const renderPinInputs = (
     values: string[],
     setter: any,
-    refs: React.MutableRefObject<(HTMLInputElement | null)[]>
+    refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
   ) => (
     <div className="flex gap-2 justify-center">
       {values.map((digit, index) => (
         <input
           key={index}
           ref={(el) => {
-            refs.current[index] = el
+            refs.current[index] = el;
           }}
           type="password"
           inputMode="numeric"
           maxLength={1}
           value={digit}
-          onChange={(e) => handlePinInputChange(index, e.target.value, setter, refs)}
+          onChange={(e) =>
+            handlePinInputChange(index, e.target.value, setter, refs)
+          }
           onKeyDown={(e) => handlePinKeyDown(index, e, values, setter, refs)}
           onPaste={(e) => {
             try {
-              const text = e.clipboardData?.getData('text') || ''
-              const digits = text.replace(/\D/g, '').split('')
-              if (digits.length === 0) return
+              const text = e.clipboardData?.getData("text") || "";
+              const digits = text.replace(/\D/g, "").split("");
+              if (digits.length === 0) return;
               setter((prev: string[]) => {
-                const next = [...prev]
-                for (let i = 0; i < digits.length && index + i < next.length; i++) {
-                  next[index + i] = digits[i]
+                const next = [...prev];
+                for (
+                  let i = 0;
+                  i < digits.length && index + i < next.length;
+                  i++
+                ) {
+                  next[index + i] = digits[i];
                 }
-                return next
-              })
+                return next;
+              });
               requestAnimationFrame(() => {
-                const lastIndex = Math.min(index + digits.length - 1, refs.current.length - 1)
-                refs.current[lastIndex]?.focus()
-              })
+                const lastIndex = Math.min(
+                  index + digits.length - 1,
+                  refs.current.length - 1,
+                );
+                refs.current[lastIndex]?.focus();
+              });
             } catch (err) {}
           }}
           onPointerDown={() => {
-            try { refs.current[index]?.focus() } catch (err) {}
+            try {
+              refs.current[index]?.focus();
+            } catch (err) {}
           }}
           onTouchStart={() => {
-            try { refs.current[index]?.focus() } catch (err) {}
+            try {
+              refs.current[index]?.focus();
+            } catch (err) {}
           }}
           onClick={() => {
-            try { refs.current[index]?.focus() } catch (err) {}
+            try {
+              refs.current[index]?.focus();
+            } catch (err) {}
           }}
           aria-label={`PIN digit ${index + 1}`}
           tabIndex={0}
-          style={{ pointerEvents: 'auto' }}
+          style={{ pointerEvents: "auto" }}
           className="w-10 h-12 text-center text-xl font-mono rounded-lg border-2 bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none transition-all border-[var(--color-border-strong)] focus:border-[var(--color-border-strong)]"
         />
       ))}
     </div>
-  )
+  );
 
   const handlePinSave = async (newPin: string | null, currentPin?: string) => {
-    const result = await window.api.setPin(newPin, currentPin)
+    const result = await window.api.setPin(newPin, currentPin);
     if (result.success) {
-      if (newPin) setAppUnlocked(true)
-      await queryClient.invalidateQueries({ queryKey: queryKeys.settings.snapshot() })
+      if (newPin) setAppUnlocked(true);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.settings.snapshot(),
+      });
     }
-    return result
-  }
+    return result;
+  };
 
   return (
     <>
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="pb-10">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="pb-10"
+      >
         <div className="grid grid-cols-2 gap-4">
           <PageHeader
             title="Security"
@@ -495,7 +701,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
 
           <SectionDivider label="Access Control" />
 
-          {/* PIN Lock — full width */}
+          {}
           <div className="col-span-2 relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
             <div className="flex items-center justify-between z-10 relative">
@@ -504,23 +710,36 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                   <Lock size={16} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">PIN Lock</h4>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">Require a 6-digit PIN when Sentra starts.</p>
+                  <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">
+                    PIN Lock
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Require a 6-digit PIN when Sentra starts.
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsPinDialogOpen(true)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 shrink-0 ${settings.pinCode
-                  ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30'
-                  : 'text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] border border-[var(--color-border-strong)]'
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 shrink-0 ${
+                  settings.pinCode
+                    ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30"
+                    : "text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] border border-[var(--color-border-strong)]"
                 }`}
               >
-                {settings.pinCode ? (<><Lock size={14} /> PIN Enabled — Manage</>) : ('Set Up PIN')}
+                {settings.pinCode ? (
+                  <>
+                    <Lock size={14} /> PIN Enabled — Manage
+                  </>
+                ) : (
+                  "Set Up PIN"
+                )}
               </button>
             </div>
             {settings.pinCode && (
               <div className="mt-4 pt-4 border-t border-[var(--color-border)] z-10 relative">
-                <p className="text-xs text-[var(--color-text-muted)]">Your PIN is active. The app will be locked on next launch.</p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  Your PIN is active. The app will be locked on next launch.
+                </p>
               </div>
             )}
           </div>
@@ -533,7 +752,12 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
             description="Create an encrypted backup of all your accounts."
           >
             <button
-              onClick={() => { setIsBackupDialogOpen(true); setBackupStep('pin'); setBackupPin(Array(6).fill('')); setBackupPinConfirm(Array(6).fill('')) }}
+              onClick={() => {
+                setIsBackupDialogOpen(true);
+                setBackupStep("pin");
+                setBackupPin(Array(6).fill(""));
+                setBackupPinConfirm(Array(6).fill(""));
+              }}
               className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
             >
               <BackupIcon size={14} />
@@ -547,7 +771,13 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
             description="Restore accounts from an existing backup file."
           >
             <button
-              onClick={() => { setIsRestoreDialogOpen(true); setRestoreStep('pin'); setRestorePin(Array(6).fill('')); setRestoreBackupPin(Array(6).fill('')); setSelectedBackupFile(null) }}
+              onClick={() => {
+                setIsRestoreDialogOpen(true);
+                setRestoreStep("pin");
+                setRestorePin(Array(6).fill(""));
+                setRestoreBackupPin(Array(6).fill(""));
+                setSelectedBackupFile(null);
+              }}
               className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
             >
               <RotateCcw size={14} />
@@ -560,7 +790,11 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
           <BentoCard
             icon={<Globe size={16} />}
             title="User Agent"
-            description={isAutoSwapEnabled ? `Auto-rotating every ${autoSwapInterval}m` : `Static — Agent #${userAgentIndex + 1}`}
+            description={
+              isAutoSwapEnabled
+                ? `Auto-rotating every ${autoSwapInterval}m`
+                : `Static — Agent #${userAgentIndex + 1}`
+            }
           >
             <button
               onClick={() => setIsUserAgentModalOpen(true)}
@@ -574,19 +808,96 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
           <BentoCard
             icon={<Zap size={16} />}
             title="Multi-Instance"
-            description={`Launch multiple Roblox clients at once.${isMac ? ' (Experimental on macOS)' : ''}`}
+            description={`Launch multiple Roblox clients at once.${isMac ? " (Experimental on macOS)" : ""}`}
             accent="warning"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-amber-500/80 font-medium">⚠ May violate Roblox ToS</span>
+            <div className="flex items-center justify-between gap-3">
+              {}
+              {settings.allowMultipleInstances && (
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <CustomDropdown
+                      options={[
+                        { value: "mutex", label: "Mutex" },
+                        { value: "handle64", label: "Handle64" },
+                      ]}
+                      value={settings.multiInstanceMethod || "mutex"}
+                      onChange={(method) =>
+                        onUpdateSettings({
+                          multiInstanceMethod: method as "mutex" | "handle64",
+                        })
+                      }
+                      placeholder="Method"
+                    />
+                  </div>
+
+                  {}
+                  {settings.multiInstanceMethod === "handle64" && (
+                    <div className="flex items-center gap-1">
+                      {!handle64IsInstalled && (
+                        <button
+                          onClick={handleHandle64Install}
+                          disabled={handle64IsLoading}
+                          className="py-1.5 px-2 text-[11px] font-medium rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
+                        >
+                          {handle64IsLoading ? (
+                            <div className="w-2.5 h-2.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Download size={10} />
+                              Install
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {handle64IsInstalled && (
+                        <button
+                          onClick={handleHandle64Uninstall}
+                          disabled={handle64IsLoading}
+                          className="py-1.5 px-2 text-[11px] font-medium rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
+                        >
+                          {handle64IsLoading ? (
+                            <div className="w-2.5 h-2.5 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Trash2 size={10} />
+                              Delete
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={handleHandle64Refresh}
+                        disabled={handle64IsLoading}
+                        className="py-1.5 px-2 text-[11px] font-medium rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-[var(--color-text-secondary)] border border-[var(--color-border)] transition-all disabled:opacity-50 flex items-center justify-center"
+                        title="Check if Handle64 is installed"
+                      >
+                        {handle64IsLoading ? (
+                          <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <RotateCw size={10} />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {}
               <BentoToggle
                 checked={settings.allowMultipleInstances}
-                onChange={() => onUpdateSettings({ allowMultipleInstances: !settings.allowMultipleInstances })}
+                onChange={() =>
+                  onUpdateSettings({
+                    allowMultipleInstances: !settings.allowMultipleInstances,
+                  })
+                }
               />
             </div>
           </BentoCard>
 
-          {/* Roblox Advanced Settings — full width */}
+          {}
           <div className="col-span-2 relative overflow-hidden group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--accent-color)]/40 transition-all duration-300 flex flex-col p-5">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-color)]/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl" />
             <div className="flex items-center justify-between z-10 relative">
@@ -595,16 +906,21 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                   <Sliders size={16} />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">Roblox Advanced Settings</h4>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">Configure physics, graphics, memory, and client performance options.</p>
+                  <h4 className="text-sm font-semibold text-[var(--color-text-primary)] leading-none">
+                    Roblox Advanced Settings
+                  </h4>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Configure physics, graphics, memory, and client performance
+                    options.
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsRobloxSettingsOpen(true)}
-                disabled={isRobloxSettingsLoading}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-[var(--accent-color)] hover:brightness-110 text-white transition-all disabled:opacity-50 shrink-0"
+                disabled={false}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-[var(--accent-color)] hover:brightness-110 text-[var(--accent-color-foreground)] transition-all disabled:opacity-50 shrink-0"
               >
-                {isRobloxSettingsLoading ? 'Loading…' : 'Configure'}
+                Configure
               </button>
             </div>
           </div>
@@ -618,12 +934,17 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
         currentPin={settings.pinCode}
       />
 
-      <Dialog isOpen={isBackupDialogOpen} onClose={() => setIsBackupDialogOpen(false)}>
+      <Dialog
+        isOpen={isBackupDialogOpen}
+        onClose={() => setIsBackupDialogOpen(false)}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-[var(--accent-color)]" />
-              <DialogTitle>{backupStep === 'pin' ? 'Verify PIN' : 'Set Backup PIN'}</DialogTitle>
+              <DialogTitle>
+                {backupStep === "pin" ? "Verify PIN" : "Set Backup PIN"}
+              </DialogTitle>
             </div>
             <DialogClose />
           </DialogHeader>
@@ -634,7 +955,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                 <span className="text-sm text-red-400">{backupError}</span>
               </div>
             )}
-            {backupStep === 'pin' ? (
+            {backupStep === "pin" ? (
               <>
                 <div className="space-y-2">
                   <p className="text-sm text-[var(--color-text-secondary)]">
@@ -647,7 +968,8 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
               <>
                 <div className="space-y-2">
                   <label className="text-sm text-[var(--color-text-secondary)]">
-                    Create a PIN to encrypt your backup file. You'll need this PIN to restore.
+                    Create a PIN to encrypt your backup file. You'll need this
+                    PIN to restore.
                   </label>
                   {renderPinInputs(backupPin, setBackupPin, backupPinRefs)}
                 </div>
@@ -655,7 +977,11 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                   <label className="text-sm text-[var(--color-text-secondary)]">
                     Confirm PIN
                   </label>
-                  {renderPinInputs(backupPinConfirm, setBackupPinConfirm, backupPinConfirmRefs)}
+                  {renderPinInputs(
+                    backupPinConfirm,
+                    setBackupPinConfirm,
+                    backupPinConfirmRefs,
+                  )}
                 </div>
               </>
             )}
@@ -669,22 +995,33 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
               <button
                 onClick={handleBackupAccounts}
                 disabled={isBackupLoading}
-                className="flex-1 px-4 py-2 text-sm rounded-lg bg-[var(--accent-color)] text-black hover:opacity-90 disabled:opacity-50 transition-colors font-medium"
+                className="flex-1 px-4 py-2 text-sm rounded-lg bg-[var(--accent-color)] text-[var(--accent-color-foreground)] hover:opacity-90 disabled:opacity-50 transition-colors font-medium"
               >
-                {isBackupLoading ? 'Creating...' : backupStep === 'pin' ? 'Next' : 'Create Backup'}
+                {isBackupLoading
+                  ? "Creating..."
+                  : backupStep === "pin"
+                    ? "Next"
+                    : "Create Backup"}
               </button>
             </div>
           </DialogBody>
         </DialogContent>
       </Dialog>
 
-      <Dialog isOpen={isRestoreDialogOpen} onClose={() => setIsRestoreDialogOpen(false)}>
+      <Dialog
+        isOpen={isRestoreDialogOpen}
+        onClose={() => setIsRestoreDialogOpen(false)}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-[var(--accent-color)]" />
               <DialogTitle>
-                {restoreStep === 'pin' ? 'Verify PIN' : restoreStep === 'file' ? 'Select Backup' : 'Enter Backup PIN'}
+                {restoreStep === "pin"
+                  ? "Verify PIN"
+                  : restoreStep === "file"
+                    ? "Select Backup"
+                    : "Enter Backup PIN"}
               </DialogTitle>
             </div>
             <DialogClose />
@@ -696,7 +1033,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                 <span className="text-sm text-red-400">{restoreError}</span>
               </div>
             )}
-            {restoreStep === 'pin' ? (
+            {restoreStep === "pin" ? (
               <>
                 <div className="space-y-2">
                   <p className="text-sm text-[var(--color-text-secondary)]">
@@ -705,14 +1042,14 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                   {renderPinInputs(restorePin, setRestorePin, restorePinRefs)}
                 </div>
               </>
-            ) : restoreStep === 'file' ? (
+            ) : restoreStep === "file" ? (
               <>
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   Click the button below to select your backup file.
                 </p>
                 {selectedBackupFile && (
                   <p className="text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] p-2 rounded-lg break-all">
-                    Selected: {selectedBackupFile.split('\\').pop()}
+                    Selected: {selectedBackupFile.split("\\").pop()}
                   </p>
                 )}
               </>
@@ -722,7 +1059,11 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                   <label className="text-sm text-[var(--color-text-secondary)]">
                     Enter the PIN that was used to create the backup file.
                   </label>
-                  {renderPinInputs(restoreBackupPin, setRestoreBackupPin, restoreBackupPinRefs)}
+                  {renderPinInputs(
+                    restoreBackupPin,
+                    setRestoreBackupPin,
+                    restoreBackupPinRefs,
+                  )}
                 </div>
               </>
             )}
@@ -736,16 +1077,25 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
               <button
                 onClick={handleRestoreBackup}
                 disabled={isRestoreLoading}
-                className="flex-1 px-4 py-2 text-sm rounded-lg bg-[var(--accent-color)] text-black hover:opacity-90 disabled:opacity-50 transition-colors font-medium"
+                className="flex-1 px-4 py-2 text-sm rounded-lg bg-[var(--accent-color)] text-[var(--accent-color-foreground)] hover:opacity-90 disabled:opacity-50 transition-colors font-medium"
               >
-                {isRestoreLoading ? 'Processing...' : restoreStep === 'pin' ? 'Next' : restoreStep === 'file' ? 'Select File' : 'Restore'}
+                {isRestoreLoading
+                  ? "Processing..."
+                  : restoreStep === "pin"
+                    ? "Next"
+                    : restoreStep === "file"
+                      ? "Select File"
+                      : "Restore"}
               </button>
             </div>
           </DialogBody>
         </DialogContent>
       </Dialog>
 
-      <Dialog isOpen={isRobloxSettingsOpen} onClose={() => setIsRobloxSettingsOpen(false)}>
+      <Dialog
+        isOpen={isRobloxSettingsOpen}
+        onClose={() => setIsRobloxSettingsOpen(false)}
+      >
         <DialogContent className="w-[90vw] max-w-lg h-[75vh] flex flex-col">
           <DialogHeader>
             <div className="flex items-center gap-2">
@@ -756,10 +1106,10 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
           </DialogHeader>
           <DialogBody className="px-4 py-3 flex-1 min-h-0">
             <RobloxAdvancedSettings
-              settings={robloxSettings}
-              onSettingsChange={updateRobloxSettings}
+              settings={settings}
+              onSettingsChange={handleRobloxSettingsChange}
               onClose={() => setIsRobloxSettingsOpen(false)}
-              isLoading={isRobloxSettingsLoading}
+              isLoading={false}
             />
           </DialogBody>
         </DialogContent>
@@ -780,5 +1130,5 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
         onToggleAutoSwap={handleToggleAutoSwap}
       />
     </>
-  )
-}
+  );
+};

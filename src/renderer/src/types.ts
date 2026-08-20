@@ -12,7 +12,6 @@ export type TabId =
   | "Avatar"
   | "Install"
   | "AccountSettings"
-
   | "Watcher"
   | "Macro"
   | "Sniper"
@@ -32,12 +31,12 @@ export interface Account {
   username: string;
   userId: string;
   cookie?: string;
-  password?: string; // Encrypted password (if available)
+  password?: string;
   status: AccountStatus;
   notes: string;
   importedVia?: "browser" | "cookie" | "cookielist";
   avatarUrl: string;
-  lastActive: string; // ISO timestamp of last validation/use
+  lastActive: string;
   robuxBalance: number;
   friendCount: number;
   followerCount: number;
@@ -62,7 +61,7 @@ export interface Badge {
 
 export interface Friend {
   id: string;
-  accountId: string; // The ID of the account this friend belongs to
+  accountId: string;
   displayName: string;
   username: string;
   userId: string;
@@ -81,6 +80,7 @@ export enum JoinMethod {
   PlaceId = "Place ID",
   JobId = "Job ID",
   Friend = "Friend",
+  PrivateServer = "Private Server",
 }
 
 export interface JoinConfig {
@@ -89,9 +89,9 @@ export interface JoinConfig {
 }
 
 export interface Game {
-  id: string; // This is typically the Universe ID
+  id: string;
   universeId: string;
-  placeId: string; // This is the Root Place ID
+  placeId: string;
   name: string;
   creatorName: string;
   creatorId: string;
@@ -108,7 +108,7 @@ export interface Game {
   updated: string;
   creatorHasVerifiedBadge: boolean;
   userVote?: boolean | null;
-  // Optional metadata (may not always be present from APIs)
+
   ageRating?: string | null;
   supportedDevices?: string[];
   supportsVoiceChat?: boolean | null;
@@ -145,16 +145,16 @@ export interface Settings {
   accentColor: string;
   useDynamicAccentColor: boolean;
   tint: TintPreference;
-  customTheme?: string; // custom theme name ('default', 'hearts', 'aurora', etc.)
+  customTheme?: string;
   showSidebarProfileCard: boolean;
   privacyMode: boolean;
   sidebarTabOrder: TabId[];
   sidebarHiddenTabs: TabId[];
   pinCode: string | null;
-  // Browser window defaults for in-app browser windows (optional)
+
   browserWindowWidth?: number | null;
   browserWindowHeight?: number | null;
-  // Show a return-page button inside the in-app browser window UI
+
   showReturnPageButton?: boolean;
   userAgentSettings?: {
     currentUserAgentIndex: number;
@@ -162,15 +162,31 @@ export interface Settings {
     autoSwapIntervalMinutes: number;
   };
 
-  // Performance & Utility Settings
   antiAfkEnabled?: boolean;
   renameWindowsEnabled?: boolean;
   framerateCapEnabled?: boolean;
   framerateCapValue?: number;
   optimizeRamEnabled?: boolean;
-  ramOptimizeLimit?: number;
+  ramOptimization?: number;
+  cpuOptimization?: number;
 
-  // View Preferences (migrated from localStorage)
+  defaultPhysicsEngine?: "Terrain" | "Legacy";
+  enableOptimizations?: boolean;
+  memoryLimit?: number;
+  useDirectX12?: boolean;
+  lowEndGraphics?: boolean;
+  disableDualChannelAudio?: boolean;
+  headlessModeEnabled?: boolean;
+  timeoutRelaunchEnabled?: boolean;
+  timeoutRelaunchSeconds?: number;
+
+  windowLayoutEnabled?: boolean;
+  windowLayoutPattern?: "grid" | "rows" | "columns" | "cascade";
+  windowLayoutSpacing?: number;
+  windowLayoutColumns?: number;
+  windowLayoutWidth?: number;
+  windowLayoutHeight?: number;
+
   catalogViewMode?: "default" | "compact";
   inventoryViewMode?: "default" | "compact";
   contentRadius?: "sharp" | "rounded" | "pill";
@@ -180,8 +196,7 @@ export interface Settings {
   iconWeight?: "light" | "regular" | "bold";
   motionSpeed?: "none" | "fast" | "default" | "slow";
   fontWeight?: "light" | "regular" | "medium";
-  
-  // UI State (migrated from localStorage)
+
   isSidebarCollapsed?: boolean;
   navLayout?: "sidebar" | "topbar";
 }

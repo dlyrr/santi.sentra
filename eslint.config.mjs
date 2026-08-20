@@ -32,8 +32,9 @@ export default defineConfig(
       "no-empty": ["error", { allowEmptyCatch: true }],
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-vars": [
-        "error",
+        "warn",
         {
           argsIgnorePattern: "^_",
           caughtErrorsIgnorePattern: "^_",
@@ -41,6 +42,16 @@ export default defineConfig(
           ignoreRestSiblings: true,
         },
       ],
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-ignore": "allow-with-description",
+          "ts-expect-error": "allow-with-description",
+          "ts-nocheck": true,
+          minimumDescriptionLength: 3,
+        },
+      ],
+      "react/no-unescaped-entities": "off",
     },
   },
   {

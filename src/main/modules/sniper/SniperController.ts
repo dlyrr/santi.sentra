@@ -2,23 +2,43 @@ import { ipcMain, BrowserWindow } from "electron";
 import { sniperService, SniperConfig } from "./SniperService";
 import usernameSniperService from "./UsernameSniper";
 
-// Track active sessions to manage event listeners
 const activeSessions = new Map<string, BrowserWindow>();
+const sessionListeners = new Map<
+  string,
+  {
+    valid: (data: any) => void;
+    taken: (data: any) => void;
+    censored: (data: any) => void;
+    progress: (data: any) => void;
+    completed: (data: any) => void;
+    error: (data: any) => void;
+  }
+>();
+
+function cleanupSessionListeners(sessionId: string): void {
+  const listeners = sessionListeners.get(sessionId);
+  if (!listeners) return;
+
+  usernameSniperService.removeListener("valid", listeners.valid);
+  usernameSniperService.removeListener("taken", listeners.taken);
+  usernameSniperService.removeListener("censored", listeners.censored);
+  usernameSniperService.removeListener("progress", listeners.progress);
+  usernameSniperService.removeListener("completed", listeners.completed);
+  usernameSniperService.removeListener("error", listeners.error);
+  sessionListeners.delete(sessionId);
+}
 
 export function registerSniperHandlers(): void {
-  // Start monitoring
   ipcMain.handle("sniper:start-monitoring", () => {
     sniperService.startMonitoring();
     return { success: true };
   });
 
-  // Stop monitoring
   ipcMain.handle("sniper:stop-monitoring", () => {
     sniperService.stopMonitoring();
     return { success: true };
   });
 
-  // Update config
   ipcMain.handle(
     "sniper:update-config",
     (_event, config: Partial<SniperConfig>) => {
@@ -27,33 +47,27 @@ export function registerSniperHandlers(): void {
     },
   );
 
-  // Get config
   ipcMain.handle("sniper:get-config", () => {
     return { success: true, config: sniperService.getConfig() };
   });
 
-  // Get monitored items
   ipcMain.handle("sniper:get-monitored-items", () => {
     return { success: true, items: sniperService.getMonitoredItems() };
   });
 
-  // Get history
   ipcMain.handle("sniper:get-history", (_event, limit?: number) => {
     return { success: true, history: sniperService.getHistory(limit || 100) };
   });
 
-  // Clear history
   ipcMain.handle("sniper:clear-history", () => {
     sniperService.clearHistory();
     return { success: true };
   });
 
-  // Check if monitoring
   ipcMain.handle("sniper:is-monitoring", () => {
     return { isMonitoring: sniperService.isMonitoring() };
   });
 
-  // Calculate profit
   ipcMain.handle(
     "sniper:calculate-profit",
     (_event, purchasePrice: number, resaleValue: number) => {
@@ -64,8 +78,6 @@ export function registerSniperHandlers(): void {
     },
   );
 
-  // LIMITED ITEM WATCHLIST HANDLERS
-  // Add limited item to watch
   ipcMain.handle(
     "sniper:add-limited-watch",
     async (
@@ -90,18 +102,15 @@ export function registerSniperHandlers(): void {
     },
   );
 
-  // Remove limited item from watch
   ipcMain.handle("sniper:remove-limited-watch", (_event, itemId: number) => {
     sniperService.removeLimitedItemWatch(itemId);
     return { success: true, watches: sniperService.getLimitedItemWatches() };
   });
 
-  // Get limited item watches
   ipcMain.handle("sniper:get-limited-watches", () => {
     return { success: true, watches: sniperService.getLimitedItemWatches() };
   });
 
-  // Update limited item watch
   ipcMain.handle(
     "sniper:update-limited-watch",
     (_event, itemId: number, updates: any) => {
@@ -110,9 +119,6 @@ export function registerSniperHandlers(): void {
     },
   );
 
-  // ========== USERNAME SNIPER HANDLERS ==========
-
-  // Create session
   ipcMain.handle(
     "sniper:createSession",
     async (
@@ -138,7 +144,6 @@ export function registerSniperHandlers(): void {
     },
   );
 
-  // Get session
   ipcMain.handle("sniper:getSession", (_event, sessionId: string) => {
     try {
       const session = usernameSniperService.getSession(sessionId);
@@ -151,7 +156,6 @@ export function registerSniperHandlers(): void {
     }
   });
 
-  // Start sniper
   ipcMain.handle("sniper:startSniper", async (_event, sessionId: string) => {
     try {
       const senderWindow = BrowserWindow.fromWebContents(_event.sender);
@@ -159,51 +163,40 @@ export function registerSniperHandlers(): void {
         return { success: false, error: "Window not found" };
       }
 
-      // Store the window for this session
       activeSessions.set(sessionId, senderWindow);
 
-      // Remove old listeners
-      usernameSniperService.removeAllListeners("valid");
-      usernameSniperService.removeAllListeners("taken");
-      usernameSniperService.removeAllListeners("censored");
-      usernameSniperService.removeAllListeners("progress");
-      usernameSniperService.removeAllListeners("completed");
-      usernameSniperService.removeAllListeners("error");
+      cleanupSessionListeners(sessionId);
 
-      // Set up event listeners to forward events to renderer
-      const listeners = {
-        valid: (data: any) => {
-          console.log("[Controller] LISTENER FIRED: valid", data.username);
-          senderWindow.webContents.send("sniper:valid", data);
-        },
-        taken: (data: any) => {
-          console.log("[Controller] LISTENER FIRED: taken", data.username);
-          senderWindow.webContents.send("sniper:taken", data);
-        },
-        censored: (data: any) => {
-          console.log("[Controller] LISTENER FIRED: censored", data.username);
-          senderWindow.webContents.send("sniper:censored", data);
-        },
-        progress: (data: any) => {
-          console.log(
-            "[Controller] Progress: checked",
-            data.checked,
-            "/",
-            data.total,
-          );
-          senderWindow.webContents.send("sniper:progress", data);
-        },
-        completed: (data: any) => {
-          console.log("[Controller] LISTENER FIRED: completed");
-          senderWindow.webContents.send("sniper:completed", data);
+      const forward = (channel: string, data: any): void => {
+        if (data?.sessionId !== sessionId) return;
+        if (
+          senderWindow.isDestroyed() ||
+          senderWindow.webContents.isDestroyed()
+        ) {
           activeSessions.delete(sessionId);
-        },
-        error: (data: any) => {
-          senderWindow.webContents.send("sniper:error", data);
-        },
+          cleanupSessionListeners(sessionId);
+          usernameSniperService.stopSession(sessionId);
+          return;
+        }
+        senderWindow.webContents.send(channel, data);
       };
 
-      // Register all listeners
+      const listeners = {
+        valid: (data: any) => forward("sniper:valid", data),
+        taken: (data: any) => forward("sniper:taken", data),
+        censored: (data: any) => forward("sniper:censored", data),
+        progress: (data: any) => forward("sniper:progress", data),
+        completed: (data: any) => {
+          if (data?.sessionId !== sessionId) return;
+          forward("sniper:completed", data);
+          activeSessions.delete(sessionId);
+          cleanupSessionListeners(sessionId);
+        },
+        error: (data: any) => forward("sniper:error", data),
+      };
+
+      sessionListeners.set(sessionId, listeners);
+
       usernameSniperService.on("valid", listeners.valid);
       usernameSniperService.on("taken", listeners.taken);
       usernameSniperService.on("censored", listeners.censored);
@@ -211,7 +204,12 @@ export function registerSniperHandlers(): void {
       usernameSniperService.on("completed", listeners.completed);
       usernameSniperService.on("error", listeners.error);
 
-      // Start the sniper in the background
+      senderWindow.once("closed", () => {
+        activeSessions.delete(sessionId);
+        cleanupSessionListeners(sessionId);
+        usernameSniperService.stopSession(sessionId);
+      });
+
       usernameSniperService.startSniper(sessionId).catch((err) => {
         console.error("Sniper error:", err);
       });
@@ -222,37 +220,38 @@ export function registerSniperHandlers(): void {
     }
   });
 
-  // Pause session
   ipcMain.handle("sniper:pauseSession", (_event, sessionId: string) => {
     try {
       usernameSniperService.pauseSession(sessionId);
+      cleanupSessionListeners(sessionId);
       return { success: true };
     } catch (error) {
       return { success: false, error: String(error) };
     }
   });
 
-  // Stop session
   ipcMain.handle("sniper:stopSession", (_event, sessionId: string) => {
     try {
       usernameSniperService.stopSession(sessionId);
+      activeSessions.delete(sessionId);
+      cleanupSessionListeners(sessionId);
       return { success: true };
     } catch (error) {
       return { success: false, error: String(error) };
     }
   });
 
-  // Clear session
   ipcMain.handle("sniper:clearSession", (_event, sessionId: string) => {
     try {
       usernameSniperService.clearSession(sessionId);
+      activeSessions.delete(sessionId);
+      cleanupSessionListeners(sessionId);
       return { success: true };
     } catch (error) {
       return { success: false, error: String(error) };
     }
   });
 
-  // Get valid usernames
   ipcMain.handle("sniper:getValidUsernames", (_event, sessionId: string) => {
     try {
       const usernames = usernameSniperService.getValidUsernames(sessionId);

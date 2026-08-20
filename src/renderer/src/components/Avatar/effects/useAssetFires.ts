@@ -1,9 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { findFiresInHierarchy, FireInstance } from "../effects/fireUtils";
 
-/**
- * Hook to fetch asset hierarchy and extract fire instances
- */
 export const useAssetFires = (
   assetId: number | null | undefined,
   enabled: boolean = true,
@@ -22,8 +19,8 @@ export const useAssetFires = (
       }
     },
     enabled: enabled && !!assetId,
-    staleTime: Infinity, // Hierarchy doesn't change
-    gcTime: 10 * 60 * 1000, // Cache for 10 minutes
+    staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
   });
 };
 

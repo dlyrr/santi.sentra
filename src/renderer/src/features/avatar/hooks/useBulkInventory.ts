@@ -10,6 +10,11 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   17: "Head",
   18: "Face",
   19: "Gear",
+  27: "Torso",
+  28: "RightArm",
+  29: "LeftArm",
+  30: "LeftLeg",
+  31: "RightLeg",
   41: "HairAccessory",
   42: "FaceAccessory",
   43: "NeckAccessory",
@@ -17,6 +22,13 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   45: "FrontAccessory",
   46: "BackAccessory",
   47: "WaistAccessory",
+  48: "ClimbAnimation",
+  50: "FallAnimation",
+  51: "IdleAnimation",
+  52: "JumpAnimation",
+  53: "RunAnimation",
+  54: "SwimAnimation",
+  55: "WalkAnimation",
   61: "EmoteAnimation",
   64: "TShirtAccessory",
   65: "ShirtAccessory",
@@ -24,7 +36,10 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   67: "JacketAccessory",
   68: "SweaterAccessory",
   69: "ShortsAccessory",
+  70: "LeftShoeAccessory",
+  71: "RightShoeAccessory",
   72: "DressSkirtAccessory",
+  79: "DynamicHead",
 };
 
 const mapAssetTypeIds = (ids: number[]): string[] => {
@@ -48,10 +63,11 @@ export function useBulkInventory(
     .map((a) => a.id)
     .sort()
     .join(",");
-  const primaryAssetTypeId = assetTypeIds[0] || 0;
+
+  const assetTypeKey = [...assetTypeIds].sort((a, b) => a - b).join(",");
 
   return useQuery({
-    queryKey: ["avatar", "bulk-inventory", accountIds, primaryAssetTypeId],
+    queryKey: ["avatar", "bulk-inventory", accountIds, assetTypeKey],
     queryFn: async (): Promise<BulkInventoryItem[]> => {
       const validAccounts = accounts.filter((a) => a.cookie && a.userId);
       if (validAccounts.length === 0) return [];
@@ -64,28 +80,37 @@ export function useBulkInventory(
       for (const acc of validAccounts) {
         try {
           const userId = parseInt(acc.userId!);
-          const result = await window.api.getInventoryV2(
-            acc.cookie!,
-            userId,
-            assetTypes,
-            undefined, // cursor
-            100, // limit
-            "Desc", // sortOrder
-          );
+          let cursor: string | undefined = undefined;
+          let pages = 0;
+          const MAX_PAGES = 20;
 
-          if (result?.data) {
-            result.data.forEach((asset: any) => {
-              const id = asset.assetId;
-              const current = itemCounts.get(id);
-              if (current) {
-                current.count++;
-              } else {
-                itemCounts.set(id, { count: 1, item: asset });
-              }
-            });
-          }
-          // Small delay to prevent rate limits
-          await new Promise((r) => setTimeout(r, 250));
+          do {
+            const result = await window.api.getInventoryV2(
+              acc.cookie!,
+              userId,
+              assetTypes,
+              cursor,
+              100,
+              "Desc",
+            );
+
+            if (result?.data) {
+              result.data.forEach((asset: any) => {
+                const id = asset.assetId;
+                const current = itemCounts.get(id);
+                if (current) {
+                  current.count++;
+                } else {
+                  itemCounts.set(id, { count: 1, item: asset });
+                }
+              });
+            }
+
+            cursor = result?.nextPageCursor ?? undefined;
+            pages++;
+
+            await new Promise((r) => setTimeout(r, 250));
+          } while (cursor && pages < MAX_PAGES);
         } catch (error) {
           console.error(`Failed to fetch inventory for ${acc.username}`, error);
         }
@@ -123,6 +148,6 @@ export function useBulkInventory(
       accounts.length >= 2 &&
       assetTypeIds.length > 0 &&
       (options?.enabled ?? true),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }

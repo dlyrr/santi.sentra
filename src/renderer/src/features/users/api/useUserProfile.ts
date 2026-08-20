@@ -24,7 +24,6 @@ interface DetailedStats {
   joinDate?: string;
 }
 
-// Fetch extended user details
 export function useExtendedUserDetails(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.extended(userId, cookie),
@@ -36,11 +35,10 @@ export function useExtendedUserDetails(userId: number, cookie: string) {
       };
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch friend stats (includes basic profile info)
 export function useFriendStats(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.stats(userId, cookie),
@@ -48,11 +46,10 @@ export function useFriendStats(userId: number, cookie: string) {
       return window.api.fetchFriendStats(cookie, userId.toString());
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch detailed stats
 export function useDetailedStats(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.details(userId, cookie),
@@ -60,11 +57,10 @@ export function useDetailedStats(userId: number, cookie: string) {
       return window.api.getDetailedStats(cookie, userId);
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch user friends (paginated, limited to 15 for preview)
 export function useUserFriends(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.friends(userId, cookie),
@@ -73,11 +69,10 @@ export function useUserFriends(userId: number, cookie: string) {
       return result.data.slice(0, 15);
     },
     enabled: !!cookie && !!userId,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
   });
 }
 
-// Fetch user groups
 export function useUserGroups(userId: number) {
   return useQuery({
     queryKey: queryKeys.userProfile.groups(userId),
@@ -101,11 +96,10 @@ export function useUserGroups(userId: number) {
       return [];
     },
     enabled: !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch user collections (collectibles)
 export function useUserCollections(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.collections(userId, cookie),
@@ -126,11 +120,10 @@ export function useUserCollections(userId: number, cookie: string) {
       return [];
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch Roblox badges
 export function useRobloxBadges(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.badges.roblox(userId, cookie),
@@ -139,11 +132,10 @@ export function useRobloxBadges(userId: number, cookie: string) {
       return Array.isArray(badges) ? badges.slice(0, 12) : [];
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch experience badges
 export function useExperienceBadges(userId: number, cookie: string) {
   return useQuery({
     queryKey: queryKeys.userProfile.badges.experience(userId, cookie),
@@ -180,11 +172,10 @@ export function useExperienceBadges(userId: number, cookie: string) {
       return [];
     },
     enabled: !!cookie && !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-// Fetch currently wearing items
 export function useUserWearingItems(
   userId: number,
   cookie: string,
@@ -208,11 +199,10 @@ export function useUserWearingItems(
       }));
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
   });
 }
 
-// Fetch user outfits
 export function useUserOutfits(
   userId: number,
   cookie: string,
@@ -257,11 +247,10 @@ export function useUserOutfits(
       return [];
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
   });
 }
 
-// Fetch past usernames
 export function usePastUsernames(
   userId: number,
   cookie: string,
@@ -277,11 +266,10 @@ export function usePastUsernames(
       return [];
     },
     enabled: enabled && !!cookie && !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes (rarely changes)
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-// Fetch user presence (for status polling)
 export function useUserPresence(
   userId: number,
   cookie: string,
@@ -293,12 +281,11 @@ export function useUserPresence(
       return window.api.getUserPresence(cookie, userId);
     },
     enabled: enabled && !!cookie && !!userId,
-    refetchInterval: 60000, // Poll every 60 seconds
-    staleTime: 55000, // Slightly less than refetch interval
+    refetchInterval: 60000,
+    staleTime: 55000,
   });
 }
 
-// Fetch friends statuses (for polling friend list statuses)
 export function useUserFriendsStatuses(
   userId: number,
   cookie: string,
@@ -316,7 +303,7 @@ export function useUserFriendsStatuses(
       return window.api.getFriendsStatuses(cookie, friendIds);
     },
     enabled: enabled && !!cookie && !!userId && friendIds.length > 0,
-    refetchInterval: 60000, // Poll every 60 seconds
+    refetchInterval: 60000,
     staleTime: 55000,
   });
 }

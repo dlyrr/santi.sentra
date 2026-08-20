@@ -11,9 +11,6 @@ import { storageService } from "../system/StorageService";
 import { downloadFileToPath } from "../core/utils/downloadUtils";
 import { gameSessionService } from "./GameSessionService";
 
-/**
- * Registers game-related IPC handlers
- */
 export const registerGameHandlers = (): void => {
   handle(
     "get-game-thumbnail-16x9",
@@ -51,7 +48,6 @@ export const registerGameHandlers = (): void => {
     "get-games-by-place-ids",
     z.tuple([z.array(z.string())]),
     async (_, placeIds) => {
-      // Try to find a valid cookie from stored accounts
       const accounts = storageService.getAccounts();
       const accountWithCookie = accounts.find(
         (acc) => acc.cookie && acc.cookie.length > 0,
@@ -91,7 +87,6 @@ export const registerGameHandlers = (): void => {
         );
 
         if (localAppData) {
-          // Try lowercase 'logs' first
           let logsPath = path.join(localAppData, "Roblox", "logs");
           console.log(
             "[GameController] Trying path (lowercase logs):",
@@ -100,13 +95,12 @@ export const registerGameHandlers = (): void => {
 
           if (existsSync(logsPath)) {
             console.log(
-              "[GameController] ✓ Found logs directory at:",
+              "[GameController] Found logs directory at (success):",
               logsPath,
             );
             return logsPath;
           }
 
-          // Try uppercase 'Logs'
           logsPath = path.join(localAppData, "Roblox", "Logs");
           console.log(
             "[GameController] Trying path (uppercase Logs):",
@@ -115,7 +109,7 @@ export const registerGameHandlers = (): void => {
 
           if (existsSync(logsPath)) {
             console.log(
-              "[GameController] ✓ Found logs directory at:",
+              "[GameController] Found logs directory at (success):",
               logsPath,
             );
             return logsPath;
@@ -124,10 +118,9 @@ export const registerGameHandlers = (): void => {
           console.warn(
             "[GameController] Neither logs nor Logs directory found under Roblox",
           );
-          return logsPath; // Return the lowercase version even if not found
+          return logsPath;
         }
 
-        // Fallback to USERPROFILE
         console.warn(
           "[GameController] LOCALAPPDATA not set, trying USERPROFILE",
         );
@@ -153,7 +146,7 @@ export const registerGameHandlers = (): void => {
 
           if (existsSync(fallbackPath)) {
             console.log(
-              "[GameController] ✓ Found logs directory at:",
+              "[GameController] Found logs directory at (success):",
               fallbackPath,
             );
             return fallbackPath;
@@ -173,7 +166,7 @@ export const registerGameHandlers = (): void => {
 
           if (existsSync(fallbackPath)) {
             console.log(
-              "[GameController] ✓ Found logs directory at:",
+              "[GameController] Found logs directory at (success):",
               fallbackPath,
             );
             return fallbackPath;
@@ -182,7 +175,7 @@ export const registerGameHandlers = (): void => {
           console.warn(
             "[GameController] Neither logs nor Logs directory found via USERPROFILE",
           );
-          return fallbackPath; // Return the uppercase version for error reporting
+          return fallbackPath;
         }
 
         console.error(
@@ -256,7 +249,6 @@ export const registerGameHandlers = (): void => {
           return emptyResult;
         }
 
-        // Accept any file in the directory that's actually a file (not a directory)
         const potentialLogFiles = files.filter((f) => !f.startsWith("."));
         console.log(
           "[GameController] Potential log files (non-hidden):",
@@ -277,7 +269,7 @@ export const registerGameHandlers = (): void => {
             const filePath = path.join(LOGS_DIR, file);
             try {
               const stats = await fs.stat(filePath);
-              // Skip directories
+
               if (!stats.isFile()) {
                 return null;
               }
@@ -303,7 +295,6 @@ export const registerGameHandlers = (): void => {
           }),
         );
 
-        // Filter out null entries and sort by newest first
         const validEntries = entries.filter(
           (e): e is Exclude<typeof e, null> => e !== null,
         );
@@ -375,11 +366,11 @@ export const registerGameHandlers = (): void => {
   handle(
     "launch-game",
     z.tuple([
-      z.string(), // cookie
-      z.union([z.string(), z.number()]), // placeId
-      z.string().optional(), // jobId
-      z.union([z.string(), z.number()]).optional(), // friendId
-      z.string().optional(), // installPath
+      z.string(),
+      z.union([z.string(), z.number()]),
+      z.string().optional(),
+      z.union([z.string(), z.number()]).optional(),
+      z.string().optional(),
     ]),
     async (_, cookieRaw, placeId, jobId, friendId, installPath) => {
       const cookie = RobloxAuthService.extractCookie(cookieRaw);
@@ -400,16 +391,54 @@ export const registerGameHandlers = (): void => {
   );
 
   handle(
+    "launch-private-server",
+    z.tuple([
+      z.string(),
+      z.union([z.string(), z.number()]),
+      z.string(),
+      z.string().optional(),
+    ]),
+    async (_, cookieRaw, placeId, privateServerTarget, installPath) => {
+      const cookie = RobloxAuthService.extractCookie(cookieRaw);
+      const cleanTarget = privateServerTarget.trim();
+
+      if (/^https?:\/\//i.test(cleanTarget)) {
+        return RobloxLauncherService.launchWithPrivateServerLink(
+          cookie,
+          placeId,
+          cleanTarget,
+          installPath,
+        );
+      }
+
+      const normalized = cleanTarget.includes(":")
+        ? cleanTarget.split(":").slice(1).join(":")
+        : cleanTarget;
+
+      if (!normalized) {
+        throw new Error("Private server target is empty");
+      }
+
+      return RobloxLauncherService.launchPrivateServer(
+        cookie,
+        placeId,
+        normalized,
+        normalized,
+        installPath,
+      );
+    },
+  );
+
+  handle(
     "get-game-servers",
     z.tuple([
-      z.union([z.string(), z.number()]), // placeId
-      z.string().optional(), // cursor
-      z.number().optional(), // limit
-      z.enum(["Asc", "Desc"]).optional(), // sortOrder
-      z.boolean().optional(), // excludeFullGames
+      z.union([z.string(), z.number()]),
+      z.string().optional(),
+      z.number().optional(),
+      z.enum(["Asc", "Desc"]).optional(),
+      z.boolean().optional(),
     ]),
     async (_, placeId, cursor, limit, sortOrder, excludeFullGames) => {
-      // Try to find a valid cookie from stored accounts
       const accounts = storageService.getAccounts();
       const accountWithCookie = accounts.find(
         (acc) => acc.cookie && acc.cookie.length > 0,
@@ -532,12 +561,12 @@ export const registerGameHandlers = (): void => {
   handle(
     "purchase-game-pass",
     z.tuple([
-      z.string(), // cookie
-      z.number(), // productId
-      z.number(), // expectedPrice
-      z.number(), // expectedSellerId
-      z.string().optional(), // expectedPurchaserId
-      z.string().optional(), // idempotencyKey
+      z.string(),
+      z.number(),
+      z.number(),
+      z.number(),
+      z.string().optional(),
+      z.string().optional(),
     ]),
     async (
       _,
@@ -566,10 +595,8 @@ export const registerGameHandlers = (): void => {
     "save-game-image",
     z.tuple([z.string(), z.string()]),
     async (event, imageUrl, gameName) => {
-      // Get the parent window for the dialog
       const win = BrowserWindow.fromWebContents(event.sender);
 
-      // Determine file extension from URL or default to png
       const urlLower = imageUrl.toLowerCase();
       let extension = "png";
       if (urlLower.includes(".jpg") || urlLower.includes(".jpeg")) {
@@ -597,7 +624,6 @@ export const registerGameHandlers = (): void => {
     },
   );
 
-  // Handler for launching games from Watcher tab
   handle(
     "games:launch-game",
     z.tuple([
@@ -608,15 +634,28 @@ export const registerGameHandlers = (): void => {
         username: z.string(),
         jobId: z.string().optional(),
         friendId: z.string().optional(),
+        installPath: z.string().optional(),
       }),
     ]),
-    async (_, { cookie, placeId, accountId, username, jobId, friendId }) => {
+    async (
+      _,
+      { cookie, placeId, accountId, username, jobId, friendId, installPath },
+    ) => {
       try {
+        console.log(
+          `[GameController] Launching game: place=${placeId}, account=${username}, install=${installPath || "default"}`,
+        );
+
         await RobloxLauncherService.launchGame(
           cookie,
           placeId,
           jobId,
           friendId,
+          installPath,
+        );
+
+        console.log(
+          `[GameController] ✅ Game launch succeeded for ${username} at place ${placeId}`,
         );
         return {
           success: true,
@@ -625,6 +664,10 @@ export const registerGameHandlers = (): void => {
           username,
         };
       } catch (error: any) {
+        console.error(
+          `[GameController] ❌ Game launch failed for ${username}:`,
+          error,
+        );
         return {
           success: false,
           error: error.message || "Failed to launch game",

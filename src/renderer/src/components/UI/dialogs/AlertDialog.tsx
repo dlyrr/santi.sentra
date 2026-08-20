@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "./Dialog";
+import { Button } from "@renderer/components/UI/buttons/Button";
 import { cn } from "../../../lib/utils";
 
 export interface AlertDialogProps {
@@ -27,6 +28,32 @@ export interface AlertDialogProps {
   isDangerous?: boolean;
 }
 
+const typeConfig = {
+  success: {
+    icon: <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />,
+    bannerClass: "bg-emerald-500/10 border-emerald-500/20",
+  },
+  error: {
+    icon: <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />,
+    bannerClass: "bg-red-500/10 border-red-500/20",
+  },
+  warning: {
+    icon: <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />,
+    bannerClass: "bg-amber-500/10 border-amber-500/20",
+  },
+  info: {
+    icon: (
+      <InfoIcon className="w-5 h-5 text-[var(--accent-color)] flex-shrink-0" />
+    ),
+    bannerClass:
+      "bg-[rgba(var(--accent-color-rgb),0.08)] border-[var(--accent-color-border)]",
+  },
+  confirm: {
+    icon: <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />,
+    bannerClass: "bg-amber-500/10 border-amber-500/20",
+  },
+};
+
 const AlertDialog: React.FC<AlertDialogProps> = ({
   isOpen,
   onClose,
@@ -39,32 +66,14 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
   isDangerous = false,
 }) => {
   const isConfirm = type === "confirm";
-  const icon =
-    type === "success" ? (
-      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-    ) : type === "error" ? (
-      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-    ) : type === "warning" ? (
-      <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-    ) : (
-      <InfoIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
-    );
-
-  const bgColor =
-    type === "success"
-      ? "bg-green-500/10 border-green-500/20"
-      : type === "error"
-        ? "bg-red-500/10 border-red-500/20"
-        : type === "warning"
-          ? "bg-yellow-500/10 border-yellow-500/20"
-          : "bg-blue-500/10 border-blue-500/20";
+  const config = typeConfig[type];
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            {icon}
+            {config.icon}
             <DialogTitle>{title}</DialogTitle>
           </div>
           <DialogClose />
@@ -73,7 +82,7 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
           <div
             className={cn(
               "flex items-start gap-3 p-3 rounded-lg border",
-              bgColor,
+              config.bannerClass,
             )}
           >
             <p className="text-sm text-[var(--color-text-secondary)]">
@@ -82,27 +91,24 @@ const AlertDialog: React.FC<AlertDialogProps> = ({
           </div>
           <div className="flex gap-2 pt-2">
             {isConfirm && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 text-sm rounded-lg border border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                className="flex-1 h-10"
               >
                 {cancelText}
-              </button>
+              </Button>
             )}
-            <button
+            <Button
+              variant={isDangerous ? "destructive" : "default"}
               onClick={() => {
                 onConfirm?.();
                 onClose();
               }}
-              className={cn(
-                "flex-1 px-4 py-2 text-sm rounded-lg font-medium transition-colors",
-                isDangerous
-                  ? "bg-red-600 text-[var(--color-text-primary)] hover:bg-red-700"
-                  : "bg-[var(--accent-color)] text-black hover:opacity-90",
-              )}
+              className="flex-1 h-10"
             >
               {confirmText || (isConfirm ? "Confirm" : "OK")}
-            </button>
+            </Button>
           </div>
         </DialogBody>
       </DialogContent>

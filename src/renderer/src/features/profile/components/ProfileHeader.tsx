@@ -71,7 +71,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const badgesRef = useRef<HTMLDivElement>(null);
   const [badgesHeight, setBadgesHeight] = useState(0);
 
-  // Fetch rolimons data to know if badges exist
   const { data: rolimonsPlayer } = useRolimonsPlayer(userId, true);
   const hasBadges = useMemo(() => {
     if (!rolimonsPlayer?.rolibadges) return false;
@@ -80,7 +79,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     );
   }, [rolimonsPlayer?.rolibadges]);
 
-  // Calculate badge count for dynamic spacing
   const badgeCount = useMemo(() => {
     if (!rolimonsPlayer?.rolibadges) return 0;
     return Object.keys(rolimonsPlayer.rolibadges).filter(
@@ -88,12 +86,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     ).length;
   }, [rolimonsPlayer?.rolibadges]);
 
-  // Calculate estimated badge rows
   const badgeRows = useMemo(() => {
     return Math.ceil(badgeCount / 4);
   }, [badgeCount]);
 
-  // Measure the info block so we can keep a tight gap before badges
   useLayoutEffect(() => {
     const updateHeight = () => {
       if (infoSectionRef.current) {
@@ -114,7 +110,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     hasBadges,
   ]);
 
-  // Measure the badges to avoid vertical drift when many badges wrap
   useLayoutEffect(() => {
     const updateBadgeHeight = () => {
       if (badgesRef.current) {
@@ -134,13 +129,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const effectiveInfoHeight = infoHeight || fallbackInfoHeight;
   const spacerHeightPx = hasBadges ? effectiveInfoHeight + infoGapPx : 5;
 
-  // Container min height ensures the overlay + spacing + badges all fit without overflow
   const minHeightPx = useMemo(() => {
     if (!hasBadges) {
       return Math.max(effectiveInfoHeight + 40, 240);
     }
 
-    // Ensure a sensible minimum even before measurement kicks in
     const safeBadgesHeight = badgesHeight || Math.max(32 * badgeRows + 24, 48);
     return spacerHeightPx + safeBadgesHeight;
   }, [hasBadges, spacerHeightPx, badgesHeight, badgeRows, effectiveInfoHeight]);
@@ -158,10 +151,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       }`}
       style={{ minHeight: `${minHeightPx}px` }}
     >
-      {/* Background Gradients */}
+      {}
       {variant === "default" && (
         <>
-          {/* Avatar-derived blurred background */}
+          {}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             <img
               src={profile.avatarUrl}
@@ -172,7 +165,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[rgba(var(--accent-color-rgb),0.08)] via-[var(--color-surface-strong)]/80 to-[var(--color-surface-strong)] opacity-90" />
 
-          {/* Animated Floor Grid */}
           <div
             className="absolute inset-0 opacity-25"
             style={{
@@ -187,7 +179,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </>
       )}
 
-      {/* Main 3D Render - Centered/Right */}
+      {}
       <div className="absolute inset-0 flex items-center justify-end pointer-events-none pb-0 pr-0 avatar-wrapper">
         {userId ? (
           <div
@@ -261,7 +253,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         )}
       </div>
 
-      {/* Close Button if requested */}
+      {}
       {showCloseButton && onClose && (
         <div className="absolute top-4 right-4 z-50">
           <button
@@ -273,12 +265,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       )}
 
-      {/* Profile Info Overlay */}
+      {}
       <div
         ref={infoSectionRef}
         className={`absolute left-0 right-0 p-6 flex flex-col md:flex-row items-center gap-6 z-10 pointer-events-none ${hasBadges ? "top-0" : "top-1/2 -translate-y-1/2"}`}
       >
-        {/* Profile Picture */}
+        {}
         <div className="shrink-0 relative pointer-events-auto">
           <div className="relative flex items-center justify-center">
             <Avatar
@@ -300,7 +292,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
 
-        {/* Info Section */}
+        {}
         <div className="flex-1 pointer-events-auto">
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-3">
@@ -343,7 +335,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               @{profile.username}
             </p>
 
-            {/* Social Stats Row */}
+            {}
             <div className="flex items-center gap-6">
               <button
                 type="button"
@@ -404,7 +396,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </button>
             </div>
 
-            {/* Game Activity - shown above bio when in game */}
             {gameActivity && (
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg max-w-fit">
@@ -433,7 +424,6 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </div>
             )}
 
-            {/* Description Preview */}
             {hasRawDescription && (
               <div className="max-w-md">
                 <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed line-clamp-2 drop-shadow-md">
@@ -445,14 +435,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-      {/* Dynamic spacer to push badges to bottom */}
       <div
         className="flex-none"
         style={{ height: `${spacerHeightPx}px` }}
         aria-hidden="true"
       />
 
-      {/* Rolimons Badges */}
       <div ref={badgesRef}>
         <RolimonsBadges userId={userId} />
       </div>

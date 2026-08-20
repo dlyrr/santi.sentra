@@ -1,6 +1,3 @@
-// Inventory categories based on Roblox Catalog API
-// https://catalog.roblox.com/v1/categories
-
 export interface InventorySubcategory {
   subcategory: string;
   assetTypes: string[];
@@ -17,7 +14,6 @@ export interface InventoryCategory {
   subcategories: InventorySubcategory[];
 }
 
-// Map asset type IDs to string names used by the inventory API
 const ASSET_TYPE_MAP: Record<number, string> = {
   2: "TShirt",
   8: "Hat",
@@ -43,7 +39,6 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   72: "DressSkirtAccessory",
 };
 
-// Convert asset type IDs to string names
 const mapAssetTypeIds = (ids: number[]): string[] => {
   return ids.map((id) => ASSET_TYPE_MAP[id]).filter(Boolean);
 };

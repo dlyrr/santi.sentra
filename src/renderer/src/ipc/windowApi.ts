@@ -58,6 +58,7 @@ import type {
   BirthdateResponse,
   PromotionChannelsResponse,
   OnlineStatusPrivacy,
+  AccountStandingResponse,
 } from "../../../shared/ipc-schemas/accountSettings";
 
 export interface UpdateSettingResult {
@@ -152,8 +153,15 @@ export interface FavoritesApi {
 }
 
 export interface SettingsApi {
-  // Window control
   focusWindow: () => Promise<void>;
+  tileGameWindows: (config: {
+    pattern?: "grid" | "rows" | "columns" | "cascade";
+    monitors?: "all" | "primary" | "secondary";
+    spacing?: number;
+    columns?: number;
+    width?: number;
+    height?: number;
+  }) => Promise<{ success: boolean; message: string; data?: { count: number; columns: number; rows: number } }>;
   hasConfig: () => Promise<boolean>;
 
   getSidebarWidth: () => Promise<number | undefined>;
@@ -168,15 +176,15 @@ export interface SettingsApi {
   setSettings: (settings: SettingsPatch) => Promise<void>;
   getExcludeFullGames: () => Promise<boolean>;
   setExcludeFullGames: (excludeFullGames: boolean) => Promise<void>;
-  // Custom Fonts
+
   getCustomFonts: () => Promise<{ family: string; url: string }[]>;
   addCustomFont: (font: { family: string; url: string }) => Promise<void>;
   removeCustomFont: (family: string) => Promise<void>;
   getActiveFont: () => Promise<string | null>;
   setActiveFont: (family: string | null) => Promise<void>;
-  // Asset paths
+
   getAssetPath: (assetPath: string) => Promise<string>;
-  // Secure PIN verification - auth state managed in main process
+
   verifyPin: (pin: string) => Promise<{
     success: boolean;
     locked: boolean;
@@ -184,9 +192,9 @@ export interface SettingsApi {
     lockoutSeconds?: number;
     accounts?: Account[];
   }>;
-  // Check if PIN is currently verified in main process
+
   isPinVerified: () => Promise<boolean>;
-  // Set PIN - requires current PIN if one is already set (security)
+
   setPin: (
     newPin: string | null,
     currentPin?: string,
@@ -202,7 +210,7 @@ export interface SettingsApi {
     lockoutSeconds?: number;
     remainingAttempts: number;
   }>;
-  // User Agent Management
+
   swapUserAgent: () => Promise<{
     userAgent: string;
     index: number;
@@ -230,9 +238,8 @@ export interface SettingsApi {
     autoSwapIntervalMinutes: number;
     totalUserAgents: number;
   }>;
-  // Roblox Advanced Settings
+
   getRobloxSettings: () => Promise<{
-    allowMultipleLaunches: boolean;
     defaultPhysicsEngine: "Terrain" | "Legacy";
     enableOptimizations: boolean;
     memoryLimit: number;
@@ -244,13 +251,19 @@ export interface SettingsApi {
     framerateCapEnabled: boolean;
     framerateCapValue: number;
     optimizeRamEnabled: boolean;
-    ramOptimizeLimit: number;
+    ramOptimization: number;
+    cpuOptimization: number;
     headlessModeEnabled: boolean;
     timeoutRelaunchEnabled: boolean;
     timeoutRelaunchSeconds: number;
+    windowLayoutEnabled: boolean;
+    windowLayoutPattern: "grid" | "rows" | "columns" | "cascade";
+    windowLayoutSpacing: number;
+    windowLayoutColumns: number;
+    windowLayoutWidth: number;
+    windowLayoutHeight: number;
   }>;
   setRobloxSettings: (settings: {
-    allowMultipleLaunches?: boolean;
     defaultPhysicsEngine?: "Terrain" | "Legacy";
     enableOptimizations?: boolean;
     memoryLimit?: number;
@@ -262,11 +275,22 @@ export interface SettingsApi {
     framerateCapEnabled?: boolean;
     framerateCapValue?: number;
     optimizeRamEnabled?: boolean;
-    ramOptimizeLimit?: number;
+    ramOptimization?: number;
+    cpuOptimization?: number;
     headlessModeEnabled?: boolean;
     timeoutRelaunchEnabled?: boolean;
     timeoutRelaunchSeconds?: number;
+    windowLayoutEnabled?: boolean;
+    windowLayoutPattern?: "grid" | "rows" | "columns" | "cascade";
+    windowLayoutSpacing?: number;
+    windowLayoutColumns?: number;
+    windowLayoutWidth?: number;
+    windowLayoutHeight?: number;
   }) => Promise<void>;
+
+  handle64IsInstalled: () => Promise<boolean>;
+  handle64Install: () => Promise<boolean>;
+  handle64Uninstall: () => Promise<boolean>;
 }
 
 export interface SocialApi {
@@ -325,6 +349,12 @@ export interface GamesApi {
     placeId: string | number,
     jobId?: string,
     friendId?: string | number,
+    installPath?: string,
+  ) => Promise<SuccessResponse>;
+  launchPrivateServer: (
+    cookie: string,
+    placeId: string | number,
+    privateServerTarget: string,
     installPath?: string,
   ) => Promise<SuccessResponse>;
   generateQuickLoginCode: () => Promise<QuickLoginCode>;
@@ -389,7 +419,10 @@ export interface AvatarApi {
     isEditable: boolean,
     page: number,
   ) => Promise<OutfitCollection>;
-  wearOutfit: (cookie: string, outfitId: number) => Promise<SuccessResponse>;
+  wearOutfit: (
+    cookie: string,
+    outfitId: number,
+  ) => Promise<SuccessResponse & { warnings?: string[] }>;
   setBodyColors: (cookie: string, bodyColors: any) => Promise<SuccessResponse>;
   setAvatarScales: (
     cookie: string,
@@ -426,7 +459,7 @@ export interface AvatarApi {
     idempotencyKey?: string,
   ) => Promise<any>;
   getAssetHierarchy: (assetId: number) => Promise<any>;
-  // 3D Manifest APIs - authenticated
+
   getAvatar3DManifest: (
     cookie: string,
     userId: number | string,
@@ -506,6 +539,8 @@ export interface InstallationsApi {
   getActiveInstallPath: () => Promise<string | null>;
   installFont: (installPath: string, fontPath: string) => Promise<void>;
   installCursor: (installPath: string, cursorPath: string) => Promise<void>;
+
+  getPathForFile: (file: File) => string;
   detectDefaultInstallations: () => Promise<DetectedInstallation[]>;
   createBackup: (
     accounts: unknown[],
@@ -523,7 +558,6 @@ export interface FlagsApi {
   setFFlags: (installPath: string, flags: FFlags) => Promise<void>;
 }
 
-// Rolimons API response types
 export interface RolimonsItemDetails {
   success: boolean;
   item_count: number;
@@ -691,7 +725,7 @@ export interface CatalogItemsSearchParams {
   limit?: number;
   cursor?: string;
   includeNotForSale?: boolean;
-  cookie?: string; // Optional cookie for authenticated requests (higher rate limits)
+  cookie?: string;
 }
 
 export interface CatalogItemsSearchResponse {
@@ -725,7 +759,6 @@ export interface CatalogApi {
   ) => Promise<{ success: boolean; message?: string; path?: string }>;
 }
 
-// Groups API types
 export interface GroupDetails {
   id: number;
   name: string;
@@ -865,7 +898,6 @@ export interface GroupsApi {
   ) => Promise<GroupStoreResponse>;
 }
 
-// Transactions API types
 import type {
   TransactionTotals,
   TransactionTimeFrame,
@@ -893,7 +925,6 @@ export interface UpdaterApi {
   onUpdaterStatus: (callback: (state: UpdateState) => void) => () => void;
 }
 
-// Catalog Database API types
 export interface CatalogDbSearchResult {
   AssetId: number;
   Name: string;
@@ -976,7 +1007,6 @@ export interface NewsApi {
 }
 
 export interface AccountSettingsApi {
-  // GET methods
   getAccountSettingsJson: (cookie: string) => Promise<AccountSettingsJson>;
   getUserSettingsAndOptions: (
     cookie: string,
@@ -990,7 +1020,7 @@ export interface AccountSettingsApi {
     userId: number,
     newDisplayName: string,
   ) => Promise<{ success: boolean; error?: string }>;
-  // UPDATE methods
+
   updateInventoryPrivacy: (
     cookie: string,
     privacyLevel: PrivacyLevel,
@@ -1032,6 +1062,41 @@ export interface AccountSettingsApi {
     cookie: string,
     privacy: PrivacyLevel,
   ) => Promise<UpdateSettingResult>;
+  updateUserSetting: (
+    cookie: string,
+    key: string,
+    value: string,
+  ) => Promise<UpdateSettingResult>;
+  updateEmail: (
+    cookie: string,
+    email: string,
+    metadata?: string,
+    id?: string,
+    type?: string,
+  ) => Promise<UpdateSettingResult & { challenge?: any }>;
+  updateUsername: (
+    cookie: string,
+    userId: number,
+    username: string,
+    metadata?: string,
+    id?: string,
+    type?: string,
+  ) => Promise<UpdateSettingResult & { challenge?: any }>;
+  toggleTwoStep: (
+    cookie: string,
+    userId: number,
+    enable: boolean,
+    metadata?: string,
+    id?: string,
+    type?: string,
+  ) => Promise<UpdateSettingResult & { challenge?: any }>;
+  verifyChallenge: (
+    cookie: string,
+    id: string,
+    type: string,
+    metadata: string,
+    code: string,
+  ) => Promise<UpdateSettingResult & { verificationToken?: string }>;
   sendVerificationEmail: (
     cookie: string,
     freeItem?: boolean,
@@ -1040,7 +1105,7 @@ export interface AccountSettingsApi {
     cookie: string,
     code: string,
   ) => Promise<RedeemPromoCodeResponse>;
-  // Account Information API methods
+
   getDescription: (cookie: string) => Promise<DescriptionResponse>;
   updateDescription: (
     cookie: string,
@@ -1069,9 +1134,19 @@ export interface AccountSettingsApi {
       promotionChannelsVisibilityPrivacy?: string;
     },
   ) => Promise<UpdateSettingResult>;
+  getAccountStanding: (cookie: string) => Promise<AccountStandingResponse>;
+  signOutAllSessions: (cookie: string) => Promise<UpdateSettingResult>;
+  setPinEnabled: (
+    cookie: string,
+    action: "lock" | "unlock",
+    pin?: string,
+  ) => Promise<UpdateSettingResult>;
+  updateSuperSafePrivacyMode: (
+    cookie: string,
+    enabled: boolean,
+  ) => Promise<UpdateSettingResult>;
 }
 
-// Discord Rich Presence types
 export type DiscordStatusMode = "full" | "playing" | "accounts" | "minimal";
 
 export interface DiscordPresenceState {
@@ -1100,7 +1175,6 @@ export interface DiscordRPCApi {
   getDiscordRPCCustomText: () => Promise<string | null>;
 }
 
-// Watcher types
 export interface WatcherSession {
   id: string;
   username: string;
@@ -1270,7 +1344,7 @@ export interface SniperApi {
     purchasePrice: number,
     resaleValue: number,
   ) => Promise<{ success: boolean; profit: number; profitPercent: number }>;
-  // Limited Item Watchlist API
+
   addLimitedWatch: (
     itemId: number,
     itemName: string,
@@ -1284,7 +1358,7 @@ export interface SniperApi {
     itemId: number,
     updates: any,
   ) => Promise<{ success: boolean; watches?: any[] }>;
-  // Username Sniper API
+
   createSession: (
     usernames: string[],
     proxies?: string[],
@@ -1310,7 +1384,7 @@ export interface SniperApi {
   getValidUsernames: (
     sessionId: string,
   ) => Promise<{ success: boolean; usernames?: string[]; error?: string }>;
-  // Username Sniper event listeners
+
   onValid: (callback: (data: { username: string }) => void) => () => void;
   onTaken: (callback: (data: { username: string }) => void) => () => void;
   onCensored: (callback: (data: { username: string }) => void) => () => void;
@@ -1359,7 +1433,7 @@ export interface GeneratorApi {
   createAccountWithUsername: (
     username: string,
   ) => Promise<{ success: boolean; accountId?: string; error?: string }>;
-  // Sniper-generated accounts
+
   sniperGetAccounts: () => Promise<{ success: boolean; accounts: any[] }>;
   sniperAddAccount: (account: any) => Promise<{ success: boolean }>;
   sniperRemoveAccount: (accountId: string) => Promise<{ success: boolean }>;
@@ -1397,7 +1471,7 @@ export interface ProxyApi {
   }>;
   removeProxy: (proxyId: string) => Promise<{ success: boolean }>;
   clearAllProxies: () => Promise<{ success: boolean }>;
-  // Auto-swap API
+
   startAutoSwap: (
     intervalHours: number,
     autoTestBeforeSwap?: boolean,
@@ -1405,7 +1479,7 @@ export interface ProxyApi {
   stopAutoSwap: () => Promise<{ success: boolean }>;
   getAutoSwapConfig: () => Promise<{ success: boolean; config?: any }>;
   isAutoSwapRunning: () => Promise<{ isRunning: boolean }>;
-  // Free proxy fetching
+
   fetchFreeProxies: () => Promise<{
     success: boolean;
     proxies: string[];
@@ -1413,11 +1487,6 @@ export interface ProxyApi {
   }>;
 }
 
-// ============================================================================
-// NEW PRODUCTION MODULES
-// ============================================================================
-
-// Trading Module Types
 export interface TradingAnalysisResult {
   itemId: number;
   itemName: string;
@@ -1470,7 +1539,6 @@ export interface TradingApi {
   clearCache: () => Promise<{ success: boolean }>;
 }
 
-// Browser Automation Module Types
 export interface BrowserAutomationConfig {
   headless?: boolean;
   timeout?: number;
@@ -1510,7 +1578,6 @@ export interface BrowserAutomationApi {
   ) => Promise<{ success: boolean; result?: any; error?: string }>;
 }
 
-// Proxy Management Module Types
 export interface ProxySession {
   sessionId: string;
   accountId: string;
@@ -1604,7 +1671,6 @@ export type WindowApi = AccountApi &
   BrowserAutomationApi &
   ProxyMgmtApi &
   UsersApi & {
-    // Namespaced API access for organization
     macro: MacroApi;
     sniper: SniperApi;
     generator: GeneratorApi;
@@ -1621,9 +1687,3 @@ export type WindowApi = AccountApi &
     watcher: WatcherApi;
     account: AccountApi;
   };
-// DISABLED: License API removed - licensing system disabled
-// & {
-//   license: {
-//     checkAdminStatus: () => Promise<{ isAdmin: boolean; message: string }>
-//   }
-// }

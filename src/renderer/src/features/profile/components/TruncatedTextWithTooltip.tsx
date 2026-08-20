@@ -33,8 +33,6 @@ export const TruncatedTextWithTooltip: React.FC<
 
     let resizeObserver: ResizeObserver | null = null;
 
-    // ResizeObserver is well-supported in modern browsers; the fallback to
-    // window.addEventListener would cause performance issues due to frequent resize events.
     if (typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(() => checkTruncation());
       resizeObserver.observe(element);

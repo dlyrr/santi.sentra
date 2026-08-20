@@ -24,7 +24,6 @@ const BLACK_BODY_COLORS = {
   leftLegColor3: "1b2a35",
 };
 
-// Key for localStorage
 const getResetKey = (accountIds: string[]) =>
   `avatar-reset-done:${[...accountIds].sort().join(",")}`;
 
@@ -43,7 +42,7 @@ export function markAvatarResetDone(accountIds: string[]) {
   } catch {}
 }
 
-const HOLD_DURATION = 1500; // ms
+const HOLD_DURATION = 1500;
 
 export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
   selectedAccounts,
@@ -120,7 +119,6 @@ export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
     setResults(ops);
     setDone(true);
 
-    // Persist reset state
     markAvatarResetDone(selectedAccounts.map((a) => a.id));
   };
 
@@ -156,7 +154,7 @@ export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
   if (isResetting) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl p-8 flex flex-col items-center text-center gap-4">
+        <div className="max-w-md w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-xl p-8 flex flex-col items-center text-center gap-4">
           <Loader2 className="h-12 w-12 text-[var(--accent-color)] animate-spin" />
           <div>
             <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-1">
@@ -166,7 +164,7 @@ export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
               {progress.current} / {progress.total} accounts
             </p>
           </div>
-          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-[var(--color-surface-muted)] overflow-hidden">
             <div
               className="h-full bg-[var(--accent-color)] transition-all duration-300"
               style={{
@@ -196,13 +194,13 @@ export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
 
   return (
     <div className="flex h-full items-center justify-center p-8">
-      <div className="max-w-md w-full rounded-2xl border border-amber-500/30 bg-black/60 backdrop-blur-xl p-8 flex flex-col items-center text-center gap-5">
-        {/* Icon */}
+      <div className="max-w-md w-full rounded-2xl border border-amber-500/30 bg-[var(--color-surface-strong)]/80 backdrop-blur-xl p-8 flex flex-col items-center text-center gap-5">
+        {}
         <div className="w-16 h-16 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
           <ShieldAlert className="h-8 w-8 text-amber-400" />
         </div>
 
-        {/* Text */}
+        {}
         <div>
           <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">
             Reset Required
@@ -217,27 +215,27 @@ export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
           </p>
         </div>
 
-        {/* Accounts preview */}
+        {}
         <div className="flex flex-wrap justify-center gap-1.5 max-w-xs">
           {selectedAccounts.slice(0, 8).map((a) => (
             <span
               key={a.id}
-              className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)]"
+              className="rounded-full bg-[var(--color-surface-hover)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-text-secondary)]"
             >
               {a.username}
             </span>
           ))}
           {selectedAccounts.length > 8 && (
-            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+            <span className="rounded-full bg-[var(--color-surface-hover)] px-2.5 py-0.5 text-[11px] text-[var(--color-text-muted)]">
               +{selectedAccounts.length - 8} more
             </span>
           )}
         </div>
 
-        {/* Hold button */}
+        {}
         <div className="flex flex-col items-center gap-2 w-full">
           <div className="relative w-full overflow-hidden rounded-xl">
-            {/* Progress fill behind button */}
+            {}
             <div
               className="absolute inset-0 bg-amber-500/30 transition-none"
               style={{ width: `${holdProgress * 100}%` }}
@@ -261,7 +259,7 @@ export const AvatarResetGate: React.FC<AvatarResetGateProps> = ({
           </p>
         </div>
 
-        {/* Cancel */}
+        {}
         <button
           onClick={onCancel}
           className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"

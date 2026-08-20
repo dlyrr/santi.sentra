@@ -36,7 +36,6 @@ export class MacroService extends EventEmitter {
   constructor() {
     super();
     this.ensureMacrosDir();
-    // Don't initialize built-in macros here - do it lazily on first access
   }
 
   private ensureMacrosDir() {
@@ -46,10 +45,6 @@ export class MacroService extends EventEmitter {
     }
   }
 
-  /**
-   * Built-in macro definitions for common Roblox actions
-   * Work on all platforms including macOS where recording doesn't work well
-   */
   private static readonly BUILT_IN_MACROS = [
     {
       name: "Jump",
@@ -117,10 +112,6 @@ export class MacroService extends EventEmitter {
     },
   ];
 
-  /**
-   * Initialize built-in macros for common Roblox actions (lazy initialization)
-   * CRITICAL FIX: Reads filesystem directly instead of calling listMacros() to avoid infinite recursion
-   */
   private ensureBuiltInMacros(): void {
     if (this.builtInMacrosInitialized) {
       return;
@@ -129,7 +120,6 @@ export class MacroService extends EventEmitter {
     const fs = require("fs");
     const existingNames = new Set<string>();
 
-    // Read existing macro names directly from filesystem (NOT via listMacros())
     if (fs.existsSync(this.macrosDir)) {
       try {
         const files = fs.readdirSync(this.macrosDir);
@@ -139,9 +129,7 @@ export class MacroService extends EventEmitter {
               const data = readFileSync(join(this.macrosDir, file), "utf-8");
               const macro = JSON.parse(data) as Macro;
               existingNames.add(macro.name);
-            } catch (err) {
-              // Silently ignore parse errors
-            }
+            } catch (err) {}
           }
         }
       } catch (err) {
@@ -149,7 +137,6 @@ export class MacroService extends EventEmitter {
       }
     }
 
-    // Save any missing built-in macros
     for (const builtIn of MacroService.BUILT_IN_MACROS) {
       if (!existingNames.has(builtIn.name)) {
         console.log(`[Macro] Creating built-in macro: ${builtIn.name}`);
@@ -160,9 +147,6 @@ export class MacroService extends EventEmitter {
     this.builtInMacrosInitialized = true;
   }
 
-  /**
-   * Start recording a macro
-   */
   startRecording(): void {
     if (this.isRecording) {
       console.warn("[Macro] Already recording");
@@ -178,9 +162,6 @@ export class MacroService extends EventEmitter {
     this.emit("recording-started");
   }
 
-  /**
-   * Stop recording and return recorded events
-   */
   stopRecording(): MacroEvent[] {
     if (!this.isRecording) {
       console.warn("[Macro] Not recording");
@@ -197,9 +178,6 @@ export class MacroService extends EventEmitter {
     return events;
   }
 
-  /**
-   * Record a mouse movement
-   */
   recordMouseMove(x: number, y: number): void {
     if (!this.isRecording) return;
 
@@ -215,9 +193,6 @@ export class MacroService extends EventEmitter {
     });
   }
 
-  /**
-   * Record a mouse click
-   */
   recordClick(button: "left" | "right" | "middle" = "left"): void {
     if (!this.isRecording) return;
 
@@ -232,9 +207,6 @@ export class MacroService extends EventEmitter {
     });
   }
 
-  /**
-   * Record a key press
-   */
   recordKeyPress(key: string): void {
     if (!this.isRecording) return;
 
@@ -249,9 +221,6 @@ export class MacroService extends EventEmitter {
     });
   }
 
-  /**
-   * Save a macro to file
-   */
   saveMacro(name: string, events: MacroEvent[], description?: string): Macro {
     const id = `macro_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = Date.now();
@@ -285,9 +254,6 @@ export class MacroService extends EventEmitter {
     return macro;
   }
 
-  /**
-   * Load a macro by ID
-   */
   loadMacro(macroId: string): Macro | null {
     const filePath = join(this.macrosDir, `${macroId}.json`);
 
@@ -307,11 +273,7 @@ export class MacroService extends EventEmitter {
     }
   }
 
-  /**
-   * List all saved macros (including built-in macros on first call)
-   */
   listMacros(): Macro[] {
-    // Ensure built-in macros are created on first access
     this.ensureBuiltInMacros();
 
     const fs = require("fs");
@@ -338,9 +300,6 @@ export class MacroService extends EventEmitter {
     return macros;
   }
 
-  /**
-   * Delete a macro by ID
-   */
   deleteMacro(macroId: string): boolean {
     const fs = require("fs");
     const filePath = join(this.macrosDir, `${macroId}.json`);
@@ -361,10 +320,6 @@ export class MacroService extends EventEmitter {
     }
   }
 
-  /**
-   * Play a macro to multiple windows
-   * Note: Requires robotjs or similar library for actual input simulation
-   */
   async playMacro(
     macro: Macro,
     targetWindowIds?: number[],
@@ -379,10 +334,8 @@ export class MacroService extends EventEmitter {
       for (const event of macro.events) {
         const delayMs = Math.max(0, Math.round((event.delay || 0) / speed));
 
-        // Simulate the input
         await this.simulateInput(event);
 
-        // Wait before next event
         if (delayMs > 0) {
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
@@ -396,36 +349,8 @@ export class MacroService extends EventEmitter {
     }
   }
 
-  /**
-   * Simulate input event using robotjs
-   * Note: Requires external package for actual input simulation
-   * Install: npm install robotjs
-   * Then uncomment the code below
-   */
   private async simulateInput(event: MacroEvent): Promise<void> {
     try {
-      // IMPORTANT: To use actual input simulation, install robotjs and uncomment below:
-      // npm install robotjs
-      //
-      // Then uncomment this code:
-      // const robot = require('robotjs')
-      //
-      // if (event.type === 'mousemove') {
-      //   robot.moveMouse(event.x!, event.y!)
-      // } else if (event.type === 'click') {
-      //   const button = event.button || 'left'
-      //   if (button === 'left') {
-      //     robot.click('left')
-      //   } else if (button === 'right') {
-      //     robot.click('right')
-      //   } else if (button === 'middle') {
-      //     robot.click('middle')
-      //   }
-      // } else if (event.type === 'keypress') {
-      //   robot.typeString(event.key!)
-      // }
-
-      // For now, just log the event
       console.log(`[Macro] Would simulate: ${JSON.stringify(event)}`);
       console.log(
         `[Macro] Note: Install robotjs and uncomment simulateInput() to enable actual input`,
@@ -438,16 +363,10 @@ export class MacroService extends EventEmitter {
     }
   }
 
-  /**
-   * Get recording status
-   */
   isCurrentlyRecording(): boolean {
     return this.isRecording;
   }
 
-  /**
-   * Get current recording progress
-   */
   getRecordingProgress(): { eventCount: number; duration: number } {
     return {
       eventCount: this.currentEvents.length,

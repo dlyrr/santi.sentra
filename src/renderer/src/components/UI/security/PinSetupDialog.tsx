@@ -50,10 +50,8 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const confirmInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Reset state when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      // If PIN is set, start with verify step; otherwise go directly to enter
       setStep(currentPin ? "verify" : "enter");
       setVerifyPin(Array(6).fill(""));
       setPin(Array(6).fill(""));
@@ -68,7 +66,6 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     }
   }, [isOpen, currentPin]);
 
-  // Countdown timer for lockout
   useEffect(() => {
     if (lockoutSeconds > 0) {
       const timer = setInterval(() => {
@@ -87,7 +84,6 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     return undefined;
   }, [lockoutSeconds]);
 
-  // Focus first input when step changes
   useEffect(() => {
     if (isOpen && !isLocked) {
       setTimeout(() => {
@@ -188,7 +184,6 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     [pin, confirmPin, verifyPin, isLocked, isSubmitting],
   );
 
-  // Handle verify current PIN before allowing changes
   const handleVerifyCurrentPin = async () => {
     const enteredPin = verifyPin.join("");
     if (enteredPin.length !== 6) {
@@ -200,11 +195,9 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     setError(null);
 
     try {
-      // Use the onSave with null newPin and currentPin to just verify
       const result = await onSave(null, enteredPin);
 
       if (result.success) {
-        // Verification successful, go to manage step
         setStep("remove");
         setVerifyPin(Array(6).fill(""));
       } else {
@@ -257,20 +250,17 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     setError(null);
 
     try {
-      // Pass the verified current PIN if we had to verify first
       const currentPinForChange = currentPin ? verifyPin.join("") : undefined;
       const result = await onSave(enteredPin, currentPinForChange);
 
       if (result.success) {
-        // If successful, close immediately - don't stay locked
         setIsLocked(false);
         setLockoutSeconds(0);
         onClose();
       } else {
-        // Only show lockout if operation failed
         if (result.locked) {
           setIsLocked(true);
-          setLockoutSeconds(result.lockoutSeconds || 300); // Default to 5 minutes
+          setLockoutSeconds(result.lockoutSeconds || 300);
           setRemainingAttempts(result.remainingAttempts || 0);
           setError(
             `Too many failed attempts. Try again in ${formatTime(result.lockoutSeconds || 300)}`,
@@ -296,7 +286,6 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     setError(null);
 
     try {
-      // Pass the verified current PIN for removal
       const currentPinForRemoval = verifyPin.join("");
       const result = await onSave(null, currentPinForRemoval);
 
@@ -377,7 +366,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
         </DialogHeader>
         <DialogBody>
           <AnimatePresence mode="wait">
-            {/* Verify current PIN step (required before changing/removing) */}
+            {}
             {step === "verify" && currentPin && (
               <motion.div
                 key="verify"
@@ -445,7 +434,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                     <DialogFooter>
                       <button
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
+                        className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] rounded-lg transition-colors"
                       >
                         Cancel
                       </button>
@@ -515,7 +504,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                       setError(null);
                     }}
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] disabled:opacity-50 rounded-lg transition-colors"
                   >
                     Change PIN
                   </button>
@@ -577,7 +566,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                 <DialogFooter>
                   <button
                     onClick={currentPin ? handleBack : onClose}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] rounded-lg transition-colors"
                   >
                     {currentPin ? "Back" : "Cancel"}
                   </button>
@@ -639,7 +628,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                   <button
                     onClick={handleBack}
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] disabled:opacity-50 rounded-lg transition-colors"
                   >
                     Back
                   </button>

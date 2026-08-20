@@ -6,9 +6,6 @@ interface WatcherControlsProps {
   sessionCount: number;
 }
 
-/**
- * WatcherControls - Button controls for starting/stopping the watcher
- */
 export default function WatcherControls({
   isWatching,
   onToggle,

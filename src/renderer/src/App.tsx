@@ -18,6 +18,8 @@ import { getDominantAccentColorFromImageUrl } from "./utils/imageAccentColor";
 import JoinModal from "./components/Modals/JoinModal";
 import EditNoteModal from "./features/auth/Modals/EditNoteModal";
 import AddAccountModal from "./features/auth/Modals/AddAccountModal";
+import TwoFactorModal from "./components/Modals/TwoFactorModal";
+import promptTwoFactor from "./lib/twoFactor";
 import Sidebar from "./components/UI/navigation/Sidebar";
 import TopNav from "./components/UI/navigation/TopNav";
 import NotificationTray from "./components/UI/feedback/NotificationTray";
@@ -37,7 +39,9 @@ import { useClickOutside } from "./hooks/useClickOutside";
 import { useNotification } from "./features/system/stores/useSnackbarStore";
 import InstanceSelectionModal from "./components/Modals/InstanceSelectionModal";
 import { useInstallations } from "./features/install/stores/useInstallationsStore";
-import { LoadingSpinnerFullPage } from "./components/UI/feedback/LoadingSpinner";
+import LoadingSpinner, {
+  LoadingSpinnerFullPage,
+} from "./components/UI/feedback/LoadingSpinner";
 import {
   useAccountsManager,
   useAccountStatusPolling,
@@ -70,7 +74,6 @@ import {
 import { useTheme } from "./theme/ThemeContext";
 import { ThemeEffects } from "./components/ThemeEffects";
 
-
 import {
   useActiveTab,
   useSetActiveTab,
@@ -94,7 +97,11 @@ import {
   useNavLayout,
 } from "./stores/useUIStore";
 
-import { useSelectedIds, useSetSelectedIds } from "./stores/useSelectionStore";
+import {
+  useSelectedIds,
+  useSetSelectedIds,
+  useSelectionStore,
+} from "./stores/useSelectionStore";
 import {
   useContentRadius,
   useNavBorderStyle,
@@ -160,20 +167,36 @@ const App: React.FC = () => {
     (state) => state.initializeFirstLaunch,
   );
 
-  // Initialize onboarding first launch detection early
   useEffect(() => {
     if (onboardingInitializedRef.current) return;
     onboardingInitializedRef.current = true;
     initializeFirstLaunch();
   }, [initializeFirstLaunch]);
 
+  useEffect(() => {
+    const remove = window.electron.ipcRenderer.on(
+      "prompt-two-factor",
+      async (
+        _event: any,
+        payload: { accountId?: string; message?: string },
+      ) => {
+        try {
+          const code = await promptTwoFactor(payload);
+          try {
+            window.electron.ipcRenderer.send("two-factor-response", code);
+          } catch {}
+        } catch (err) {}
+      },
+    );
+
+    return () => remove();
+  }, []);
+
   const isAppUnlocked = useAppUnlocked();
   const setAppUnlocked = useSetAppUnlocked();
 
   const handlePinUnlock = useCallback(() => {
     setAppUnlocked(true);
-    // PinLockScreen fetches accounts and sets them in the query cache before calling onUnlock,
-    // so the main app renders with accounts already available.
   }, [setAppUnlocked]);
 
   const refreshRecentlyPlayed = useCallback(() => {
@@ -190,7 +213,6 @@ const App: React.FC = () => {
   const openCommandPalette = useCommandPaletteStore((s) => s.open);
   const isCommandPaletteOpen = useCommandPaletteStore((s) => s.isOpen);
 
-  // Defer catalog search index init until command palette is actually opened
   useEffect(() => {
     if (!isCommandPaletteOpen || catalogInitTriggeredRef.current) return;
     catalogInitTriggeredRef.current = true;
@@ -212,6 +234,9 @@ const App: React.FC = () => {
   const setSelectedGame = useSetSelectedGame();
   const pendingLaunchConfig = usePendingLaunchConfig();
   const setPendingLaunchConfig = useSetPendingLaunchConfig();
+  const [batchLaunchCallback, setBatchLaunchCallback] = useState<
+    ((path?: string) => void) | null
+  >(null);
   const availableInstallations = useAvailableInstallations();
   const setAvailableInstallations = useSetAvailableInstallations();
 
@@ -233,7 +258,6 @@ const App: React.FC = () => {
     addAccount,
   } = useAccountsManager();
 
-  // Bootstrap view preferences from backend config.json on first load
   useInitViewPreferencesFromBackend();
 
   const {
@@ -242,12 +266,10 @@ const App: React.FC = () => {
     updateSettings,
   } = useSettingsManager();
 
-  // Remove account confirmation dialog state
   const [removeAccountOpen, setRemoveAccountOpen] = useState(false);
   const [removeAccountId, setRemoveAccountId] = useState<string | null>(null);
   const [removeMultipleCount, setRemoveMultipleCount] = useState(0);
 
-  // Note editing state
   const [editingNoteAccounts, setEditingNoteAccounts] = useState<
     Account[] | null
   >(null);
@@ -258,7 +280,6 @@ const App: React.FC = () => {
   const [isBulkActionProcessing, setIsBulkActionProcessing] = useState(false);
   const [bulkTransactionsOpen, setBulkTransactionsOpen] = useState(false);
 
-  // Browser custom URL dialog state
   const [showBrowserCustomDialog, setShowBrowserCustomDialog] = useState(false);
   const [browserCustomUrl, setBrowserCustomUrl] = useState("");
   const [browserCustomAccountIds, setBrowserCustomAccountIds] =
@@ -286,9 +307,9 @@ const App: React.FC = () => {
       }
 
       try {
-        // Prioritize selectedAccount's cookie, fall back to any available cookie for authenticated requests (better rate limits)
+        const currentSelectedIds = useSelectionStore.getState().selectedIds;
         const selectedAccounts =
-          selectedIds.size > 0 ? Array.from(selectedIds) : [];
+          currentSelectedIds.size > 0 ? Array.from(currentSelectedIds) : [];
         const selectedAccountId = selectedAccounts[0];
         const selectedAccount = currentAccounts.find(
           (a) => a.id === selectedAccountId,
@@ -331,12 +352,10 @@ const App: React.FC = () => {
     [queryClient, setAccounts],
   );
 
-  // Keep account avatars from going stale (Roblox thumbnails can change when you update your avatar).
   const initialAvatarRefreshRef = useRef(false);
   useEffect(() => {
     if (isLoadingAccounts) return;
 
-    // Defer initial avatar refresh by 1.5s so it doesn't compete with startup IPC burst
     let startupTimer: ReturnType<typeof setTimeout> | null = null;
     if (!initialAvatarRefreshRef.current) {
       startupTimer = setTimeout(() => {
@@ -354,7 +373,6 @@ const App: React.FC = () => {
     };
   }, [isLoadingAccounts, refreshAccountAvatarUrls]);
 
-  // One-time backfill: fetch joinDate for accounts that are missing it
   const joinDateBackfillRef = useRef(false);
   const premiumBackfillRef = useRef(false);
   useEffect(() => {
@@ -366,7 +384,7 @@ const App: React.FC = () => {
       .map((a) => Number(a.userId))
       .filter((id) => Number.isFinite(id));
     if (userIds.length === 0) return;
-    // Defer 3s so joinDate backfill doesn't pile on top of initial render/save burst
+
     const timer = setTimeout(() => {
       window.api
         .getBatchJoinDates(userIds)
@@ -396,7 +414,6 @@ const App: React.FC = () => {
 
     premiumBackfillRef.current = true;
 
-    // Defer 3s so premium backfill doesn't pile on top of initial render/save burst
     const timer = setTimeout(() => {
       Promise.all(
         missingPremium.map(async (account) => {
@@ -520,7 +537,6 @@ const App: React.FC = () => {
     return accounts.find((a) => a.id === selectedAccountId) || null;
   }, [accounts, selectedAccountId]);
 
-  // Refetch thumbnails when switching accounts (cached by the 60s throttle).
   useEffect(() => {
     if (!selectedAccountId || isLoadingAccounts) return;
     void refreshAccountAvatarUrls();
@@ -537,7 +553,6 @@ const App: React.FC = () => {
     return null;
   }, [accounts, selectedAccount?.avatarUrl, settings.primaryAccountId]);
 
-  // If dynamic accent color is enabled, derive it from the current account's avatar.
   useEffect(() => {
     if (!settings.useDynamicAccentColor || !accentAvatarUrl) return;
 
@@ -576,7 +591,6 @@ const App: React.FC = () => {
   const { setTheme } = useTheme();
 
   useEffect(() => {
-    // Always use dark theme, regardless of system preference or saved settings
     setTheme("dark");
   }, [setTheme]);
 
@@ -590,7 +604,6 @@ const App: React.FC = () => {
     }
   }, [activeTab, setActiveTabState, visibleSidebarTabs]);
 
-  // Update Discord RPC when tab changes
   useEffect(() => {
     window.api.setDiscordRPCTab(activeTab).catch((error) => {
       console.error("Failed to set Discord RPC tab:", error);
@@ -636,6 +649,7 @@ const App: React.FC = () => {
     let launchPlaceId: string | number = "";
     let launchJobId: string | undefined = undefined;
     let launchFriendId: string | undefined = undefined;
+    let launchPrivateServerTarget: string | undefined = undefined;
 
     try {
       if (config.method === JoinMethod.PlaceId) {
@@ -645,6 +659,49 @@ const App: React.FC = () => {
         if (parts.length === 2) {
           launchFriendId = parts[0];
           launchPlaceId = parts[1];
+        }
+      } else if (config.method === JoinMethod.PrivateServer) {
+        const raw = config.target.trim();
+        if (!raw) {
+          showNotification("Private server target is required", "warning");
+          return;
+        }
+
+        if (/^https?:\/\//i.test(raw)) {
+          try {
+            const url = new URL(raw);
+            const placeMatch = url.pathname.match(/\/games\/(\d+)/i);
+            const placeFromUrl = placeMatch?.[1];
+            if (!placeFromUrl) {
+              showNotification(
+                "Private server URL is missing a valid place ID",
+                "warning",
+              );
+              return;
+            }
+            launchPlaceId = placeFromUrl;
+            launchPrivateServerTarget = raw;
+          } catch {
+            showNotification("Private server link is invalid", "warning");
+            return;
+          }
+        } else if (raw.includes(":")) {
+          const [placePart, ...serverParts] = raw.split(":");
+          if (!placePart || !serverParts.length) {
+            showNotification(
+              "Use the format PlaceID:PrivateServerCode",
+              "warning",
+            );
+            return;
+          }
+          launchPlaceId = placePart;
+          launchPrivateServerTarget = serverParts.join(":");
+        } else {
+          showNotification(
+            "Use a private server link or format like PlaceID:ServerCode",
+            "warning",
+          );
+          return;
         }
       } else if (config.method === JoinMethod.Username) {
         const targetUser = await window.api.getUserByUsername(config.target);
@@ -713,22 +770,15 @@ const App: React.FC = () => {
       }
 
       let launchedAny = false;
-      let launchIndex = 0;
 
       const launchOneAccount = async (
         account: (typeof accountsToLaunch)[0],
       ) => {
-        const staggerDelay = launchIndex * 1500; // 1.5s stagger between launches
-        launchIndex++;
-        if (staggerDelay > 0) {
-          await new Promise((r) => setTimeout(r, staggerDelay));
-        }
-
         try {
           const logsBeforeLaunch = notifyServerLocation
             ? await window.api.getLogs()
             : [];
-          // Update lastActive timestamp
+
           setAccounts((prev) =>
             prev.map((a) =>
               a.id === account.id
@@ -739,13 +789,22 @@ const App: React.FC = () => {
           const logTimestampBefore =
             logsBeforeLaunch.length > 0 ? logsBeforeLaunch[0].lastModified : 0;
 
-          await window.api.launchGame(
-            account.cookie!,
-            launchPlaceId,
-            launchJobId,
-            launchFriendId,
-            installPath,
-          );
+          if (launchPrivateServerTarget) {
+            await window.api.launchPrivateServer(
+              account.cookie!,
+              launchPlaceId,
+              launchPrivateServerTarget,
+              installPath,
+            );
+          } else {
+            await window.api.launchGame(
+              account.cookie!,
+              launchPlaceId,
+              launchJobId,
+              launchFriendId,
+              installPath,
+            );
+          }
           showNotification(
             `Launched successfully for ${account.displayName}`,
             "success",
@@ -754,8 +813,8 @@ const App: React.FC = () => {
 
           if (notifyServerLocation) {
             const pollForServerLocation = async () => {
-              const maxAttempts = 15; // Poll for up to 30 seconds
-              const pollInterval = 2000; // 2 seconds between polls
+              const maxAttempts = 15;
+              const pollInterval = 2000;
 
               for (let attempt = 0; attempt < maxAttempts; attempt++) {
                 await new Promise((r) => setTimeout(r, pollInterval));
@@ -813,7 +872,6 @@ const App: React.FC = () => {
               console.warn("Timed out waiting for server location from logs");
             };
 
-            // Fire-and-forget server location polling (non-blocking)
             pollForServerLocation();
           }
         } catch (e: any) {
@@ -828,7 +886,6 @@ const App: React.FC = () => {
         }
       };
 
-      // Launch all accounts concurrently with stagger
       await Promise.all(accountsWithCookie.map(launchOneAccount));
       launchedAny = accountsWithCookie.length > 0;
 
@@ -847,40 +904,43 @@ const App: React.FC = () => {
   };
 
   const installations = useInstallations();
+  const uniqueInstallations = useMemo(() => {
+    const seen = new Set<string>();
+    return installations.filter((installation) => {
+      const normalizedPath = installation.path.trim().toLowerCase();
+      if (!normalizedPath || seen.has(normalizedPath)) return false;
+      seen.add(normalizedPath);
+      return true;
+    });
+  }, [installations]);
 
   const handleLaunch = useCallback(
     (config: JoinConfig) => {
-      const configuredPath =
-        typeof settings.defaultInstallationPath === "string"
-          ? settings.defaultInstallationPath.trim()
-          : "";
+      const defaultInstallPath = settings.defaultInstallationPath?.trim();
+      const singleInstallationPath =
+        uniqueInstallations.length === 1
+          ? uniqueInstallations[0]?.path
+          : undefined;
 
-      if (configuredPath) {
-        performLaunch(config, configuredPath);
+      if (defaultInstallPath) {
+        performLaunch(config, defaultInstallPath);
         return;
       }
 
-      if (installations.length > 0) {
-        if (installations.length === 1) {
-          performLaunch(config, installations[0].path);
-          return;
-        }
-        setAvailableInstallations(installations);
-        setPendingLaunchConfig(config);
-        closeModal("join");
-        openModal("instanceSelection");
+      if (uniqueInstallations.length <= 1) {
+        performLaunch(config, singleInstallationPath);
         return;
       }
 
-      setAvailableInstallations([]);
+      setAvailableInstallations(uniqueInstallations);
       setPendingLaunchConfig(config);
       closeModal("join");
       openModal("instanceSelection");
     },
     [
       settings.defaultInstallationPath,
+      uniqueInstallations,
       performLaunch,
-      installations,
       setAvailableInstallations,
       setPendingLaunchConfig,
       closeModal,
@@ -899,34 +959,72 @@ const App: React.FC = () => {
     [selectedIds.size, showNotification, handleLaunch],
   );
 
-  const handleInstanceSelect = (path?: string) => {
-    closeModal("instanceSelection");
-    if (pendingLaunchConfig) {
-      performLaunch(pendingLaunchConfig, path);
-      setPendingLaunchConfig(null);
-    }
-  };
+  const handleInstanceSelect = useCallback(
+    (path?: string) => {
+      closeModal("instanceSelection");
+      if (pendingLaunchConfig) {
+        performLaunch(pendingLaunchConfig, path);
+        setPendingLaunchConfig(null);
+      } else if (batchLaunchCallback) {
+        batchLaunchCallback(path);
+        setBatchLaunchCallback(null);
+      }
+    },
+    [closeModal, pendingLaunchConfig, performLaunch, batchLaunchCallback],
+  );
 
-  const handleFriendJoin = (
-    placeId: string | number,
-    jobId?: string,
-    userId?: string | number,
-  ) => {
-    const placeTarget =
-      typeof placeId === "number" ? placeId.toString() : placeId;
-    let config: JoinConfig;
-    if (userId) {
-      config = {
-        method: JoinMethod.Friend,
-        target: `${userId}:${placeTarget}`,
-      };
-    } else if (jobId) {
-      config = { method: JoinMethod.JobId, target: `${placeTarget}:${jobId}` };
-    } else {
-      config = { method: JoinMethod.PlaceId, target: placeTarget };
-    }
-    handleLaunch(config);
-  };
+  const handleBatchLaunchRequest = useCallback(
+    (callback: (path?: string) => void) => {
+      const defaultInstallPath = settings.defaultInstallationPath?.trim();
+      const singleInstallationPath =
+        uniqueInstallations.length === 1
+          ? uniqueInstallations[0]?.path
+          : undefined;
+
+      if (defaultInstallPath) {
+        callback(defaultInstallPath);
+        return;
+      }
+
+      if (uniqueInstallations.length <= 1) {
+        callback(singleInstallationPath);
+        return;
+      }
+
+      setAvailableInstallations(uniqueInstallations);
+      setBatchLaunchCallback(() => callback);
+      openModal("instanceSelection");
+    },
+    [
+      settings.defaultInstallationPath,
+      uniqueInstallations,
+      setAvailableInstallations,
+      openModal,
+    ],
+  );
+
+  const handleFriendJoin = useCallback(
+    (placeId: string | number, jobId?: string, userId?: string | number) => {
+      const placeTarget =
+        typeof placeId === "number" ? placeId.toString() : placeId;
+      let config: JoinConfig;
+      if (userId) {
+        config = {
+          method: JoinMethod.Friend,
+          target: `${userId}:${placeTarget}`,
+        };
+      } else if (jobId) {
+        config = {
+          method: JoinMethod.JobId,
+          target: `${placeTarget}:${jobId}`,
+        };
+      } else {
+        config = { method: JoinMethod.PlaceId, target: placeTarget };
+      }
+      handleLaunch(config);
+    },
+    [handleLaunch],
+  );
 
   const handleBulkOpenBrowsers = useCallback(() => {
     if (selectedIds.size === 0) return;
@@ -950,7 +1048,6 @@ const App: React.FC = () => {
     if (accountsWithCookies.length === 0) return;
 
     void (async () => {
-      // Open browsers concurrently with a small stagger to avoid overwhelming the system
       await Promise.all(
         accountsWithCookies.map(async (account, index) => {
           if (index > 0)
@@ -1076,7 +1173,7 @@ const App: React.FC = () => {
           await executeWithRetry(
             bulkOperationLimiter,
             () => window.api.sendFriendRequest(account.cookie!, targetId),
-            { 
+            {
               retryCondition: isRateLimitError,
               maxAttempts: 20,
               initialDelayMs: 5000,
@@ -1087,7 +1184,7 @@ const App: React.FC = () => {
           await executeWithRetry(
             bulkOperationLimiter,
             () => window.api.joinGroup(account.cookie!, targetId),
-            { 
+            {
               retryCondition: isRateLimitError,
               maxAttempts: 20,
               initialDelayMs: 5000,
@@ -1128,11 +1225,14 @@ const App: React.FC = () => {
     }
   };
 
-  const handleIndividualRemove = (id: string) => {
-    setRemoveAccountId(id);
-    setRemoveAccountOpen(true);
-    setActiveMenu(null);
-  };
+  const handleIndividualRemove = useCallback(
+    (id: string) => {
+      setRemoveAccountId(id);
+      setRemoveAccountOpen(true);
+      setActiveMenu(null);
+    },
+    [setActiveMenu],
+  );
 
   const handleEditNote = useCallback(
     (id: string) => {
@@ -1316,7 +1416,6 @@ const App: React.FC = () => {
     }
 
     try {
-      // Open Roblox home in default browser
       await window.api.openBrowserWithAccount(
         id,
         "https://www.roblox.com/home",
@@ -1337,18 +1436,21 @@ const App: React.FC = () => {
     setActiveMenu(null);
   };
 
-  const handleOpenBrowserCustom = (id: string) => {
-    setBrowserCustomAccountIds(new Set([id]));
-    setShowBrowserCustomDialog(true);
-    setActiveMenu(null);
-  };
+  const handleOpenBrowserCustom = useCallback(
+    (id: string) => {
+      setBrowserCustomAccountIds(new Set([id]));
+      setShowBrowserCustomDialog(true);
+      setActiveMenu(null);
+    },
+    [setActiveMenu],
+  );
 
-  const handleBulkOpenBrowserCustom = () => {
+  const handleBulkOpenBrowserCustom = useCallback(() => {
     if (selectedIds.size === 0) return;
     setBrowserCustomAccountIds(new Set(selectedIds));
     setShowBrowserCustomDialog(true);
     setActiveMenu(null);
-  };
+  }, [selectedIds, setActiveMenu]);
 
   const handleBrowserCustomUrlSubmit = async () => {
     if (
@@ -1372,7 +1474,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Open browsers concurrently with stagger
     const results = await Promise.allSettled(
       selectedAccounts.map(async (acc, index) => {
         if (index > 0) await new Promise((r) => setTimeout(r, index * 200));
@@ -1421,7 +1522,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Open browsers concurrently with a small stagger
     await Promise.all(
       accountsToOpen.map(async (account, index) => {
         if (index > 0)
@@ -1547,10 +1647,11 @@ const App: React.FC = () => {
         return;
       }
 
-      // Use actualCookieValue (without "ROBLOSECURITY=" prefix) for all API calls
       const data = await window.api.validateCookie(actualCookieValue);
 
-      if (accounts.some((acc) => acc.id === data.id.toString())) {
+      const existing =
+        queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
+      if (existing.some((acc) => acc.id === data.id.toString())) {
         showNotification("Account already added!", "warning");
         return;
       }
@@ -1604,10 +1705,14 @@ const App: React.FC = () => {
         age: data.age,
       };
 
-      const isFirstAccount = accounts.length === 0;
+      const freshAccounts =
+        queryClient.getQueryData<Account[]>(queryKeys.accounts.list()) || [];
+      const isFirstAccount = freshAccounts.length === 0;
       addAccount(newAccount);
-
-      if (isFirstAccount) {
+      const currentPrimary = queryClient.getQueryData<{
+        primaryAccountId?: string;
+      }>(queryKeys.settings.snapshot())?.primaryAccountId;
+      if (isFirstAccount && !currentPrimary) {
         updateSettings({ primaryAccountId: newAccount.id });
       }
 
@@ -1628,7 +1733,7 @@ const App: React.FC = () => {
     }
   };
 
-  if (!isInitialized || isLoadingAccounts || isLoadingSettings) {
+  if (!isInitialized || isLoadingAccounts) {
     return (
       <div className="flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans">
         <LoadingSpinnerFullPage label="Loading..." />
@@ -1648,7 +1753,7 @@ const App: React.FC = () => {
       data-font-weight={fontWeight}
       className={`flex h-screen w-full bg-[var(--color-app-bg)] text-[var(--color-text-muted)] font-sans overflow-hidden overflow-x-hidden selection:bg-[var(--accent-color-soft)] selection:text-[var(--color-text-primary)] ${settings.privacyMode ? "privacy-mode" : ""} ${navLayout === "topbar" ? "flex-col" : "flex-row"}`}
     >
-      {/* Navigation Layer */}
+      {}
       {navLayout === "sidebar" ? (
         <Sidebar
           sidebarWidth={sidebarWidth}
@@ -1686,12 +1791,12 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Main Content Wrapper */}
+      {}
       <main
         className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative overflow-hidden text-[var(--color-text-secondary)]"
         style={{ zIndex: 3 }}
       >
-        {/* Title Bar spacer (only show if sidebar mode) */}
+        {}
         {navLayout === "sidebar" && (
           <div
             className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
@@ -1702,7 +1807,7 @@ const App: React.FC = () => {
               } as React.CSSProperties
             }
           >
-            {/* Search and Notification Bell */}
+            {}
             <div
               className="flex items-center mr-2 gap-2"
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -1726,12 +1831,15 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-        {/* Tab panels - conditional rendering for performance */}
+        {}
         <div className="flex-1 flex flex-col h-full min-h-0 w-full relative tab-transition-surface">
-
-          <div 
+          <div
             className={`flex-1 overflow-hidden h-full flex flex-col ${
-              ["Accounts", "Groups", "Settings", "Profile", "Friends"].includes(activeTab) ? "glass-panel-main rounded-none" : ""
+              ["Accounts", "Groups", "Settings", "Profile", "Friends"].includes(
+                activeTab,
+              )
+                ? "glass-panel-main rounded-none"
+                : ""
             }`}
           >
             {(() => {
@@ -1743,11 +1851,18 @@ const App: React.FC = () => {
                       onAccountsChange={setAccounts}
                       allowMultipleInstances={multiInstanceAllowed}
                       privacyMode={settings.privacyMode}
+                      onBatchLaunchRequest={handleBatchLaunchRequest}
                     />
                   );
                 case "Profile":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       {selectedAccount ? (
                         <ProfileTab
                           account={selectedAccount}
@@ -1763,7 +1878,13 @@ const App: React.FC = () => {
                   );
                 case "Friends":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <FriendsTab
                         selectedAccount={selectedAccount}
                         onFriendJoin={handleFriendJoin}
@@ -1772,19 +1893,37 @@ const App: React.FC = () => {
                   );
                 case "Groups":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <GroupsTab selectedAccount={selectedAccount} />
                     </Suspense>
                   );
                 case "Games":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <GamesTab onGameSelect={setSelectedGame} />
                     </Suspense>
                   );
                 case "Catalog":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <CatalogTab
                         onItemSelect={handleCommandPaletteViewAccessory}
                         onCreatorSelect={(creatorId) =>
@@ -1796,13 +1935,25 @@ const App: React.FC = () => {
                   );
                 case "Inventory":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <InventoryTab account={selectedAccount} />
                     </Suspense>
                   );
                 case "Transactions":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <TransactionsTab
                         accounts={accounts.filter((a) => selectedIds.has(a.id))}
                       />
@@ -1810,44 +1961,89 @@ const App: React.FC = () => {
                   );
                 case "Logs":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <LogsTab privacyMode={settings.privacyMode} />
                     </Suspense>
                   );
                 case "Avatar":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <AvatarTab account={selectedAccount} />
                     </Suspense>
                   );
                 case "Install":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <InstallTab />
                     </Suspense>
                   );
 
                 case "Watcher":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
-                      <WatcherTab privacyMode={settings.privacyMode} />
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
+                      <WatcherTab 
+                        privacyMode={settings.privacyMode} 
+                        onBatchLaunchRequest={handleBatchLaunchRequest}
+                      />
                     </Suspense>
                   );
                 case "Sniper":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <SniperTab />
                     </Suspense>
                   );
                 case "Generator":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <GeneratorTab />
                     </Suspense>
                   );
                 case "Settings":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <SettingsTab
                         accounts={accounts}
                         settings={settings}
@@ -1857,7 +2053,13 @@ const App: React.FC = () => {
                   );
                 case "AccountSettings":
                   return (
-                    <Suspense fallback={<LoadingSpinnerFullPage />}>
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
                       <AccountSettingsTab
                         account={selectedAccount}
                         privacyMode={settings.privacyMode}
@@ -1872,7 +2074,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Global Modals */}
+      {}
       <JoinModal
         isOpen={modals.join}
         onClose={() => closeModal("join")}
@@ -1920,7 +2122,10 @@ const App: React.FC = () => {
         />
       </Suspense>
 
-      {/* Browser Custom URL Dialog */}
+      {}
+      <TwoFactorModal />
+
+      {}
       <AnimatePresence>
         {showBrowserCustomDialog && (
           <motion.div
@@ -2015,7 +2220,7 @@ const App: React.FC = () => {
         />
       </Suspense>
 
-      {/* Command Palette */}
+      {}
       <AnimatePresence>
         {isCommandPaletteOpen && (
           <Suspense fallback={null}>
@@ -2030,7 +2235,7 @@ const App: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Context Menu */}
+      {}
       <ContextMenu
         activeMenu={activeMenu}
         accounts={accounts}
@@ -2075,7 +2280,6 @@ const App: React.FC = () => {
         cancelText="Cancel"
         onConfirm={() => {
           if (removeAccountId) {
-            // Single account removal
             setAccounts((prev) =>
               prev.filter((acc) => acc.id !== removeAccountId),
             );
@@ -2085,7 +2289,6 @@ const App: React.FC = () => {
               setSelectedIds(newSet);
             }
           } else if (removeMultipleCount > 0) {
-            // Multiple accounts removal
             setAccounts((prev) =>
               prev.filter((acc) => !selectedIds.has(acc.id)),
             );
@@ -2097,7 +2300,7 @@ const App: React.FC = () => {
         isDangerous
       />
 
-      {/* Bulk Action Modal (Add Friend / Join Group) */}
+      {}
       {bulkActionType && (
         <BulkActionModal
           isOpen={bulkActionOpen}
@@ -2112,23 +2315,23 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Snackbar Notifications (replaces NotificationProvider) */}
+      {}
       <SnackbarContainer />
 
-      {/* PIN Lock Screen Overlay */}
+      {}
       <AnimatePresence>
         {hasCompletedOnboarding && !isAppUnlocked && (
           <PinLockScreen onUnlock={handlePinUnlock} />
         )}
       </AnimatePresence>
 
-      {/* Onboarding Screen Overlay */}
+      {}
       <AnimatePresence>
         {!hasCompletedOnboarding && <OnboardingScreen />}
       </AnimatePresence>
 
-      {/* Background Gradient Effect - Now handled by GlobalBackground */}
-      {/* Theme Effects - Particle engine for visual effects */}
+      {}
+      {}
       <ThemeEffects />
     </div>
   );

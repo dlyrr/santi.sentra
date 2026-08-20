@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { invoke } from "./invoke";
 
-const discordStatusModeSchema = z.enum(["full", "playing", "accounts", "minimal"]);
-
-
+const discordStatusModeSchema = z.enum([
+  "full",
+  "playing",
+  "accounts",
+  "minimal",
+]);
 
 const discordPresenceStateSchema = z.object({
   isEnabled: z.boolean(),
@@ -29,8 +32,9 @@ export const discordRPCApi = {
   setDiscordRPCTab: (tabId: string | null) =>
     invoke("discord-rpc-set-tab", z.void(), tabId),
   isDiscordRPCEnabled: () => invoke("discord-rpc-is-enabled", z.boolean()),
-  setDiscordRPCStatusMode: (mode: "full" | "playing" | "accounts" | "minimal") =>
-    invoke("discord-rpc-set-status-mode", z.void(), mode),
+  setDiscordRPCStatusMode: (
+    mode: "full" | "playing" | "accounts" | "minimal",
+  ) => invoke("discord-rpc-set-status-mode", z.void(), mode),
   setDiscordRPCCustomText: (text: string | null) =>
     invoke("discord-rpc-set-custom-text", z.void(), text),
   getDiscordRPCStatusMode: () =>

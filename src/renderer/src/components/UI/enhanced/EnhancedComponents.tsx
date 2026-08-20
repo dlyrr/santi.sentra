@@ -1,16 +1,7 @@
-/**
- * Enhanced UI Components with Beautiful Modern Design
- * Includes improved buttons, cards, badges, and interactive elements
- */
-
 import React from "react";
 import { cn } from "@renderer/lib/utils";
 import { motion } from "framer-motion";
 import { LucideIcon } from "lucide-react";
-
-// ============================================================================
-// Enhanced Badge Component with Gradient & Animations
-// ============================================================================
 
 export interface EnhancedBadgeProps {
   variant?: "default" | "success" | "error" | "warning" | "info" | "gradient";
@@ -71,10 +62,6 @@ export const EnhancedBadge: React.FC<EnhancedBadgeProps> = ({
   );
 };
 
-// ============================================================================
-// Enhanced Card Component with Hover Effects
-// ============================================================================
-
 export interface EnhancedCardProps {
   interactive?: boolean;
   hoverable?: boolean;
@@ -124,10 +111,6 @@ export const EnhancedCard: React.FC<EnhancedCardProps> = ({
     </motion.div>
   );
 };
-
-// ============================================================================
-// Enhanced Progress Bar Component
-// ============================================================================
 
 export interface EnhancedProgressBarProps {
   value: number;
@@ -190,10 +173,6 @@ export const EnhancedProgressBar: React.FC<EnhancedProgressBarProps> = ({
   );
 };
 
-// ============================================================================
-// Enhanced Section Header
-// ============================================================================
-
 export const EnhancedSectionHeader: React.FC<{
   title: string;
   subtitle?: string;
@@ -220,10 +199,6 @@ export const EnhancedSectionHeader: React.FC<{
     {action && <div>{action}</div>}
   </div>
 );
-
-// ============================================================================
-// Enhanced Stat Display
-// ============================================================================
 
 export const EnhancedStat: React.FC<{
   label: string;
@@ -274,10 +249,6 @@ export const EnhancedStat: React.FC<{
   );
 };
 
-// ============================================================================
-// Enhanced Loading Skeleton
-// ============================================================================
-
 export const EnhancedSkeleton: React.FC<{
   className?: string;
   count?: number;
@@ -296,10 +267,6 @@ export const EnhancedSkeleton: React.FC<{
     ))}
   </>
 );
-
-// ============================================================================
-// Animated Background Gradient
-// ============================================================================
 
 export const AnimatedGradientBackground: React.FC<{
   children: React.ReactNode;

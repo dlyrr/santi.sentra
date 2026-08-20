@@ -4,7 +4,6 @@ import log from "electron-log";
 import path from "path";
 import fs from "fs";
 
-// Configure logging for auto-updater
 autoUpdater.logger = log;
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
@@ -120,16 +119,7 @@ class UpdaterService {
   }
 
   async downloadUpdate(): Promise<void> {
-    // we no longer rely on the caller to check state before downloading -
-    // autoUpdater will throw if there is nothing to grab. this makes the API
-    // easier to use from the renderer and avoids race conditions with the
-    // state machine.
-    try {
-      await autoUpdater.downloadUpdate();
-    } catch (err) {
-      // bubble the error upwards so the renderer can show a message
-      throw err;
-    }
+    await autoUpdater.downloadUpdate();
   }
 
   quitAndInstall(): void {
@@ -144,7 +134,6 @@ class UpdaterService {
       this.mainWindow.close();
     }
 
-    // Give file system a moment to close any file handles
     setTimeout(() => {
       try {
         autoUpdater.quitAndInstall(false, true);
@@ -160,7 +149,6 @@ class UpdaterService {
     return this.state;
   }
 
-  // For development/testing - set a custom feed URL
   setFeedURL(url: string): void {
     autoUpdater.setFeedURL({
       provider: "generic",

@@ -15,6 +15,7 @@ export interface CommandCallbacks {
   onViewAccessory: (item: CatalogResultItem) => void;
   getSelectedAccount: () => any;
   getAccounts: () => any[];
+  removeAccount: (id: string) => void;
 }
 
 export type CommandFactory = (callbacks: CommandCallbacks) => Command[];

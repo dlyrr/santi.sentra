@@ -1,8 +1,3 @@
-/**
- * Macro Recorder implementation.
- * Captures mouse and keyboard events for macro recording.
- */
-
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import { AppError, ErrorCode } from "../../shared/error/AppError";
@@ -38,9 +33,6 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
     this.logger = new Logger("MacroRecorder");
   }
 
-  /**
-   * Start recording macro events.
-   */
   public startRecording(config: Partial<MacroRecorderConfig> = {}): void {
     if (this.state.isRecording) {
       this.logger.warn("Recording already in progress");
@@ -62,9 +54,6 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
     this.emit("recordingStarted");
   }
 
-  /**
-   * Stop recording and return the macro.
-   */
   public stopRecording(): Macro | null {
     if (!this.state.isRecording) {
       this.logger.warn("Recording not in progress");
@@ -94,9 +83,6 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
     return macro;
   }
 
-  /**
-   * Cancel current recording.
-   */
   public cancelRecording(): void {
     if (!this.state.isRecording) {
       return;
@@ -110,23 +96,16 @@ export class MacroRecorder extends EventEmitter implements IMacroRecorder {
     this.emit("recordingCancelled");
   }
 
-  /**
-   * Check if currently recording.
-   */
   public isRecording(): boolean {
     return this.state.isRecording;
   }
 
-  /**
-   * Register event callback.
-   */
   public onEvent(callback: MacroRecordingCallback): void {
     this.eventCallbacks.push(callback);
   }
 
   private setupEventListeners(): void {
     if (typeof window !== "undefined") {
-      // Browser environment
       if (this.config.captureMouseClicks) {
         window.addEventListener("mousedown", this.handleMouseEvent);
         window.addEventListener("mouseup", this.handleMouseEvent);

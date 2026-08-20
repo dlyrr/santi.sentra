@@ -41,15 +41,15 @@ export class RobloxFriendService {
         cookie,
       }),
       request(countSchema, {
-        url: `https://friends.roblox.com/v1/users/${userId}/followings/count`,
+        url: `https://friends.roblox.com/v1/users/${userId}/followers/count`,
         cookie,
       }),
       request(countSchema, {
-        url: `https://friends.roblox.com/v1/users/${userId}/friends/count`,
+        url: `https://friends.roblox.com/v1/users/${userId}/followings/count`,
         cookie,
       }),
       request(userInfoSchema, {
-        url: `https://users.roblox.com/v1/users/${userId}`,
+        url: `https://friends.roblox.com/v1/users/${userId}/friends/count`,
         cookie,
       }),
     ]);
@@ -173,9 +173,6 @@ export class RobloxFriendService {
     return { avatars, userDetails, presences };
   }
 
-  /**
-   * Get friends with pagination support - fetches only one page at a time
-   */
   static async getFriendsPaged(
     cookie: string,
     userId: number,
@@ -234,9 +231,6 @@ export class RobloxFriendService {
     };
   }
 
-  /**
-   * Get ALL friends (fetches all pages) - use for FriendsTab where all friends are needed
-   */
   static async getFriends(
     cookie: string,
     userId: number,
@@ -446,7 +440,7 @@ export class RobloxFriendService {
       const mutualFriends = Array.isArray(r.mutualFriendsList)
         ? r.mutualFriendsList
         : [];
-      // Use username as fallback for display name to avoid "Display {id}" showing
+
       const fallbackName = user ? user.name : `User ${id}`;
       return {
         id: id,

@@ -30,7 +30,7 @@ export type SniperConfig = {
   targetItemIds: number[];
   enabled: boolean;
   pollingIntervalMs: number;
-  limitedItemMinProfitPercent: number; // For limited items default
+  limitedItemMinProfitPercent: number;
 };
 
 export type SniperLogEntry = {
@@ -50,7 +50,7 @@ export class SniperService extends EventEmitter {
     targetItemIds: [],
     enabled: false,
     pollingIntervalMs: 5000,
-    limitedItemMinProfitPercent: 15, // Default 15% profit for limited items
+    limitedItemMinProfitPercent: 15,
   };
 
   private pollingIntervalId: NodeJS.Timeout | null = null;
@@ -67,9 +67,6 @@ export class SniperService extends EventEmitter {
     this.loadLimitedWatchlist();
   }
 
-  /**
-   * Start monitoring for items
-   */
   startMonitoring(): void {
     if (this.pollingIntervalId) {
       console.warn("[Sniper] Monitoring already active");
@@ -88,13 +85,9 @@ export class SniperService extends EventEmitter {
       this.pollItems();
     }, this.config.pollingIntervalMs);
 
-    // Do initial poll
     this.pollItems();
   }
 
-  /**
-   * Stop monitoring
-   */
   stopMonitoring(): void {
     if (this.pollingIntervalId) {
       clearInterval(this.pollingIntervalId);
@@ -108,9 +101,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Add a limited item to watch with Rolimons RAP tracking
-   */
   async addLimitedItemWatch(
     itemId: number,
     itemName: string,
@@ -128,7 +118,6 @@ export class SniperService extends EventEmitter {
         enabled: true,
       };
 
-      // Fetch initial RAP from Rolimons
       const rap = await this.fetchRolimonsItemRAP(itemId);
       if (rap) {
         watch.currentRAP = rap.rap || 0;
@@ -143,7 +132,6 @@ export class SniperService extends EventEmitter {
       );
       this.emit("limited-item-added", watch);
 
-      // Start limited watchlist polling if not already running
       if (!this.limitedWatchPollingIntervalId && this.config.enabled) {
         this.startLimitedWatchlistPolling();
       }
@@ -153,9 +141,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Remove a limited item from watchlist
-   */
   removeLimitedItemWatch(itemId: number): void {
     this.limitedItemWatches.delete(itemId);
     this.saveLimitedWatchlist();
@@ -163,9 +148,6 @@ export class SniperService extends EventEmitter {
     this.emit("limited-item-removed", itemId);
   }
 
-  /**
-   * Start polling limited items for RAP changes and auto-buy opportunities
-   */
   private startLimitedWatchlistPolling(): void {
     if (this.limitedWatchPollingIntervalId) {
       return;
@@ -175,21 +157,16 @@ export class SniperService extends EventEmitter {
 
     this.limitedWatchPollingIntervalId = setInterval(() => {
       this.pollLimitedItems();
-    }, 30000); // Poll every 30 seconds
+    }, 30000);
 
-    // Do initial poll
     this.pollLimitedItems();
   }
 
-  /**
-   * Poll limited items for RAP changes
-   */
   private async pollLimitedItems(): Promise<void> {
     try {
       for (const watch of this.limitedItemWatches.values()) {
         if (!watch.enabled) continue;
 
-        // Fetch current RAP from Rolimons
         const itemData = await this.fetchRolimonsItemRAP(watch.itemId);
         if (!itemData) continue;
 
@@ -198,29 +175,32 @@ export class SniperService extends EventEmitter {
         watch.currentValue = itemData.value || 0;
         watch.lastUpdated = Date.now();
 
-        // Check if RAP changed significantly
         if (oldRAP > 0) {
-          const rapChange = watch.currentRAP - oldRAP;
-          const rapChangePercent = (rapChange / oldRAP) * 100;
-
+          const rapChangePercent = ((watch.currentRAP - oldRAP) / oldRAP) * 100;
           console.log(
-            `[Sniper] ${watch.itemName}: RAP ${oldRAP} → ${watch.currentRAP} (${rapChangePercent > 0 ? "+" : ""}${rapChangePercent.toFixed(1)}%)`,
+            `[Sniper] ${watch.itemName}: RAP ${oldRAP} в†’ ${watch.currentRAP} (${rapChangePercent >= 0 ? "+" : ""}${rapChangePercent.toFixed(1)}%)`,
           );
+        }
 
-          // If profit potential exceeds threshold, emit alert
-          if (rapChangePercent > watch.minProfitPercent) {
+        const acquireCost = watch.currentRAP;
+        const resaleValue = watch.currentValue;
+        if (acquireCost > 0 && resaleValue > 0) {
+          const profitPercent =
+            ((resaleValue - acquireCost) / acquireCost) * 100;
+
+          if (profitPercent > watch.minProfitPercent) {
             console.log(
-              `[Sniper] LIMITED ITEM OPPORTUNITY: ${watch.itemName} - RAP increased ${rapChangePercent.toFixed(1)}%!`,
+              `[Sniper] LIMITED ITEM OPPORTUNITY: ${watch.itemName} - value ${resaleValue} vs RAP ${acquireCost} = ${profitPercent.toFixed(1)}% margin!`,
             );
             this.addLog({
               timestamp: Date.now(),
               itemId: watch.itemId,
               itemName: watch.itemName,
               action: "auto-buy",
-              profitPercent: rapChangePercent,
-              reason: `RAP increased by ${rapChangePercent.toFixed(1)}%`,
+              profitPercent,
+              reason: `Resale value ${profitPercent.toFixed(1)}% above RAP`,
             });
-            this.emit("limited-item-opportunity", { watch, rapChangePercent });
+            this.emit("limited-item-opportunity", { watch, profitPercent });
           }
         }
 
@@ -231,10 +211,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Fetch RAP and Value for an item from Rolimons API
-   * If value is -1 (not set), fetches current best price from resale market
-   */
   private async fetchRolimonsItemRAP(
     itemId: number,
   ): Promise<{ rap: number; value: number } | null> {
@@ -257,17 +233,15 @@ export class SniperService extends EventEmitter {
         return null;
       }
 
-      // Items format: { itemId: [name, acronym, rap, value, ...] }
       const itemData = data.items[itemId.toString()];
       if (!itemData || !Array.isArray(itemData)) {
         console.warn(`[Sniper] No item data for ${itemId}`);
         return null;
       }
 
-      let rap = itemData[2] || 0; // RAP is at index 2
-      let value = itemData[3]; // Value is at index 3
+      const rap = itemData[2] || 0;
+      let value = itemData[3];
 
-      // If value is -1 (not set), try to fetch current best/resale price
       if (value === -1 || value === undefined || value === null) {
         console.log(
           `[Sniper] Value is -1 for item ${itemId}, fetching latest resale price...`,
@@ -294,7 +268,7 @@ export class SniperService extends EventEmitter {
             `[Sniper] Failed to fetch resale price for item ${itemId}:`,
             err,
           );
-          value = rap; // Fallback to RAP if resale fails
+          value = rap;
         }
       }
 
@@ -311,16 +285,10 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Get all limited item watches
-   */
   getLimitedItemWatches(): LimitedItemWatch[] {
     return Array.from(this.limitedItemWatches.values());
   }
 
-  /**
-   * Update limited item watch settings
-   */
   updateLimitedItemWatch(
     itemId: number,
     updates: Partial<LimitedItemWatch>,
@@ -333,19 +301,14 @@ export class SniperService extends EventEmitter {
     this.emit("limited-item-updated", watch);
   }
 
-  /**
-   * Poll for items from Rolimons DealActivity API
-   */
   private async pollItems(): Promise<void> {
     try {
-      // Fetch recent deal activity from Rolimons API
       const deals = await this.fetchRolimonsDeals();
 
       if (!deals || deals.length === 0) {
         return;
       }
 
-      // Process each deal
       for (const deal of deals) {
         const item: SniperItem = {
           id: deal.item_id,
@@ -372,9 +335,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Fetch recent deals from Rolimons DealActivity API
-   */
   private async fetchRolimonsDeals(): Promise<any[]> {
     try {
       const response = await fetch(
@@ -387,19 +347,16 @@ export class SniperService extends EventEmitter {
 
       const data = await response.json();
 
-      // DealActivity returns array of recent deals
-      // Format: [item_id, timestamp, seller_id, price, ...]
       if (!Array.isArray(data) || data.length === 0) {
         return [];
       }
 
-      // Convert raw format to deal objects
       const deals = data.slice(0, 10).map((deal: any[]) => ({
         item_id: deal[0],
         timestamp: deal[1],
         seller_id: deal[2],
         price: deal[3],
-        rap: deal[4], // Minimum RAP after transaction
+        rap: deal[4],
       }));
 
       return deals;
@@ -409,18 +366,15 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Handle an item listing
-   */
   private handleItemListing(item: SniperItem): void {
-    // Calculate profit
-    const profit = item.resaleValue - item.purchasePrice;
-    const profitPercent = (profit / item.purchasePrice) * 100;
+    const { profit, profitPercent } = this.calculateProfit(
+      item.purchasePrice,
+      item.resaleValue,
+    );
 
     item.profit = profit;
     item.profitPercent = profitPercent;
 
-    // Check if should buy
     if (this.shouldBuy(item)) {
       console.log(
         `[Sniper] BUY OPPORTUNITY: ${item.name} - Profit: ${profit} (${profitPercent.toFixed(1)}%)`,
@@ -428,7 +382,6 @@ export class SniperService extends EventEmitter {
 
       this.executeBuy(item);
     } else {
-      // Log as monitored
       this.addLog({
         timestamp: Date.now(),
         itemId: item.id,
@@ -438,14 +391,14 @@ export class SniperService extends EventEmitter {
       });
     }
 
-    // Store in monitored items
     this.monitoredItems.set(item.id, item);
   }
 
-  /**
-   * Check if item meets buy criteria
-   */
   shouldBuy(item: SniperItem): boolean {
+    if (item.purchasePrice <= 0) {
+      return false;
+    }
+
     if (item.purchasePrice > this.config.maxPurchasePrice) {
       return false;
     }
@@ -457,14 +410,8 @@ export class SniperService extends EventEmitter {
     return true;
   }
 
-  /**
-   * Execute purchase (placeholder - real implementation calls buyItem from asset service)
-   */
   private executeBuy(item: SniperItem): void {
     console.log(`[Sniper] Executing purchase for item ${item.id}...`);
-
-    // In production, call the actual purchase API
-    // await this.buyItem(item.id, item.purchasePrice)
 
     this.addLog({
       timestamp: Date.now(),
@@ -477,17 +424,16 @@ export class SniperService extends EventEmitter {
     this.emit("purchase-executed", item);
   }
 
-  /**
-   * Add log entry
-   */
   private addLog(entry: SniperLogEntry): void {
     this.purchaseHistory.push(entry);
+
+    const MAX_HISTORY = 1000;
+    if (this.purchaseHistory.length > MAX_HISTORY) {
+      this.purchaseHistory.splice(0, this.purchaseHistory.length - MAX_HISTORY);
+    }
     this.emit("log-entry", entry);
   }
 
-  /**
-   * Update sniper config
-   */
   updateConfig(config: Partial<SniperConfig>): void {
     this.config = { ...this.config, ...config };
     this.saveConfig();
@@ -495,38 +441,23 @@ export class SniperService extends EventEmitter {
     this.emit("config-updated", this.config);
   }
 
-  /**
-   * Get current config
-   */
   getConfig(): SniperConfig {
     return { ...this.config };
   }
 
-  /**
-   * Get purchase history / logs
-   */
   getHistory(limit: number = 100): SniperLogEntry[] {
     return this.purchaseHistory.slice(-limit);
   }
 
-  /**
-   * Clear history
-   */
   clearHistory(): void {
     this.purchaseHistory = [];
     console.log("[Sniper] History cleared");
   }
 
-  /**
-   * Get monitored items
-   */
   getMonitoredItems(): SniperItem[] {
     return Array.from(this.monitoredItems.values());
   }
 
-  /**
-   * Save config to file
-   */
   private saveConfig(): void {
     try {
       writeFileSync(this.configPath, JSON.stringify(this.config, null, 2));
@@ -535,9 +466,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Load config from file
-   */
   private loadConfig(): void {
     try {
       if (existsSync(this.configPath)) {
@@ -551,9 +479,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Save limited watchlist to file
-   */
   private saveLimitedWatchlist(): void {
     try {
       const watches = Array.from(this.limitedItemWatches.values());
@@ -566,9 +491,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Load limited watchlist from file
-   */
   private loadLimitedWatchlist(): void {
     try {
       if (existsSync(this.limitedWatchlistPath)) {
@@ -584,9 +506,6 @@ export class SniperService extends EventEmitter {
     }
   }
 
-  /**
-   * Calculate profit for an item
-   */
   calculateProfit(
     purchasePrice: number,
     resaleValue: number,
@@ -598,9 +517,6 @@ export class SniperService extends EventEmitter {
     return { profit, profitPercent };
   }
 
-  /**
-   * Check if monitoring is active
-   */
   isMonitoring(): boolean {
     return this.pollingIntervalId !== null;
   }

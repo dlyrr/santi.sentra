@@ -9,7 +9,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({
-  initialTheme = "dark", // Always default to dark theme
+  initialTheme = "dark",
   children,
 }) => {
   const getSystemTheme = () => {
@@ -44,7 +44,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     return () => mql.removeEventListener("change", handleChange);
   }, []);
 
-  // Load customTheme from persisted settings on mount
   useEffect(() => {
     if ((window as any).api?.getSettings) {
       (window as any).api
@@ -70,15 +69,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
             setCustomTheme(settings.customTheme as CustomThemeName);
           }
         })
-        .catch(() => {
-          // Keep default if API call fails
-        });
+        .catch(() => {});
     }
   }, []);
 
   const handleSetCustomTheme = (name: CustomThemeName) => {
     setCustomTheme(name);
-    // Save to settings
+
     if ((window as any).api?.setSettings) {
       (window as any).api
         .setSettings({ customTheme: name })

@@ -21,9 +21,6 @@ export class RateLimitError extends Error {
 }
 
 export class TransactionService {
-  /**
-   * Helper to execute requests with auto-retries for rate limits
-   */
   private static async withRetry<T>(
     operation: () => Promise<T>,
     maxRetries = 2,
@@ -47,7 +44,7 @@ export class TransactionService {
               : 60;
             throw new RateLimitError(resetSeconds);
           }
-          // Sleep before retry (exponential backoff: 2s, 4s, etc. but bounded)
+
           await new Promise((resolve) =>
             setTimeout(resolve, Math.pow(2, i + 1) * 1000),
           );
@@ -59,9 +56,6 @@ export class TransactionService {
     throw lastError;
   }
 
-  /**
-   * Get available transaction types for a user
-   */
   static async getTransactionTypes(
     cookie: string,
     userId: number,
@@ -74,9 +68,6 @@ export class TransactionService {
     });
   }
 
-  /**
-   * Get transactions for a user
-   */
   static async getTransactions(
     cookie: string,
     userId: number,
@@ -102,18 +93,12 @@ export class TransactionService {
     });
   }
 
-  /**
-   * Get transaction totals/summary using the efficient single-request API
-   * This replaces the old getTransactionSummary that made 12+ requests
-   */
   static async getTransactionTotals(
     cookie: string,
     userId: number,
     timeFrame: TransactionTimeFrame = "Month",
   ): Promise<TransactionTotals> {
-    // Get the usedTypes bitmask - we can use a large number to get all types
-    // The API uses this to filter which types to include in the summary
-    const usedTypes = 6735032; // This value includes all common transaction types
+    const usedTypes = 6735032;
 
     return this.withRetry(async () => {
       return await request(transactionTotalsSchema, {

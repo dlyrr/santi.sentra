@@ -141,8 +141,8 @@ const readMacBundleVersion = (bundlePath: string): string | null => {
 export class RobloxInstallService {
   private static historyCache: Record<string, string[]> | null = null;
   private static lastHistoryFetch = 0;
-  private static readonly CACHE_DURATION = 1000 * 60 * 15; // 15 minutes
-  private static installationStartTime = 0; // Track when installation begins
+  private static readonly CACHE_DURATION = 1000 * 60 * 15;
+  private static installationStartTime = 0;
 
   static async getDeployHistory(
     forceRefresh = false,
@@ -159,7 +159,7 @@ export class RobloxInstallService {
     try {
       const types = Object.keys(BINARY_TYPES);
       const results: Record<string, string[]> = {};
-      const CHANNELS = ["live", "zflag"]; // Query multiple channels to provide a history list
+      const CHANNELS = ["live", "zflag"];
 
       await Promise.all(
         types.map(async (typ) => {
@@ -177,9 +177,7 @@ export class RobloxInstallService {
               if (hash && !results[typ].includes(hash)) {
                 results[typ].push(hash);
               }
-            } catch (e) {
-              // Ignore channel fetch errors
-            }
+            } catch (e) {}
           }
         }),
       );
@@ -209,6 +207,8 @@ export class RobloxInstallService {
 
     this.installationStartTime = Date.now();
 
+    let createdInstallDir = false;
+
     try {
       const blobDir = BINARY_TYPES[binaryType].blobDir;
       const verTag = version.startsWith("version-")
@@ -217,10 +217,14 @@ export class RobloxInstallService {
       const base = `${AWS_MIRROR}${blobDir}${verTag}-`;
 
       let pkgs: string[] = [];
+
+      let pkgInfo: Record<
+        string,
+        { md5: string; packedSize: number; unpackedSize: number }
+      > = {};
       const isMac = binaryType.startsWith("Mac");
 
       if (isMac) {
-        // Mac uses single app zips instead of manifest
         pkgs =
           binaryType === "MacPlayer"
             ? ["RobloxPlayer.zip"]
@@ -243,11 +247,20 @@ export class RobloxInstallService {
           return false;
         }
 
-        const pkgsRaw = manifest
-          .split(/\r?\n/)
-          .map((l) => l.trim())
-          .filter((l) => l.endsWith(".zip"));
-        pkgs = [...new Set(pkgsRaw)];
+        const manifestLines = manifest.split(/\r?\n/).map((l) => l.trim());
+        for (let i = 0; i < manifestLines.length; i++) {
+          const line = manifestLines[i];
+          if (!line.endsWith(".zip")) continue;
+          const md5 = manifestLines[i + 1] || "";
+          const packedSize = Number(manifestLines[i + 2]);
+          const unpackedSize = Number(manifestLines[i + 3]);
+          pkgInfo[line] = {
+            md5: /^[a-fA-F0-9]{32}$/.test(md5) ? md5.toLowerCase() : "",
+            packedSize: Number.isFinite(packedSize) ? packedSize : 0,
+            unpackedSize: Number.isFinite(unpackedSize) ? unpackedSize : 0,
+          };
+        }
+        pkgs = [...new Set(manifestLines.filter((l) => l.endsWith(".zip")))];
       }
 
       if (pkgs.length === 0) {
@@ -269,13 +282,14 @@ export class RobloxInstallService {
 
       if (!fs.existsSync(installPath)) {
         fs.mkdirSync(installPath, { recursive: true });
+        createdInstallDir = true;
       }
 
       const appSettingsPath = path.join(installPath, "AppSettings.xml");
       const appSettingsContent = `<?xml version="1.0" encoding="UTF-8"?>
 <Settings>
 \t<ContentFolder>content</ContentFolder>
-\t<BaseUrl>http://www.roblox.com</BaseUrl>
+\t<BaseUrl>http:
 </Settings>
 `;
       fs.writeFileSync(appSettingsPath, appSettingsContent);
@@ -294,13 +308,15 @@ export class RobloxInstallService {
         const zipPath = path.join(installPath, pkg);
         const rootDir = roots[pkg];
 
-        // Pass all necessary data to the worker
+        const info = pkgInfo[pkg];
         const workerData = {
           url,
           zipPath,
           installPath,
           rootDir,
           pkg,
+          expectedMd5: info?.md5 || "",
+          expectedPackedSize: info?.packedSize || 0,
         };
 
         return spawn(move(workerData), async (data) => {
@@ -319,25 +335,48 @@ export class RobloxInstallService {
               if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
               const file = fs.createWriteStream(dest);
+              let settled = false;
+
+              const fail = (err: Error) => {
+                if (settled) return;
+                settled = true;
+
+                file.close(() => {
+                  fs.unlink(dest, () => reject(err));
+                });
+              };
+
+              const succeed = () => {
+                if (settled) return;
+                settled = true;
+                resolve();
+              };
 
               const request = https.get(url, (response) => {
                 if (response.statusCode !== 200) {
-                  reject(
+                  response.resume();
+                  fail(
                     new Error(
                       `Failed to download ${url}: ${response.statusCode}`,
                     ),
                   );
                   return;
                 }
+                response.on("error", fail);
                 response.pipe(file);
                 file.on("finish", () => {
-                  file.close(() => resolve());
+                  file.close((closeErr) => {
+                    if (closeErr) fail(closeErr);
+                    else succeed();
+                  });
                 });
               });
 
-              request.on("error", (err) => {
-                fs.unlink(dest, () => {});
-                reject(err);
+              file.on("error", fail);
+              request.on("error", fail);
+
+              request.setTimeout(60000, () => {
+                request.destroy(new Error(`Download timed out: ${url}`));
               });
             });
           };
@@ -364,7 +403,8 @@ export class RobloxInstallService {
                 zipPath,
                 {
                   lazyEntries: true,
-                  validateEntrySizes: false,
+
+                  validateEntrySizes: true,
                   decodeStrings: false,
                 },
                 (err, zipFile) => {
@@ -413,7 +453,6 @@ export class RobloxInstallService {
                       normalizedEntryPath !== normalizedRoot &&
                       !normalizedEntryPath.startsWith(rootWithSep)
                     ) {
-                      // escape
                     } else {
                       if (
                         fileNameStr.endsWith("/") ||
@@ -451,6 +490,37 @@ export class RobloxInstallService {
 
           await downloadFile(data.url, data.zipPath);
 
+          if (data.expectedMd5 || data.expectedPackedSize) {
+            const buf = await fs.promises.readFile(data.zipPath);
+            if (
+              data.expectedPackedSize &&
+              buf.length !== data.expectedPackedSize
+            ) {
+              try {
+                await fs.promises.unlink(data.zipPath);
+              } catch {}
+              throw new Error(
+                `Size check failed for ${data.pkg}: expected ${data.expectedPackedSize} bytes, got ${buf.length}`,
+              );
+            }
+            if (data.expectedMd5) {
+              const crypto = await import("crypto");
+              const actualMd5 = crypto
+                .createHash("md5")
+                .update(buf)
+                .digest("hex")
+                .toLowerCase();
+              if (actualMd5 !== data.expectedMd5) {
+                try {
+                  await fs.promises.unlink(data.zipPath);
+                } catch {}
+                throw new Error(
+                  `Integrity check (MD5) failed for ${data.pkg}: expected ${data.expectedMd5}, got ${actualMd5}`,
+                );
+              }
+            }
+          }
+
           if (data.rootDir !== undefined) {
             const targetExtractPath =
               data.rootDir === ""
@@ -460,14 +530,15 @@ export class RobloxInstallService {
               fs.mkdirSync(targetExtractPath, { recursive: true });
             }
             await extractZip(data.zipPath, targetExtractPath);
-
-            // Cleanup
-            try {
-              await fs.promises.unlink(data.zipPath);
-            } catch {
-              // Ignore cleanup failures
-            }
+          } else {
+            console.warn(
+              `[InstallService] No extract root for package ${data.pkg}; skipping extraction`,
+            );
           }
+
+          try {
+            await fs.promises.unlink(data.zipPath);
+          } catch {}
 
           return { success: true, pkg: data.pkg };
         });
@@ -477,13 +548,12 @@ export class RobloxInstallService {
       let hasError = false;
       let errorMessage = "";
 
-      // Initial fill
       while (queue.length > 0 && activeWorkers.length < concurrency) {
         const pkg = queue.shift()!;
         const workerPromise = processPackage(pkg).then((handle) =>
           handle.join(),
         );
-        // We need to track the promise itself to remove it from the pool
+
         const trackedPromise = workerPromise
           .then(() => {
             activeWorkers.splice(activeWorkers.indexOf(trackedPromise), 1);
@@ -504,7 +574,6 @@ export class RobloxInstallService {
         activeWorkers.push(trackedPromise);
       }
 
-      // Replenish
       while (activeWorkers.length > 0) {
         try {
           await Promise.race(activeWorkers);
@@ -547,6 +616,17 @@ export class RobloxInstallService {
       return true;
     } catch (e) {
       console.error("Installation failed", e);
+
+      if (createdInstallDir) {
+        try {
+          fs.rmSync(installPath, { recursive: true, force: true });
+        } catch (cleanupErr) {
+          console.warn(
+            "[InstallService] Failed to clean up partial install dir:",
+            cleanupErr,
+          );
+        }
+      }
       return false;
     }
   }
@@ -765,15 +845,6 @@ export class RobloxInstallService {
       throw new Error("RobloxPlayerBeta.exe not found in " + installPath);
     }
 
-    // We need to set registry keys for roblox-player protocol
-    // HKCU\Software\Classes\roblox-player
-    //   (Default) = "URL: Roblox Protocol"
-    //   "URL Protocol" = ""
-    //   DefaultIcon
-    //     (Default) = "path\to\exe,0"
-    //   shell\open\command
-    //     (Default) = "path\to\exe" "%1"
-
     const cmds = [
       [
         "add",
@@ -883,10 +954,6 @@ export class RobloxInstallService {
           return;
         }
 
-        // Output looks like:
-        // HKEY_CURRENT_USER\Software\Classes\roblox-player\DefaultIcon
-        //    (Default)    REG_SZ    C:\Path\To\RobloxPlayerBeta.exe,0
-
         const match = stdout.match(/REG_SZ\s+([^\r\n]+),0/);
         if (match && match[1]) {
           const exePath = match[1].trim();
@@ -907,18 +974,24 @@ export class RobloxInstallService {
   static async launchWithProtocol(
     installPath: string,
     protocolUrl: string,
+    options: { no3d?: boolean } = {},
   ): Promise<void> {
+    const normalizedPath = installPath?.trim();
+    console.log(
+      `[InstallService] launchWithProtocol called with path: "${normalizedPath}"`,
+    );
+
     if (process.platform === "darwin") {
+      console.log(`[InstallService] macOS detected, using 'open' command`);
       const openArgs: string[] = [];
 
-      // If a specific app path is provided, attempt to target it
-      if (installPath && fs.existsSync(installPath)) {
-        let appPath = installPath.endsWith(".app") ? installPath : "";
+      if (normalizedPath && fs.existsSync(normalizedPath)) {
+        let appPath = normalizedPath.endsWith(".app") ? normalizedPath : "";
 
         if (!appPath) {
-          const playerApp = path.join(installPath, "RobloxPlayer.app");
-          const studioApp = path.join(installPath, "RobloxStudio.app");
-          const legacyApp = path.join(installPath, "Roblox.app");
+          const playerApp = path.join(normalizedPath, "RobloxPlayer.app");
+          const studioApp = path.join(normalizedPath, "RobloxStudio.app");
+          const legacyApp = path.join(normalizedPath, "Roblox.app");
 
           if (fs.existsSync(playerApp)) appPath = playerApp;
           else if (fs.existsSync(studioApp)) appPath = studioApp;
@@ -926,6 +999,7 @@ export class RobloxInstallService {
         }
 
         if (appPath && fs.existsSync(appPath)) {
+          console.log(`[InstallService] Using macOS app: ${appPath}`);
           openArgs.push("-a", appPath);
         }
       }
@@ -937,30 +1011,122 @@ export class RobloxInstallService {
         stdio: "ignore",
       });
       child.unref();
-    } else {
-      const playerExe = path.join(installPath, "RobloxPlayerBeta.exe");
-      if (!fs.existsSync(playerExe)) {
-        throw new Error("RobloxPlayerBeta.exe not found in " + installPath);
-      }
-
-      const child = spawn(playerExe, [protocolUrl], {
-        detached: true,
-        cwd: installPath,
-        stdio: "ignore",
-      });
-      child.unref();
+      console.log(`[InstallService] ✅ macOS spawn executed`);
+      return;
     }
+
+    if (!normalizedPath) {
+      console.log(
+        `[InstallService] No install path provided, using shell.openExternal`,
+      );
+      try {
+        await shell.openExternal(protocolUrl);
+        console.log(`[InstallService] ✅ shell.openExternal succeeded`);
+        return;
+      } catch (err) {
+        console.error(`[InstallService] shell.openExternal failed:`, err);
+        throw new Error(`Failed to open protocol: ${err}`);
+      }
+    }
+
+    if (!fs.existsSync(normalizedPath)) {
+      console.warn(
+        `[InstallService] Install path does not exist: "${normalizedPath}", falling back to shell.openExternal`,
+      );
+      try {
+        await shell.openExternal(protocolUrl);
+        console.log(
+          `[InstallService] ✅ shell.openExternal succeeded (fallback)`,
+        );
+        return;
+      } catch (err) {
+        console.error(
+          `[InstallService] shell.openExternal fallback failed:`,
+          err,
+        );
+        throw new Error(
+          `Install path invalid and protocol fallback failed: ${err}`,
+        );
+      }
+    }
+
+    const candidateExeNames = [
+      "RobloxPlayerBeta.exe",
+      "RobloxPlayer.exe",
+      "Bloxstrap.exe",
+      "RobloxApp.exe",
+    ];
+
+    let playerExe: string | null =
+      candidateExeNames
+        .map((name) => path.join(normalizedPath, name))
+        .find((candidate) => {
+          const exists = fs.existsSync(candidate);
+          if (exists)
+            console.log(`[InstallService] Found executable: ${candidate}`);
+          return exists;
+        }) ?? null;
+
+    if (!playerExe) {
+      console.log(
+        `[InstallService] No standard executables found, searching directory...`,
+      );
+      const files = fs.readdirSync(normalizedPath);
+      const anyExe = files.find(
+        (file) =>
+          file.toLowerCase().endsWith(".exe") &&
+          (file.toLowerCase().includes("player") ||
+            file.toLowerCase().includes("roblox")),
+      );
+      if (anyExe) {
+        playerExe = path.join(normalizedPath, anyExe);
+        console.log(`[InstallService] Found fallback executable: ${playerExe}`);
+      }
+    }
+
+    if (!playerExe) {
+      console.error(
+        `[InstallService] No Roblox executable found in "${normalizedPath}", trying protocol fallback`,
+      );
+      try {
+        await shell.openExternal(protocolUrl);
+        console.log(
+          `[InstallService] ✅ shell.openExternal succeeded (no exe fallback)`,
+        );
+        return;
+      } catch (err) {
+        console.error(`[InstallService] Protocol fallback also failed:`, err);
+        throw new Error(
+          `No executable found in ${normalizedPath} and protocol fallback failed: ${err}`,
+        );
+      }
+    }
+
+    const args = options.no3d ? ["-no3d", protocolUrl] : [protocolUrl];
+    console.log(
+      `[InstallService] Spawning: "${playerExe}" with${options.no3d ? " -no3d and" : ""} protocol URL`,
+    );
+    const child = spawn(playerExe, args, {
+      detached: true,
+      cwd: normalizedPath,
+      stdio: "ignore",
+    });
+
+    child.on("error", (err) => {
+      console.error(`[InstallService] ❌ Spawn error for "${playerExe}":`, err);
+    });
+
+    child.unref();
+    console.log(`[InstallService] ✅ Process spawn succeeded`);
   }
 
-  /**
-   * Detects default Roblox installations from the standard Roblox Versions directory
-   * Windows: C:\Users\<user>\AppData\Local\Roblox\Versions\
-   * macOS: /Applications/Roblox.app or ~/Applications/Roblox.app
-   */
   static async detectDefaultInstallations(): Promise<DetectedInstallation[]> {
     const detected: DetectedInstallation[] = [];
 
     try {
+      console.log(
+        `[InstallService] detectDefaultInstallations called on ${process.platform}`,
+      );
       if (process.platform === "darwin") {
         const possiblePaths = [
           "/Applications/Roblox.app",
@@ -996,7 +1162,14 @@ export class RobloxInstallService {
         "Versions",
       );
 
+      console.log(
+        `[InstallService] Checking Roblox versions path: "${robloxVersionsPath}"`,
+      );
+
       if (!fs.existsSync(robloxVersionsPath)) {
+        console.warn(
+          `[InstallService] ⚠️ Roblox versions directory not found at "${robloxVersionsPath}"`,
+        );
         return detected;
       }
 
@@ -1004,8 +1177,15 @@ export class RobloxInstallService {
         withFileTypes: true,
       });
 
+      console.log(
+        `[InstallService] Found ${entries.length} entries in Roblox versions directory`,
+      );
+
       for (const entry of entries) {
         if (!entry.isDirectory() || !entry.name.startsWith("version-")) {
+          console.log(
+            `[InstallService] Skipping non-version entry: "${entry.name}"`,
+          );
           continue;
         }
 
@@ -1013,7 +1193,13 @@ export class RobloxInstallService {
         const versionHash = entry.name.replace("version-", "");
 
         const playerExe = path.join(versionDir, "RobloxPlayerBeta.exe");
+        console.log(
+          `[InstallService] Checking for player exe at: "${playerExe}"`,
+        );
         if (fs.existsSync(playerExe)) {
+          console.log(
+            `[InstallService] ✅ Found Roblox Player at: "${playerExe}"`,
+          );
           detected.push({
             path: versionDir,
             version: versionHash,
@@ -1035,11 +1221,27 @@ export class RobloxInstallService {
       }
     } catch (e) {
       console.error(
-        "[RobloxInstallService] Failed to detect default installations:",
+        "[InstallService] Failed to detect default installations:",
         e,
       );
     }
 
+    detected.sort((a, b) => {
+      if (a.binaryType === "WindowsPlayer" && b.binaryType !== "WindowsPlayer")
+        return -1;
+      if (a.binaryType !== "WindowsPlayer" && b.binaryType === "WindowsPlayer")
+        return 1;
+      if (a.binaryType === "MacPlayer" && b.binaryType !== "MacPlayer")
+        return -1;
+      if (a.binaryType !== "MacPlayer" && b.binaryType === "MacPlayer")
+        return 1;
+      return 0;
+    });
+
+    console.log(
+      `[InstallService] detectDefaultInstallations returning ${detected.length} installations (sorted by type)`,
+      detected.map((d) => `${d.binaryType}:${d.version}`).join(", "),
+    );
     return detected;
   }
 }

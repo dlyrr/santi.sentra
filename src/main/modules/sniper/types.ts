@@ -12,7 +12,7 @@ export interface SniperSession {
 
 export interface UsernameCheckResult {
   username: string;
-  code: 0 | 1 | 2 | -1; // 0: valid, 1: taken, 2: censored, -1: error
+  code: 0 | 1 | 2 | -1;
   message?: string;
 }
 

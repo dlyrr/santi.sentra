@@ -1,9 +1,6 @@
 import { HBAClient } from "roblox-bat";
 import { webcrypto } from "node:crypto";
 
-// Maximum number of HBA clients to keep in memory at once.
-// Each client holds an ECDSA key pair. Without this cap, the Map grows
-// unboundedly in multi-account setups (one entry per unique cookie).
 const MAX_HBA_CLIENTS = 50;
 
 class HBAManager {
@@ -11,14 +8,12 @@ class HBAManager {
 
   async getClient(cookie: string): Promise<HBAClient> {
     if (this.clients.has(cookie)) {
-      // Move to end (most-recently used) by re-inserting
       const existing = this.clients.get(cookie)!;
       this.clients.delete(cookie);
       this.clients.set(cookie, existing);
       return existing;
     }
 
-    // Evict the oldest (first) entry if we've hit the cap
     if (this.clients.size >= MAX_HBA_CLIENTS) {
       const oldestKey = this.clients.keys().next().value;
       if (oldestKey !== undefined) {

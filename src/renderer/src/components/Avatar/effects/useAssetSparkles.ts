@@ -1,9 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { findSparklesInHierarchy, SparklesInstance } from "./fireUtils";
 
-/**
- * Hook to fetch asset hierarchy and extract sparkles instances
- */
 export const useAssetSparkles = (
   assetId: number | null | undefined,
   enabled: boolean = true,
@@ -22,8 +19,8 @@ export const useAssetSparkles = (
       }
     },
     enabled: enabled && !!assetId,
-    staleTime: Infinity, // Hierarchy doesn't change
-    gcTime: 10 * 60 * 1000, // Cache for 10 minutes
+    staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
   });
 };
 

@@ -1,7 +1,3 @@
-/**
- * Browser service interfaces.
- */
-
 import {
   BrowserLaunchOptions,
   NavigationConfig,

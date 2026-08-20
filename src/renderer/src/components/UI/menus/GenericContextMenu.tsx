@@ -46,7 +46,6 @@ const GenericContextMenu: React.FC<GenericContextMenuProps> = ({
 
   if (!position) return null;
 
-  // Calculate position to keep menu within viewport
   const menuHeight =
     sections.reduce((acc, section) => acc + section.items.length * 32 + 8, 0) +
     16;

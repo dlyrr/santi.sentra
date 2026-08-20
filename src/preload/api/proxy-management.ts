@@ -1,7 +1,3 @@
-/**
- * Proxy Management Module API - Expose proxy management to renderer process
- */
-
 import { invoke } from "./invoke";
 import { z } from "zod";
 

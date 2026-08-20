@@ -7,13 +7,15 @@ import { RobloxInstallService } from "./InstallService";
 import { cookieRefreshService } from "../auth/CookieRefreshService";
 import { RobloxUserService } from "../users/UserService";
 import { storageService } from "../system/StorageService";
+import { Handle64Service } from "../../lib/Handle64Service";
+import { MultiInstance } from "../../lib/MultiInstance";
 
 import { ProcessMonitor } from "../watcher/ProcessMonitor";
 
 const execAsync = promisify(exec);
 
 export class RobloxLauncherService {
-  public static activeLaunches = new Map<string, string>(); // browserTrackerId -> username
+  public static activeLaunches = new Map<string, string>();
 
   private static async getRobloxProcessCount(): Promise<number> {
     try {
@@ -31,9 +33,10 @@ export class RobloxLauncherService {
 
       const mergedFlags = { ...existingFlags };
 
-      // Map global settings to FFlags
       if (settings.useDirectX12) {
-        mergedFlags["FFlagDebugGraphicsPreferD3D11"] = "True";
+        mergedFlags["FFlagDebugGraphicsPreferD3D11"] = "False";
+      } else {
+        delete mergedFlags["FFlagDebugGraphicsPreferD3D11"];
       }
 
       if (settings.lowEndGraphics) {
@@ -42,8 +45,33 @@ export class RobloxLauncherService {
         mergedFlags["FFlagDisablePostFx"] = "True";
       }
 
-      if (settings.framerateCapEnabled && settings.framerateCapValue) {
+      if (settings.headlessModeEnabled) {
+        mergedFlags["DFIntDebugFRMQualityLevelOverride"] = 1;
+        mergedFlags["FIntRenderShadowIntensity"] = 0;
+        mergedFlags["FFlagDisablePostFx"] = "True";
+        mergedFlags["DFIntTaskSchedulerTargetFps"] = 1;
+      }
+
+      if (!settings.lowEndGraphics && !settings.headlessModeEnabled) {
+        delete mergedFlags["DFIntDebugFRMQualityLevelOverride"];
+        delete mergedFlags["FIntRenderShadowIntensity"];
+        delete mergedFlags["FFlagDisablePostFx"];
+      }
+
+      if (!settings.framerateCapEnabled && !settings.headlessModeEnabled) {
+        delete mergedFlags["DFIntTaskSchedulerTargetFps"];
+      }
+
+      if (
+        settings.framerateCapEnabled &&
+        settings.framerateCapValue &&
+        !settings.headlessModeEnabled
+      ) {
         mergedFlags["DFIntTaskSchedulerTargetFps"] = settings.framerateCapValue;
+      }
+
+      if (settings.headlessModeEnabled) {
+        mergedFlags["DFIntTaskSchedulerTargetFps"] = 1;
       }
 
       await RobloxInstallService.setFFlags(installPath, mergedFlags);
@@ -58,14 +86,56 @@ export class RobloxLauncherService {
     jobId?: string,
     friendId?: string | number,
     installPath?: string,
+    channel?: string,
   ) {
     try {
-      // getAuthenticationTicket automatically handles CSRF validation and retry.
-      // We pass an empty string initially, which triggers a 403, grabs the token, and retries.
+      const settings = storageService.getRobloxSettings();
+      const multiInstanceAllowed = storageService.getAllowMultipleInstances();
+      const multiInstanceMethod =
+        storageService.getSettings().multiInstanceMethod;
+
+      console.log(
+        `[LauncherService] Starting game launch: place=${placeId}, jobId=${jobId}, friendId=${friendId}, installPath=${installPath || "system default"}`,
+      );
+      console.log(
+        `[LauncherService] Multi-instance mode: ${multiInstanceAllowed ? `ENABLED (${multiInstanceMethod})` : "DISABLED - only 1 Roblox process allowed"}`,
+      );
+
       const ticket = await RobloxAuthService.getAuthenticationTicket(
         cookie,
         "",
       );
+      console.log("[LauncherService] Authentication ticket obtained");
+
+      if (multiInstanceAllowed) {
+        if (multiInstanceMethod === "handle64") {
+          console.log(
+            "[LauncherService] Clearing Roblox singleton via Handle64...",
+          );
+          try {
+            const cleared = await Handle64Service.closeHandlesNow();
+            if (cleared) {
+              console.log(
+                "[LauncherService] Handle64 cleared the singleton (or none was present)",
+              );
+            } else {
+              console.warn(
+                "[LauncherService] Handle64 could not clear the singleton (it likely needs administrator rights). Relying on the owned mutex for multi-instance.",
+              );
+            }
+          } catch (err) {
+            console.warn(
+              "[LauncherService] Handle64 pre-launch close failed:",
+              err,
+            );
+          }
+        } else {
+          console.log(
+            "[LauncherService] Preparing multi-instance (mutex) before launch...",
+          );
+          MultiInstance.PrepareForLaunch();
+        }
+      }
 
       const nowMs = Date.now();
       const browserTrackerId =
@@ -112,45 +182,80 @@ export class RobloxLauncherService {
         `+browsertrackerid:${browserTrackerId}` +
         `+robloxLocale:en_us` +
         `+gameLocale:en_us` +
-        `+channel:` +
+        `+channel:${(channel ?? "").trim()}` +
         `+LaunchExp:InApp`;
 
       const initialCount = await this.getRobloxProcessCount();
+      console.log(
+        `[LauncherService] Initial Roblox process count: ${initialCount}`,
+      );
 
       if (installPath) {
+        console.log(
+          `[LauncherService] Launching with custom install path: ${installPath}`,
+        );
         await this.syncFFlags(installPath);
         await RobloxInstallService.launchWithProtocol(
           installPath,
           protocolLaunchCommand,
+          { no3d: !!settings.headlessModeEnabled },
         );
+        console.log(`[LauncherService] Protocol launched with custom path`);
       } else {
-        // No install path specified - use system default via protocol handler
-        // On Windows, try to find a default installation first for multi-instance support
         if (process.platform === "win32") {
           try {
+            console.log(
+              `[LauncherService] Detecting default Windows installations...`,
+            );
             const installations =
               await RobloxInstallService.detectDefaultInstallations();
+            console.log(
+              `[LauncherService] Found ${installations.length} installations`,
+            );
+
             if (installations.length > 0) {
+              console.log(
+                `[LauncherService] Using installation: ${installations[0].path}`,
+              );
               await this.syncFFlags(installations[0].path);
               await RobloxInstallService.launchWithProtocol(
                 installations[0].path,
                 protocolLaunchCommand,
+                { no3d: !!settings.headlessModeEnabled },
+              );
+              console.log(
+                `[LauncherService] Protocol launched with detected path`,
               );
             } else {
-              // Fallback to protocol handler if no install found
+              console.log(
+                `[LauncherService] No installations found, using protocol handler fallback`,
+              );
+
               await shell.openExternal(protocolLaunchCommand);
+              console.log(
+                `[LauncherService] Protocol handler fallback executed`,
+              );
             }
           } catch (error) {
-            // Fallback to protocol handler on error
+            console.warn(
+              `[LauncherService] Error detecting installations, using protocol fallback:`,
+              error,
+            );
+
             await shell.openExternal(protocolLaunchCommand);
+            console.log(
+              `[LauncherService] Protocol handler fallback executed after error`,
+            );
           }
         } else {
           await shell.openExternal(protocolLaunchCommand);
         }
       }
 
-      // Poll for process start in background - don't block the caller
-      // This allows multiple accounts to launch concurrently
+      if (multiInstanceAllowed && multiInstanceMethod !== "handle64") {
+        MultiInstance.ScheduleSingletonSweep();
+      }
+
       const pollForProcess = async () => {
         const startTime = Date.now();
         const timeout = 30000;
@@ -160,23 +265,36 @@ export class RobloxLauncherService {
           const currentCount = await this.getRobloxProcessCount();
 
           if (currentCount > initialCount) {
+            console.log(
+              `[LauncherService] Process detected (${currentCount} vs ${initialCount})`,
+            );
             return true;
           }
         }
+        console.warn(
+          `[LauncherService] No new Roblox process detected after 30 seconds`,
+        );
         return false;
       };
 
-      // Fire-and-forget process polling (don't await - return immediately)
-      pollForProcess().catch((err) =>
-        console.warn("[LauncherService] Process poll error:", err),
-      );
+      pollForProcess()
+        .catch((err) =>
+          console.warn("[LauncherService] Process poll error:", err),
+        )
+        .then((detected) => {
+          if (!detected) {
+            console.warn(
+              "[LauncherService] Warning: Launch command sent but no process detected.",
+              "This may indicate the Roblox process launched in a different way or the detection failed.",
+            );
+          }
+        });
 
-      // Register the launch for window renaming
       RobloxUserService.getAuthenticatedUser(cookie)
         .then((user) => {
           if (user && user.name) {
             this.activeLaunches.set(browserTrackerId, user.name);
-            // Limit map size to prevent memory leaks
+
             if (this.activeLaunches.size > 100) {
               const keys = Array.from(this.activeLaunches.keys());
               for (let i = 0; i < 50; i++) this.activeLaunches.delete(keys[i]);
@@ -185,39 +303,55 @@ export class RobloxLauncherService {
         })
         .catch(() => {});
 
-      // Return success immediately after sending the launch command
-      // The game may still be starting up
       return { success: true };
     } catch (error: any) {
-      console.error("Failed to launch Roblox:", error);
-      throw new Error(`Failed to launch Roblox: ${error.message}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(
+        "[LauncherService] Failed to launch Roblox:",
+        errorMsg,
+        error,
+      );
+      throw new Error(`Failed to launch Roblox: ${errorMsg}`);
     }
   }
 
-  /**
-   * Launch a private server with access code
-   * Based on C# JoinServer logic for private servers
-   */
   static async launchPrivateServer(
     cookie: string,
     placeId: number | string,
     accessCode: string,
     linkCode?: string,
     installPath?: string,
+    channel?: string,
   ) {
     try {
-      // getAuthenticationTicket handles CSRF internally
       const ticket = await RobloxAuthService.getAuthenticationTicket(
         cookie,
         "",
       );
+
+      const multiInstanceAllowed = storageService.getAllowMultipleInstances();
+      const multiInstanceMethod =
+        storageService.getSettings().multiInstanceMethod;
+      if (multiInstanceAllowed) {
+        if (multiInstanceMethod === "handle64") {
+          try {
+            await Handle64Service.closeHandlesNow();
+          } catch (err) {
+            console.warn(
+              "[LauncherService] Handle64 pre-launch close failed (private server):",
+              err,
+            );
+          }
+        } else {
+          MultiInstance.PrepareForLaunch();
+        }
+      }
 
       const nowMs = Date.now();
       const browserTrackerId =
         Date.now().toString() + Math.floor(Math.random() * 10000);
       const joinAttemptId = randomUUID();
 
-      // Private server uses RequestPrivateGame
       const placeLauncherUrl =
         `https://www.roblox.com/Game/PlaceLauncher.ashx?` +
         `request=RequestPrivateGame` +
@@ -237,7 +371,7 @@ export class RobloxLauncherService {
         `+browsertrackerid:${browserTrackerId}` +
         `+robloxLocale:en_us` +
         `+gameLocale:en_us` +
-        `+channel:` +
+        `+channel:${(channel ?? "").trim()}` +
         `+LaunchExp:InApp`;
 
       const initialCount = await this.getRobloxProcessCount();
@@ -270,7 +404,10 @@ export class RobloxLauncherService {
         }
       }
 
-      // Poll for process start in background - don't block the caller
+      if (multiInstanceAllowed && multiInstanceMethod !== "handle64") {
+        MultiInstance.ScheduleSingletonSweep();
+      }
+
       const pollForProcess = async () => {
         const startTime = Date.now();
         const timeout = 30000;
@@ -286,7 +423,6 @@ export class RobloxLauncherService {
         return false;
       };
 
-      // Fire-and-forget process polling
       pollForProcess().catch((err) =>
         console.warn(
           "[LauncherService] Private server process poll error:",
@@ -294,7 +430,6 @@ export class RobloxLauncherService {
         ),
       );
 
-      // Register the launch for window renaming
       RobloxUserService.getAuthenticatedUser(cookie)
         .then((user) => {
           if (user && user.name) {
@@ -307,7 +442,6 @@ export class RobloxLauncherService {
         })
         .catch(() => {});
 
-      // Return success immediately
       return { success: true };
     } catch (error: any) {
       console.error("Failed to launch private server:", error);
@@ -315,19 +449,12 @@ export class RobloxLauncherService {
     }
   }
 
-  /**
-   * Extract access code from private server link code
-   * Makes request to Roblox to get the actual access code from link code
-   */
   static async extractAccessCodeFromLinkCode(
     cookie: string,
     placeId: number | string,
     linkCode: string,
   ): Promise<string> {
     try {
-      // This would require making an HTTP request to Roblox
-      // For now, return the link code as-is (Roblox may accept it directly)
-      // In production, you'd need to parse the response from PlaceLauncher to extract the access code
       return linkCode;
     } catch (error: any) {
       console.error("Failed to extract access code from link code:", error);
@@ -335,10 +462,6 @@ export class RobloxLauncherService {
     }
   }
 
-  /**
-   * Launch game with private server link
-   * Extracts link code from URL, gets access code, and launches
-   */
   static async launchWithPrivateServerLink(
     cookie: string,
     placeId: number | string,
@@ -346,8 +469,6 @@ export class RobloxLauncherService {
     installPath?: string,
   ) {
     try {
-      // Extract link code from the private server invite URL
-      // Format: https://www.roblox.com/games/[placeId]?privateServerLinkCode=[linkCode]
       const linkCodeMatch = privateServerUrl.match(
         /privateServerLinkCode=([^&]+)/,
       );
@@ -359,8 +480,6 @@ export class RobloxLauncherService {
 
       const linkCode = decodeURIComponent(linkCodeMatch[1]);
 
-      // Use link code as access code (simpler approach)
-      // In a more complex implementation, you'd make a request to extract the actual access code
       return await this.launchPrivateServer(
         cookie,
         placeId,

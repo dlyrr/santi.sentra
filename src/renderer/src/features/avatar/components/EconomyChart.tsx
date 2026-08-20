@@ -23,7 +23,6 @@ import { cn } from "@renderer/lib/utils";
 import { EmptyStateCompact } from "@renderer/components/UI/feedback/EmptyState";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Import modularized utilities and components
 import {
   ChartDataPoint,
   ChartConfig,
@@ -45,20 +44,12 @@ import {
   StatsToggle,
 } from "./economy/index";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 interface EconomyChartProps {
   data: ChartDataPoint[];
   config: ChartConfig;
   className?: string;
   isLoading?: boolean;
 }
-
-// ============================================================================
-// Main Economy Chart Component
-// ============================================================================
 
 export const EconomyChart: React.FC<EconomyChartProps> = ({
   data,
@@ -99,25 +90,21 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     maValue?: number;
   } | null>(null);
 
-  // Filter data based on date range
   const filteredData = useMemo(
     () => filterDataByDateRange(data, dateRange),
     [data, dateRange],
   );
 
-  // Calculate moving average
   const maData = useMemo(() => {
     if (!showMA || filteredData.length < movingAveragePeriod) return [];
     return calculateMovingAverage(filteredData, movingAveragePeriod);
   }, [filteredData, showMA, movingAveragePeriod]);
 
-  // Calculate statistics
   const statistics = useMemo(
     () => calculateStatistics(filteredData),
     [filteredData],
   );
 
-  // Zoom controls
   const handleZoomIn = useCallback(() => {
     if (chartRef.current) {
       const timeScale = chartRef.current.timeScale();
@@ -156,7 +143,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     chartRef.current?.timeScale().fitContent();
   }, []);
 
-  // Initialize chart
   useEffect(() => {
     const container = chartContainerRef.current;
     if (!container || filteredData.length < 2) return;
@@ -176,7 +162,7 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
         fontSize: 11,
         fontFamily:
           "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        // Note: attributionLogo is disabled. Verify Lightweight Charts licensing requirements for attribution compliance.
+
         attributionLogo: false,
       },
       grid: {
@@ -215,7 +201,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
       },
     });
 
-    // Add main series
     const mainSeries = chart.addSeries(AreaSeries, {
       lineColor: color,
       topColor: `${color}50`,
@@ -239,7 +224,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     mainSeries.setData(chartData);
     mainSeriesRef.current = mainSeries;
 
-    // Add moving average line
     if (showMA && maData.length > 0) {
       const maSeries = chart.addSeries(LineSeries, {
         color: "#f59e0b",
@@ -260,7 +244,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
       maSeriesRef.current = maSeries;
     }
 
-    // Add volume histogram
     if (showVolume && filteredData.some((p) => p.volume !== undefined)) {
       const volumeSeries = chart.addSeries(HistogramSeries, {
         color: `${color}40`,
@@ -276,8 +259,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
       const volumeData: HistogramData<Time>[] = filteredData
         .filter((p) => p.volume !== undefined)
         .map((p) => {
-          // Note: filteredData.indexOf(p) can be inefficient for large arrays.
-          // For large datasets, consider using a Map or iterating with index for better performance.
           const previousValue =
             filteredData[filteredData.indexOf(p) - 1]?.value ?? p.value;
           return {
@@ -292,7 +273,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
 
     chart.timeScale().fitContent();
 
-    // Crosshair tooltip
     chart.subscribeCrosshairMove((param) => {
       if (
         !param.point ||
@@ -335,7 +315,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
 
     chartRef.current = chart;
 
-    // Resize handling
     const handleResize = () => {
       if (chartRef.current) {
         chartRef.current.applyOptions({
@@ -348,7 +327,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
 
-    // Keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!chartRef.current) return;
       const timeScale = chartRef.current.timeScale();
@@ -412,7 +390,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     handleResetView,
   ]);
 
-  // Export handlers
   const handleExportPNG = useCallback(() => {
     const canvas = chartContainerRef.current?.querySelector("canvas");
     exportChartAsPNG(canvas as HTMLCanvasElement | null, title, dateRange);
@@ -422,17 +399,14 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     exportChartAsCSV(filteredData, title, dateRange, showVolume);
   }, [filteredData, title, dateRange, showVolume]);
 
-  // Loading state
   if (isLoading) {
     return <ChartSkeleton height={height} />;
   }
 
-  // Empty state
   if (!data || data.length === 0) {
     return <EmptyStateCompact message={emptyMessage} className="p-8" />;
   }
 
-  // Not enough data
   if (filteredData.length < 2) {
     return (
       <motion.div
@@ -477,7 +451,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* Header */}
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
@@ -519,7 +492,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
         </div>
       </div>
 
-      {/* Statistics Panel */}
       <AnimatePresence>
         {showStats && statistics && (
           <motion.div
@@ -534,14 +506,12 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Chart */}
       <div
         ref={chartContainerRef}
         className="w-full relative outline-none focus:ring-1 focus:ring-[var(--color-border-strong)] rounded"
         style={{ height }}
       />
 
-      {/* Legend */}
       <ChartLegend
         color={color}
         title={title}
@@ -550,7 +520,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
         movingAveragePeriod={movingAveragePeriod}
       />
 
-      {/* Tooltip */}
       {tooltipData && (
         <ChartTooltip
           visible={tooltipData.visible}
@@ -567,10 +536,6 @@ export const EconomyChart: React.FC<EconomyChartProps> = ({
     </motion.div>
   );
 };
-
-// ============================================================================
-// Value Chart (Pre-configured for Value History)
-// ============================================================================
 
 interface ValueChartProps {
   valueChanges: (number | string | boolean | null)[][] | null;
@@ -609,10 +574,6 @@ export const ValueChart: React.FC<ValueChartProps> = ({
     </div>
   );
 };
-
-// ============================================================================
-// Price Chart (Pre-configured for RAP History)
-// ============================================================================
 
 interface PriceChartProps {
   historyData: {
@@ -657,10 +618,6 @@ export const PriceChart: React.FC<PriceChartProps> = ({
     </div>
   );
 };
-
-// ============================================================================
-// Combined Chart (Value vs RAP)
-// ============================================================================
 
 interface CombinedChartProps {
   valueChanges: (number | string | boolean | null)[][] | null;

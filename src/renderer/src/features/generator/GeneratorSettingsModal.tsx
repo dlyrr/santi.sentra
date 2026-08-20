@@ -55,7 +55,7 @@ export const GeneratorSettingsModal = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Dark Blurred Backdrop Overlay */}
+          {}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -64,7 +64,7 @@ export const GeneratorSettingsModal = ({
             onClick={onClose}
           />
 
-          {/* Modal Element */}
+          {}
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -73,7 +73,7 @@ export const GeneratorSettingsModal = ({
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 p-4"
           >
             <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
-              {/* Header Container */}
+              {}
               <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3.5 bg-[var(--color-surface-strong)]/20">
                 <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--color-text-primary)]">
                   <Settings2 size={16} className="text-indigo-500" />
@@ -87,9 +87,9 @@ export const GeneratorSettingsModal = ({
                 </button>
               </div>
 
-              {/* Form Config Body */}
+              {}
               <div className="p-4 space-y-4 max-h-[65vh] overflow-y-auto">
-                {/* Username Prefix Input Row */}
+                {}
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-2 text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                     <Hash size={12} /> Handle Prefix Context
@@ -105,7 +105,7 @@ export const GeneratorSettingsModal = ({
                   />
                 </div>
 
-                {/* Password Configuration Row */}
+                {}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
@@ -130,7 +130,7 @@ export const GeneratorSettingsModal = ({
                   />
                 </div>
 
-                {/* Batch Allocation Counter */}
+                {}
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-2 text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                     <Zap size={12} /> Execution Run Size
@@ -185,7 +185,7 @@ export const GeneratorSettingsModal = ({
                   </div>
                 </div>
 
-                {/* Target Client Runtime Picker */}
+                {}
                 <div className="space-y-1.5">
                   <label className="flex items-center gap-2 text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
                     <MonitorSmartphone size={12} /> Target User-Agent Context
@@ -205,7 +205,7 @@ export const GeneratorSettingsModal = ({
                   </select>
                 </div>
 
-                {/* Checkbox Matrix Layout */}
+                {}
                 <div className="grid grid-cols-1 gap-2 pt-3 border-t border-[var(--color-border)]">
                   <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/40 px-3 py-2.5 transition-colors hover:border-indigo-500/30">
                     <span className="text-xs font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
@@ -241,7 +241,7 @@ export const GeneratorSettingsModal = ({
                 </div>
               </div>
 
-              {/* Layout Footer Actions */}
+              {}
               <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-strong)]/20 px-4 py-3 flex items-center justify-end gap-2">
                 <Button
                   variant="ghost"

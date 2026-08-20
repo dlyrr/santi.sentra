@@ -10,14 +10,7 @@ const DiscordRPC = require("discord-rpc");
 
 const CLIENT_ID = "1466214661786439863";
 
-// Status Modes
-// - full:      Rich idle (tab name) + rich in-game (game name, account count, elapsed, button)
-// - playing:   Minimal idle ("In the Launcher") + rich in-game
-// - accounts:  Always shows account count stats, still shows game when playing
-// - minimal:   Just "Sentra" at all times, no tab or account info
-
 export type DiscordStatusMode = "full" | "playing" | "accounts" | "minimal";
-
 
 export interface DiscordPresenceState {
   isEnabled: boolean;
@@ -39,33 +32,37 @@ interface DiscordRPCSettings {
   customStatusText?: string | null;
 }
 
-// Per-tab: details line, state line
 const TAB_DISPLAY: Record<string, { details: string; state: string }> = {
-  Accounts:        { details: "Managing Accounts",          state: "Account Manager" },
-  Profile:         { details: "Viewing a Profile",          state: "Profile Viewer" },
-  Friends:         { details: "Browsing Friends",           state: "Social Hub" },
-  Groups:          { details: "Exploring Groups",           state: "Group Explorer" },
-  Games:           { details: "Discovering Games",          state: "Game Browser" },
-  Catalog:         { details: "Shopping the Catalog",       state: "Catalog Browser" },
-  Inventory:       { details: "Browsing Inventory",         state: "Inventory Viewer" },
-  Transactions:    { details: "Checking Transactions",      state: "Transaction History" },
-  Logs:            { details: "Reading Logs",               state: "Log Viewer" },
-  Settings:        { details: "Configuring Settings",       state: "Settings Panel" },
-  Avatar:          { details: "Customizing Avatar",         state: "Avatar Editor" },
-  Install:         { details: "Managing Installations",     state: "Install Manager" },
-  News:            { details: "Reading the News",           state: "News Feed" },
-  AccountSettings: { details: "Tweaking Account Settings",  state: "Account Config" },
-  Watcher:         { details: "Watching Sessions",          state: "Session Watcher" },
-  Sniper:          { details: "Sniping Usernames",          state: "Username Sniper" },
-  Trades:          { details: "Managing Trades",            state: "Trade Manager" },
-  Analytics:       { details: "Viewing Analytics",          state: "Analytics Dashboard" },
-  Generator:       { details: "Generating Accounts",        state: "Account Generator" },
-  Backups:         { details: "Managing Backups",           state: "Backup Manager" },
-  Market:          { details: "Browsing the Market",        state: "Market Explorer" },
-  Support:         { details: "Getting Support",            state: "Support Hub" },
-  Debug:           { details: "Debugging the App",          state: "Debug Panel" },
+  Accounts: { details: "Managing Accounts", state: "Account Manager" },
+  Profile: { details: "Viewing a Profile", state: "Profile Viewer" },
+  Friends: { details: "Browsing Friends", state: "Social Hub" },
+  Groups: { details: "Exploring Groups", state: "Group Explorer" },
+  Games: { details: "Discovering Games", state: "Game Browser" },
+  Catalog: { details: "Shopping the Catalog", state: "Catalog Browser" },
+  Inventory: { details: "Browsing Inventory", state: "Inventory Viewer" },
+  Transactions: {
+    details: "Checking Transactions",
+    state: "Transaction History",
+  },
+  Logs: { details: "Reading Logs", state: "Log Viewer" },
+  Settings: { details: "Configuring Settings", state: "Settings Panel" },
+  Avatar: { details: "Customizing Avatar", state: "Avatar Editor" },
+  Install: { details: "Managing Installations", state: "Install Manager" },
+  News: { details: "Reading the News", state: "News Feed" },
+  AccountSettings: {
+    details: "Tweaking Account Settings",
+    state: "Account Config",
+  },
+  Watcher: { details: "Watching Sessions", state: "Session Watcher" },
+  Sniper: { details: "Sniping Usernames", state: "Username Sniper" },
+  Trades: { details: "Managing Trades", state: "Trade Manager" },
+  Analytics: { details: "Viewing Analytics", state: "Analytics Dashboard" },
+  Generator: { details: "Generating Accounts", state: "Account Generator" },
+  Backups: { details: "Managing Backups", state: "Backup Manager" },
+  Market: { details: "Browsing the Market", state: "Market Explorer" },
+  Support: { details: "Getting Support", state: "Support Hub" },
+  Debug: { details: "Debugging the App", state: "Debug Panel" },
 };
-
 
 class DiscordRPCService {
   private client: DiscordRPCClient | null = null;
@@ -115,13 +112,13 @@ class DiscordRPCService {
         const data = readFileSync(this.settingsPath, "utf-8");
         const settings: DiscordRPCSettings = JSON.parse(data);
         this.isEnabled = settings.enabled ?? true;
-        // Migrate old modes to new ones
+
         const raw = settings.statusMode as string;
         if (raw === "detailed") this.statusMode = "full";
         else if (raw === "game-only") this.statusMode = "playing";
         else if (raw === "idle") this.statusMode = "minimal";
         else if (raw === "stealth") this.statusMode = "minimal";
-        else if (["full","playing","accounts","minimal"].includes(raw)) {
+        else if (["full", "playing", "accounts", "minimal"].includes(raw)) {
           this.statusMode = raw as DiscordStatusMode;
         } else {
           this.statusMode = "full";
@@ -178,8 +175,14 @@ class DiscordRPCService {
     this.currentGame = null;
     this.currentTab = null;
     this.startTimestamp = null;
-    if (this.reconnectTimeout) { clearTimeout(this.reconnectTimeout); this.reconnectTimeout = null; }
-    if (this.updateTimeout) { clearTimeout(this.updateTimeout); this.updateTimeout = null; }
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
     await this.disconnect();
     this.currentGame = null;
     this.currentTab = null;
@@ -189,8 +192,14 @@ class DiscordRPCService {
     if (this.client) this.client.removeAllListeners();
     gameSessionService.removeAllListeners("game-started");
     gameSessionService.removeAllListeners("game-ended");
-    if (this.reconnectTimeout) { clearTimeout(this.reconnectTimeout); this.reconnectTimeout = null; }
-    if (this.updateTimeout) { clearTimeout(this.updateTimeout); this.updateTimeout = null; }
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = null;
+    }
     await this.disable();
   }
 
@@ -265,14 +274,17 @@ class DiscordRPCService {
     this.updatePresence();
   }
 
-
   setCustomStatusText(text: string | null): void {
     this.customStatusText = text && text.trim().length > 0 ? text.trim() : null;
     this.saveSettings();
     this.updatePresence();
   }
 
-  private setCurrentGame(game: { name: string; placeId: string; thumbnailUrl?: string }): void {
+  private setCurrentGame(game: {
+    name: string;
+    placeId: string;
+    thumbnailUrl?: string;
+  }): void {
     this.currentGame = game;
     this.startTimestamp = Date.now();
     console.log("[DiscordRPC] Now playing:", game.name);
@@ -304,7 +316,6 @@ class DiscordRPCService {
       const accountCount = storageService.getAccounts()?.length || 0;
 
       if (this.currentGame) {
-        // ----- IN-GAME PRESENCE -----
         const gameName = this.currentGame.name;
 
         let details: string;
@@ -314,29 +325,31 @@ class DiscordRPCService {
           details = this.customStatusText;
           state = gameName;
         } else if (this.statusMode === "accounts") {
-          details = accountCount === 1 ? "Playing with 1 account" : `Playing with ${accountCount} accounts`;
+          details =
+            accountCount === 1
+              ? "Playing with 1 account"
+              : `Playing with ${accountCount} accounts`;
           state = gameName;
         } else if (this.statusMode === "minimal") {
           details = "In a Roblox game";
           state = gameName;
         } else {
-          // full or playing — show game name prominently
           details = gameName;
-          state = accountCount > 1
-            ? `Running ${accountCount} accounts`
-            : "Launched with Sentra";
+          state =
+            accountCount > 1
+              ? `Running ${accountCount} accounts`
+              : "Launched with Sentra";
         }
 
         const activity: any = {
           details,
           state,
           startTimestamp: this.startTimestamp ?? Date.now(),
-          assets: {
-            large_image: this.currentGame.thumbnailUrl || "sentra_icon",
-            large_text: gameName,
-            small_image: "sentra_icon",
-            small_text: "Sentra",
-          },
+
+          largeImageKey: this.currentGame.thumbnailUrl || "sentra_icon",
+          largeImageText: gameName,
+          smallImageKey: "sentra_icon",
+          smallImageText: "Sentra",
           buttons: [
             {
               label: "View Game Page",
@@ -347,27 +360,28 @@ class DiscordRPCService {
 
         console.log("[DiscordRPC] Setting game activity:", gameName);
         await this.client.setActivity(activity);
-
       } else {
-        // ----- IDLE PRESENCE -----
         let details: string;
         let state: string;
 
         if (this.customStatusText) {
           details = this.customStatusText;
-          state = accountCount > 0 ? `${accountCount} accounts loaded` : "Sentra";
+          state =
+            accountCount > 0 ? `${accountCount} accounts loaded` : "Sentra";
         } else if (this.statusMode === "accounts") {
-          details = accountCount === 1 ? "Managing 1 account" : `Managing ${accountCount} accounts`;
+          details =
+            accountCount === 1
+              ? "Managing 1 account"
+              : `Managing ${accountCount} accounts`;
           state = "Roblox Account Manager";
         } else if (this.statusMode === "minimal") {
           details = "Sentra";
           state = "Roblox Multi-Tool";
         } else if (this.statusMode === "playing") {
-          // playing mode: minimal idle status
           details = "In the Launcher";
-          state = accountCount > 0 ? `${accountCount} accounts loaded` : "Sentra";
+          state =
+            accountCount > 0 ? `${accountCount} accounts loaded` : "Sentra";
         } else {
-          // full mode: show active tab
           const tabInfo = this.currentTab ? TAB_DISPLAY[this.currentTab] : null;
           details = tabInfo?.details ?? "In the Launcher";
           state = tabInfo?.state ?? "Sentra";
@@ -377,10 +391,8 @@ class DiscordRPCService {
           details,
           state,
           startTimestamp: this.appStartTimestamp,
-          assets: {
-            large_image: "sentra_icon",
-            large_text: "Sentra",
-          },
+          largeImageKey: "sentra_icon",
+          largeImageText: "Sentra",
         };
 
         await this.client.setActivity(activity);
@@ -403,9 +415,15 @@ class DiscordRPCService {
     };
   }
 
-  getIsEnabled(): boolean { return this.isEnabled; }
-  getStatusMode(): DiscordStatusMode { return this.statusMode; }
-  getCustomStatusText(): string | null { return this.customStatusText; }
+  getIsEnabled(): boolean {
+    return this.isEnabled;
+  }
+  getStatusMode(): DiscordStatusMode {
+    return this.statusMode;
+  }
+  getCustomStatusText(): string | null {
+    return this.customStatusText;
+  }
 }
 
 export const discordRPCService = new DiscordRPCService();

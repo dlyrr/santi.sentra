@@ -1,4 +1,4 @@
-import { ElectronAPI } from "@electron-toolkit/preload";
+import type { RestrictedElectronAPI } from "../../shared/electron-bridge";
 import type { WindowApi } from "./ipc/windowApi";
 
 interface PlatformInfo {
@@ -10,7 +10,7 @@ interface PlatformInfo {
 
 declare global {
   interface Window {
-    electron: ElectronAPI;
+    electron: RestrictedElectronAPI;
     api: WindowApi;
     platform: PlatformInfo;
   }

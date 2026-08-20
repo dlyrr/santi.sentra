@@ -4,9 +4,10 @@ import { avatarStateSchema } from "@shared/ipc-schemas/avatar";
 import { brickColorToHex } from "./utils/bodyColorUtils";
 
 const avatarRenderResponseSchema = z.object({
-  targetId: z.number(),
+  targetId: z.number().optional(),
   state: z.string(),
-  imageUrl: z.string(),
+
+  imageUrl: z.string().nullable().optional(),
   version: z.string().optional(),
 });
 
@@ -22,10 +23,6 @@ export class RobloxAvatarRenderService {
     });
   }
 
-  /**
-   * Renders a preview of what the user's avatar would look like with an additional asset
-   * without actually modifying the avatar. Uses the /v1/avatar/render endpoint.
-   */
   static async renderAvatarWithAsset(
     cookie: string,
     userId: number,
@@ -155,7 +152,7 @@ export class RobloxAvatarRenderService {
       body: payload,
     });
 
-    let finalImageUrl = renderResponse.imageUrl;
+    let finalImageUrl: string | null | undefined = renderResponse.imageUrl;
     let finalState = renderResponse.state;
 
     if (finalState === "Completed" && finalImageUrl) {
@@ -169,15 +166,18 @@ export class RobloxAvatarRenderService {
       await this.sleep(pollInterval);
 
       try {
-        const statusResponse = await request(avatarRenderResponseSchema, {
-          method: "POST",
-          url: "https://avatar.roblox.com/v1/avatar/render",
-          cookie,
-          headers: {
-            "Content-Type": "application/json",
+        const statusResponse = await requestWithCsrf(
+          avatarRenderResponseSchema,
+          {
+            method: "POST",
+            url: "https://avatar.roblox.com/v1/avatar/render",
+            cookie,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: payload,
           },
-          body: payload,
-        });
+        );
 
         finalState = statusResponse.state;
         if (statusResponse.imageUrl) {

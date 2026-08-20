@@ -43,7 +43,6 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -66,7 +65,6 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
     };
   }, [isOpen]);
 
-  // Calculate dropdown position based on button location
   useEffect(() => {
     if (isOpen && dropdownRef.current && menuRef.current) {
       const computed = window.getComputedStyle(dropdownRef.current);
@@ -81,16 +79,14 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       let left = rect.left;
       let top = rect.bottom + 8;
 
-      // Check if dropdown would overflow on the right
       if (left + menuWidth > viewportWidth - 16) {
         left = Math.max(16, rect.right - menuWidth);
       }
 
-      // Dynamically calculate menuHeight based on rendered content
-      let menuHeight = Math.min(
+      const menuHeight = Math.min(
         menuRef.current.scrollHeight + 12,
         viewportHeight * 0.75,
-      ); // Add padding, max 75% of viewport
+      );
       if (top + menuHeight > viewportHeight - 16) {
         top = Math.max(16, rect.top - menuHeight - 8);
       }
@@ -101,9 +97,9 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
 
   const selectedOption = options.find((opt) => opt.value === value);
 
-  const defaultButtonClasses = `h-10 px-3 bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm transition-all hover:border-[var(--color-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] ${
+  const defaultButtonClasses = `h-8 px-2.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-[13px] transition-all hover:border-[var(--color-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] shadow-sm ${
     isOpen
-      ? "border-[var(--color-border-strong)] ring-1 ring-[var(--focus-ring)]"
+      ? "border-[var(--accent-color)] ring-1 ring-[var(--accent-color)]"
       : ""
   }`;
 
@@ -130,7 +126,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
               : {}),
           }}
         >
-          <div className="p-1.5 max-h-60 overflow-y-auto scrollbar-thin">
+          <div className="p-1 max-h-60 overflow-y-auto scrollbar-thin">
             {options.map((option) => (
               <button
                 type="button"
@@ -139,10 +135,10 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`pressable w-full text-left px-3 py-2.5 text-sm flex items-center justify-between rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
+                className={`w-full text-left px-2 py-1.5 text-[13px] flex items-center justify-between rounded-[calc(var(--menu-radius)-4px)] transition-colors ${
                   value === option.value
-                    ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
-                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
+                    ? "bg-[var(--accent-color)]/10 text-[var(--accent-color)]"
+                    : "text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]"
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">

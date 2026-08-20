@@ -1,10 +1,6 @@
 import { z } from "zod";
 import { successResponseSchema } from "./common";
 
-// ============================================================================
-// AVATAR & THUMBNAIL SCHEMAS
-// ============================================================================
-
 export const thumbnail3DResponseSchema = z.object({
   state: z.string().optional(),
   imageUrl: z.string().nullable().optional(),
@@ -99,10 +95,6 @@ export type OutfitDetails = z.infer<typeof outfitDetailsSchema>;
 export type WearingAssetsResult = z.infer<typeof wearingAssetsResultSchema>;
 export type UpdateOutfitResult = z.infer<typeof updateOutfitResultSchema>;
 
-// ============================================================================
-// INVENTORY SCHEMAS
-// ============================================================================
-
 export const favoriteItemSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -148,10 +140,6 @@ export type FavoriteItem = z.infer<typeof favoriteItemSchema>;
 export type InventoryItem = z.infer<typeof inventoryItemSchema>;
 export type InventoryPage = z.infer<typeof inventoryPageSchema>;
 export type CollectibleItem = z.infer<typeof collectiblesSchema>[number];
-
-// ============================================================================
-// CATALOG SCHEMAS
-// ============================================================================
 
 export const catalogSubcategorySchema = z.object({
   subcategory: z.string().nullable(),
@@ -485,10 +473,6 @@ export const resaleDataSchema = z.object({
 
 export type ResaleData = z.infer<typeof resaleDataSchema>;
 
-// ============================================================================
-// PURCHASE SCHEMAS
-// ============================================================================
-
 export const purchaseLimitedResultSchema = z
   .object({
     purchased: z.boolean().optional(),
@@ -516,10 +500,6 @@ export const purchaseCatalogResultSchema = z
 export type PurchaseLimitedResult = z.infer<typeof purchaseLimitedResultSchema>;
 export type PurchaseCatalogResult = z.infer<typeof purchaseCatalogResultSchema>;
 
-// ============================================================================
-// DOWNLOAD SCHEMAS
-// ============================================================================
-
 export const downloadResultSchema = z.object({
   success: z.boolean(),
   canceled: z.boolean().optional(),
@@ -536,10 +516,6 @@ export type DownloadResult = z.infer<typeof downloadResultSchema>;
 export type TemplateDownloadResult = z.infer<
   typeof templateDownloadResultSchema
 >;
-
-// ============================================================================
-// CATALOG DATABASE SCHEMAS
-// ============================================================================
 
 export const catalogDbItemSchema = z.object({
   AssetId: z.number(),
@@ -570,7 +546,6 @@ export const catalogDbSearchResultSchema = z.object({
   Sales: z.number(),
 });
 
-// Exported FlexSearch catalog index schema
 export const catalogIndexExportSchema = z.object({
   version: z.number(),
   catalogHash: z.string(),
@@ -579,8 +554,8 @@ export const catalogIndexExportSchema = z.object({
     z.tuple([
       z.number(),
       catalogDbSearchResultSchema.extend({
-        Description: z.string(), // ensure non-null description in export
-        PriceInRobux: z.number(), // coerce nullable numeric to number for search data
+        Description: z.string(),
+        PriceInRobux: z.number(),
         IsForSale: z.boolean(),
         IsLimited: z.boolean(),
         IsLimitedUnique: z.boolean(),

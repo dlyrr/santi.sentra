@@ -29,7 +29,7 @@ export class RobloxAssetService {
         cookie,
       }),
       request(assetDetailsSchema, {
-        url: `https://economy.roblox.com/v2/assets/${assetId}/details`,
+        url: `https://catalog.roblox.com/v1/catalog/items/${assetId}/details?itemType=Asset`,
         cookie,
       }),
     ]);
@@ -111,15 +111,6 @@ export class RobloxAssetService {
     }
   }
 
-  /**
-   * Batch fetch catalog item details for multiple assets at once.
-   * Uses POST https://catalog.roblox.com/v1/catalog/items/details
-   * Much more efficient than individual requests when fetching multiple items.
-   * @param cookie Authentication cookie
-   * @param assetIds Array of asset IDs to fetch details for
-   * @param itemType Type of items (default: 'Asset')
-   * @returns Array of catalog item details
-   */
   static async getBatchAssetDetails(
     cookie: string,
     assetIds: number[],
@@ -129,7 +120,6 @@ export class RobloxAssetService {
       return [];
     }
 
-    // Roblox API has a limit of ~120 items per batch request
     const BATCH_LIMIT = 120;
     const chunks = this.chunkArray(assetIds, BATCH_LIMIT);
     const allResults: CatalogItemDetail[] = [];
@@ -183,12 +173,6 @@ export class RobloxAssetService {
     }
   }
 
-  /**
-   * Fetch resellers for a limited/collectible item
-   * @param collectibleItemId The collectible item ID (UUID) from asset details
-   * @param limit Number of resellers to fetch (default 100)
-   * @param cursor Pagination cursor
-   */
   static async getAssetResellers(
     collectibleItemId: string,
     limit: number = 100,
@@ -197,7 +181,7 @@ export class RobloxAssetService {
     try {
       let url = `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/resellers?limit=${limit}`;
       if (cursor) {
-        url += `&cursor=${cursor}`;
+        url += `&cursor=${encodeURIComponent(cursor)}`;
       }
 
       return await request(resellersResponseSchema, {
@@ -210,14 +194,6 @@ export class RobloxAssetService {
     }
   }
 
-  /**
-   * Fetch owners for a limited asset
-   * @param cookie Authentication cookie (required for owner details)
-   * @param assetId The asset ID
-   * @param limit Number of owners to fetch (default 100)
-   * @param sortOrder Sort order (Asc or Desc)
-   * @param cursor Pagination cursor
-   */
   static async getAssetOwners(
     cookie: string,
     assetId: number,
@@ -228,7 +204,7 @@ export class RobloxAssetService {
     try {
       let url = `https://inventory.roblox.com/v2/assets/${assetId}/owners?limit=${limit}&sortOrder=${sortOrder}`;
       if (cursor) {
-        url += `&cursor=${cursor}`;
+        url += `&cursor=${encodeURIComponent(cursor)}`;
       }
 
       const lenientOwnerSchema = z

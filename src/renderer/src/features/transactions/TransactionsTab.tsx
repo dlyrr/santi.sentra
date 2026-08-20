@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRightLeft,
   Loader2,
@@ -14,99 +14,104 @@ import {
   Clock,
   ChevronRight,
   Users,
-  AlertTriangle
-} from 'lucide-react'
-import { Account } from '@renderer/types'
+  AlertTriangle,
+} from "lucide-react";
+import { Account } from "@renderer/types";
 import {
   TooltipProvider,
   Tooltip,
   TooltipContent,
-  TooltipTrigger
-} from '@renderer/components/UI/display/Tooltip'
-import { EmptyState } from '@renderer/components/UI/feedback/EmptyState'
-import { Button } from '@renderer/components/UI/buttons/Button'
-import { RobuxIcon } from '@renderer/components/UI/icons/RobuxIcon'
-import { TixIcon } from '@renderer/components/UI/icons/TixIcon'
-import { formatNumber } from '@renderer/utils/numberUtils'
-import { 
-  useBatchTransactionTypes, 
-  useBatchTransactions, 
-  useBatchTransactionTotals 
-} from './api/useTransactions'
+  TooltipTrigger,
+} from "@renderer/components/UI/display/Tooltip";
+import { EmptyState } from "@renderer/components/UI/feedback/EmptyState";
+import { Button } from "@renderer/components/UI/buttons/Button";
+import { RobuxIcon } from "@renderer/components/UI/icons/RobuxIcon";
+import { TixIcon } from "@renderer/components/UI/icons/TixIcon";
+import { formatNumber } from "@renderer/utils/numberUtils";
+import {
+  useBatchTransactionTypes,
+  useBatchTransactions,
+  useBatchTransactionTotals,
+} from "./api/useTransactions";
 import {
   useSelectedTransactionType,
   useSetSelectedTransactionType,
   useTimeFrame,
-  useSetTimeFrame
-} from './stores/useTransactionsStore'
-import UniversalProfileModal from '@renderer/components/Modals/UniversalProfileModal'
-import GroupDetailsModal from '@renderer/features/groups/Modals/GroupDetailsModal'
+  useSetTimeFrame,
+} from "./stores/useTransactionsStore";
+import UniversalProfileModal from "@renderer/components/Modals/UniversalProfileModal";
+import GroupDetailsModal from "@renderer/features/groups/Modals/GroupDetailsModal";
 import type {
   TransactionTypeEnum,
   Transaction,
-  TransactionTimeFrame
-} from '@shared/ipc-schemas/transactions'
+  TransactionTimeFrame,
+} from "@shared/ipc-schemas/transactions";
 
 const TIME_FRAME_OPTIONS: { value: TransactionTimeFrame; label: string }[] = [
-  { value: 'Day', label: 'Today' },
-  { value: 'Week', label: 'This Week' },
-  { value: 'Month', label: 'This Month' },
-  { value: 'Year', label: 'This Year' }
-]
+  { value: "Day", label: "Today" },
+  { value: "Week", label: "This Week" },
+  { value: "Month", label: "This Month" },
+  { value: "Year", label: "This Year" },
+];
 
-const TRANSACTION_TYPE_LABELS: Record<TransactionTypeEnum | 'all', string> = {
-  all: 'All Transactions',
-  Purchase: 'Purchases',
-  Sale: 'Sales',
-  AffiliatePayout: 'Affiliate Payouts',
-  AffiliateSale: 'Affiliate Sales',
-  GroupPayout: 'Group Payouts',
-  CurrencyPurchase: 'Currency Purchases',
-  TradeRobux: 'Trade Robux',
-  PremiumStipend: 'Premium Stipends',
-  EngagementPayout: 'Engagement Payouts',
-  GroupEngagementPayout: 'Group Engagement Payouts',
-  AdSpend: 'Ad Spend',
-  DevEx: 'DevEx',
-  PendingRobux: 'Pending Robux',
-  IndividualToGroup: 'Individual to Group',
-  CSAdjustment: 'CS Adjustments',
-  AdsRevsharePayout: 'Ads Revshare Payouts',
-  GroupAdsRevsharePayout: 'Group Ads Revshare Payouts',
-  SubscriptionsRevsharePayout: 'Subscriptions Revshare',
-  GroupSubscriptionsRevsharePayout: 'Group Subscriptions Revshare',
-  PublishingAdvanceRebates: 'Publishing Advance Rebates',
-  LicensingPayment: 'Licensing Payments'
-}
+const TRANSACTION_TYPE_LABELS: Record<TransactionTypeEnum | "all", string> = {
+  all: "All Transactions",
+  Purchase: "Purchases",
+  Sale: "Sales",
+  AffiliatePayout: "Affiliate Payouts",
+  AffiliateSale: "Affiliate Sales",
+  GroupPayout: "Group Payouts",
+  CurrencyPurchase: "Currency Purchases",
+  TradeRobux: "Trade Robux",
+  PremiumStipend: "Premium Stipends",
+  EngagementPayout: "Engagement Payouts",
+  GroupEngagementPayout: "Group Engagement Payouts",
+  AdSpend: "Ad Spend",
+  DevEx: "DevEx",
+  PendingRobux: "Pending Robux",
+  IndividualToGroup: "Individual to Group",
+  CSAdjustment: "CS Adjustments",
+  AdsRevsharePayout: "Ads Revshare Payouts",
+  GroupAdsRevsharePayout: "Group Ads Revshare Payouts",
+  SubscriptionsRevsharePayout: "Subscriptions Revshare",
+  GroupSubscriptionsRevsharePayout: "Group Subscriptions Revshare",
+  PublishingAdvanceRebates: "Publishing Advance Rebates",
+  LicensingPayment: "Licensing Payments",
+};
 
 interface SummaryTableRowProps {
-  label: string
-  value: number
-  isNegative?: boolean
-  isTotal?: boolean
+  label: string;
+  value: number;
+  isNegative?: boolean;
+  isTotal?: boolean;
 }
 
 const SummaryTableRow = ({
   label,
   value,
   isNegative = false,
-  isTotal = false
+  isTotal = false,
 }: SummaryTableRowProps) => {
-  const displayValue = isNegative ? -Math.abs(value) : value
+  const displayValue = isNegative ? -Math.abs(value) : value;
 
-  // Don't render rows with 0 value (unless it's the total row)
   if (value === 0 && !isTotal) {
-    return null
+    return null;
   }
 
   const colorClass =
-    displayValue > 0 ? 'text-emerald-400' : displayValue < 0 ? 'text-red-400' : 'text-[var(--color-text-secondary)]'
+    displayValue > 0
+      ? "text-emerald-400"
+      : displayValue < 0
+        ? "text-red-400"
+        : "text-[var(--color-text-secondary)]";
 
   return (
     <tr
-      className={`${isTotal ? 'border-t border-[var(--color-border-strong)] font-semibold' : ''} hover:bg-[var(--color-surface-hover)]/30 transition-colors`}
+      className={`${isTotal ? "border-t border-[var(--color-border-strong)] font-semibold" : ""} hover:bg-[var(--color-surface-hover)]/30 transition-colors`}
     >
-      <td className={`py-2.5 px-4 text-sm ${isTotal ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'}`}>
+      <td
+        className={`py-2.5 px-4 text-sm ${isTotal ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-secondary)]"}`}
+      >
         {label}
       </td>
       <td className={`py-2.5 px-4 text-sm text-right font-mono ${colorClass}`}>
@@ -116,28 +121,32 @@ const SummaryTableRow = ({
         </div>
       </td>
     </tr>
-  )
-}
+  );
+};
 
 interface TransactionRowProps {
-  transaction: Transaction
-  onAgentClick: (agent: { id: number; type: string; name: string }) => void
+  transaction: Transaction;
+  onAgentClick: (agent: { id: number; type: string; name: string }) => void;
 }
 
 const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
-  const isPositive = transaction.currency.amount > 0
-  const isTickets = transaction.currency.type === 'Tickets'
-  const colorClass = isTickets ? 'text-[#cc9e71]' : isPositive ? 'text-emerald-400' : 'text-red-400'
-  const detailsName = transaction.details?.name || '—'
+  const isPositive = transaction.currency.amount > 0;
+  const isTickets = transaction.currency.type === "Tickets";
+  const colorClass = isTickets
+    ? "text-[#cc9e71]"
+    : isPositive
+      ? "text-emerald-400"
+      : "text-red-400";
+  const detailsName = transaction.details?.name || "—";
 
   return (
     <tr className="hover:bg-[var(--color-surface-hover)]/30 transition-colors border-b border-[var(--color-border)]/50 last:border-0">
       <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
         <div className="flex items-center gap-2">
-          {new Date(transaction.created).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
+          {new Date(transaction.created).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
           })}
           {transaction.isPending && (
             <Tooltip>
@@ -149,7 +158,9 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
           )}
         </div>
       </td>
-      <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">{transaction.transactionType}</td>
+      <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
+        {transaction.transactionType}
+      </td>
       <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)] max-w-[140px] truncate">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -163,7 +174,7 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
           onClick={() => onAgentClick(transaction.agent)}
           className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline transition-colors flex items-center gap-1.5"
         >
-          {transaction.agent.type === 'Group' ? (
+          {transaction.agent.type === "Group" ? (
             <Users size={14} className="text-[var(--color-text-muted)]" />
           ) : (
             <User size={14} className="text-[var(--color-text-muted)]" />
@@ -173,50 +184,64 @@ const TransactionRow = ({ transaction, onAgentClick }: TransactionRowProps) => {
       </td>
       <td className={`py-3 px-4 text-sm text-right font-mono ${colorClass}`}>
         <div className="flex items-center justify-end gap-1.5">
-          {transaction.currency.type === 'Robux' && <RobuxIcon className="w-3.5 h-3.5" />}
+          {transaction.currency.type === "Robux" && (
+            <RobuxIcon className="w-3.5 h-3.5" />
+          )}
           {isTickets && <TixIcon className="w-4 h-4" />}
           <span>
-            {isPositive ? '+' : ''}
+            {isPositive ? "+" : ""}
             {formatNumber(transaction.currency.amount)}
           </span>
-          {transaction.currency.type !== 'Robux' && !isTickets && (
-            <span className="text-[var(--color-text-muted)] text-xs ml-1">{transaction.currency.type}</span>
+          {transaction.currency.type !== "Robux" && !isTickets && (
+            <span className="text-[var(--color-text-muted)] text-xs ml-1">
+              {transaction.currency.type}
+            </span>
           )}
         </div>
       </td>
     </tr>
-  )
-}
+  );
+};
 
-// Grouped transaction type
 interface GroupedTransaction {
-  itemName: string
-  transactions: Transaction[]
-  totalAmount: number
-  currencyType: string
+  itemName: string;
+  transactions: Transaction[];
+  totalAmount: number;
+  currencyType: string;
 }
 
 interface GroupedTransactionRowProps {
-  group: GroupedTransaction
-  onAgentClick: (agent: { id: number; type: string; name: string }) => void
+  group: GroupedTransaction;
+  onAgentClick: (agent: { id: number; type: string; name: string }) => void;
 }
 
-const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowProps) => {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const isPositive = group.totalAmount > 0
-  const isTickets = group.currencyType === 'Tickets'
-  const colorClass = isTickets ? 'text-[#cc9e71]' : isPositive ? 'text-emerald-400' : 'text-red-400'
+const GroupedTransactionRow = ({
+  group,
+  onAgentClick,
+}: GroupedTransactionRowProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isPositive = group.totalAmount > 0;
+  const isTickets = group.currencyType === "Tickets";
+  const colorClass = isTickets
+    ? "text-[#cc9e71]"
+    : isPositive
+      ? "text-emerald-400"
+      : "text-red-400";
 
-  // If only one transaction, render a normal row
   if (group.transactions.length === 1) {
-    return <TransactionRow transaction={group.transactions[0]} onAgentClick={onAgentClick} />
+    return (
+      <TransactionRow
+        transaction={group.transactions[0]}
+        onAgentClick={onAgentClick}
+      />
+    );
   }
 
-  const latestTransaction = group.transactions[0]
+  const latestTransaction = group.transactions[0];
 
   return (
     <>
-      {/* Group Header Row */}
+      {}
       <tr
         className="hover:bg-[var(--color-surface-hover)]/30 transition-colors border-b border-[var(--color-border)]/50 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -225,16 +250,18 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
           <div className="flex items-center gap-2">
             <ChevronRight
               size={14}
-              className={`text-[var(--color-text-muted)] transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+              className={`text-[var(--color-text-muted)] transition-transform ${isExpanded ? "rotate-90" : ""}`}
             />
-            {new Date(latestTransaction.created).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
+            {new Date(latestTransaction.created).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
             })}
           </div>
         </td>
-        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">{latestTransaction.transactionType}</td>
+        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
+          {latestTransaction.transactionType}
+        </td>
         <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)] max-w-[140px] truncate">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -250,20 +277,24 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
             </TooltipContent>
           </Tooltip>
         </td>
-        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">Multiple</td>
+        <td className="py-3 px-4 text-sm text-[var(--color-text-secondary)]">
+          Multiple
+        </td>
         <td className={`py-3 px-4 text-sm text-right font-mono ${colorClass}`}>
           <div className="flex items-center justify-end gap-1.5">
-            {group.currencyType === 'Robux' && <RobuxIcon className="w-3.5 h-3.5" />}
+            {group.currencyType === "Robux" && (
+              <RobuxIcon className="w-3.5 h-3.5" />
+            )}
             {isTickets && <TixIcon className="w-4 h-4" />}
             <span>
-              {isPositive ? '+' : ''}
+              {isPositive ? "+" : ""}
               {formatNumber(group.totalAmount)}
             </span>
           </div>
         </td>
       </tr>
 
-      {/* Expanded Child Rows */}
+      {}
       <AnimatePresence>
         {isExpanded && (
           <>
@@ -271,27 +302,32 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
               <motion.tr
                 key={transaction.idHash}
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className="bg-[var(--color-surface)]/30 border-b border-[var(--color-border)]/30 last:border-0"
               >
                 <td className="py-2.5 px-4 text-sm text-[var(--color-text-secondary)]">
                   <div className="flex items-center gap-2">
-                    {/* Vertical line and indent */}
+                    {}
                     <div className="relative flex items-center">
                       <div
                         className={`absolute left-0 w-0.5 bg-[var(--color-surface-hover)] ${
-                          index === group.transactions.length - 1 ? 'h-1/2 top-0' : 'h-full'
+                          index === group.transactions.length - 1
+                            ? "h-1/2 top-0"
+                            : "h-full"
                         }`}
                       />
                       <div className="w-4 h-0.5 bg-[var(--color-surface-hover)] ml-0.5" />
                     </div>
                     <span className="ml-2">
-                      {new Date(transaction.created).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
+                      {new Date(transaction.created).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        },
+                      )}
                     </span>
                     {transaction.isPending && (
                       <Tooltip>
@@ -307,20 +343,26 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
                   {transaction.transactionType}
                 </td>
                 <td className="py-2.5 px-4 text-sm text-[var(--color-text-secondary)] max-w-[140px] truncate">
-                  {transaction.details?.name || '—'}
+                  {transaction.details?.name || "—"}
                 </td>
                 <td className="py-2.5 px-4 text-sm">
                   <button
                     onClick={(e) => {
-                      e.stopPropagation()
-                      onAgentClick(transaction.agent)
+                      e.stopPropagation();
+                      onAgentClick(transaction.agent);
                     }}
                     className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:underline transition-colors flex items-center gap-1.5"
                   >
-                    {transaction.agent.type === 'Group' ? (
-                      <Users size={12} className="text-[var(--color-text-muted)]" />
+                    {transaction.agent.type === "Group" ? (
+                      <Users
+                        size={12}
+                        className="text-[var(--color-text-muted)]"
+                      />
                     ) : (
-                      <User size={12} className="text-[var(--color-text-muted)]" />
+                      <User
+                        size={12}
+                        className="text-[var(--color-text-muted)]"
+                      />
                     )}
                     {transaction.agent.name}
                   </button>
@@ -328,17 +370,19 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
                 <td
                   className={`py-2.5 px-4 text-sm text-right font-mono ${
                     isTickets
-                      ? 'text-[#cc9e71]/80'
+                      ? "text-[#cc9e71]/80"
                       : transaction.currency.amount > 0
-                        ? 'text-emerald-400/80'
-                        : 'text-red-400/80'
+                        ? "text-emerald-400/80"
+                        : "text-red-400/80"
                   }`}
                 >
                   <div className="flex items-center justify-end gap-1.5">
-                    {transaction.currency.type === 'Robux' && <RobuxIcon className="w-3 h-3" />}
+                    {transaction.currency.type === "Robux" && (
+                      <RobuxIcon className="w-3 h-3" />
+                    )}
                     {isTickets && <TixIcon className="w-3.5 h-3.5" />}
                     <span>
-                      {transaction.currency.amount > 0 ? '+' : ''}
+                      {transaction.currency.amount > 0 ? "+" : ""}
                       {formatNumber(transaction.currency.amount)}
                     </span>
                   </div>
@@ -349,37 +393,36 @@ const GroupedTransactionRow = ({ group, onAgentClick }: GroupedTransactionRowPro
         )}
       </AnimatePresence>
     </>
-  )
-}
+  );
+};
 
 interface TransactionsTabProps {
-  accounts: Account[]
+  accounts: Account[];
 }
 
 const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
-  const validAccounts = accounts.filter(a => a.cookie)
-  const cookies = validAccounts.map(a => a.cookie!)
-  const primaryAccount = validAccounts[0] || null
+  const validAccounts = accounts.filter((a) => a.cookie);
+  const cookies = validAccounts.map((a) => a.cookie!);
+  const primaryAccount = validAccounts[0] || null;
 
-  // Store state
-  const selectedType = useSelectedTransactionType()
-  const setSelectedType = useSetSelectedTransactionType()
-  const timeFrame = useTimeFrame()
-  const setTimeFrame = useSetTimeFrame()
+  const selectedType = useSelectedTransactionType();
+  const setSelectedType = useSetSelectedTransactionType();
+  const timeFrame = useTimeFrame();
+  const setTimeFrame = useSetTimeFrame();
 
-  // Dropdown states
-  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false)
-  const [isTimeFrameDropdownOpen, setIsTimeFrameDropdownOpen] = useState(false)
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isTimeFrameDropdownOpen, setIsTimeFrameDropdownOpen] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
-  // Modal states
-  const [profileModalUserId, setProfileModalUserId] = useState<number | string | null>(null)
-  const [groupModalGroupId, setGroupModalGroupId] = useState<number | null>(null)
+  const [profileModalUserId, setProfileModalUserId] = useState<
+    number | string | null
+  >(null);
+  const [groupModalGroupId, setGroupModalGroupId] = useState<number | null>(
+    null,
+  );
 
-  // Queries
-  // Default to false since we aren't fetching types
-  const isLoadingTypes = false
-  const typesError = null
+  const isLoadingTypes = false;
+  const typesError = null;
 
   const {
     data: totals,
@@ -387,8 +430,8 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
     refetch: refetchTotals,
     error: totalsError,
     loadedCount: totalsLoadedCount,
-    totalCount: totalsTotalCount
-  } = useBatchTransactionTotals(cookies, timeFrame)
+    totalCount: totalsTotalCount,
+  } = useBatchTransactionTotals(cookies, timeFrame);
 
   const {
     data: transactionsData,
@@ -397,104 +440,110 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
     hasNextPage,
     fetchNextPage,
     refetch: refetchTransactions,
-    error: transactionsError
+    error: transactionsError,
   } = useBatchTransactions(
     cookies,
-    selectedType === 'all' ? 'Sale' : selectedType,
-    selectedType !== 'all'
-  )
+    selectedType === "all" ? "Sale" : selectedType,
+    selectedType !== "all",
+  );
 
-  // Just hardcode available types instead of making N requests
   const availableTypes = useMemo(() => {
-    return Object.keys(TRANSACTION_TYPE_LABELS).filter((t) => t !== 'all') as TransactionTypeEnum[]
-  }, [])
+    return Object.keys(TRANSACTION_TYPE_LABELS).filter(
+      (t) => t !== "all",
+    ) as TransactionTypeEnum[];
+  }, []);
 
-  // Flatten and sort transactions
   const transactions = useMemo(() => {
-    if (!transactionsData) return []
-    const flatTransactions = transactionsData.pages.flatMap((page) => page.data)
+    if (!transactionsData) return [];
+    const flatTransactions = transactionsData.pages.flatMap(
+      (page) => page.data,
+    );
 
     return [...flatTransactions].sort((a, b) => {
-      const dateA = new Date(a.created).getTime()
-      const dateB = new Date(b.created).getTime()
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
-    })
-  }, [transactionsData, sortOrder])
+      const dateA = new Date(a.created).getTime();
+      const dateB = new Date(b.created).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+  }, [transactionsData, sortOrder]);
 
-  // Group transactions by item name
   const groupedTransactions = useMemo(() => {
-    const groups = new Map<string, GroupedTransaction>()
+    const groups = new Map<string, GroupedTransaction>();
 
     for (const transaction of transactions) {
-      const itemName = transaction.details?.name || '—'
-      const existing = groups.get(itemName)
+      const itemName = transaction.details?.name || "—";
+      const existing = groups.get(itemName);
 
       if (existing) {
-        existing.transactions.push(transaction)
-        existing.totalAmount += transaction.currency.amount
+        existing.transactions.push(transaction);
+        existing.totalAmount += transaction.currency.amount;
       } else {
         groups.set(itemName, {
           itemName,
           transactions: [transaction],
           totalAmount: transaction.currency.amount,
-          currencyType: transaction.currency.type
-        })
+          currencyType: transaction.currency.type,
+        });
       }
     }
 
-    // Convert to array and sort by the latest transaction date
     return Array.from(groups.values()).sort((a, b) => {
-      const dateA = new Date(a.transactions[0].created).getTime()
-      const dateB = new Date(b.transactions[0].created).getTime()
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
-    })
-  }, [transactions, sortOrder])
+      const dateA = new Date(a.transactions[0].created).getTime();
+      const dateB = new Date(b.transactions[0].created).getTime();
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
+  }, [transactions, sortOrder]);
 
-  // Handle agent click - open profile or group modal
-  const handleAgentClick = useCallback((agent: { id: number; type: string; name: string }) => {
-    if (agent.type === 'Group') {
-      setGroupModalGroupId(agent.id)
-    } else {
-      setProfileModalUserId(agent.id)
-    }
-  }, [])
+  const handleAgentClick = useCallback(
+    (agent: { id: number; type: string; name: string }) => {
+      if (agent.type === "Group") {
+        setGroupModalGroupId(agent.id);
+      } else {
+        setProfileModalUserId(agent.id);
+      }
+    },
+    [],
+  );
 
-  // Parse rate limit error
   const parseRateLimitError = useCallback(
     (error: unknown): { isRateLimited: boolean; resetSeconds: number } => {
-      if (!error) return { isRateLimited: false, resetSeconds: 0 }
+      if (!error) return { isRateLimited: false, resetSeconds: 0 };
 
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
-      // Check if error message contains rate limit info with seconds
-      const rateLimitMatch = errorMessage.match(/Rate limited.*?(\d+)\s*seconds/i)
+      const rateLimitMatch = errorMessage.match(
+        /Rate limited.*?(\d+)\s*seconds/i,
+      );
       if (rateLimitMatch) {
-        return { isRateLimited: true, resetSeconds: parseInt(rateLimitMatch[1], 10) }
+        return {
+          isRateLimited: true,
+          resetSeconds: parseInt(rateLimitMatch[1], 10),
+        };
       }
 
-      // Check for generic rate limit error
-      if (errorMessage.toLowerCase().includes('rate limit') || errorMessage.includes('429')) {
-        return { isRateLimited: true, resetSeconds: 60 }
+      if (
+        errorMessage.toLowerCase().includes("rate limit") ||
+        errorMessage.includes("429")
+      ) {
+        return { isRateLimited: true, resetSeconds: 60 };
       }
 
-      return { isRateLimited: false, resetSeconds: 0 }
+      return { isRateLimited: false, resetSeconds: 0 };
     },
-    []
-  )
+    [],
+  );
 
-  // Get rate limit status from any error
   const rateLimitStatus = useMemo(() => {
-    const errors = [typesError, totalsError, transactionsError]
+    const errors = [typesError, totalsError, transactionsError];
     for (const error of errors) {
-      const status = parseRateLimitError(error)
-      if (status.isRateLimited) return status
+      const status = parseRateLimitError(error);
+      if (status.isRateLimited) return status;
     }
-    return { isRateLimited: false, resetSeconds: 0 }
-  }, [typesError, totalsError, transactionsError, parseRateLimitError])
+    return { isRateLimited: false, resetSeconds: 0 };
+  }, [typesError, totalsError, transactionsError, parseRateLimitError]);
 
-  // Summary totals computed from API response
   const incomingTotal = useMemo(() => {
-    if (!totals) return 0
+    if (!totals) return 0;
     return (
       (totals.salesTotal || 0) +
       (totals.affiliateSalesTotal || 0) +
@@ -512,11 +561,11 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
       (totals.pendingRobuxTotal || 0) +
       (totals.affiliatePayoutTotal || 0) +
       (totals.licensingPaymentTotal || 0)
-    )
-  }, [totals])
+    );
+  }, [totals]);
 
   const outgoingTotal = useMemo(() => {
-    if (!totals) return 0
+    if (!totals) return 0;
     return (
       Math.abs(totals.purchasesTotal || 0) +
       Math.abs(totals.tradeSystemCostsTotal || 0) +
@@ -524,72 +573,80 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
       Math.abs(totals.developerExchangeTotal || 0) +
       Math.abs(totals.individualToGroupTotal || 0) +
       Math.abs(totals.publishingAdvanceRebatesTotal || 0)
-    )
-  }, [totals])
+    );
+  }, [totals]);
 
   const handleRefresh = useCallback(() => {
-    refetchTotals()
-    if (selectedType !== 'all') {
-      refetchTransactions()
+    refetchTotals();
+    if (selectedType !== "all") {
+      refetchTransactions();
     }
-  }, [refetchTotals, refetchTransactions, selectedType])
+  }, [refetchTotals, refetchTransactions, selectedType]);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
-      setIsTypeDropdownOpen(false)
-      setIsTimeFrameDropdownOpen(false)
-    }
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [])
+      setIsTypeDropdownOpen(false);
+      setIsTimeFrameDropdownOpen(false);
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
-  // Toggle sort order
   const toggleSortOrder = useCallback(() => {
-    setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'))
-  }, [])
+    setSortOrder((prev) => (prev === "newest" ? "oldest" : "newest"));
+  }, []);
 
   if (cookies.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
         <div className="text-center">
-          <User size={48} className="mx-auto mb-4 text-[var(--color-text-muted)]" />
+          <User
+            size={48}
+            className="mx-auto mb-4 text-[var(--color-text-muted)]"
+          />
           <p>Select an account to view transactions</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
-        {/* Toolbar */}
+        {}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6 gap-4">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <ArrowRightLeft size={22} className="text-[var(--color-text-secondary)]" />
+              <ArrowRightLeft
+                size={22}
+                className="text-[var(--color-text-secondary)]"
+              />
               Transactions
             </h1>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Time Frame Dropdown - only shown for summary view */}
-            {selectedType === 'all' && (
+            {}
+            {selectedType === "all" && (
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => {
-                    setIsTimeFrameDropdownOpen(!isTimeFrameDropdownOpen)
-                    setIsTypeDropdownOpen(false)
+                    setIsTimeFrameDropdownOpen(!isTimeFrameDropdownOpen);
+                    setIsTypeDropdownOpen(false);
                   }}
                   className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors"
                 >
-                  <Calendar size={16} className="text-[var(--color-text-muted)]" />
+                  <Calendar
+                    size={16}
+                    className="text-[var(--color-text-muted)]"
+                  />
                   <span>
-                    {TIME_FRAME_OPTIONS.find((o) => o.value === timeFrame)?.label || 'This Month'}
+                    {TIME_FRAME_OPTIONS.find((o) => o.value === timeFrame)
+                      ?.label || "This Month"}
                   </span>
                   <ChevronDown
                     size={14}
-                    className={`text-[var(--color-text-muted)] transition-transform ${isTimeFrameDropdownOpen ? 'rotate-180' : ''}`}
+                    className={`text-[var(--color-text-muted)] transition-transform ${isTimeFrameDropdownOpen ? "rotate-180" : ""}`}
                   />
                 </button>
 
@@ -606,13 +663,13 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                           <button
                             key={option.value}
                             onClick={() => {
-                              setTimeFrame(option.value)
-                              setIsTimeFrameDropdownOpen(false)
+                              setTimeFrame(option.value);
+                              setIsTimeFrameDropdownOpen(false);
                             }}
                             className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
                               timeFrame === option.value
-                                ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
+                                ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                                : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]"
                             }`}
                           >
                             {option.label}
@@ -625,19 +682,21 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
               </div>
             )}
 
-            {/* Transaction Type Dropdown */}
+            {}
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => {
-                  setIsTypeDropdownOpen(!isTypeDropdownOpen)
-                  setIsTimeFrameDropdownOpen(false)
+                  setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                  setIsTimeFrameDropdownOpen(false);
                 }}
                 className="flex items-center gap-2 px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--control-radius)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors min-w-[180px]"
               >
-                <span className="flex-1 text-left">{TRANSACTION_TYPE_LABELS[selectedType]}</span>
+                <span className="flex-1 text-left">
+                  {TRANSACTION_TYPE_LABELS[selectedType]}
+                </span>
                 <ChevronDown
                   size={14}
-                  className={`text-[var(--color-text-muted)] transition-transform ${isTypeDropdownOpen ? 'rotate-180' : ''}`}
+                  className={`text-[var(--color-text-muted)] transition-transform ${isTypeDropdownOpen ? "rotate-180" : ""}`}
                 />
               </button>
 
@@ -652,13 +711,13 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                     <div className="p-1">
                       <button
                         onClick={() => {
-                          setSelectedType('all')
-                          setIsTypeDropdownOpen(false)
+                          setSelectedType("all");
+                          setIsTypeDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
-                          selectedType === 'all'
-                            ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
+                          selectedType === "all"
+                            ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]"
                         }`}
                       >
                         All Transactions (Summary)
@@ -670,13 +729,13 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                         <button
                           key={type}
                           onClick={() => {
-                            setSelectedType(type)
-                            setIsTypeDropdownOpen(false)
+                            setSelectedType(type);
+                            setIsTypeDropdownOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 text-sm rounded-[calc(var(--menu-radius)-6px)] transition-colors ${
                             selectedType === type
-                              ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]'
-                              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]'
+                              ? "bg-[var(--color-surface-hover)] text-[var(--color-text-primary)]"
+                              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]/50 hover:text-[var(--color-text-primary)]"
                           }`}
                         >
                           {TRANSACTION_TYPE_LABELS[type]}
@@ -701,18 +760,18 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
           </div>
         </div>
 
-
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-          {/* Rate Limit Banner */}
           {rateLimitStatus.isRateLimited && (
             <div className="max-w-4xl mx-auto mb-4">
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center gap-3">
                 <AlertTriangle size={20} className="text-amber-400 shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm text-amber-200">
-                    Rate limited by Roblox. Please try again in{' '}
-                    <span className="font-semibold">{rateLimitStatus.resetSeconds} seconds</span>.
+                    Rate limited by Roblox. Please try again in{" "}
+                    <span className="font-semibold">
+                      {rateLimitStatus.resetSeconds} seconds
+                    </span>
+                    .
                   </p>
                 </div>
                 <button
@@ -725,18 +784,22 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
             </div>
           )}
 
-
           {isLoadingTypes || isLoadingTotals ? (
             <div className="flex flex-col items-center justify-center h-64 gap-4">
               <div className="relative">
-                <Loader2 size={32} className="animate-spin text-[var(--color-text-muted)]" />
+                <Loader2
+                  size={32}
+                  className="animate-spin text-[var(--color-text-muted)]"
+                />
               </div>
               {totalsTotalCount > 1 && (
                 <div className="flex flex-col items-center gap-2 w-48">
                   <div className="w-full h-1.5 bg-[var(--color-surface-hover)] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[var(--accent-color)] rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${Math.max(4, Math.round((totalsLoadedCount / totalsTotalCount) * 100))}%` }}
+                      style={{
+                        width: `${Math.max(4, Math.round((totalsLoadedCount / totalsTotalCount) * 100))}%`,
+                      }}
                     />
                   </div>
                   <p className="text-xs text-[var(--color-text-muted)]">
@@ -745,10 +808,8 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                 </div>
               )}
             </div>
-          ) : selectedType === 'all' ? (
-            /* Summary View */
+          ) : selectedType === "all" ? (
             <div className="max-w-4xl mx-auto space-y-6">
-              {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl p-5">
                   <div className="flex items-center gap-3">
@@ -756,7 +817,9 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                       <TrendingUp size={20} className="text-emerald-400" />
                     </div>
                     <div>
-                      <div className="text-sm text-[var(--color-text-secondary)]">Total Incoming</div>
+                      <div className="text-sm text-[var(--color-text-secondary)]">
+                        Total Incoming
+                      </div>
                       <div className="text-2xl font-bold text-emerald-400 flex items-center gap-2">
                         <RobuxIcon className="w-5 h-5" />
                         {formatNumber(incomingTotal)}
@@ -771,19 +834,23 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                       <TrendingDown size={20} className="text-red-400" />
                     </div>
                     <div>
-                      <div className="text-sm text-[var(--color-text-secondary)]">Total Outgoing</div>
+                      <div className="text-sm text-[var(--color-text-secondary)]">
+                        Total Outgoing
+                      </div>
                       <div className="text-2xl font-bold text-red-400 flex items-center gap-2">
-                        <RobuxIcon className="w-5 h-5" />-{formatNumber(outgoingTotal)}
+                        <RobuxIcon className="w-5 h-5" />-
+                        {formatNumber(outgoingTotal)}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Incoming Robux Table */}
               <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-[var(--color-border)]">
-                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Incoming Robux</h2>
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                    Incoming Robux
+                  </h2>
                 </div>
                 <table className="w-full">
                   <thead className="bg-[var(--color-surface)]/50">
@@ -797,7 +864,10 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                     </tr>
                   </thead>
                   <tbody>
-                    <SummaryTableRow label="Sales" value={totals?.salesTotal || 0} />
+                    <SummaryTableRow
+                      label="Sales"
+                      value={totals?.salesTotal || 0}
+                    />
                     <SummaryTableRow
                       label="Premium Stipends"
                       value={totals?.premiumStipendsTotal || 0}
@@ -814,7 +884,10 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                       label="Group Premium Payouts"
                       value={totals?.groupPremiumPayoutsTotal || 0}
                     />
-                    <SummaryTableRow label="Group Payouts" value={totals?.groupPayoutsTotal || 0} />
+                    <SummaryTableRow
+                      label="Group Payouts"
+                      value={totals?.groupPayoutsTotal || 0}
+                    />
                     <SummaryTableRow
                       label="Affiliate Sales"
                       value={totals?.affiliateSalesTotal || 0}
@@ -847,20 +920,28 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                       label="License Payments"
                       value={totals?.licensingPaymentTotal || 0}
                     />
-                    <SummaryTableRow label="Pending Robux" value={totals?.pendingRobuxTotal || 0} />
+                    <SummaryTableRow
+                      label="Pending Robux"
+                      value={totals?.pendingRobuxTotal || 0}
+                    />
                     <SummaryTableRow
                       label="Roblox Adjustments"
                       value={totals?.csAdjustmentTotal || 0}
                     />
-                    <SummaryTableRow label="Total" value={incomingTotal} isTotal />
+                    <SummaryTableRow
+                      label="Total"
+                      value={incomingTotal}
+                      isTotal
+                    />
                   </tbody>
                 </table>
               </div>
 
-              {/* Outgoing Robux Table */}
               <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-[var(--color-border)]">
-                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Outgoing Robux</h2>
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                    Outgoing Robux
+                  </h2>
                 </div>
                 <table className="w-full">
                   <thead className="bg-[var(--color-surface)]/50">
@@ -901,36 +982,48 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                     />
                     <SummaryTableRow
                       label="Publishing Advance Rebates"
-                      value={Math.abs(totals?.publishingAdvanceRebatesTotal || 0)}
+                      value={Math.abs(
+                        totals?.publishingAdvanceRebatesTotal || 0,
+                      )}
                       isNegative
                     />
-                    <SummaryTableRow label="Total" value={outgoingTotal} isNegative isTotal />
+                    <SummaryTableRow
+                      label="Total"
+                      value={outgoingTotal}
+                      isNegative
+                      isTotal
+                    />
                   </tbody>
                 </table>
               </div>
 
-              {/* Net Summary */}
               <div className="bg-[var(--color-surface)]/50 border border-[var(--color-border)] rounded-xl p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold text-[var(--color-text-primary)]">Net Total</span>
+                  <span className="text-lg font-semibold text-[var(--color-text-primary)]">
+                    Net Total
+                  </span>
                   <div
                     className={`text-2xl font-bold flex items-center gap-2 ${
-                      incomingTotal - outgoingTotal >= 0 ? 'text-emerald-400' : 'text-red-400'
+                      incomingTotal - outgoingTotal >= 0
+                        ? "text-emerald-400"
+                        : "text-red-400"
                     }`}
                   >
                     <RobuxIcon className="w-5 h-5" />
-                    {incomingTotal - outgoingTotal >= 0 ? '+' : ''}
+                    {incomingTotal - outgoingTotal >= 0 ? "+" : ""}
                     {formatNumber(incomingTotal - outgoingTotal)}
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            /* Transaction List View */
             <div className="max-w-5xl mx-auto">
               {isLoadingTransactions && transactions.length === 0 ? (
                 <div className="flex items-center justify-center h-64">
-                  <Loader2 size={32} className="animate-spin text-[var(--color-text-muted)]" />
+                  <Loader2
+                    size={32}
+                    className="animate-spin text-[var(--color-text-muted)]"
+                  />
                 </div>
               ) : transactions.length === 0 ? (
                 <EmptyState
@@ -949,10 +1042,16 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                             className="flex items-center gap-1.5 hover:text-[var(--color-text-secondary)] transition-colors"
                           >
                             Date
-                            {sortOrder === 'newest' ? (
-                              <ArrowDown size={14} className="text-[var(--color-text-secondary)]" />
+                            {sortOrder === "newest" ? (
+                              <ArrowDown
+                                size={14}
+                                className="text-[var(--color-text-secondary)]"
+                              />
                             ) : (
-                              <ArrowUp size={14} className="text-[var(--color-text-secondary)]" />
+                              <ArrowUp
+                                size={14}
+                                className="text-[var(--color-text-secondary)]"
+                              />
                             )}
                           </button>
                         </th>
@@ -981,7 +1080,6 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
                     </tbody>
                   </table>
 
-                  {/* Pagination */}
                   {hasNextPage && (
                     <div className="p-4 border-t border-[var(--color-border)] flex justify-center">
                       <Button
@@ -1011,7 +1109,6 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
         </div>
       </div>
 
-      {/* Profile Modal */}
       <UniversalProfileModal
         isOpen={profileModalUserId !== null}
         onClose={() => setProfileModalUserId(null)}
@@ -1019,19 +1116,18 @@ const TransactionsTab = ({ accounts }: TransactionsTabProps) => {
         selectedAccount={primaryAccount}
       />
 
-      {/* Group Details Modal */}
       <GroupDetailsModal
         isOpen={groupModalGroupId !== null}
         onClose={() => setGroupModalGroupId(null)}
         groupId={groupModalGroupId}
         selectedAccount={primaryAccount}
         onViewProfile={(userId) => {
-          setGroupModalGroupId(null)
-          setProfileModalUserId(userId)
+          setGroupModalGroupId(null);
+          setProfileModalUserId(userId);
         }}
       />
     </TooltipProvider>
-  )
-}
+  );
+};
 
-export default TransactionsTab
+export default TransactionsTab;

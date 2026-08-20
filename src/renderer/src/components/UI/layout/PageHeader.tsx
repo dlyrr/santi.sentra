@@ -17,7 +17,12 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("flex items-center justify-between z-20 shrink-0", className)}>
+    <div
+      className={cn(
+        "flex items-center justify-between z-20 shrink-0",
+        className,
+      )}
+    >
       <div className="flex items-center gap-3">
         {icon && (
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--accent-color)] shadow-sm shrink-0">
@@ -35,7 +40,9 @@ export function PageHeader({
           )}
         </div>
       </div>
-      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      {actions && (
+        <div className="flex items-center gap-2 shrink-0">{actions}</div>
+      )}
     </div>
   );
 }

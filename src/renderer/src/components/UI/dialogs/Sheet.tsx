@@ -32,12 +32,11 @@ interface SheetProps {
   className?: string;
 }
 
-const SHEET_MARGIN_TOP = 48; // px from top when fully open
-const DRAG_CLOSE_THRESHOLD = 150; // px drag distance to trigger close
-const DRAG_VELOCITY_THRESHOLD = 500; // velocity to trigger close
-const CONTENT_RENDER_DELAY = 50; // ms delay before rendering heavy content
+const SHEET_MARGIN_TOP = 48;
+const DRAG_CLOSE_THRESHOLD = 150;
+const DRAG_VELOCITY_THRESHOLD = 500;
+const CONTENT_RENDER_DELAY = 50;
 
-// Track open sheets to handle nested sheets properly
 let openSheetsCount = 0;
 
 const Sheet: React.FC<SheetProps> = ({
@@ -56,7 +55,6 @@ const Sheet: React.FC<SheetProps> = ({
     null,
   );
 
-  // Handle open/close transitions and sheet stack management
   React.useEffect(() => {
     const wasOpen = prevIsOpenRef.current;
     prevIsOpenRef.current = isOpen;
@@ -66,19 +64,17 @@ const Sheet: React.FC<SheetProps> = ({
       setIsVisible(true);
       document.body.style.overflow = "hidden";
       document.body.setAttribute("data-sheet-open", "true");
-      // Defer heavy content rendering to allow animation to start smoothly
+
       const contentTimer = setTimeout(() => {
         setShouldRenderContent(true);
       }, CONTENT_RENDER_DELAY);
 
       return () => clearTimeout(contentTimer);
     } else if (!isOpen && wasOpen) {
-      // Closing: immediately hide content, delay container
       setShouldRenderContent(false);
       openSheetsCount = Math.max(0, openSheetsCount - 1);
       document.body.removeAttribute("data-sheet-open");
 
-      // Closing: delay hiding to allow animation
       const timer = setTimeout(() => {
         setIsVisible(false);
         if (openSheetsCount === 0) {
@@ -90,7 +86,6 @@ const Sheet: React.FC<SheetProps> = ({
     return undefined;
   }, [isOpen]);
 
-  // if the deferred timer fails, force-enable content shortly after open.
   React.useEffect(() => {
     if (!isOpen || shouldRenderContent) return;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
@@ -107,7 +102,6 @@ const Sheet: React.FC<SheetProps> = ({
     };
   }, [isOpen, shouldRenderContent]);
 
-  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       openSheetsCount = Math.max(0, openSheetsCount - 1);
@@ -120,7 +114,6 @@ const Sheet: React.FC<SheetProps> = ({
     };
   }, []);
 
-  // Register with modal stack
   React.useEffect(() => {
     if (isOpen) {
       const unregister = registerModal(onClose);
@@ -129,7 +122,6 @@ const Sheet: React.FC<SheetProps> = ({
     return undefined;
   }, [isOpen, onClose]);
 
-  // Handle escape key - only close if topmost modal
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen && isTopModal(onClose)) {
@@ -161,7 +153,6 @@ const Sheet: React.FC<SheetProps> = ({
 
   if (!isVisible) return null;
 
-  // Use portal to render outside of #app-container so it's not affected by the zoom
   return createPortal(
     <SheetContext.Provider
       value={{ isOpen, onClose, dragControls, shouldRenderContent }}
@@ -172,7 +163,7 @@ const Sheet: React.FC<SheetProps> = ({
         data-sheet-active={isOpen ? "true" : "false"}
         data-sheet-container="true"
       >
-        {/* Window drag region */}
+        {}
         <div
           className="absolute top-0 left-0 right-0 h-[30px] z-[70] pointer-events-auto"
           style={
@@ -186,7 +177,7 @@ const Sheet: React.FC<SheetProps> = ({
         <AnimatePresence>
           {isOpen && (
             <>
-              {/* Backdrop */}
+              {}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -200,7 +191,7 @@ const Sheet: React.FC<SheetProps> = ({
                 }}
               />
 
-              {/* Sheet Container */}
+              {}
               <motion.div
                 ref={sheetRef}
                 initial={{ y: window.innerHeight }}
@@ -253,7 +244,6 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
           className,
         )}
         onContextMenu={(e) => {
-          // Stop context menu from propagating to elements behind the sheet
           e.stopPropagation();
         }}
         {...props}
@@ -272,7 +262,6 @@ const SheetHandle = React.forwardRef<
   const { dragControls } = useSheet();
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Start dragging the sheet when handle is pressed
     if (dragControls) {
       dragControls.start(e);
     }

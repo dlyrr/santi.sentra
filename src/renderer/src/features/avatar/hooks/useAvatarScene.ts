@@ -17,7 +17,6 @@ export const useAvatarScene = ({
   userId,
   cookie,
 }: UseAvatarSceneOptions) => {
-  // Return mountRef so parent can use it
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -120,7 +119,6 @@ export const useAvatarScene = ({
     }
   }, []);
 
-  // Setup Three.js scene
   useEffect(() => {
     if (!mountRef.current) return;
 
@@ -228,7 +226,6 @@ export const useAvatarScene = ({
     };
   }, [mountRef]);
 
-  // Render avatar when userId or cookie changes
   useEffect(() => {
     if (userId && cookie) {
       renderAvatar(userId);

@@ -21,48 +21,29 @@ const handle = <T extends any[]>(
   });
 };
 
-/**
- * Register Watcher IPC handlers
- */
 export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
-  // Initialize watcher service with main window
   watcherService.initialize(mainWindow);
 
-  /**
-   * Get all active sessions
-   */
   handle("watcher:get-sessions", z.tuple([]), async () => {
     const sessions = watcherService.getSessions();
     return sessions;
   });
 
-  /**
-   * Get a specific session
-   */
   handle("watcher:get-session", z.tuple([z.string()]), async (_, sessionId) => {
     const session = watcherService.getSession(sessionId);
     return session || null;
   });
 
-  /**
-   * Start watching
-   */
   handle("watcher:start", z.tuple([]), async () => {
     watcherService.startWatching();
     return { success: true };
   });
 
-  /**
-   * Stop watching
-   */
   handle("watcher:stop", z.tuple([]), async () => {
     watcherService.stopWatching();
     return { success: true };
   });
 
-  /**
-   * Add a new session
-   */
   ipcMain.handle(
     "watcher:add-session",
     async (
@@ -84,6 +65,10 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
       friendId?: string,
     ) => {
       try {
+        if (!pid || typeof pid !== "number" || pid <= 0) {
+          throw new Error(`Invalid PID: expected positive integer, got ${pid}`);
+        }
+
         const session = watcherService.addSession(
           accountId,
           username,
@@ -106,9 +91,6 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Remove a session
-   */
   handle(
     "watcher:remove-session",
     z.any(),
@@ -118,16 +100,10 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Get watcher configuration
-   */
   handle("watcher:get-config", z.tuple([]), async () => {
     return watcherService.getConfig();
   });
 
-  /**
-   * Update watcher configuration
-   */
   handle(
     "watcher:set-config",
     z.tuple([
@@ -152,32 +128,20 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Get event log
-   */
   handle("watcher:get-events", z.tuple([]), async () => {
     return watcherService.getEventLog();
   });
 
-  /**
-   * Clear event log
-   */
   handle("watcher:clear-events", z.tuple([]), async () => {
     watcherService.clearEventLog();
     return { success: true };
   });
 
-  /**
-   * Clear all (sessions and events)
-   */
   handle("watcher:clear-all", z.tuple([]), async () => {
     watcherService.clearAll();
     return { success: true };
   });
 
-  /**
-   * Auto-track a newly launched game
-   */
   handle(
     "watcher:auto-track-launch",
     z.tuple([
@@ -218,9 +182,6 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Join a private server with an account
-   */
   handle(
     "watcher:join-private-server",
     z.tuple([z.string(), z.string(), z.number()]),
@@ -234,9 +195,6 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Join a public game with an account
-   */
   handle(
     "watcher:join-game",
     z.tuple([z.string(), z.number()]),
@@ -246,9 +204,6 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Rejoin a watched session's private server
-   */
   handle(
     "watcher:rejoin-private-server",
     z.tuple([z.string(), z.string()]),
@@ -261,9 +216,6 @@ export function registerWatcherHandlers(mainWindow: BrowserWindow): void {
     },
   );
 
-  /**
-   * Launch a game with a URL (supports private server links)
-   */
   handle(
     "watcher:launch-game-with-url",
     z.tuple([z.string(), z.number(), z.string()]),

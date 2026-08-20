@@ -7,7 +7,7 @@ import GenericContextMenu, {
 
 interface GameContextMenuProps {
   activeMenu: {
-    id: string; // This is the game ID / Universe ID usually
+    id: string;
     placeId?: string;
     universeId?: string;
     isFavorite: boolean;

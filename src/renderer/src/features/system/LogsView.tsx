@@ -88,7 +88,6 @@ const parseLogLines = (content: string): LogEntry[] => {
   const lines = content.split("\n");
   return lines
     .map((line) => {
-      // Example: 2025-11-21T03:32:41.169Z,0.169887,2588,6,Warning [FLog::RobloxStarter] Starting module: Network
       const match = line.match(
         /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z),[^,]+,[^,]+,[^,]+,(\w+) \[(.*?)\] (.*)$/,
       );
@@ -355,7 +354,6 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
     };
   }, [selectedLogMeta, rawLogContent, isLogContentFetching]);
 
-  // Group log entries by timestamp for better readability
   const logItemsWithTimestamps = useMemo(() => {
     if (!selectedLog) return [];
 
@@ -399,7 +397,6 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
       {} as Record<string, ProcessedLog[]>,
     );
 
-    // Sort groups: Today, Yesterday, then others
     const labels = Object.keys(grouped);
     labels.sort((a, b) => {
       if (a === "Today") return -1;
@@ -444,7 +441,9 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
     <div className="flex flex-col h-full bg-[var(--color-surface)] text-[var(--color-text-secondary)]">
       <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">System Logs</h1>
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+            System Logs
+          </h1>
         </div>
         <div className="flex items-center gap-3">
           <Tooltip>
@@ -657,7 +656,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
                 </div>
               </div>
 
-              {/* Log Toolbar */}
+              {}
               <div className="shrink-0 h-10 border-b border-[var(--color-border)] flex items-center justify-between px-4 bg-[var(--color-surface)]/50 text-xs">
                 <div className="flex items-center gap-3 overflow-hidden">
                   <span className="font-mono text-[var(--color-text-secondary)]">
@@ -688,7 +687,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
                 <div className="flex items-center gap-2"></div>
               </div>
 
-              <div className="flex-1 overflow-hidden font-mono text-sm bg-[#0d0d0d]">
+              <div className="flex-1 overflow-hidden font-mono text-sm bg-[var(--color-app-bg)]">
                 {selectedLog.isLoadingContent ? (
                   <div className="flex items-center justify-center h-full text-[var(--color-text-muted)]">
                     Loading content...
@@ -775,7 +774,7 @@ const LogsTab: React.FC<{ privacyMode?: boolean }> = ({
         </div>
       </div>
 
-      {/* Context Menu */}
+      {}
       {contextMenu &&
         createPortal(
           <div

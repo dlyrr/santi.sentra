@@ -38,9 +38,9 @@ const BentoCard: React.FC<
 > = ({ title, className, icon, children }) => {
   return (
     <div
-      className={`relative group bg-[var(--color-surface-strong)]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-2xl shadow-black/20 overflow-hidden transition-all duration-300 hover:border-white/10 hover:shadow-black/40 hover:-translate-y-0.5 ${className ?? ""}`}
+      className={`relative group bg-[var(--color-surface-strong)]/80 backdrop-blur-xl border border-[var(--color-border-subtle)] rounded-2xl p-5 shadow-2xl shadow-black/20 overflow-hidden transition-all duration-300 hover:border-[var(--color-border)] hover:shadow-black/40 hover:-translate-y-0.5 ${className ?? ""}`}
     >
-      {/* Subtle Glow Overlay on Hover */}
+      {}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
       <h3 className="relative text-[11px] font-bold text-[var(--color-text-primary)]/40 uppercase tracking-[0.2em] flex items-center gap-2 mb-4">

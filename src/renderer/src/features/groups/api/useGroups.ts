@@ -13,7 +13,6 @@ import {
   type GroupStoreResponse,
 } from "@shared/ipc-schemas/games";
 
-// Types for group data
 export interface GroupMembership {
   group: {
     id: number;
@@ -101,9 +100,6 @@ export interface GroupSocialLink {
   title: string;
 }
 
-/**
- * Fetch all groups a user has joined with thumbnails
- */
 export function useJoinedGroups(userId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.userGroups(userId || 0),
@@ -114,7 +110,6 @@ export function useJoinedGroups(userId: number | null) {
 
       if (groups.length === 0) return [];
 
-      // Fetch thumbnails for all groups
       const groupIds = groups.map((g: any) => g.group.id);
       const thumbnails = await window.api.getGroupThumbnails(groupIds);
 
@@ -124,13 +119,10 @@ export function useJoinedGroups(userId: number | null) {
       }));
     },
     enabled: !!userId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-/**
- * Fetch pending group join requests for the authenticated user
- */
 export function usePendingGroups(account: Account | null) {
   return useQuery({
     queryKey: queryKeys.groups.pending(account?.id || ""),
@@ -143,7 +135,6 @@ export function usePendingGroups(account: Account | null) {
 
       if (pendingGroups.length === 0) return [];
 
-      // Fetch thumbnails for all groups
       const groupIds = pendingGroups.map((g: any) => g.group.id);
       const thumbnails = await window.api.getGroupThumbnails(groupIds);
 
@@ -153,13 +144,10 @@ export function usePendingGroups(account: Account | null) {
       }));
     },
     enabled: !!account?.cookie,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
   });
 }
 
-/**
- * Fetch detailed group info
- */
 export function useGroupDetails(groupId: number | null, cookie?: string) {
   return useQuery({
     queryKey: queryKeys.groups.details(groupId || 0),
@@ -168,13 +156,10 @@ export function useGroupDetails(groupId: number | null, cookie?: string) {
       return window.api.getGroupDetails(groupId, cookie);
     },
     enabled: !!groupId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-/**
- * Fetch group roles
- */
 export function useGroupRoles(groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.roles(groupId || 0),
@@ -183,13 +168,10 @@ export function useGroupRoles(groupId: number | null) {
       return window.api.getGroupRoles(groupId);
     },
     enabled: !!groupId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-/**
- * Fetch games created by a group
- */
 export function useGroupGames(groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.games(groupId || 0),
@@ -201,30 +183,27 @@ export function useGroupGames(groupId: number | null) {
 
       if (games.length === 0) return games;
 
-      // Fetch thumbnails for games
       const universeIds = games.map((g: any) => g.id);
       try {
-        const thumbnails = await window.api.getBatchThumbnails(universeIds);
-        const thumbMap = new Map(
-          thumbnails.data?.map((t: any) => [t.targetId, t.imageUrl]) || [],
+        const iconUrls = await Promise.all(
+          universeIds.map((universeId: number) =>
+            window.api.getGameIconThumbnail(universeId).catch(() => null),
+          ),
         );
 
-        return games.map((game: any) => ({
+        return games.map((game: any, index: number) => ({
           ...game,
-          thumbnailUrl: thumbMap.get(game.id) || "",
+          thumbnailUrl: iconUrls[index] || "",
         }));
       } catch {
         return games;
       }
     },
     enabled: !!groupId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 }
 
-/**
- * Fetch group social links
- */
 export function useGroupSocialLinks(
   account: Account | null,
   groupId: number | null,
@@ -236,13 +215,10 @@ export function useGroupSocialLinks(
       return window.api.getGroupSocialLinks(account.cookie, groupId);
     },
     enabled: !!groupId && !!account?.cookie,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
-/**
- * Fetch group wall posts
- */
 export function useGroupWallPosts(groupId: number | null) {
   return useQuery({
     queryKey: queryKeys.groups.wall(groupId || 0),
@@ -251,7 +227,6 @@ export function useGroupWallPosts(groupId: number | null) {
       try {
         return await window.api.getGroupWallPosts(groupId);
       } catch (error: any) {
-        // Handle permission errors (403) and rate limits (429) gracefully
         if (
           error?.message?.includes("403") ||
           error?.message?.includes("429")
@@ -262,18 +237,14 @@ export function useGroupWallPosts(groupId: number | null) {
       }
     },
     enabled: !!groupId,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
     retry: (failureCount, error: any) => {
-      // Don't retry on permission errors
       if (error?.message?.includes("Wall access denied")) return false;
       return failureCount < 2;
     },
   });
 }
 
-/**
- * Fetch group members
- */
 export function useGroupMembers(groupId: number | null, roleId?: number) {
   return useQuery({
     queryKey: queryKeys.groups.members(groupId || 0, roleId),
@@ -284,13 +255,10 @@ export function useGroupMembers(groupId: number | null, roleId?: number) {
       return window.api.getGroupMembers(groupId, undefined, undefined, roleId);
     },
     enabled: !!groupId,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
-/**
- * Cancel a pending group join request
- */
 export function useCancelPendingRequest(account: Account | null) {
   const queryClient = useQueryClient();
 
@@ -311,7 +279,6 @@ export function useCancelPendingRequest(account: Account | null) {
       return result;
     },
     onSuccess: () => {
-      // Invalidate both pending and all groups cache to refresh UI
       queryClient.invalidateQueries({
         queryKey: queryKeys.groups.pending(account?.id || ""),
       });
@@ -327,9 +294,6 @@ export function useCancelPendingRequest(account: Account | null) {
   });
 }
 
-/**
- * Leave a group
- */
 export function useLeaveGroup(account: Account | null) {
   const queryClient = useQueryClient();
 
@@ -339,7 +303,6 @@ export function useLeaveGroup(account: Account | null) {
       return window.api.leaveGroup(account.cookie, groupId);
     },
     onSuccess: () => {
-      // Invalidate user groups cache
       if (account?.userId) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.groups.userGroups(parseInt(account.userId)),
@@ -349,9 +312,6 @@ export function useLeaveGroup(account: Account | null) {
   });
 }
 
-/**
- * Search group store items with infinite scrolling
- */
 export function useGroupStore(
   groupId: number | null,
   keyword?: string,
@@ -372,19 +332,14 @@ export function useGroupStore(
     initialPageParam: "" as string,
     getNextPageParam: (lastPage) => lastPage.nextPageCursor || undefined,
     enabled: !!groupId,
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 30 * 1000,
   });
 }
 
-/**
- * Fetch batch user avatars with TanStack Query caching
- * This prevents duplicate requests by caching results per user ID set
- */
 export function useBatchUserAvatars(
   userIds: number[],
   size: string = "150x150",
 ) {
-  // Sort and deduplicate for consistent cache keys
   const sortedUniqueIds = [...new Set(userIds)].sort((a, b) => a - b);
 
   return useQuery({
@@ -395,7 +350,7 @@ export function useBatchUserAvatars(
         sortedUniqueIds,
         size,
       );
-      // Filter out null values
+
       const filtered: Record<number, string> = {};
       for (const [key, value] of Object.entries(result)) {
         if (value !== null && value !== undefined) {
@@ -405,7 +360,7 @@ export function useBatchUserAvatars(
       return filtered;
     },
     enabled: sortedUniqueIds.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes - avatars don't change often
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }

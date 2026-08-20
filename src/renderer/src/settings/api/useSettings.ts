@@ -10,10 +10,6 @@ import { applyAccentColor } from "@renderer/utils/themeUtils";
 import { applyTint, getCurrentThemeNameFromDom } from "@renderer/theme/theme";
 import { initializeFonts, CustomFont } from "@renderer/utils/fontUtils";
 
-// ============================================================================
-// Default Settings
-// ============================================================================
-
 const DEFAULT_SETTINGS: Settings = {
   primaryAccountId: null,
   allowMultipleInstances: false,
@@ -31,11 +27,6 @@ const DEFAULT_SETTINGS: Settings = {
 
 const LEGACY_DEFAULT_ACCENT_COLORS = ["#1e66f5", "#3b82f6", "#2563eb"];
 
-// ============================================================================
-// Basic Queries
-// ============================================================================
-
-// Fetch all settings
 export function useSettings() {
   return useQuery({
     queryKey: queryKeys.settings.snapshot(),
@@ -50,7 +41,6 @@ export function useSettings() {
           ? DEFAULT_ACCENT_COLOR
           : rawAccent;
 
-      // Merge with defaults to ensure all fields exist
       return {
         ...DEFAULT_SETTINGS,
         ...data,
@@ -60,14 +50,15 @@ export function useSettings() {
         showSidebarProfileCard: data?.showSidebarProfileCard ?? true,
         privacyMode: data?.privacyMode ?? false,
         sidebarTabOrder: DEFAULT_SIDEBAR_TAB_ORDER,
-        sidebarHiddenTabs: sanitizeSidebarHidden(data?.sidebarHiddenTabs as any),
+        sidebarHiddenTabs: sanitizeSidebarHidden(
+          data?.sidebarHiddenTabs as any,
+        ),
       };
     },
-    staleTime: Infinity, // Settings are managed locally
+    staleTime: Infinity,
   });
 }
 
-// Update settings mutation (optimistic)
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
 
@@ -75,17 +66,14 @@ export function useUpdateSettings() {
     mutationFn: (settings: Partial<Settings>) =>
       window.api.setSettings(settings),
     onMutate: async (newSettings) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({
         queryKey: queryKeys.settings.snapshot(),
       });
 
-      // Snapshot previous value
       const previousSettings = queryClient.getQueryData<Settings>(
         queryKeys.settings.snapshot(),
       );
 
-      // Optimistically update
       queryClient.setQueryData(
         queryKeys.settings.snapshot(),
         (old: Settings | undefined) => ({
@@ -98,7 +86,6 @@ export function useUpdateSettings() {
       return { previousSettings };
     },
     onError: (_err, _newSettings, context) => {
-      // Rollback on error
       if (context?.previousSettings) {
         queryClient.setQueryData(
           queryKeys.settings.snapshot(),
@@ -106,24 +93,13 @@ export function useUpdateSettings() {
         );
       }
     },
-    // Don't invalidate - we manage the cache ourselves
   });
 }
 
-// ============================================================================
-// Settings Manager Hook (Single Source of Truth)
-// ============================================================================
-
-/**
- * Hook that provides settings data and management functions.
- * Uses React Query as the single source of truth with optimistic updates.
- * Automatically applies accent color when it changes.
- */
 export function useSettingsManager() {
   const { data: settings = DEFAULT_SETTINGS, isLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
 
-  // Apply accent color when settings change
   useEffect(() => {
     if (settings.accentColor && !settings.useDynamicAccentColor) {
       applyAccentColor(settings.accentColor);
@@ -137,7 +113,6 @@ export function useSettingsManager() {
     applyTint(getCurrentThemeNameFromDom(), tint);
   }, [settings.tint]);
 
-  // Persist one-time migrations so the UI (and future sessions) match.
   useEffect(() => {
     const raw =
       typeof settings.accentColor === "string"
@@ -152,7 +127,6 @@ export function useSettingsManager() {
     }
   }, [settings.accentColor, updateSettingsMutation]);
 
-  // Initialize custom fonts on first load
   useEffect(() => {
     const loadFonts = async () => {
       try {
@@ -166,9 +140,8 @@ export function useSettingsManager() {
       }
     };
     loadFonts();
-  }, []); // Only run once on mount
+  }, []);
 
-  // Update settings (partial, optimistic)
   const updateSettings = useCallback(
     (newSettings: Partial<Settings>) => {
       updateSettingsMutation.mutate(newSettings);
@@ -183,11 +156,6 @@ export function useSettingsManager() {
   };
 }
 
-// ============================================================================
-// Individual Setting Hooks (for granular subscriptions)
-// ============================================================================
-
-// Sidebar width
 export function useSidebarWidth() {
   return useQuery({
     queryKey: queryKeys.settings.sidebarWidth(),
@@ -207,7 +175,6 @@ export function useSetSidebarWidth() {
   });
 }
 
-// Accounts view mode
 export function useAccountsViewMode() {
   return useQuery({
     queryKey: queryKeys.settings.accountsViewMode(),
@@ -227,7 +194,6 @@ export function useSetAccountsViewMode() {
   });
 }
 
-// Avatar render width
 export function useAvatarRenderWidth() {
   return useQuery({
     queryKey: queryKeys.settings.avatarRenderWidth(),

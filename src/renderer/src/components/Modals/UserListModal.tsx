@@ -37,7 +37,6 @@ interface UserListModalProps {
   onSelectUser: (userId: number) => void;
 }
 
-// Animation duration for modal open (matches Dialog spring animation)
 const ANIMATION_DELAY_MS = 280;
 
 const UserListModal: React.FC<UserListModalProps> = ({
@@ -186,9 +185,9 @@ const UserListModal: React.FC<UserListModalProps> = ({
       onClose={onClose}
       overlayClassName="z-[10000] p-4 backdrop-blur-sm"
     >
-      <DialogContent className="relative w-full max-w-2xl h-[85vh] bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden ring-1 ring-white/10 flex flex-col">
-        {/* Header */}
-        <div className="flex flex-col gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50 backdrop-blur-md z-10">
+      <DialogContent className="relative w-full max-w-2xl h-[85vh] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden ring-1 ring-[var(--color-border-subtle)] flex flex-col">
+        {}
+        <div className="flex flex-col gap-4 p-6 border-b border-[var(--color-border)] bg-[var(--color-surface-strong)] z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-strong)]">
@@ -206,7 +205,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
             <DialogClose />
           </div>
 
-          {/* Search Bar */}
+          {}
           <div className="relative group">
             <Search
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-text-primary)] transition-colors"
@@ -222,7 +221,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
           </div>
         </div>
 
-        {/* List Content */}
+        {}
         <div className="flex-1 overflow-hidden bg-[var(--color-app-bg)]/50 pt-2">
           {users.length > 0 ? (
             <Virtuoso
@@ -253,7 +252,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                         )
                       }
                     >
-                      {/* Avatar */}
+                      {}
                       <div className="relative shrink-0">
                         <div className="w-14 h-14 rounded-full bg-[var(--color-surface-strong)] overflow-hidden ring-2 ring-[var(--color-border-strong)] group-hover:ring-[var(--accent-color-ring)] transition-all">
                           <img
@@ -269,7 +268,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                         )}
                       </div>
 
-                      {/* Info */}
+                      {}
                       <div className="flex-1 min-w-0 py-1">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-base font-bold text-[var(--color-text-primary)] truncate transition-colors">
@@ -300,7 +299,7 @@ const UserListModal: React.FC<UserListModalProps> = ({
                           </span>
                         </div>
 
-                        {/* Status Text */}
+                        {}
                         {isOnline && (
                           <div className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-[var(--color-text-secondary)]">
                             {getStatusIcon(status)}
@@ -311,9 +310,9 @@ const UserListModal: React.FC<UserListModalProps> = ({
                         )}
                       </div>
 
-                      {/* Action Button */}
+                      {}
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity px-2">
-                        <div className="p-2 bg-white/5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/10 transition-colors">
+                        <div className="p-2 bg-[var(--color-surface-hover)] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-muted)] transition-colors">
                           <ExternalLink size={18} />
                         </div>
                       </div>

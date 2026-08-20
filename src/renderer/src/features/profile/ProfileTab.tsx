@@ -27,12 +27,14 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
 
     return (
       <div className="absolute inset-0 flex flex-col w-full h-full bg-[var(--color-app-bg)] relative overflow-hidden font-sans text-[var(--color-text-secondary)]">
-        {/* Compact Toolbar */}
+        {}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center px-6">
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">My Profile</h1>
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
+            My Profile
+          </h1>
         </div>
 
-        {/* Content */}
+        {}
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="flex-1 overflow-hidden">
             <UserProfileView
@@ -75,7 +77,6 @@ const ProfileTab: React.FC<ProfileTabProps> = memo(
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if the account ID or cookie changed
     return (
       prevProps.account.id === nextProps.account.id &&
       prevProps.account.cookie === nextProps.account.cookie &&

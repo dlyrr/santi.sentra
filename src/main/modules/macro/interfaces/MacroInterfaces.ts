@@ -1,7 +1,3 @@
-/**
- * Macro service interfaces.
- */
-
 import {
   MacroRecordingCallback,
   MacroPlaybackCallback,

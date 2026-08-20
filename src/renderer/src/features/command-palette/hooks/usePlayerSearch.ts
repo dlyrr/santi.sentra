@@ -92,9 +92,7 @@ export function usePlayerSearch(options: UsePlayerSearchOptions = {}) {
               "150x150",
             );
             avatarUrl = avatars[userData.id] || undefined;
-          } catch {
-            // ignore avatar fetch errors
-          }
+          } catch {}
 
           setResult({
             type: "player",

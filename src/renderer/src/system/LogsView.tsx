@@ -88,7 +88,6 @@ const parseLogLines = (content: string): LogEntry[] => {
   const lines = content.split("\n");
   return lines
     .map((line) => {
-      // Example: 2025-11-21T03:32:41.169Z,0.169887,2588,6,Warning [FLog::RobloxStarter] Starting module: Network
       const match = line.match(
         /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z),[^,]+,[^,]+,[^,]+,(\w+) \[(.*?)\] (.*)$/,
       );
@@ -358,7 +357,6 @@ const LogsTab: React.FC = () => {
       {} as Record<string, ProcessedLog[]>,
     );
 
-    // Sort groups: Today, Yesterday, then others
     const labels = Object.keys(grouped);
     labels.sort((a, b) => {
       if (a === "Today") return -1;
@@ -614,7 +612,7 @@ const LogsTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Log Toolbar */}
+              {}
               <div className="shrink-0 h-10 border-b border-[var(--color-border)] flex items-center justify-between px-4 bg-[var(--color-surface)]/50 text-xs">
                 <div className="flex items-center gap-3 overflow-hidden">
                   <span className="font-mono text-[var(--color-text-secondary)]">
@@ -719,7 +717,7 @@ const LogsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Context Menu */}
+      {}
       {contextMenu &&
         createPortal(
           <div

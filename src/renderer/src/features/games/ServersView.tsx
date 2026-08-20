@@ -108,10 +108,12 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [selectedServerId, setSelectedServerId] = useState<string | null>(null);
 
-  // Zustand Store
-  const { regions, setRegion, setRegions } = useServerStore();
+  const { regions, setRegion, setRegions, clearRegions } = useServerStore();
 
-  // TanStack Query hooks
+  useEffect(() => {
+    clearRegions();
+  }, [placeId, clearRegions]);
+
   const {
     data: serversData,
     isLoading: isLoadingServers,
@@ -121,10 +123,17 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
     isFetchingNextPage,
   } = useGameServers(placeId, excludeFullGames, !!placeId);
 
-  // Flatten pages into a single array
   const servers = useMemo(() => {
     if (!serversData?.pages) return [];
-    return serversData.pages.flatMap((page) => page.data);
+
+    const seen = new Set<string>();
+    return serversData.pages
+      .flatMap((page) => page.data)
+      .filter((s) => {
+        if (seen.has(s.id)) return false;
+        seen.add(s.id);
+        return true;
+      });
   }, [serversData]);
 
   const error = serversError ? "Failed to load servers." : null;
@@ -134,7 +143,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      // Default directions: Players -> Desc, Ping -> Asc, Region -> Asc
+
       if (key === "playing") {
         setSortDirection("desc");
       } else {
@@ -143,7 +152,6 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
     }
   };
 
-  // Merge query data with store regions
   const serversWithPreservedRegions = useMemo(() => {
     return servers.map((s) => {
       const storedRegion = regions[s.id];
@@ -174,7 +182,6 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
       let aValue = a[sortKey];
       let bValue = b[sortKey];
 
-      // Handle numeric vs string comparison
       if (typeof aValue === "string" && typeof bValue === "string") {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
@@ -186,7 +193,6 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
     });
   }, [filteredServers, sortKey, sortDirection]);
 
-  // Load saved excludeFullGames preference on mount
   useEffect(() => {
     const loadPreference = async () => {
       try {
@@ -201,7 +207,6 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
     loadPreference();
   }, []);
 
-  // Save excludeFullGames preference when it changes (but not on initial load)
   useEffect(() => {
     if (!isPreferenceLoaded.current) return;
 
@@ -260,14 +265,13 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
 
   const observerRef = useRef<HTMLTableRowElement | null>(null);
 
-  // Loop 1: Dispatch Roblox Checks (High Concurrency)
   useEffect(() => {
     const candidates = filteredServers.filter(
-      (s) => s.region === "Unknown" && !checkingRegions[s.id] && !regions[s.id], // Don't check if we already have it in store
+      (s) => s.region === "Unknown" && !checkingRegions[s.id] && !regions[s.id],
     );
 
     const currentChecking = Object.keys(checkingRegions).length;
-    const availableSlots = 8 - currentChecking; // Concurrency limit 8
+    const availableSlots = 8 - currentChecking;
 
     if (availableSlots > 0 && candidates.length > 0) {
       const toCheck = candidates.slice(0, availableSlots);
@@ -275,12 +279,10 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
     }
   }, [filteredServers, checkingRegions, checkRobloxStatus, regions]);
 
-  // Loop 2: Process IP Queue (Batch)
   useEffect(() => {
     const interval = setInterval(async () => {
       if (ipQueue.current.length === 0) return;
 
-      // Take up to 100 items (ip-api batch limit)
       const items = ipQueue.current.splice(0, 100);
       if (items.length === 0) return;
 
@@ -301,7 +303,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
         setRegions(updates);
       } catch (e) {
         console.error("Batch region update failed", e);
-        // Mark as failed
+
         const updates: Record<string, string> = {};
         items.forEach((item) => {
           updates[item.id] = "Failed";
@@ -361,7 +363,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Error Message */}
+        {}
         {error && (
           <div className="p-4">
             <ErrorMessage message={error} variant="banner" />
@@ -378,7 +380,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
             />
           ) : (
             <div className="h-full w-full overflow-auto scrollbar-thin">
-              <table className="min-w-full table-fixed divide-y divide-neutral-800/50 text-sm">
+              <table className="min-w-full table-fixed divide-y divide-[var(--color-border)] text-sm">
                 <thead className="bg-[var(--color-surface)]/50 sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold text-[var(--color-text-secondary)] text-xs uppercase tracking-wider w-[30%]">
@@ -428,7 +430,7 @@ const ServersList = ({ placeId, onJoin }: ServersListProps) => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-800/50">
+                <tbody className="divide-y divide-[var(--color-border)]">
                   {sortedServers.map((server) => (
                     <tr
                       key={server.id}

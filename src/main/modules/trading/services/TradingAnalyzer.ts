@@ -1,8 +1,3 @@
-/**
- * Trading Analyzer - Decision engine for trading logic.
- * Generic, configurable, fully unit-testable.
- */
-
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import { ConfigManager } from "../../shared/config/ConfigManager";
@@ -24,9 +19,6 @@ import {
 } from "../interfaces/TradingInterfaces";
 import { ProfitCalculator } from "../utils/ProfitCalculator";
 
-/**
- * Default trading configuration.
- */
 const DEFAULT_TRADING_CONFIG: TradingConfig = {
   minProfitThreshold: 100,
   maxProfitThreshold: undefined,
@@ -53,12 +45,8 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
     this.logger.info("TradingAnalyzer initialized", { config: this.config });
   }
 
-  /**
-   * Analyze a single item for profitability.
-   */
   public analyzeItem(item: Item): ProfitAnalysis {
     try {
-      // Check cache
       if (this.analysisCache.has(item.id)) {
         const cached = this.analysisCache.get(item.id);
         if (cached && Date.now() - cached.timestamp < 5000) {
@@ -91,155 +79,124 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
     }
   }
 
-  /**
-   * Make a trading decision for an item based on analysis.
-   */
   public makeTradingDecision(item: Item): TradingDecision {
-    try {
+    const analysis = this.analyzeItem(item);
+
+    let decision: "BUY" | "SELL" | "HOLD" | "SKIP";
+    let confidence: number;
+    let reason: string;
+
+    if (!analysis.passesThreshold) {
+      decision = "SKIP";
+      confidence = 0.95;
+      reason = `Item does not meet profit threshold. Net profit: ${analysis.netProfit}`;
+    } else if (analysis.analysis.marginal) {
+      decision = "HOLD";
+      confidence = 0.6;
+      reason = `Marginal profit (${analysis.netProfitPercentage.toFixed(2)}%). Wait for better conditions.`;
+    } else if (
+      analysis.analysis.highVolume &&
+      analysis.netProfitPercentage > 20
+    ) {
+      decision = "BUY";
+      confidence = 0.85;
+      reason = `High volume with good margin (${analysis.netProfitPercentage.toFixed(2)}%).`;
+    } else if (analysis.netProfitPercentage > 15) {
+      decision = "BUY";
+      confidence = 0.75;
+      reason = `Good profit margin (${analysis.netProfitPercentage.toFixed(2)}%).`;
+    } else {
+      decision = "HOLD";
+      confidence = 0.7;
+      reason = "Acceptable profit, but not optimal conditions.";
+    }
+
+    const tradingDecision: TradingDecision = {
+      itemId: item.id,
+      decision,
+      confidence,
+      reason,
+      analysis,
+    };
+
+    this.decisionCallbacks.forEach((callback) => {
+      try {
+        callback(tradingDecision);
+      } catch (error) {
+        this.logger.error("Error in decision callback", error as Error);
+      }
+    });
+
+    this.emit("decisionMade", tradingDecision);
+    return tradingDecision;
+  }
+
+  public findOpportunities(items: Item[]): TradeOpportunity[] {
+    const opportunities: TradeOpportunity[] = [];
+
+    items.forEach((item) => {
       const analysis = this.analyzeItem(item);
 
-      let decision: "BUY" | "SELL" | "HOLD" | "SKIP";
-      let confidence: number;
-      let reason: string;
-
       if (!analysis.passesThreshold) {
-        decision = "SKIP";
-        confidence = 0.95;
-        reason = `Item does not meet profit threshold. Net profit: ${analysis.netProfit}`;
-      } else if (analysis.analysis.marginal) {
-        decision = "HOLD";
-        confidence = 0.6;
-        reason = `Marginal profit (${analysis.netProfitPercentage.toFixed(2)}%). Wait for better conditions.`;
-      } else if (
-        analysis.analysis.highVolume &&
-        analysis.netProfitPercentage > 20
-      ) {
-        decision = "BUY";
-        confidence = 0.85;
-        reason = `High volume with good margin (${analysis.netProfitPercentage.toFixed(2)}%).`;
-      } else if (analysis.netProfitPercentage > 15) {
-        decision = "BUY";
-        confidence = 0.75;
-        reason = `Good profit margin (${analysis.netProfitPercentage.toFixed(2)}%).`;
-      } else {
-        decision = "HOLD";
-        confidence = 0.7;
-        reason = `Acceptable profit, but not optimal conditions.`;
+        return;
       }
 
-      const tradingDecision: TradingDecision = {
-        itemId: item.id,
-        decision,
-        confidence,
-        reason,
-        analysis,
+      let priority: "HIGH" | "MEDIUM" | "LOW";
+
+      if (analysis.netProfitPercentage > 30) {
+        priority = "HIGH";
+      } else if (analysis.netProfitPercentage > 15) {
+        priority = "MEDIUM";
+      } else {
+        priority = "LOW";
+      }
+
+      const opportunity: TradeOpportunity = {
+        sourceItem: item,
+        targetPrice: item.resalePrice,
+        expectedProfit: analysis.netProfit,
+        expectedProfitPercentage: analysis.netProfitPercentage,
+        quantity: item.quantity,
+        estimatedTotalProfit: analysis.netProfit * item.quantity,
+        priority,
+        timestamps: {
+          detected: Date.now(),
+          expiresAt: Date.now() + 3600000,
+        },
       };
 
-      // Trigger callbacks
-      this.decisionCallbacks.forEach((callback) => {
-        try {
-          callback(tradingDecision);
-        } catch (error) {
-          this.logger.error("Error in decision callback", error as Error);
-        }
-      });
+      opportunities.push(opportunity);
+    });
 
-      this.emit("decisionMade", tradingDecision);
-      return tradingDecision;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Find trading opportunities from a list of items.
-   */
-  public findOpportunities(items: Item[]): TradeOpportunity[] {
-    try {
-      const opportunities: TradeOpportunity[] = [];
-
-      items.forEach((item) => {
-        const analysis = this.analyzeItem(item);
-
-        if (!analysis.passesThreshold) {
-          return;
-        }
-
-        let priority: "HIGH" | "MEDIUM" | "LOW";
-
-        if (analysis.netProfitPercentage > 30) {
-          priority = "HIGH";
-        } else if (analysis.netProfitPercentage > 15) {
-          priority = "MEDIUM";
-        } else {
-          priority = "LOW";
-        }
-
-        const opportunity: TradeOpportunity = {
-          sourceItem: item,
-          targetPrice: item.resalePrice,
-          expectedProfit: analysis.netProfit,
-          expectedProfitPercentage: analysis.netProfitPercentage,
-          quantity: item.quantity,
-          estimatedTotalProfit: analysis.netProfit * item.quantity,
-          priority,
-          timestamps: {
-            detected: Date.now(),
-            expiresAt: Date.now() + 3600000, // 1 hour
-          },
-        };
-
-        opportunities.push(opportunity);
-      });
-
-      opportunities.sort((a, b) => {
-        const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-        return (
-          priorityOrder[a.priority] - priorityOrder[b.priority] ||
-          b.expectedProfitPercentage - a.expectedProfitPercentage
-        );
-      });
-
-      this.logger.info("Trading opportunities identified", {
-        count: opportunities.length,
-      });
-
-      return opportunities;
-    } catch (error) {
-      const appError = new AppError(
-        "Failed to find trading opportunities",
-        ErrorCode.TRADING_CALCULATION_ERROR,
-        "TradingAnalyzer",
-        ErrorSeverity.MEDIUM,
+    opportunities.sort((a, b) => {
+      const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+      return (
+        priorityOrder[a.priority] - priorityOrder[b.priority] ||
+        b.expectedProfitPercentage - a.expectedProfitPercentage
       );
-      this.logger.error("Opportunity detection failed", error as Error);
-      throw appError;
-    }
+    });
+
+    this.logger.info("Trading opportunities identified", {
+      count: opportunities.length,
+    });
+
+    return opportunities;
   }
 
-  /**
-   * Update trading configuration.
-   */
   public setConfig(config: Partial<TradingConfig>): void {
     this.config = { ...this.config, ...config };
     this.validateConfig();
-    this.analysisCache.clear(); // Invalidate cache
+    this.analysisCache.clear();
     this.logger.info("Trading configuration updated", {
       config: this.config,
     });
     this.emit("configUpdated", this.config);
   }
 
-  /**
-   * Get current trading configuration.
-   */
   public getConfig(): TradingConfig {
     return { ...this.config };
   }
 
-  /**
-   * Register a callback for trading decisions.
-   */
   public registerDecisionCallback(callback: TradingDecisionCallback): void {
     this.decisionCallbacks.push(callback);
   }
@@ -279,9 +236,6 @@ export class TradingAnalyzer extends EventEmitter implements ITradingAnalyzer {
   }
 }
 
-/**
- * Factory for creating TradingAnalyzer instances with dependency injection.
- */
 export class TradingAnalyzerFactory {
   public static create(config?: Partial<TradingConfig>): TradingAnalyzer {
     return new TradingAnalyzer(config);

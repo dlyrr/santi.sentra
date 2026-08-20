@@ -2,10 +2,8 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
 interface GamesState {
-  // Search state
   searchQuery: string;
 
-  // Filter state
   selectedSortId: string | null;
   showFavorites: boolean;
 }
@@ -58,7 +56,7 @@ export const useGamesStore = create<GamesStore>()(
       }),
       {
         name: "games-storage",
-        // Persist filter/search state so it survives navigation
+
         partialize: (state) => ({
           searchQuery: state.searchQuery,
           selectedSortId: state.selectedSortId,
@@ -70,7 +68,6 @@ export const useGamesStore = create<GamesStore>()(
   ),
 );
 
-// Selectors - use these to prevent unnecessary re-renders
 export const useGamesSearchQuery = () =>
   useGamesStore((state) => state.searchQuery);
 export const useSetGamesSearchQuery = () =>

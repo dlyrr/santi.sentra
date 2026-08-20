@@ -2,17 +2,10 @@ import React from "react";
 import Skeleton from "./Skeleton";
 import { cn } from "../../../lib/utils";
 
-// ============================================================================
-// SkeletonCard - Reusable skeleton card for loading states
-// ============================================================================
-
 interface SkeletonCardProps {
   className?: string;
 }
 
-/**
- * Friend/User card skeleton - circular avatar with name/status lines
- */
 export const SkeletonUserCard: React.FC<
   SkeletonCardProps & {
     variant?: "horizontal" | "vertical";
@@ -54,9 +47,6 @@ export const SkeletonUserCard: React.FC<
   );
 };
 
-/**
- * Friend card skeleton with larger avatar (used in FriendsTab grid)
- */
 export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({
   className,
 }) => (
@@ -74,9 +64,6 @@ export const SkeletonFriendCard: React.FC<SkeletonCardProps> = ({
   </div>
 );
 
-/**
- * Game card skeleton - thumbnail with overlay text and footer stats
- */
 export const SkeletonGameCard: React.FC<SkeletonCardProps> = ({
   className,
 }) => (
@@ -100,9 +87,6 @@ export const SkeletonGameCard: React.FC<SkeletonCardProps> = ({
   </div>
 );
 
-/**
- * Simple square card skeleton - for outfits, badges, collections
- */
 export const SkeletonSquareCard: React.FC<
   SkeletonCardProps & {
     showBorder?: boolean;
@@ -119,9 +103,6 @@ export const SkeletonSquareCard: React.FC<
   </div>
 );
 
-/**
- * Group card skeleton - square with name and member count
- */
 export const SkeletonGroupCard: React.FC<SkeletonCardProps> = ({
   className,
 }) => (
@@ -136,9 +117,6 @@ export const SkeletonGroupCard: React.FC<SkeletonCardProps> = ({
   </div>
 );
 
-/**
- * Inventory item skeleton - square with padding
- */
 export const SkeletonInventoryCard: React.FC<SkeletonCardProps> = ({
   className,
 }) => (

@@ -54,7 +54,7 @@ export function BentoCard({
         className,
       )}
     >
-      {/* shimmer */}
+      {}
       <div
         className={cn(
           "absolute inset-0 bg-gradient-to-br to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl",
@@ -62,7 +62,7 @@ export function BentoCard({
         )}
       />
 
-      {/* header */}
+      {}
       <div className="flex items-center gap-3 mb-4 z-10 relative">
         <div
           className={cn(
@@ -82,7 +82,7 @@ export function BentoCard({
         </div>
       </div>
 
-      {/* controls */}
+      {}
       {children && (
         <div className="mt-auto pt-4 border-t border-[var(--color-border)] z-10 relative">
           {children}

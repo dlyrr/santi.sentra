@@ -35,7 +35,7 @@ export const SniperSettingsModal = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop Overlay */}
+          {}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -44,7 +44,7 @@ export const SniperSettingsModal = ({
             onClick={onClose}
           />
 
-          {/* Modal Card */}
+          {}
           <motion.div
             initial={{ opacity: 0, scale: 0.98, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -53,7 +53,7 @@ export const SniperSettingsModal = ({
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 p-4"
           >
             <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
-              {/* Header Container */}
+              {}
               <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3.5 bg-[var(--color-surface-strong)]/20">
                 <h2 className="flex items-center gap-2 text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
                   <Settings size={14} className="text-indigo-500" />
@@ -67,9 +67,9 @@ export const SniperSettingsModal = ({
                 </button>
               </div>
 
-              {/* Form Config Body */}
+              {}
               <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                {/* Loop Parameter Toggler */}
+                {}
                 <div className="space-y-2">
                   <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/40 px-3 py-2.5 transition-colors hover:border-indigo-500/20">
                     <span className="text-[11px] font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
@@ -84,7 +84,7 @@ export const SniperSettingsModal = ({
                   </label>
                 </div>
 
-                {/* Conditional Loop Counter Row */}
+                {}
                 {loopEnabled && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -130,7 +130,7 @@ export const SniperSettingsModal = ({
                   </motion.div>
                 )}
 
-                {/* Delay Timing Threshold */}
+                {}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
@@ -156,7 +156,7 @@ export const SniperSettingsModal = ({
                   />
                 </div>
 
-                {/* Automation Provision Trigger */}
+                {}
                 <div className="pt-2 border-t border-[var(--color-border)]/60">
                   <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-strong)]/40 px-3 py-2.5 transition-colors hover:border-indigo-500/20">
                     <span className="text-[11px] font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
@@ -171,7 +171,7 @@ export const SniperSettingsModal = ({
                 </div>
               </div>
 
-              {/* Layout Footer Actions */}
+              {}
               <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-strong)]/20 px-4 py-2.5 flex items-center justify-end">
                 <Button
                   variant="default"

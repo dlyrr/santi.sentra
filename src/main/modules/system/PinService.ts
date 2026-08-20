@@ -7,10 +7,6 @@ import {
 } from "crypto";
 import { safeStorage } from "electron";
 
-// =============================================================================
-// Configuration
-// =============================================================================
-
 const CONFIG = {
   salt: {
     length: 32,
@@ -34,10 +30,6 @@ const CONFIG = {
     maxLockoutMultiplier: 12,
   },
 } as const;
-
-// =============================================================================
-// Types
-// =============================================================================
 
 interface LockoutState {
   count: number;
@@ -70,10 +62,6 @@ interface VerifyPinResult {
 type PinOperationResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: string };
-
-// =============================================================================
-// Lockout Manager
-// =============================================================================
 
 class LockoutManager {
   #state: LockoutState;
@@ -223,10 +211,6 @@ class LockoutManager {
   }
 }
 
-// =============================================================================
-// Pin Service
-// =============================================================================
-
 class PinService {
   #isPinVerified: boolean = false;
   #derivedEncryptionKey: Buffer | null = null;
@@ -236,19 +220,11 @@ class PinService {
     this.#lockoutManager = new LockoutManager();
   }
 
-  // ===========================================================================
-  // Initialization
-  // ===========================================================================
-
   public initialize(): void {
     this.#isPinVerified = false;
     this.#clearDerivedKey();
     this.#lockoutManager.reset();
   }
-
-  // ===========================================================================
-  // Private Helpers
-  // ===========================================================================
 
   #validatePinFormat(pin: string): boolean {
     return typeof pin === "string" && /^\d{6}$/.test(pin);
@@ -346,10 +322,6 @@ class PinService {
     buffer.fill(0);
   }
 
-  // ===========================================================================
-  // Public API - PIN Creation
-  // ===========================================================================
-
   public createPinHash(pin: string): string | null {
     try {
       const salt = randomBytes(32);
@@ -361,10 +333,6 @@ class PinService {
       return null;
     }
   }
-
-  // ===========================================================================
-  // Public API - PIN Verification
-  // ===========================================================================
 
   public verifyPin(pin: string, storedHash: string): { success: boolean } {
     if (!storedHash || typeof storedHash !== "string") {
@@ -413,7 +381,6 @@ class PinService {
   ): VerifyPinResult {
     const now = Date.now();
 
-    // Validate PIN format first (constant time for format check)
     if (!this.#validatePinFormat(enteredPin)) {
       return {
         success: false,
@@ -422,7 +389,6 @@ class PinService {
       };
     }
 
-    // Decrypt PIN data once
     const decryptResult = this.#decryptPinData(encryptedData);
     if (!decryptResult.ok) {
       const lockoutSeconds = this.#lockoutManager.applyMaxLockout(now);
@@ -436,7 +402,6 @@ class PinService {
 
     const pinData = decryptResult.value;
 
-    // Load and check lockout state
     this.#lockoutManager.loadFromPinData(pinData.lockout);
     this.#lockoutManager.checkAndUpdateExpiry(now);
 
@@ -450,7 +415,6 @@ class PinService {
       };
     }
 
-    // Perform verification
     return this.#performVerification(enteredPin, pinData, now);
   }
 
@@ -515,20 +479,12 @@ class PinService {
     };
   }
 
-  // ===========================================================================
-  // Public API - PIN Change Verification
-  // ===========================================================================
-
   public verifyCurrentPinForChange(
     currentPin: string,
     encryptedData: string,
   ): VerifyPinResult {
     return this.verifyPinEncrypted(currentPin, encryptedData);
   }
-
-  // ===========================================================================
-  // Public API - Lockout Status
-  // ===========================================================================
 
   public getLockoutStatus(encryptedData?: string): LockoutStatus {
     if (encryptedData) {
@@ -550,10 +506,6 @@ class PinService {
     this.#lockoutManager.checkAndUpdateExpiry();
     return this.#lockoutManager.getStatus();
   }
-
-  // ===========================================================================
-  // Public API - Encryption/Decryption
-  // ===========================================================================
 
   public getEncryptionSalt(encryptedPinData: string): string | null {
     const result = this.#decryptPinData(encryptedPinData);
@@ -649,10 +601,6 @@ class PinService {
     }
   }
 
-  // ===========================================================================
-  // Public API - Verification State
-  // ===========================================================================
-
   public isPinCurrentlyVerified(): boolean {
     return this.#isPinVerified;
   }
@@ -674,9 +622,5 @@ class PinService {
     this.#lockoutManager.reset();
   }
 }
-
-// =============================================================================
-// Export Singleton
-// =============================================================================
 
 export const pinService = new PinService();

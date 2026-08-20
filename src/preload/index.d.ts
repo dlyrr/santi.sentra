@@ -1,6 +1,5 @@
-import { ElectronAPI } from "@electron-toolkit/preload";
+import type { RestrictedElectronAPI } from "../shared/electron-bridge";
 
-// Duplicate of Account interface from renderer to avoid import issues
 export interface Account {
   id: string;
   displayName: string;
@@ -26,8 +25,7 @@ export interface PlatformInfo {
 
 declare global {
   interface Window {
-    electron: ElectronAPI;
+    electron: RestrictedElectronAPI;
     platform: PlatformInfo;
-    // api types are defined in renderer/src/window.d.ts
   }
 }

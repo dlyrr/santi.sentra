@@ -4,6 +4,10 @@ directories:
   buildResources: resources/build
 files:
   - "!**/.vscode/*"
+  - "!**/node_modules/.cache/**"
+  - "!**/node_modules/*/{test,tests,__tests__,example,examples}/**"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md}"
+  - "!**/*.map"
   - "!src/*"
   - "!electron.vite.config.{js,ts,mjs,cjs}"
   - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}"
@@ -18,6 +22,7 @@ extraResources:
   - from: "assets/icons"
     to: "assets/icons"
 asar: true
+compression: maximum
 asarUnpack:
   - resources/**
 win:

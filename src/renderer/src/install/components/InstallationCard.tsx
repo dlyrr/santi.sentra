@@ -47,7 +47,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
       transition={{ duration: 0.3, delay: index * 0.05 }}
       className="group bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:bg-[var(--color-surface-strong)] hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-lg)]"
     >
-      {/* Card Header */}
+      {}
       <div className="p-4 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -83,7 +83,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
             </div>
           </div>
 
-          {/* Action Button */}
+          {}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -96,7 +96,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
         </div>
       </div>
 
-      {/* Version Info */}
+      {}
       <div className="px-4 pb-3">
         <div className="flex items-center gap-2">
           <span
@@ -123,7 +123,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
           </Tooltip>
         </div>
 
-        {/* Verify Progress */}
+        {}
         {isVerifying && (
           <div className="mt-3">
             <div className="flex justify-between text-[10px] text-[var(--color-text-muted)] mb-1">
@@ -140,7 +140,7 @@ export const InstallationCard: React.FC<InstallationCardProps> = ({
         )}
       </div>
 
-      {/* Action Buttons */}
+      {}
       <div className="px-4 pb-4 space-y-2">
         <button
           onClick={() => onLaunch(install)}

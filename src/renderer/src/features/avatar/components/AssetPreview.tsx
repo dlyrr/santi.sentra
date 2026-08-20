@@ -48,31 +48,23 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
   onTryOn,
   onRevertTryOn,
 }) => {
-  const [tryOn3DFallback, setTryOn3DFallback] = React.useState<string | null>(
-    null,
-  );
+  const [tryOnImageFailed, setTryOnImageFailed] = React.useState(false);
 
-  // Clear fallback when try-on state changes
   React.useEffect(() => {
-    if (!isTryingOn) {
-      setTryOn3DFallback(null);
-    }
-  }, [isTryingOn]);
+    setTryOnImageFailed(false);
+  }, [isTryingOn, tryOnImageUrl]);
 
-  const shouldShowTryOnModel =
-    isTryingOn && (!!tryOnManifestUrl || !!tryOn3DFallback);
+  const shouldShowTryOnModel = isTryingOn && !!tryOnManifestUrl;
   const shouldShowTryOnImage =
-    isTryingOn && !!tryOnImageUrl && !tryOn3DFallback;
+    isTryingOn && !!tryOnImageUrl && !tryOnImageFailed;
 
   if (shouldShowTryOnModel) {
-    // Showing try-on 3D model
   } else if (shouldShowTryOnImage) {
-    // Showing try-on 2D image
   }
 
   return (
     <div className="w-full lg:w-1/2 relative flex flex-col border-b lg:border-b-0 lg:border-r border-[var(--color-border)] bg-[var(--color-app-bg)] overflow-hidden group">
-      {/* Background Effects */}
+      {}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800 via-neutral-900 to-neutral-950" />
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"
@@ -92,7 +84,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
         {shouldShowTryOnModel ? (
           <Suspense fallback={null}>
             <Avatar3DThumbnail
-              manifestUrl={tryOnManifestUrl || tryOn3DFallback || undefined}
+              manifestUrl={tryOnManifestUrl || undefined}
               type="avatar"
               cookie={cookie}
               className="w-full h-full"
@@ -105,29 +97,35 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
             />
           </Suspense>
         ) : shouldShowTryOnImage ? (
-          // Show 2D rendered preview when the render API returns a PNG image
           <div className="w-full h-full flex items-center justify-center p-8">
             <img
               src={tryOnImageUrl}
               alt="Try-on preview"
               className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-300"
-              onError={(e) => {
+              onError={() => {
                 console.error(
-                  "[AssetPreview] Image failed to load:",
+                  "[AssetPreview] Try-on image failed to load:",
                   tryOnImageUrl,
                 );
-                // Set fallback state to show placeholder instead of just hiding the image
-                setTryOn3DFallback("image_failed");
+
+                setTryOnImageFailed(true);
               }}
             />
           </div>
         ) : viewMode === "2d" ? (
           <div className="w-full h-full flex items-center justify-center p-8">
-            <img
-              src={imageUrl}
-              alt={assetName}
-              className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-300"
-            />
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt={assetName}
+                className="w-full h-full object-contain drop-shadow-2xl transition-transform duration-300"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-2 text-[var(--color-text-muted)]">
+                <ImageIcon size={48} strokeWidth={1.5} />
+                <span className="text-xs">No preview available</span>
+              </div>
+            )}
           </div>
         ) : (
           <Suspense fallback={null}>
@@ -145,7 +143,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
           </Suspense>
         )}
 
-        {/* Try-on indicator */}
+        {}
         {isTryingOn && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-emerald-500/90 backdrop-blur text-[var(--color-text-primary)] text-xs font-medium rounded-full flex items-center gap-2 shadow-lg z-20">
             <Eye size={14} />
@@ -153,7 +151,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
           </div>
         )}
 
-        {/* View Toggle & Try On Controls */}
+        {}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
           {!isTryingOn && has3DView && (
             <div className="flex items-center p-1 bg-[var(--color-app-bg)]/80 backdrop-blur border border-[var(--color-border)] rounded-lg shadow-xl">
@@ -182,7 +180,7 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({
             </div>
           )}
 
-          {/* Try On Controls */}
+          {}
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>

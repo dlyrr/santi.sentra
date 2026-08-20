@@ -1,17 +1,3 @@
-/**
- * Central Module Index
- *
- * Import your modules from here for clean, organized imports throughout your application.
- *
- * Usage:
- *   import { MacroService, Logger, TradingAnalyzer } from '@modules';
- *   import { ProxyManager, BrowserAutomationService } from '@modules';
- */
-
-// ============================================================================
-// MACRO SYSTEM
-// ============================================================================
-
 export type {
   MacroEvent,
   Macro,
@@ -32,10 +18,6 @@ export {
   MacroServiceFactory,
 } from "./macro/services/MacroService";
 
-// ============================================================================
-// TRADING ENGINE
-// ============================================================================
-
 export type {
   Item,
   TradingConfig,
@@ -53,10 +35,6 @@ export {
   TradingAnalyzer,
   TradingAnalyzerFactory,
 } from "./trading/services/TradingAnalyzer";
-
-// ============================================================================
-// BROWSER AUTOMATION
-// ============================================================================
 
 export type {
   BrowserLaunchOptions,
@@ -80,10 +58,6 @@ export {
   BrowserAutomationServiceFactory,
 } from "./browser/services/BrowserAutomationService";
 
-// ============================================================================
-// PROXY MANAGEMENT
-// ============================================================================
-
 export type {
   Proxy,
   ProxyTestResult,
@@ -106,11 +80,6 @@ export {
   ProxyManagerFactory,
 } from "./proxy/services/ProxyManager";
 
-// ============================================================================
-// SHARED INFRASTRUCTURE
-// ============================================================================
-
-// Error Handling
 export {
   AppError,
   ValidationError,
@@ -122,7 +91,6 @@ export {
   type ErrorContext,
 } from "./shared/error/AppError";
 
-// Logging
 export { Logger, ConsoleLogHandler } from "./shared/logging/Logger";
 export {
   LogLevel,
@@ -130,6 +98,5 @@ export {
   type LogHandler,
 } from "./shared/logging/Logger";
 
-// Configuration
 export { ConfigManager, ConfigValidator } from "./shared/config/ConfigManager";
 export type { IConfigManager } from "./shared/config/ConfigManager";

@@ -87,15 +87,15 @@ const Snackbar: React.FC<SnackbarProps> = ({
       ].join(" ")}
       role="alert"
     >
-      {/* Icon */}
+      {}
       <div className="mt-0.5">{config.icon}</div>
 
-      {/* Message */}
+      {}
       <p className="text-sm font-medium flex-1 text-[var(--color-text-secondary)] leading-snug">
         {message}
       </p>
 
-      {/* Close button */}
+      {}
       <button
         onClick={handleClose}
         className="pressable mt-0.5 shrink-0 p-1 rounded-md hover:bg-[var(--color-surface-hover)] transition-colors"
@@ -107,7 +107,7 @@ const Snackbar: React.FC<SnackbarProps> = ({
         />
       </button>
 
-      {/* Progress bar — shrinks from full width to zero over duration */}
+      {}
       {duration > 0 && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[var(--color-border)]">
           <div

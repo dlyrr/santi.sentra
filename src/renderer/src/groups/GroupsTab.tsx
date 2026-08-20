@@ -51,7 +51,6 @@ interface GroupsTabProps {
   selectedAccount: Account | null;
 }
 
-// Sidebar Group Item Component
 interface GroupItemProps {
   group: {
     id: number;
@@ -149,9 +148,7 @@ const GroupItem = ({
   );
 };
 
-// Main Groups Tab Component
 const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
-  // Store state
   const activeTab = useActiveGroupsTab();
   const setActiveTab = useSetActiveGroupsTab();
   const selectedGroupId = useSelectedGroupId();
@@ -159,7 +156,6 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
   const searchQuery = useGroupsSearchQuery();
   const setSearchQuery = useSetGroupsSearchQuery();
 
-  // Profile modal state
   const [profileUserId, setProfileUserId] = useState<number | null>(null);
   const [selectedStoreItem, setSelectedStoreItem] = useState<{
     id: number;
@@ -167,8 +163,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
     imageUrl?: string;
   } | null>(null);
 
-  // Sidebar resize state
-  const [sidebarWidth, setSidebarWidth] = useState(320); // default to 80 * 4
+  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarWidthRef = useRef(sidebarWidth);
   const MIN_SIDEBAR_WIDTH = 240;
@@ -179,12 +174,10 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
   const clampWidth = (width: number) =>
     Math.min(Math.max(width, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH);
 
-  // Keep ref in sync
   useEffect(() => {
     sidebarWidthRef.current = sidebarWidth;
   }, [sidebarWidth]);
 
-  // Restore saved width
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem("groupsSidebarWidth");
@@ -202,7 +195,6 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
     }
   }, []);
 
-  // Handle drag-to-resize lifecycle
   useEffect(() => {
     if (!isResizing) return;
 
@@ -242,12 +234,10 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
     };
   }, [isResizing]);
 
-  // Get user ID
   const userId = selectedAccount?.userId
     ? parseInt(selectedAccount.userId)
     : null;
 
-  // Queries
   const {
     data: joinedGroups = [],
     isLoading: joinedLoading,
@@ -264,7 +254,6 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
     isFetching: pendingFetching,
   } = usePendingGroups(selectedAccount);
 
-  // Filter groups by search
   const filteredJoinedGroups = useMemo(() => {
     if (!searchQuery.trim()) return joinedGroups;
     const query = searchQuery.toLowerCase();
@@ -289,7 +278,6 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
   const isFetching = activeTab === "joined" ? joinedFetching : pendingFetching;
   const error = activeTab === "joined" ? joinedError : pendingError;
 
-  // Get the selected group's user role (for joined groups)
   const selectedGroupMembership = useMemo(() => {
     if (activeTab !== "joined" || !selectedGroupId) return null;
     return joinedGroups.find((g) => g.group.id === selectedGroupId);
@@ -303,14 +291,12 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
     }
   };
 
-  // Auto-select first group when data loads or tab changes
   useEffect(() => {
     if (!isLoading && displayGroups.length > 0 && !selectedGroupId) {
       setSelectedGroupId(displayGroups[0].group.id);
     }
   }, [isLoading, displayGroups, selectedGroupId, setSelectedGroupId]);
 
-  // Clear selection when changing tabs
   useEffect(() => {
     setSelectedGroupId(null);
     setSearchQuery("");
@@ -319,7 +305,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full bg-[var(--color-app-bg)]">
-        {/* Toolbar */}
+        {}
         <div className="shrink-0 h-[72px] bg-[var(--color-surface-strong)] border-b border-[var(--color-border)] z-20 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-[var(--color-text-primary)]">
@@ -347,7 +333,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
           </div>
         </div>
 
-        {/* Main Content */}
+        {}
         {!selectedAccount ? (
           <div className="flex-1 flex items-center justify-center">
             <EmptyState
@@ -358,13 +344,13 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
           </div>
         ) : (
           <div className="flex-1 flex min-h-0">
-            {/* Sidebar */}
+            {}
             <div
               ref={sidebarRef}
               className={`relative border-r border-[var(--color-border)] flex flex-col shrink-0 bg-[var(--color-surface)]/30 ${!isResizing ? "transition-[width] duration-150 ease-in-out" : ""}`}
               style={{ width: `${sidebarWidth}px` }}
             >
-              {/* Sidebar Tabs */}
+              {}
               <Tabs
                 tabs={[
                   {
@@ -385,7 +371,6 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                 layoutId="groupsSidebarTabIndicator"
               />
 
-              {/* Search */}
               <div className="p-3 border-b border-[var(--color-border)]">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -406,7 +391,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                 </div>
               </div>
 
-              {/* Groups List */}
+              {}
               <div className="flex-1 overflow-hidden p-2">
                 <AnimatePresence mode="wait">
                   {isLoading ? (
@@ -496,7 +481,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
                 </AnimatePresence>
               </div>
 
-              {/* Resize Handle */}
+              {}
               <div
                 className="absolute top-0 right-0 h-full cursor-col-resize z-20"
                 style={{
@@ -515,7 +500,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
               </div>
             </div>
 
-            {/* Details Panel */}
+            {}
             <GroupDetailsPanel
               groupId={selectedGroupId}
               selectedAccount={selectedAccount}
@@ -528,7 +513,7 @@ const GroupsTab = ({ selectedAccount }: GroupsTabProps) => {
         )}
       </div>
 
-      {/* Profile Modal */}
+      {}
       <UniversalProfileModal
         isOpen={!!profileUserId}
         onClose={() => setProfileUserId(null)}

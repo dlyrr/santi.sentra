@@ -2,6 +2,11 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { getDataFile } from "../../utils/paths";
+import {
+  encryptWithPassword,
+  decryptWithPassword,
+  isPasswordEncrypted,
+} from "../../lib/secureStore";
 
 export interface BackupData {
   version: string;
@@ -13,10 +18,6 @@ export interface BackupData {
 export class AccountBackupService {
   private static readonly BACKUP_DIR = getDataFile("Backups");
 
-  /**
-   * Create encrypted backup file with accounts
-   * @param savePath - Optional custom path to save the backup file. If not provided, uses default Backups directory
-   */
   static async createBackup(
     accounts: any[],
     backupPin: string,
@@ -25,18 +26,20 @@ export class AccountBackupService {
     try {
       backupPin = String(backupPin || "");
 
+      if (backupPin.length === 0) {
+        throw new Error("A backup PIN is required");
+      }
+
       let filepath: string;
 
       if (savePath) {
-        // Use custom save path provided by user
         filepath = savePath;
-        // Ensure the directory exists
+
         const dir = path.dirname(filepath);
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir, { recursive: true });
         }
       } else {
-        // Use default backup directory
         if (!fs.existsSync(this.BACKUP_DIR)) {
           fs.mkdirSync(this.BACKUP_DIR, { recursive: true });
         }
@@ -67,9 +70,6 @@ export class AccountBackupService {
     }
   }
 
-  /**
-   * Restore accounts from encrypted backup file
-   */
   static async restoreBackup(
     filepath: string,
     backupPin: string,
@@ -91,7 +91,6 @@ export class AccountBackupService {
         throw new Error("Invalid backup format: accounts list missing");
       }
 
-      // Normalize accounts to ensure required fields exist and types match expectations
       const normalized = backupData.accounts.map((a: any) => {
         const id = a?.id ?? a?.uuid ?? a?.uid ?? crypto.randomUUID();
         const displayName = a?.displayName ?? a?.display_name ?? a?.name ?? "";
@@ -123,26 +122,9 @@ export class AccountBackupService {
     }
   }
 
-  /**
-   * Encrypt data using PIN as key
-   * Produces base64:base64 (IV:cipher) for safe text storage.
-   */
   private static encryptData(data: string, pin: string): string {
     try {
-      const salt = "sentra-backup-salt-v1";
-      const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, "sha256");
-
-      const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-
-      const encryptedBuf = Buffer.concat([
-        cipher.update(Buffer.from(data, "utf-8")),
-        cipher.final(),
-      ]);
-
-      const combined =
-        iv.toString("base64") + ":" + encryptedBuf.toString("base64");
-      return combined;
+      return encryptWithPassword(data, pin);
     } catch (error) {
       throw new Error(
         "Encryption failed: " +
@@ -151,14 +133,16 @@ export class AccountBackupService {
     }
   }
 
-  /**
-   * Decrypt data using PIN as key
-   * Supports legacy hex:hex (IV:cipher) and new base64:base64 formats.
-   */
   private static decryptData(combined: string, pin: string): string {
-    try {
-      // Do not log PIN or derived key for security
+    if (isPasswordEncrypted(combined)) {
+      const plain = decryptWithPassword(combined, pin);
+      if (plain === null) {
+        throw new Error("Invalid PIN or corrupted backup file");
+      }
+      return plain;
+    }
 
+    try {
       const idx = combined.indexOf(":");
       if (idx === -1) throw new Error("Invalid backup file format");
       const ivPart = combined.substring(0, idx);
@@ -178,7 +162,7 @@ export class AccountBackupService {
         let decrypted = decipher.update(encryptedPart, "hex", "utf-8");
         decrypted += decipher.final("utf-8");
         console.debug &&
-          console.debug("[BackupService] Successfully decrypted (hex)");
+          console.debug("[BackupService] Decrypted legacy backup (hex)");
         return decrypted;
       } else {
         const iv = Buffer.from(ivPart, "base64");
@@ -186,7 +170,7 @@ export class AccountBackupService {
         let decrypted = decipher.update(encryptedPart, "base64", "utf-8");
         decrypted += decipher.final("utf-8");
         console.debug &&
-          console.debug("[BackupService] Successfully decrypted (base64)");
+          console.debug("[BackupService] Decrypted legacy backup (base64)");
         return decrypted;
       }
     } catch (error) {

@@ -6,7 +6,7 @@ interface CatalogActiveFiltersProps {
     minPrice?: number;
     maxPrice?: number;
     creatorName?: string;
-    salesType?: string; // '1' | '2' | '3'
+    salesType?: string;
     unavailableItems?: string;
     categoryName?: string;
   };
@@ -87,7 +87,7 @@ export const CatalogActiveFilters = ({
       {activeFilters.length > 1 && (
         <button
           onClick={onClearAll}
-          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] underline decoration-neutral-700 underline-offset-2 ml-2 transition-colors"
+          className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] underline decoration-[var(--color-border-strong)] underline-offset-2 ml-2 transition-colors"
         >
           Clear all
         </button>

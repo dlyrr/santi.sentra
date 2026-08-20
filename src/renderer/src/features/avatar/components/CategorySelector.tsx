@@ -23,11 +23,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 }) => {
   return (
     <>
-      {/* Level 1: Main Categories */}
+      {}
       <div
         className="flex items-center gap-1 p-2 overflow-x-auto scrollbar-thin border-b border-[var(--color-border)]/50 scroll-smooth"
         onWheel={(e: React.WheelEvent<HTMLDivElement>) => {
-          // Translate vertical wheel to horizontal scroll for better UX
           if (Math.abs(e.deltaY) > 0) {
             e.currentTarget.scrollLeft += e.deltaY;
             e.preventDefault();
@@ -55,7 +54,7 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         })}
       </div>
 
-      {/* Level 2: Sub Categories */}
+      {}
       <div
         className="flex items-center gap-2 px-4 py-3 overflow-x-auto scrollbar-thin bg-[var(--color-surface-muted)] scroll-smooth"
         onWheel={(e: React.WheelEvent<HTMLDivElement>) => {

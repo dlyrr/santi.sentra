@@ -1,8 +1,3 @@
-/**
- * Profit calculation utilities.
- * Provides various profit calculation methods.
- */
-
 import { Item, TradingConfig, ProfitAnalysis } from "../types/TradingTypes";
 import { Logger } from "../../shared/logging/Logger";
 
@@ -13,16 +8,10 @@ export class ProfitCalculator {
     this.logger = new Logger("ProfitCalculator");
   }
 
-  /**
-   * Calculate simple profit (resale - purchase).
-   */
   public calculateSimpleProfit(item: Item): number {
     return item.resalePrice - item.purchasePrice;
   }
 
-  /**
-   * Calculate profit with fees.
-   */
   public calculateProfitWithFees(item: Item, config: TradingConfig): number {
     let profit = this.calculateSimpleProfit(item);
 
@@ -34,9 +23,6 @@ export class ProfitCalculator {
     return profit;
   }
 
-  /**
-   * Calculate profit percentage.
-   */
   public calculateProfitPercentage(item: Item): number {
     if (item.purchasePrice === 0) {
       return 0;
@@ -44,9 +30,6 @@ export class ProfitCalculator {
     return ((item.resalePrice - item.purchasePrice) / item.purchasePrice) * 100;
   }
 
-  /**
-   * Calculate profit percentage with fees.
-   */
   public calculateProfitPercentageWithFees(
     item: Item,
     config: TradingConfig,
@@ -59,9 +42,6 @@ export class ProfitCalculator {
     return (profitWithFees / item.purchasePrice) * 100;
   }
 
-  /**
-   * Calculate fees based on configuration.
-   */
   public calculateFees(price: number, config: TradingConfig): number {
     let fees = 0;
 
@@ -76,13 +56,11 @@ export class ProfitCalculator {
     return fees;
   }
 
-  /**
-   * Perform comprehensive profit analysis.
-   */
   public analyze(item: Item, config: TradingConfig): ProfitAnalysis {
     const simpleProfit = this.calculateSimpleProfit(item);
     const profitPercentage = this.calculateProfitPercentage(item);
-    const profitPerUnit = simpleProfit / item.quantity;
+    const profitPerUnit =
+      item.quantity > 0 ? simpleProfit / item.quantity : simpleProfit;
 
     const fees = config.includeFees
       ? this.calculateFees(item.resalePrice, config)
@@ -93,7 +71,6 @@ export class ProfitCalculator {
 
     const passesThreshold = this.checkThreshold(netProfit, config);
 
-    // Additional analysis
     const isMarginal = netProfitPercentage < 10;
     const isHighVolume = item.quantity > 100;
     const isLowVolume = item.quantity < 10;
@@ -121,9 +98,6 @@ export class ProfitCalculator {
     return analysis;
   }
 
-  /**
-   * Check if profit meets threshold requirements.
-   */
   private checkThreshold(profit: number, config: TradingConfig): boolean {
     if (profit < config.minProfitThreshold) {
       return false;
@@ -139,9 +113,6 @@ export class ProfitCalculator {
     return true;
   }
 
-  /**
-   * Calculate ROI (Return on Investment).
-   */
   public calculateROI(investment: number, profit: number): number {
     if (investment === 0) {
       return 0;
@@ -149,18 +120,12 @@ export class ProfitCalculator {
     return (profit / investment) * 100;
   }
 
-  /**
-   * Estimate total profit for multiple items.
-   */
   public estimateTotalProfit(items: Item[], config: TradingConfig): number {
     return items.reduce((total, item) => {
       return total + this.calculateProfitWithFees(item, config);
     }, 0);
   }
 
-  /**
-   * Identify profitable items.
-   */
   public filterProfitable(items: Item[], config: TradingConfig): Item[] {
     return items.filter((item) => {
       const profit = this.calculateProfitWithFees(item, config);

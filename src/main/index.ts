@@ -1,9 +1,10 @@
 /// <reference types="electron-vite/node" />
-import { app, shell, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { join } from "path";
 import { existsSync, readFileSync } from "fs";
 import { getDataFile } from "./utils/paths";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { openExternalSafely } from "./lib/safeShell";
 import iconIco from "../../resources/build/icons/win/icon.ico?asset";
 import iconIcns from "../../resources/build/icons/mac/icon.icns?asset";
 
@@ -15,12 +16,21 @@ const logPerf = (label: string) => {
 
 let storageService: typeof import("./modules/system/StorageService").storageService;
 
-// Synchronous flag to prevent race condition - must be set before any async code
+function isVaultUnlocked(): boolean {
+  if (!storageService) return false;
+  try {
+    const hasPin = !!storageService.getPinHash();
+    if (!hasPin) return true;
+    return storageService.isPinCurrentlyVerified();
+  } catch (err) {
+    console.error("[main] Failed to determine vault lock state:", err);
+
+    return false;
+  }
+}
+
 let handlersRegistered = false;
 
-// Prevent multiple instances of the app from running (Windows-only, but harmless on other platforms)
-// This lock is essential for normal operation but can block app restart on Windows
-// We store it so we can release it during updates if needed
 let appLock: ReturnType<typeof app.requestSingleInstanceLock> | null = null;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock && process.platform === "win32") {
@@ -29,12 +39,9 @@ if (!gotTheLock && process.platform === "win32") {
   appLock = gotTheLock;
 }
 
-// Helper for gracefully handling app shutdown during updates
 export function gracefulShutdownForUpdate(): void {
   if (appLock) {
     try {
-      // Release the single instance lock to allow the updated app to start
-      // Note: app.requestSingleInstanceLock() returns a lock object that is released by nullifying it
       appLock = null;
     } catch (err) {
       console.warn("Could not release app lock:", err);
@@ -68,11 +75,14 @@ function createWindow(): BrowserWindow {
         }),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
-      sandbox: false,
+
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false,
     },
   });
 
-  // Debounce window resize saving
   let resizeTimeout: NodeJS.Timeout | null = null;
   mainWindow.on("resized", () => {
     if (resizeTimeout) clearTimeout(resizeTimeout);
@@ -86,7 +96,6 @@ function createWindow(): BrowserWindow {
   });
 
   mainWindow.on("ready-to-show", () => {
-    // Apply saved size non-blocking
     if (storageService) {
       const savedWidth = storageService.getWindowWidth();
       const savedHeight = storageService.getWindowHeight();
@@ -104,27 +113,126 @@ function createWindow(): BrowserWindow {
     logPerf("did-finish-load"),
   );
 
-  // Standardize console log output from renderer
-  mainWindow.webContents.on(
-    "console-message",
-    (_event, level, message, line, sourceId) => {
-      // Electron passes arguments as: (event, level, message, line, sourceId)
-      console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
-    },
-  );
+  mainWindow.webContents.on("console-message", (details) => {
+    const { level, message, lineNumber, sourceId } = details;
+    console.log(`[renderer:${level}] ${message} (${sourceId}:${lineNumber})`);
+  });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    openExternalSafely(details.url);
     return { action: "deny" };
   });
 
-  // navigation is deferred to caller so IPC handlers can be ready
+  const isInternalUrl = (target: string): boolean => {
+    try {
+      const parsed = new URL(target);
+      if (parsed.protocol === "file:") return true;
+      const devUrl = process.env["ELECTRON_RENDERER_URL"];
+      if (is.dev && devUrl) {
+        return parsed.origin === new URL(devUrl).origin;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  const blockExternalNavigation = (
+    event: { preventDefault: () => void },
+    url: string,
+  ): void => {
+    if (isInternalUrl(url)) return;
+    event.preventDefault();
+    console.warn(`[main] Blocked in-app navigation to ${url}`);
+    openExternalSafely(url);
+  };
+
+  mainWindow.webContents.on("will-navigate", (event, url) =>
+    blockExternalNavigation(event, url),
+  );
+  mainWindow.webContents.on("will-redirect", (event, url) =>
+    blockExternalNavigation(event, url),
+  );
+
+  mainWindow.webContents.on("will-attach-webview", (event) => {
+    event.preventDefault();
+  });
+
   return mainWindow;
+}
+
+function installContentSecurityPolicy(): void {
+  const devUrl = process.env["ELECTRON_RENDERER_URL"];
+  let devOrigin: string | null = null;
+  if (devUrl) {
+    try {
+      devOrigin = new URL(devUrl).origin;
+    } catch {
+      devOrigin = null;
+    }
+  }
+
+  const isOwnDocument = (url: string): boolean => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === "file:") return true;
+      return devOrigin !== null && parsed.origin === devOrigin;
+    } catch {
+      return false;
+    }
+  };
+
+  const scriptSrc = is.dev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+    : "script-src 'self'";
+
+  const robloxConnect = "https://*.rbxcdn.com https://*.roblox.com";
+  const connectSrc = is.dev
+    ? `connect-src 'self' ws: wss: ${robloxConnect} ${devOrigin ?? ""}`.trim()
+    : `connect-src 'self' ${robloxConnect}`;
+
+  const policy = [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https:",
+    "media-src 'self' data: blob: https:",
+    connectSrc,
+    "object-src 'none'",
+    "frame-src 'none'",
+    "worker-src 'self' blob:",
+    "base-uri 'self'",
+    "form-action 'none'",
+  ].join("; ");
+
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (
+      (details.resourceType !== "mainFrame" &&
+        details.resourceType !== "subFrame") ||
+      !isOwnDocument(details.url)
+    ) {
+      callback({});
+      return;
+    }
+
+    const headers = { ...details.responseHeaders };
+
+    for (const key of Object.keys(headers)) {
+      if (key.toLowerCase() === "content-security-policy") {
+        delete headers[key];
+      }
+    }
+    headers["Content-Security-Policy"] = [policy];
+    callback({ responseHeaders: headers });
+  });
 }
 
 app.whenReady().then(async () => {
   electronApp.setAppUserModelId("com.sentra.app");
   if (process.platform === "darwin") app.setName("sentra");
+
+  installContentSecurityPolicy();
 
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
@@ -133,7 +241,6 @@ app.whenReady().then(async () => {
   const mainWindow = createWindow();
   logPerf("window-created");
 
-  // Load CRITICAL modules first (needed before showing UI)
   const criticalModules = await Promise.all([
     import("./modules/core/RobloxHandler"),
     import("./modules/system/StorageController"),
@@ -152,39 +259,31 @@ app.whenReady().then(async () => {
     registerLogsHandlers: criticalModules[5].registerLogsHandlers,
   };
 
-  // Update global reference
   storageService = criticalLoaded.storageService;
 
   logPerf("critical-modules-loaded");
 
-  // Register critical handlers
   criticalLoaded.registerRobloxHandlers();
   criticalLoaded.registerStorageHandlers();
   criticalLoaded.registerLogsHandlers();
   criticalLoaded.pinService.initialize();
   logPerf("critical-handlers-registered");
 
-  // Resume user agent auto-swap if it was enabled
   const { UserAgentService } = await import("./modules/auth/UserAgentService");
   UserAgentService.resumeAutoSwapIfEnabled();
 
-  // Register production module IPC handlers
   const { registerModuleIpcHandlers } = await import("./ipc/ModuleIpcHandlers");
   registerModuleIpcHandlers();
 
-  // only navigate once the critical IPC handlers are in place to avoid race conditions
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
-  // Load NON-CRITICAL modules AFTER UI is displayed (deferred loading)
   mainWindow.once("ready-to-show", async () => {
     logPerf("ready-to-show");
 
-    // Set flag SYNCHRONOUSLY to prevent both windows from registering handlers
-    // This must be done before any async operations
     if (handlersRegistered) {
       console.log(
         "[perf:main] Handlers already registered, skipping for this window",
@@ -196,7 +295,6 @@ app.whenReady().then(async () => {
       "[perf:main] Locked handler registration, proceeding with setup...",
     );
 
-    // Load and register non-critical modules in background
     console.log("[perf:main] Starting deferred module loading...");
 
     const nonCriticalModules = await Promise.all([
@@ -221,7 +319,6 @@ app.whenReady().then(async () => {
 
     logPerf("non-critical-modules-loaded");
 
-    // Register non-critical handlers
     console.log(
       "[perf:main] Registering non-critical IPC handlers (one-time setup)...",
     );
@@ -243,6 +340,31 @@ app.whenReady().then(async () => {
       mainWindow.setAlwaysOnTop(false);
     }
   });
+
+  ipcMain.handle(
+    "tile-game-windows",
+    async (
+      _event,
+      options?: {
+        pattern?: "grid" | "rows" | "columns" | "cascade";
+        monitors?: "all" | "primary" | "secondary";
+        spacing?: number;
+        columns?: number;
+      },
+    ) => {
+      try {
+        const { PerformanceService } =
+          await import("./modules/system/PerformanceService");
+        return PerformanceService.tileRobloxWindows(options ?? {});
+      } catch (error) {
+        console.error("[main] tile-game-windows failed:", error);
+        return {
+          success: false,
+          message: "Window tiling failed.",
+        };
+      }
+    },
+  );
 
   ipcMain.handle("has-config", () => {
     try {
@@ -279,17 +401,17 @@ app.whenReady().then(async () => {
     }
   });
 
-  // DISABLED: License redeem handler - licensing system disabled
-  // ipcMain.handle('license:redeem', async (_event, licenseKey: string, userPin: string) => { ... })
-
-  // IPC: Reset HWID / clear license
-  // Note: deleted because of the issues with rift
-
-  // IPC: Logout / clear all config data
   ipcMain.handle("app:logout", async () => {
     try {
       if (!storageService)
         return { success: false, message: "Storage not initialized" };
+
+      if (!isVaultUnlocked()) {
+        return {
+          success: false,
+          message: "PIN must be verified before logging out",
+        };
+      }
       storageService.clearAll();
       return { success: true, message: null };
     } catch (err: any) {
@@ -297,12 +419,19 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Get decrypted password for an account
   ipcMain.handle(
     "account:get-decrypted-password",
     async (_event, accountId: string) => {
       try {
         if (!storageService) return { success: false, password: "" };
+
+        if (!isVaultUnlocked()) {
+          return {
+            success: false,
+            password: "",
+            error: "PIN must be verified",
+          };
+        }
         const accounts = storageService.getAccounts();
         const account = accounts.find((acc) => acc.id === accountId);
         if (!account) {
@@ -317,13 +446,6 @@ app.whenReady().then(async () => {
     },
   );
 
-  // DISABLED: License validation handler - licensing system disabled
-  // ipcMain.handle('license:validate-stored', async () => { ... })
-
-  // DISABLED: Periodic license session refresh - licensing system disabled
-  // setInterval(async () => { ... }, 6 * 60 * 60 * 1000)
-
-  // Register updater handlers
   criticalLoaded.registerUpdaterHandlers(mainWindow);
 
   app.on("activate", function () {
@@ -331,7 +453,6 @@ app.whenReady().then(async () => {
       const newWindow = createWindow();
       criticalLoaded.registerUpdaterHandlers(newWindow);
     } else {
-      // If windows exist, just focus the first one
       const mainWindow = BrowserWindow.getAllWindows()[0];
       if (mainWindow) {
         mainWindow.show();
@@ -340,7 +461,6 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Handle second instance attempt on Windows
   app.on("second-instance", () => {
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
@@ -353,4 +473,12 @@ app.whenReady().then(async () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", () => {
+  try {
+    storageService.flush();
+  } catch (error) {
+    console.error("[index] failed to flush storage on quit:", error);
+  }
 });

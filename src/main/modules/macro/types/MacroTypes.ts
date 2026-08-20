@@ -1,11 +1,3 @@
-/**
- * Macro types and interfaces.
- * Defines the structure and contracts for macro recording and playback.
- */
-
-/**
- * Represents a single macro event (mouse or keyboard action).
- */
 export interface MacroEvent {
   type: "mouse" | "keyboard";
   action: string;
@@ -21,9 +13,6 @@ export interface MacroEvent {
   };
 }
 
-/**
- * Represents a complete macro (sequence of events).
- */
 export interface Macro {
   id: string;
   name: string;
@@ -37,9 +26,6 @@ export interface Macro {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Macro recording configuration.
- */
 export interface MacroRecorderConfig {
   captureMouseMovement: boolean;
   captureMouseClicks: boolean;
@@ -48,9 +34,6 @@ export interface MacroRecorderConfig {
   ignoreKeys?: string[];
 }
 
-/**
- * Macro playback configuration.
- */
 export interface MacroPlaybackConfig {
   targetWindow?: string;
   speedMultiplier?: number;
@@ -59,9 +42,6 @@ export interface MacroPlaybackConfig {
   eventDelayMs?: number;
 }
 
-/**
- * Macro recording state.
- */
 export interface MacroRecordingState {
   isRecording: boolean;
   startTime: number;
@@ -69,9 +49,6 @@ export interface MacroRecordingState {
   lastTimestamp: number;
 }
 
-/**
- * Macro playback state.
- */
 export interface MacroPlaybackState {
   isPlaying: boolean;
   currentEventIndex: number;
@@ -80,9 +57,6 @@ export interface MacroPlaybackState {
   pausedTime?: number;
 }
 
-/**
- * Macro event callback types.
- */
 export type MacroRecordingCallback = (
   state: MacroRecordingState,
   event: MacroEvent,
@@ -92,9 +66,6 @@ export type MacroPlaybackCallback = (
   event: MacroEvent,
 ) => void;
 
-/**
- * Playback result.
- */
 export interface MacroPlaybackResult {
   success: boolean;
   totalEvents: number;

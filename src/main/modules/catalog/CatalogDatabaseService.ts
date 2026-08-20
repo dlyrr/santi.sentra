@@ -52,21 +52,20 @@ class CatalogDatabaseService {
   private indexPromise: Promise<CatalogIndexExport> | null = null;
 
   constructor() {
-    // First, check if database exists in bundled resources (app.asar or dist)
     const appPath = app.getAppPath();
-    const bundledDbPath = path.join(
-      appPath,
-      "..",
-      "assets",
-      "lists",
-      "roblox_items.db",
+    const bundledCandidates = [
+      path.join(process.resourcesPath, "assets", "lists", "roblox_items.db"),
+      path.join(appPath, "..", "assets", "lists", "roblox_items.db"),
+      path.join(appPath, "assets", "lists", "roblox_items.db"),
+    ];
+    const bundledDbPath = bundledCandidates.find((candidate) =>
+      fs.existsSync(candidate),
     );
-    if (fs.existsSync(bundledDbPath)) {
+    if (bundledDbPath) {
       this.dbPath = bundledDbPath;
       return;
     }
 
-    // Fall back to application data directory for persistence
     const dbDir = getDataFile("data");
     if (!fs.existsSync(dbDir)) {
       fs.mkdirSync(dbDir, { recursive: true });
@@ -74,9 +73,6 @@ class CatalogDatabaseService {
     this.dbPath = path.join(dbDir, "roblox_items.db");
   }
 
-  /**
-   * Get the current database status
-   */
   getStatus(): DatabaseStatus {
     return {
       exists: fs.existsSync(this.dbPath),
@@ -86,16 +82,10 @@ class CatalogDatabaseService {
     };
   }
 
-  /**
-   * Check if the database exists
-   */
   isDatabaseReady(): boolean {
     return fs.existsSync(this.dbPath);
   }
 
-  /**
-   * Download the database from GitHub
-   */
   async downloadDatabase(): Promise<{ success: boolean; error?: string }> {
     if (this.isDownloading) {
       return { success: false, error: "Download already in progress" };
@@ -111,7 +101,6 @@ class CatalogDatabaseService {
     try {
       const buffer = await this.fetchWithRedirects(DATABASE_DOWNLOAD_URL);
 
-      // Write the downloaded file
       fs.writeFileSync(this.dbPath, buffer);
 
       this.isDownloading = false;
@@ -125,9 +114,6 @@ class CatalogDatabaseService {
     }
   }
 
-  /**
-   * Fetch a URL following redirects (GitHub releases use redirects)
-   */
   private fetchWithRedirects(
     url: string,
     maxRedirects: number = 10,
@@ -180,9 +166,6 @@ class CatalogDatabaseService {
     });
   }
 
-  /**
-   * Initialize the database connection
-   */
   initialize(): void {
     if (this.db) return;
 
@@ -190,20 +173,12 @@ class CatalogDatabaseService {
       throw new Error(`Database not found. Please download it first.`);
     }
 
-    try {
-      this.db = new Database(this.dbPath, { readonly: true });
-    } catch (error) {
-      throw error;
-    }
+    this.db = new Database(this.dbPath, { readonly: true });
   }
 
-  /**
-   * Ensure database is initialized, downloading if necessary
-   */
   private async ensureInitializedAsync(): Promise<Database.Database> {
     if (this.db) return this.db;
 
-    // If database doesn't exist, download it first
     if (!fs.existsSync(this.dbPath)) {
       const result = await this.downloadDatabase();
       if (!result.success) {
@@ -227,7 +202,7 @@ class CatalogDatabaseService {
 
     const dbPath = this.dbPath;
 
-    this.indexPromise = (async () => {
+    const indexPromise = (async () => {
       const { spawn, move } = await import("multithreading");
 
       const handle = spawn(move(dbPath), async (dbPath) => {
@@ -320,12 +295,16 @@ class CatalogDatabaseService {
       return catalogIndexExportSchema.parse(result.value);
     })();
 
-    return this.indexPromise;
+    indexPromise.catch(() => {
+      if (this.indexPromise === indexPromise) {
+        this.indexPromise = null;
+      }
+    });
+
+    this.indexPromise = indexPromise;
+    return indexPromise;
   }
 
-  /**
-   * Get all catalog items for search indexing
-   */
   async getAllItems(): Promise<CatalogSearchResult[]> {
     const db = await this.ensureInitializedAsync();
 
@@ -369,9 +348,6 @@ class CatalogDatabaseService {
     }));
   }
 
-  /**
-   * Search items by name (prefix search)
-   */
   async searchByName(
     query: string,
     limit: number = 50,
@@ -425,9 +401,6 @@ class CatalogDatabaseService {
     }));
   }
 
-  /**
-   * Get item by asset ID
-   */
   async getItemById(assetId: number): Promise<CatalogDbItem | null> {
     const db = await this.ensureInitializedAsync();
 
@@ -476,9 +449,6 @@ class CatalogDatabaseService {
     };
   }
 
-  /**
-   * Get sales data for an asset
-   */
   async getSalesData(
     assetId: number,
   ): Promise<{ id: number; sales: number } | null> {
@@ -502,36 +472,36 @@ class CatalogDatabaseService {
     };
   }
 
-  /**
-   * Get batch sales data for multiple assets
-   */
   async getBatchSalesData(assetIds: number[]): Promise<Record<number, number>> {
     if (assetIds.length === 0) return {};
 
     const db = await this.ensureInitializedAsync();
 
-    const placeholders = assetIds.map(() => "?").join(",");
-    const stmt = db.prepare(`
-      SELECT AssetId, COALESCE(Sales, 0) as Sales
-      FROM items
-      WHERE AssetId IN (${placeholders})
-    `);
-
-    const rows = stmt.all(...assetIds) as Array<{
-      AssetId: number;
-      Sales: number;
-    }>;
-
+    const CHUNK_SIZE = 900;
     const result: Record<number, number> = {};
-    for (const row of rows) {
-      result[row.AssetId] = row.Sales;
+
+    for (let i = 0; i < assetIds.length; i += CHUNK_SIZE) {
+      const chunk = assetIds.slice(i, i + CHUNK_SIZE);
+      const placeholders = chunk.map(() => "?").join(",");
+      const stmt = db.prepare(`
+        SELECT AssetId, COALESCE(Sales, 0) as Sales
+        FROM items
+        WHERE AssetId IN (${placeholders})
+      `);
+
+      const rows = stmt.all(...chunk) as Array<{
+        AssetId: number;
+        Sales: number;
+      }>;
+
+      for (const row of rows) {
+        result[row.AssetId] = row.Sales;
+      }
     }
+
     return result;
   }
 
-  /**
-   * Get total item count
-   */
   async getItemCount(): Promise<number> {
     const db = await this.ensureInitializedAsync();
 
@@ -540,9 +510,6 @@ class CatalogDatabaseService {
     return row.count;
   }
 
-  /**
-   * Close the database connection
-   */
   close(): void {
     if (this.db) {
       this.db.close();
@@ -551,5 +518,4 @@ class CatalogDatabaseService {
   }
 }
 
-// Singleton instance
 export const catalogDatabaseService = new CatalogDatabaseService();

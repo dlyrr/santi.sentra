@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Eye, EyeOff, Check, X, Delete } from "lucide-react";
+import { Lock, Eye, EyeOff, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../../../../shared/queryKeys";
 
@@ -78,46 +78,6 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
     [pin, confirmPin, isSubmitting],
   );
 
-  const handleNumpadClick = (
-    digit: string,
-    target: "pin" | "confirm" = "pin",
-  ) => {
-    const currentPinArray = target === "confirm" ? confirmPin : pin;
-    const refs = target === "confirm" ? confirmInputRefs : inputRefs;
-    const firstEmptyIndex = currentPinArray.findIndex((d) => d === "");
-    if (firstEmptyIndex !== -1) {
-      handleInputChange(firstEmptyIndex, digit, target);
-      if (firstEmptyIndex < 5) {
-        refs.current[firstEmptyIndex + 1]?.focus();
-      }
-    }
-  };
-
-  const handleBackspace = (target: "pin" | "confirm" = "pin") => {
-    const currentPinArray = target === "confirm" ? confirmPin : pin;
-    const setter = target === "confirm" ? setConfirmPin : setPin;
-    const refs = target === "confirm" ? confirmInputRefs : inputRefs;
-    const lastFilledIndex = currentPinArray
-      .map((d, i) => (d ? i : -1))
-      .filter((i) => i !== -1)
-      .pop();
-    if (lastFilledIndex !== undefined) {
-      setter((prev) => {
-        const newPin = [...prev];
-        newPin[lastFilledIndex] = "";
-        return newPin;
-      });
-      refs.current[lastFilledIndex]?.focus();
-    }
-  };
-
-  const handleClear = (target: "pin" | "confirm" = "pin") => {
-    const setter = target === "confirm" ? setConfirmPin : setPin;
-    const refs = target === "confirm" ? confirmInputRefs : inputRefs;
-    setter(Array(6).fill(""));
-    refs.current[0]?.focus();
-  };
-
   const handleContinue = () => {
     if (pin.join("").length !== 6) {
       setError("Please enter all 6 digits");
@@ -153,7 +113,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.settings.snapshot(),
         });
-        setSuccess(true); // Triggers the success UI inside AnimatePresence
+        setSuccess(true);
         setTimeout(() => onComplete(), 1500);
       } else {
         setError(result.error || "Failed to set PIN");
@@ -202,54 +162,6 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
           }`}
         />
       ))}
-    </div>
-  );
-
-  const renderNumpad = (target: "pin" | "confirm" = "pin") => (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-[200px] mx-auto">
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-        <motion.button
-          key={num}
-          type="button"
-          onClick={() => handleNumpadClick(String(num), target)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          disabled={isSubmitting || success}
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] text-lg font-medium transition-colors disabled:opacity-50"
-        >
-          {num}
-        </motion.button>
-      ))}
-      <motion.button
-        type="button"
-        onClick={() => handleClear(target)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        disabled={isSubmitting || success}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors flex items-center justify-center disabled:opacity-50"
-      >
-        <X className="w-5 h-5" />
-      </motion.button>
-      <motion.button
-        type="button"
-        onClick={() => handleNumpadClick("0", target)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        disabled={isSubmitting || success}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] text-lg font-medium transition-colors disabled:opacity-50"
-      >
-        0
-      </motion.button>
-      <motion.button
-        type="button"
-        onClick={() => handleBackspace(target)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        disabled={isSubmitting || success}
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)] transition-colors flex items-center justify-center disabled:opacity-50"
-      >
-        <Delete className="w-5 h-5" />
-      </motion.button>
     </div>
   );
 
@@ -329,7 +241,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                       {showPin ? "Hide PIN" : "Show PIN"}
                     </button>
                   </div>
-                  {renderNumpad("pin")}
+
                   {error && (
                     <p className="text-red-400 text-sm text-center">{error}</p>
                   )}
@@ -364,7 +276,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                       {showPin ? "Hide PIN" : "Show PIN"}
                     </button>
                   </div>
-                  {renderNumpad("confirm")}
+
                   {error && (
                     <p className="text-red-400 text-sm text-center">{error}</p>
                   )}
@@ -372,7 +284,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                     <button
                       onClick={handleBack}
                       disabled={isSubmitting}
-                      className="flex-1 px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors disabled:opacity-50"
+                      className="flex-1 px-4 py-3 text-sm font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] rounded-lg transition-colors disabled:opacity-50"
                     >
                       Back
                     </button>

@@ -158,7 +158,7 @@ export const CustomizeInstallationModal: React.FC<
           <DialogClose />
         </DialogHeader>
 
-        {/* Tabs */}
+        {}
         <Tabs
           layoutId="customize-modal-tabs"
           activeTab={customizeTab}
@@ -174,7 +174,7 @@ export const CustomizeInstallationModal: React.FC<
         <DialogBody className="overflow-y-auto flex-1 p-0">
           {customizeTab === "fflags" && (
             <div className="p-6 space-y-6">
-              {/* Presets */}
+              {}
               <div className="space-y-4">
                 <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
                   Presets
@@ -203,7 +203,6 @@ export const CustomizeInstallationModal: React.FC<
 
               <div className="h-px bg-[var(--color-surface-hover)]" />
 
-              {/* Existing Flags */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
@@ -251,7 +250,7 @@ export const CustomizeInstallationModal: React.FC<
                 </div>
               </div>
 
-              {/* Add New Flag */}
+              {}
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
                   Add Custom Flag

@@ -1,11 +1,3 @@
-/**
- * Trading system types.
- * Defines item data structures and trading calculations.
- */
-
-/**
- * Represents an item in an inventory or marketplace.
- */
 export interface Item {
   id: string;
   name: string;
@@ -16,9 +8,6 @@ export interface Item {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Trading configuration for profit analysis.
- */
 export interface TradingConfig {
   minProfitThreshold: number;
   maxProfitThreshold?: number;
@@ -30,9 +19,6 @@ export interface TradingConfig {
   minMarginPercentage?: number;
 }
 
-/**
- * Result of profit analysis.
- */
 export interface ProfitAnalysis {
   itemId: string;
   itemName: string;
@@ -53,9 +39,6 @@ export interface ProfitAnalysis {
   timestamp: number;
 }
 
-/**
- * Trading decision with callback support.
- */
 export interface TradingDecision {
   itemId: string;
   decision: "BUY" | "SELL" | "HOLD" | "SKIP";
@@ -64,9 +47,6 @@ export interface TradingDecision {
   analysis: ProfitAnalysis;
 }
 
-/**
- * Trade opportunity for bulk operations.
- */
 export interface TradeOpportunity {
   sourceItem: Item;
   targetPrice: number;

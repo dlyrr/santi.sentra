@@ -1,8 +1,3 @@
-/**
- * Browser Automation Service - Orchestrates browser automation workflows.
- * High-level API for end-to-end automation tasks.
- */
-
 import { EventEmitter } from "events";
 import { Logger } from "../../shared/logging/Logger";
 import {
@@ -36,9 +31,6 @@ export class BrowserAutomationService
     this.browserService = new BrowserService();
   }
 
-  /**
-   * Launch browser.
-   */
   public async launch(options: BrowserLaunchOptions = {}): Promise<void> {
     try {
       await this.browserService.launch(options);
@@ -56,46 +48,29 @@ export class BrowserAutomationService
     }
   }
 
-  /**
-   * Navigate to URL.
-   */
   public async navigate(config: NavigationConfig): Promise<void> {
-    try {
-      await this.browserService.navigate(config);
-      this.emit("navigated", { url: config.url });
-    } catch (error) {
-      throw error;
-    }
+    await this.browserService.navigate(config);
+    this.emit("navigated", { url: config.url });
   }
 
-  /**
-   * Fill form.
-   */
   public async fillForm(config: FormConfig): Promise<void> {
-    try {
-      const browser = this.browserService.getBrowser();
-      if (!browser) {
-        throw new AppError(
-          "Browser not available",
-          ErrorCode.BROWSER_LAUNCH_ERROR,
-          "BrowserAutomationService",
-        );
-      }
-
-      if (!this.formService) {
-        this.formService = new FormAutomationService(browser);
-      }
-
-      await this.formService.fillForm(config);
-      this.emit("formFilled");
-    } catch (error) {
-      throw error;
+    const browser = this.browserService.getBrowser();
+    if (!browser) {
+      throw new AppError(
+        "Browser not available",
+        ErrorCode.BROWSER_LAUNCH_ERROR,
+        "BrowserAutomationService",
+      );
     }
+
+    if (!this.formService) {
+      this.formService = new FormAutomationService(browser);
+    }
+
+    await this.formService.fillForm(config);
+    this.emit("formFilled");
   }
 
-  /**
-   * Execute end-to-end automation workflow.
-   */
   public async executeAutomation(
     navigation: NavigationConfig,
     form: FormConfig,
@@ -116,13 +91,10 @@ export class BrowserAutomationService
     try {
       this.logger.info("Starting automation workflow");
 
-      // Navigate
       await this.navigate(navigation);
 
-      // Fill form
       await this.fillForm(form);
 
-      // Submit if configured
       if (form.submitSelector) {
         const browser = this.browserService.getBrowser();
         if (browser) {
@@ -173,9 +145,6 @@ export class BrowserAutomationService
     }
   }
 
-  /**
-   * Wait for manual user interaction.
-   */
   public async waitForUserInteraction(timeout: number = 300000): Promise<void> {
     if (this.waitingForUserInteraction) {
       return;
@@ -191,7 +160,15 @@ export class BrowserAutomationService
       this.emit("waitingForUserInteraction");
 
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => {
+        let timer: NodeJS.Timeout | undefined;
+
+        const onComplete = () => {
+          clearTimeout(timer);
+          this.waitingForUserInteraction = false;
+          resolve();
+        };
+        timer = setTimeout(() => {
+          this.removeListener("userInteractionComplete", onComplete);
           this.waitingForUserInteraction = false;
           reject(
             new AppError(
@@ -202,12 +179,7 @@ export class BrowserAutomationService
           );
         }, timeout);
 
-        // Allow external completion
-        this.once("userInteractionComplete", () => {
-          clearTimeout(timer);
-          this.waitingForUserInteraction = false;
-          resolve();
-        });
+        this.once("userInteractionComplete", onComplete);
       });
 
       this.logger.info("User interaction completed");
@@ -217,16 +189,10 @@ export class BrowserAutomationService
     }
   }
 
-  /**
-   * Signal user interaction completion.
-   */
   public completeUserInteraction(): void {
     this.emit("userInteractionComplete");
   }
 
-  /**
-   * Take screenshot.
-   */
   public async screenshot(path?: string): Promise<Buffer> {
     try {
       const browser = this.browserService.getBrowser();
@@ -247,9 +213,6 @@ export class BrowserAutomationService
     }
   }
 
-  /**
-   * Close browser.
-   */
   public async close(): Promise<void> {
     try {
       await this.browserService.close();
@@ -261,9 +224,6 @@ export class BrowserAutomationService
     }
   }
 
-  /**
-   * Check if currently automating.
-   */
   public isAutomating(): boolean {
     return this._isAutomating;
   }
@@ -273,9 +233,6 @@ export class BrowserAutomationService
   }
 }
 
-/**
- * Factory for BrowserAutomationService.
- */
 export class BrowserAutomationServiceFactory {
   public static create(): BrowserAutomationService {
     return new BrowserAutomationService();

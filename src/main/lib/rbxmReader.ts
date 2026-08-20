@@ -1,11 +1,10 @@
-/**
- * Roblox Binary Model (.rbxm/.rbxl) Reader
- * Decodes binary Roblox files into a structured format compatible with xmlReader.ts
- */
-
 import lz4 from "lz4js";
 import * as fzstd from "fzstd";
 import { Instance, Properties, Property } from "./xmlReader";
+
+const MAX_RAW_CHUNK = 512 * 1024 * 1024;
+const MAX_CHUNKS = 100_000;
+const MAX_CONVERT_DEPTH = 2048;
 
 function formatNum(num: number) {
   if (Math.abs(num) < 0.0001) return "0";
@@ -236,10 +235,24 @@ class ByteReader {
     return this.data.length;
   }
 
+  get position() {
+    return this.idx;
+  }
+
+  private ensure(n: number) {
+    if (n < 0 || this.idx + n > this.data.length) {
+      throw new RangeError(
+        `Roblox binary stream truncated: need ${n} byte(s) at offset ${this.idx}, have ${this.data.length - this.idx}`,
+      );
+    }
+  }
+
   getUint8() {
+    this.ensure(1);
     return this.data[this.idx++];
   }
   getUint32() {
+    this.ensure(4);
     let val = 0;
     for (let i = 0; i < 4; ++i) val += this.data[this.idx++] << (i * 8);
     return val >>> 0;
@@ -258,6 +271,8 @@ class ByteReader {
   }
   getString() {
     const len = this.getUint32();
+
+    this.ensure(len);
     let str = "";
     for (let i = 0; i < len; i++)
       str += String.fromCharCode(this.data[this.idx++]);
@@ -267,17 +282,20 @@ class ByteReader {
     return this.getUint8() !== 0;
   }
   getBytes(n: number) {
+    this.ensure(n);
     const res = this.data.slice(this.idx, this.idx + n);
     this.idx += n;
     return res;
   }
   getBytesAsString(n: number) {
+    this.ensure(n);
     let str = "";
     for (let i = 0; i < n; i++)
       str += String.fromCharCode(this.data[this.idx++]);
     return str;
   }
   getBytesReversed(n: number) {
+    this.ensure(n);
     const res = new Uint8Array(n);
     for (let i = n - 1; i >= 0; i--) res[i] = this.data[this.idx++];
     return res;
@@ -306,14 +324,13 @@ class ByteReader {
     const raw = this.getBytes(count * 4);
     return ByteReader.convertInterleaved(raw, count, (b) => {
       const i = Buffer.from(b).readInt32BE(0);
-      return (i >> 1) ^ -(i & 1); // un-zigzag
+      return (i >> 1) ^ -(i & 1);
     });
   }
 
   getInterleavedFloat32(count: number) {
     const raw = this.getBytes(count * 4);
     return ByteReader.convertInterleaved(raw, count, (b) => {
-      // Roblox float format transform
       const rbxBits = bytesToBitArray(b);
       const stdBits = new Uint8Array(32);
       for (let i = 0; i < 31; i++) stdBits[i + 1] = rbxBits[i];
@@ -436,13 +453,10 @@ const Parsers: Partial<Record<DataType, TypeParser>> = {
   },
   [DataType.CFrame]: {
     read(r, count, out) {
-      // Orientation matrices are complex (compressed as rotation IDs or raw floats)
       const orientations: number[][] = [];
       for (let i = 0; i < count; ++i) {
         const id = r.getUint8();
         if (id > 0) {
-          // In a full implementation, we'd map IDs to rotation matrices
-          // For brevity, we'll push Identity for known IDs
           orientations.push([1, 0, 0, 0, 1, 0, 0, 0, 1]);
         } else {
           const mat: number[] = [];
@@ -592,7 +606,7 @@ const Parsers: Partial<Record<DataType, TypeParser>> = {
           (bytes[5] << 8) |
           (bytes[6] << 16) |
           ((bytes[7] << 24) >>> 0);
-        // For simplicity, return as BigInt or string
+
         const value = BigInt(high) * BigInt(0x100000000) + BigInt(low >>> 0);
         out.push({ type: DataType.Int64, value: value.toString() });
       }
@@ -628,44 +642,61 @@ class RobloxFileDOMReader {
 
   read(data: Uint8Array): RobloxBinaryFile | null {
     const r = new ByteReader(data);
-    if (
-      r.getBytesAsString(8) !== "<roblox!" ||
-      r.getBytesAsString(6) !== "\x89\xff\x0d\x0a\x1a\x0a"
-    ) {
-      console.error("Invalid Header");
-      return null;
-    }
-
-    r.skip(2 + 4 + 4 + 8);
-
-    while (true) {
-      const type = r.getBytesAsString(4);
-      const compLen = r.getUint32();
-      const rawLen = r.getUint32();
-      r.skip(4);
-
-      if (type === "END\0") break;
-
-      let chunkData: Uint8Array;
-      if (compLen > 0) {
-        const compressed = r.getBytes(compLen);
-        if (
-          compressed[0] === 0x28 &&
-          compressed[1] === 0xb5 &&
-          compressed[2] === 0x2f &&
-          compressed[3] === 0xfd
-        ) {
-          chunkData = Buffer.allocUnsafe(rawLen);
-          fzstd.decompress(compressed, chunkData);
-        } else {
-          chunkData = new Uint8Array(rawLen);
-          lz4.decompressBlock(compressed, chunkData, 0, compLen, 0);
-        }
-      } else {
-        chunkData = r.getBytes(rawLen);
+    try {
+      if (
+        r.getBytesAsString(8) !== "<roblox!" ||
+        r.getBytesAsString(6) !== "\x89\xff\x0d\x0a\x1a\x0a"
+      ) {
+        console.error("Invalid Header");
+        return null;
       }
 
-      this.parseChunk(type, new ByteReader(chunkData));
+      r.skip(2 + 4 + 4 + 8);
+
+      let chunkCount = 0;
+      while (true) {
+        if (++chunkCount > MAX_CHUNKS) {
+          throw new Error(
+            `Roblox binary file exceeds ${MAX_CHUNKS} chunks; refusing to continue`,
+          );
+        }
+        const type = r.getBytesAsString(4);
+        const compLen = r.getUint32();
+        const rawLen = r.getUint32();
+        r.skip(4);
+
+        if (type === "END\0") break;
+
+        if (rawLen > MAX_RAW_CHUNK || compLen > MAX_RAW_CHUNK) {
+          throw new Error(
+            `Roblox binary chunk too large (comp=${compLen}, raw=${rawLen}); refusing to allocate`,
+          );
+        }
+
+        let chunkData: Uint8Array;
+        if (compLen > 0) {
+          const compressed = r.getBytes(compLen);
+          if (
+            compressed[0] === 0x28 &&
+            compressed[1] === 0xb5 &&
+            compressed[2] === 0x2f &&
+            compressed[3] === 0xfd
+          ) {
+            chunkData = Buffer.alloc(rawLen);
+            fzstd.decompress(compressed, chunkData);
+          } else {
+            chunkData = new Uint8Array(rawLen);
+            lz4.decompressBlock(compressed, chunkData, 0, compLen, 0);
+          }
+        } else {
+          chunkData = r.getBytes(rawLen);
+        }
+
+        this.parseChunk(type, new ByteReader(chunkData));
+      }
+    } catch (err) {
+      console.error("[rbxmReader] Failed to parse binary Roblox file:", err);
+      return null;
     }
 
     for (const inst of this.instMap.values()) {
@@ -755,11 +786,7 @@ class RobloxFileDOMReader {
   }
 }
 
-/**
- * Converts a CoreInstance from binary format to the Instance class used by xmlReader.ts
- * This allows the same data structure to be used regardless of whether the file was XML or binary
- */
-function convertToXmlInstance(coreInst: CoreInstance): Instance {
+function convertToXmlInstance(coreInst: CoreInstance, depth = 0): Instance {
   const inst = new Instance(coreInst.ClassName);
   inst.referent = coreInst.referent;
 
@@ -769,16 +796,19 @@ function convertToXmlInstance(coreInst: CoreInstance): Instance {
   }
   inst.properties = props;
 
-  for (const child of coreInst.Children) {
-    convertToXmlInstance(child).setParent(inst);
+  if (depth < MAX_CONVERT_DEPTH) {
+    for (const child of coreInst.Children) {
+      convertToXmlInstance(child, depth + 1).setParent(inst);
+    }
+  } else {
+    console.warn(
+      `[rbxmReader] Instance tree deeper than ${MAX_CONVERT_DEPTH}; truncating remaining descendants`,
+    );
   }
 
   return inst;
 }
 
-/**
- * Converts a RobloxValue to a Property format compatible with xmlReader
- */
 function convertRobloxValueToProperty(
   _name: string,
   rVal: RobloxValue,
@@ -842,9 +872,6 @@ function convertRobloxValueToProperty(
   return { value, type: typeName };
 }
 
-/**
- * Checks if a buffer contains a binary Roblox file
- */
 export function isBinaryRobloxFile(content: string | Buffer): boolean {
   if (Buffer.isBuffer(content)) {
     return content.length >= 8 && content.slice(0, 8).toString() === "<roblox!";
@@ -852,10 +879,6 @@ export function isBinaryRobloxFile(content: string | Buffer): boolean {
   return content.startsWith("<roblox!");
 }
 
-/**
- * Main entry point: Parse a binary Roblox file and return an Instance tree
- * compatible with the xmlReader format
- */
 export function parseBinaryRobloxFile(buffer: Buffer): Instance {
   const file = RobloxBinaryFile.ReadFromBuffer(buffer);
 

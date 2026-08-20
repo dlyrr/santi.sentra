@@ -11,10 +11,8 @@ import {
 import { RobloxLauncherService } from "../install/LauncherService";
 import { RobloxInstallService } from "../install/InstallService";
 import { storageService } from "../system/StorageService";
+import { PerformanceService } from "../system/PerformanceService";
 
-/**
- * WatcherService - Main orchestrator for monitoring Roblox clients and restarting crashed ones
- */
 export class WatcherService {
   private sessionManager: SessionManager;
   private config: WatcherConfig;
@@ -23,9 +21,11 @@ export class WatcherService {
   private mainWindow: BrowserWindow | null = null;
   private restartTimers: Map<string, NodeJS.Timeout> = new Map();
 
+  private monitoringGeneration = 0;
+
   constructor() {
     this.sessionManager = sessionManager;
-    // Load persisted watcher config from storage
+
     const savedConfig = storageService.getWatcherConfig();
     this.config = {
       enabled: false,
@@ -42,17 +42,11 @@ export class WatcherService {
     };
   }
 
-  /**
-   * Initialize the WatcherService with a reference to the main window
-   */
   initialize(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow;
     console.log("[WatcherService] Initialized");
   }
 
-  /**
-   * Start watching sessions
-   */
   startWatching(): void {
     if (this.config.enabled && this.monitoringLoop) {
       console.log("[WatcherService] Already watching");
@@ -71,16 +65,13 @@ export class WatcherService {
     this.startMonitoringLoop();
   }
 
-  /**
-   * Stop watching sessions
-   */
   stopWatching(): void {
+    this.monitoringGeneration++;
     if (this.monitoringLoop) {
       clearTimeout(this.monitoringLoop);
       this.monitoringLoop = null;
     }
 
-    // Cancel all pending restarts
     for (const timer of this.restartTimers.values()) {
       clearTimeout(timer);
     }
@@ -96,9 +87,6 @@ export class WatcherService {
     });
   }
 
-  /**
-   * Add a new session to watch
-   */
   addSession(
     accountId: string,
     username: string,
@@ -136,7 +124,6 @@ export class WatcherService {
       message: `Session started for ${username} (PID: ${pid}, Place: ${placeId})${logFile ? ` - Watching ${logFile}` : " - Waiting for log file"}`,
     });
 
-    // Send update to renderer
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send(
         "watcher:sessions-updated",
@@ -147,27 +134,17 @@ export class WatcherService {
     return session;
   }
 
-  /**
-   * Get all sessions
-   */
   getSessions(): WatcherSession[] {
     return this.sessionManager.getAllSessions();
   }
 
-  /**
-   * Get a session by ID
-   */
   getSession(sessionId: string): WatcherSession | undefined {
     return this.sessionManager.getSessionById(sessionId);
   }
 
-  /**
-   * Stop watching a specific session
-   */
   stopSession(sessionId: string, killProcess?: boolean): void {
     const session = this.sessionManager.getSessionById(sessionId);
     if (session) {
-      // Cancel any pending restart
       const restartTimer = this.restartTimers.get(sessionId);
       if (restartTimer) {
         clearTimeout(restartTimer);
@@ -190,7 +167,6 @@ export class WatcherService {
         }
       }
 
-      // Clean up the log file cache for this session to prevent memory leak
       if (session.logFile) {
         logMonitor.clearCache(session.logFile);
       }
@@ -199,12 +175,28 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Update watcher configuration
-   */
+  async restartProcessByPid(pid: number, reason: string): Promise<boolean> {
+    const session = this.sessionManager
+      .getAllSessions()
+      .find((candidate) => candidate.pid === pid);
+
+    if (!session || !session.launchConfig) {
+      console.warn(
+        `[Watcher] Cannot restart PID ${pid}: no tracked session or launch config (${reason})`,
+      );
+      return false;
+    }
+
+    console.log(
+      `[Watcher] Restarting ${session.username} after resource limit (${reason})`,
+    );
+    await this.onSessionCrashed(session, reason);
+    return true;
+  }
+
   updateConfig(config: Partial<WatcherConfig>): void {
     this.config = { ...this.config, ...config };
-    // Save settings to storage
+
     const storageConfig: any = {};
     if (config.autoRestart !== undefined) {
       storageConfig.autoRestart = config.autoRestart;
@@ -221,40 +213,28 @@ export class WatcherService {
     console.log("[WatcherService] Config updated:", this.config);
   }
 
-  /**
-   * Get current configuration
-   */
   getConfig(): WatcherConfig {
     return { ...this.config };
   }
 
-  /**
-   * Get event log
-   */
   getEventLog(): WatcherEvent[] {
     return [...this.events];
   }
 
-  /**
-   * Clear event log
-   */
   clearEventLog(): void {
     this.events = [];
   }
 
-  /**
-   * Main monitoring loop
-   */
   private startMonitoringLoop(): void {
     if (this.monitoringLoop) {
       clearTimeout(this.monitoringLoop);
     }
 
-    // Use recursive setTimeout instead of setInterval to prevent overlapping async calls.
-    // If checkAllSessions takes longer than checkIntervalMs, setInterval would queue up
-    // multiple concurrent runs, causing race conditions on session state.
+    const generation = ++this.monitoringGeneration;
+
     const scheduleNext = () => {
-      if (!this.config.enabled) return;
+      if (!this.config.enabled || generation !== this.monitoringGeneration)
+        return;
       this.monitoringLoop = setTimeout(async () => {
         await this.checkAllSessions();
         scheduleNext();
@@ -264,9 +244,6 @@ export class WatcherService {
     scheduleNext();
   }
 
-  /**
-   * Check all active sessions for crashes and process status
-   */
   private async checkAllSessions(): Promise<void> {
     if (!this.config.enabled) {
       return;
@@ -280,12 +257,10 @@ export class WatcherService {
       }
 
       for (const session of sessions) {
-        // Skip sessions that are already restarting
-        if (session.status === "restarting") {
+        if (session.status === "restarting" || (session as any).__gaveUp) {
           continue;
         }
 
-        // Check RAM limiter if enabled
         if (
           this.config.enableRAMLimiter &&
           this.config.ramLimitMB &&
@@ -295,8 +270,8 @@ export class WatcherService {
             `[Watcher] Checking RAM for ${session.username} (PID: ${session.pid}, Limit: ${this.config.ramLimitMB}MB)`,
           );
           const currentFailureCount = session.ramCleanupFailureCount || 0;
-          // Pass cleanup setting to ProcessMonitor - only attempt cleanup if enabled
-          const enableCleanup = this.config.enableRAMCleanupAttempts !== false; // Default to true if not specified
+
+          const enableCleanup = this.config.enableRAMCleanupAttempts !== false;
           const needsRestart = await ProcessMonitor.checkAndLimitRAM(
             session.pid,
             this.config.ramLimitMB,
@@ -325,12 +300,9 @@ export class WatcherService {
             continue;
           }
 
-          // Only track cleanup attempts if cleanup is enabled
           if (enableCleanup) {
-            // Get current RAM to determine if cleanup attempt was made
             const currentRAM = await ProcessMonitor.getProcessRAM(session.pid);
             if (currentRAM !== null && currentRAM > this.config.ramLimitMB) {
-              // RAM is still over limit - increment failure count
               session.ramCleanupFailureCount = currentFailureCount + 1;
               console.log(
                 `[Watcher] RAM cleanup failed attempt ${session.ramCleanupFailureCount} for ${session.username}`,
@@ -339,7 +311,6 @@ export class WatcherService {
               currentRAM !== null &&
               currentRAM <= this.config.ramLimitMB
             ) {
-              // RAM cleanup succeeded - reset counter
               if (currentFailureCount > 0) {
                 console.log(
                   `[Watcher] RAM cleanup succeeded for ${session.username} - resetting failure count`,
@@ -350,7 +321,6 @@ export class WatcherService {
           }
         }
 
-        // Check client timeout restart if enabled
         const robloxSettings = storageService.getRobloxSettings();
         if (
           robloxSettings.timeoutRelaunchEnabled &&
@@ -360,43 +330,99 @@ export class WatcherService {
           if (session.lastStartTime) {
             const secondsRunning = (Date.now() - session.lastStartTime) / 1000;
             if (secondsRunning > robloxSettings.timeoutRelaunchSeconds) {
-              // Mark session as timed out - handled in batch below
               (session as any).__pendingTimeoutRestart = true;
             }
           }
         }
 
-        // Check if process is running outside grace period
-        const inGracePeriod =
+        const inRestartGracePeriod =
           session.lastRestartTime &&
           Date.now() - session.lastRestartTime < 45000;
+
+        const recentlyLaunched =
+          !session.lastRestartTime &&
+          session.lastStartTime &&
+          Date.now() - session.lastStartTime < 15000;
+
+        const inGracePeriod = inRestartGracePeriod || recentlyLaunched;
         const isRunning = await ProcessMonitor.isProcessRunning(session.pid);
 
         if (inGracePeriod) {
-          const remaining = Math.round(
-            (45000 - (Date.now() - session.lastRestartTime!)) / 1000,
-          );
+          const timeReference =
+            session.lastRestartTime || session.lastStartTime;
+          const gracePeriodMs = inRestartGracePeriod ? 45000 : 15000;
+          const elapsedMs = Date.now() - (timeReference || Date.now());
+          const remaining = Math.round((gracePeriodMs - elapsedMs) / 1000);
           console.log(
             `[Watcher] Grace period active for ${session.username} (${remaining}s remaining)`,
           );
         } else if (!isRunning) {
-          // After grace period, if process is completely gone, mark as crashed
           console.log(
-            `[Watcher] Process ${session.pid} for ${session.username} is not running - marking as crashed`,
+            `[Watcher] PID ${session.pid} for ${session.username} returned false from isProcessRunning, verifying against system process list...`,
+          );
+
+          const allRobloxPids = await ProcessMonitor.getRobloxProcessPids();
+          const isPidInSystemList = allRobloxPids.includes(session.pid);
+
+          if (isPidInSystemList) {
+            console.log(
+              `[Watcher] PID ${session.pid} found in system Roblox process list (PIDs: ${allRobloxPids.join(", ")}). This is a false crash detection - skipping.`,
+            );
+            continue;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          const stillRunning = await ProcessMonitor.isProcessRunning(
+            session.pid,
+          );
+          if (stillRunning) {
+            console.log(
+              `[Watcher] PID ${session.pid} for ${session.username} verified running after re-check - race condition avoided`,
+            );
+            continue;
+          }
+
+          console.log(
+            `[Watcher] PID ${session.pid} NOT found in system Roblox process list (actual PIDs: ${allRobloxPids.join(", ")}). Process is truly gone.`,
           );
           await this.onSessionCrashed(session, "Process ended unexpectedly");
           continue;
         }
 
-        // Check log file for crash indicators
         try {
-          // If we don't have a log file yet, try to find it
+          const duplicateLogOwners = sessions.filter(
+            (other) =>
+              other.id !== session.id &&
+              other.logFile &&
+              other.logFile === session.logFile,
+          );
+
+          if (duplicateLogOwners.length > 0) {
+            console.log(
+              `[Watcher] Skipping log scan for ${session.username} because its log file is shared with ${duplicateLogOwners.map((owner) => owner.username).join(", ")}. Using process state instead.`,
+            );
+            continue;
+          }
+
           if (!session.logFile) {
             console.log(
               `[Watcher] No log file set for ${session.username}, searching...`,
             );
-            const foundLogFile = await logMonitor.findLatestLogFile();
+            const startThreshold = session.lastStartTime || Date.now();
+            const foundLogFile =
+              await logMonitor.findLatestLogFileAfter(startThreshold);
             if (foundLogFile) {
+              const otherOwner = this.sessionManager
+                .getAllSessions()
+                .find((s) => s.id !== session.id && s.logFile === foundLogFile);
+
+              if (otherOwner) {
+                console.log(
+                  `[Watcher] Found log file is already in use by ${otherOwner.username}, skipping for ${session.username}`,
+                );
+                continue;
+              }
+
               console.log(
                 `[Watcher] Found log file for ${session.username}: ${foundLogFile}`,
               );
@@ -404,7 +430,6 @@ export class WatcherService {
                 session.id,
                 foundLogFile,
               );
-              // Continue to next session to use updated log file in next cycle
               continue;
             } else {
               console.log(
@@ -414,18 +439,37 @@ export class WatcherService {
             }
           }
 
+          const startTime = session.lastStartTime ?? Date.now();
+          const logFileAge = Date.now() - startTime;
+          if (logFileAge > 0 && session.logFile) {
+            const logStat = require("fs").existsSync(session.logFile)
+              ? require("fs").statSync(session.logFile)
+              : null;
+            if (logStat && logStat.mtimeMs < startTime) {
+              console.log(
+                `[Watcher] Ignoring stale log file for ${session.username}: ${session.logFile}`,
+              );
+              const foundLogFile =
+                await logMonitor.findLatestLogFileAfter(startTime);
+              if (foundLogFile) {
+                this.sessionManager.updateSessionLogFile(
+                  session.id,
+                  foundLogFile,
+                );
+              }
+              continue;
+            }
+          }
+
           const logSize = logMonitor.getLogFileSize(session.logFile);
 
-          // Only check logs if they exist
           if (logSize === 0) {
             continue;
           }
 
-          // Check for crashes using new content or full scan fallback
           let contentToCheck = "";
 
           if (logSize > session.lastLogSize) {
-            // Normal case: read new content since last check
             contentToCheck = await logMonitor.readNewLogContent(
               session.logFile,
               session.lastLogSize,
@@ -434,8 +478,6 @@ export class WatcherService {
             logSize === session.lastLogSize &&
             session.lastLogSize > 0
           ) {
-            // File hasn't grown - could be from before our tracking started
-            // Do a full file scan if process is not running (potential missed crash)
             const isRunning = await ProcessMonitor.isProcessRunning(
               session.pid,
             );
@@ -446,7 +488,7 @@ export class WatcherService {
               contentToCheck = await logMonitor.readNewLogContent(
                 session.logFile,
                 0,
-              ); // Read entire file
+              );
             }
           }
 
@@ -466,10 +508,8 @@ export class WatcherService {
               continue;
             }
 
-            // Update log size if no crash detected
             this.sessionManager.updateLogSize(session.id, logSize);
           } else {
-            // Still update log size for tracking
             if (logSize > session.lastLogSize) {
               this.sessionManager.updateLogSize(session.id, logSize);
             }
@@ -482,8 +522,6 @@ export class WatcherService {
         }
       }
 
-      // ── Staggered timeout restarts ────────────────────────────────────────
-      // Collect all sessions marked for timeout restart in this check cycle
       const timedOutSessions = sessions.filter(
         (s) => (s as any).__pendingTimeoutRestart,
       );
@@ -491,8 +529,8 @@ export class WatcherService {
         console.log(
           `[Watcher] ${timedOutSessions.length} session(s) hit timeout — staggering restarts 10s apart`,
         );
-        // Clear the pending flag and schedule each one with an increasing offset
-        const STAGGER_INTERVAL_MS = 10_000; // 10s between each restart
+
+        const STAGGER_INTERVAL_MS = 10_000;
         for (let i = 0; i < timedOutSessions.length; i++) {
           const session = timedOutSessions[i];
           delete (session as any).__pendingTimeoutRestart;
@@ -510,34 +548,38 @@ export class WatcherService {
             details: { reason: "CLIENT_TIMEOUT" },
           });
 
-          // Mark as crashed immediately so the UI reflects it
           this.sessionManager.updateSessionStatus(session.id, "crashed");
           this.sessionManager.updateLastCrashReason(
             session.id,
             `Client timeout exceeded (${secondsRunning}s)`,
           );
 
-          // Kill process now, but delay the relaunch
-          // Fix: capture primitive values by value, not the mutable session object.
-          // The session may be removed/modified between the setTimeout scheduling and firing.
           const capturedId = session.id;
           const capturedPid = session.pid;
           const capturedUsername = session.username;
-          setTimeout(async () => {
+
+          const existingStaggerTimer = this.restartTimers.get(capturedId);
+          if (existingStaggerTimer) {
+            clearTimeout(existingStaggerTimer);
+          }
+          const staggerTimer = setTimeout(async () => {
+            this.restartTimers.delete(capturedId);
+
+            if (!this.config.enabled) return;
+
+            const liveSession = this.sessionManager.getSessionById(capturedId);
+            if (!liveSession) return;
             try {
               await ProcessMonitor.killProcess(capturedPid);
             } catch {}
             console.log(
               `[Watcher] Executing staggered restart for ${capturedUsername} (slot ${i + 1})`,
             );
-            const liveSession = this.sessionManager.getSessionById(capturedId);
-            if (liveSession) {
-              await this.restartSession(liveSession);
-            }
+            await this.restartSession(liveSession);
           }, staggerMs);
+          this.restartTimers.set(capturedId, staggerTimer);
         }
 
-        // Notify renderer of updated states
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
           this.mainWindow.webContents.send(
             "watcher:sessions-updated",
@@ -556,13 +598,12 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Handle a crashed session
-   */
   private async onSessionCrashed(
     session: WatcherSession,
     reason: string,
   ): Promise<void> {
+    delete (session as any).__pendingTimeoutRestart;
+
     this.sessionManager.updateSessionStatus(session.id, "crashed");
     this.sessionManager.updateLastCrashReason(session.id, reason);
 
@@ -575,7 +616,6 @@ export class WatcherService {
       details: { reason },
     });
 
-    // Kill the crashed process
     const killed = await ProcessMonitor.killProcess(session.pid);
     if (killed) {
       console.log(
@@ -589,7 +629,6 @@ export class WatcherService {
       });
     }
 
-    // Notify renderer of crash and send updated sessions
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send("watcher:session-crashed", {
         sessionId: session.id,
@@ -602,7 +641,6 @@ export class WatcherService {
       );
     }
 
-    // Handle auto-restart if enabled
     console.log(
       `[Watcher] Auto-restart check: enabled=${this.config.autoRestart}, hasConfig=${!!session.launchConfig}`,
     );
@@ -623,41 +661,21 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Schedule a restart for a session with delay
-   */
   private scheduleRestart(session: WatcherSession): void {
-    // Check if we've exceeded max restart attempts (3)
-    const maxAttempts = 3;
-    if (session.restartAttempts >= maxAttempts) {
-      console.error(
-        `[Watcher] Max restart attempts (${maxAttempts}) exceeded for ${session.username}. Giving up.`,
-      );
-      this.logEvent({
-        type: "error",
-        sessionId: session.id,
-        username: session.username,
-        message: `Failed to auto-restart ${session.displayName || session.username} after ${maxAttempts} attempts. Last reason: ${session.lastCrashReason || "Unknown"}. Reason: Could not detect process start or launch failed.`,
-      });
-      return;
-    }
-
     const delayMs = this.config.restartDelaySeconds * 1000;
 
     console.log(
-      `[Watcher] Scheduling restart for ${session.username} in ${this.config.restartDelaySeconds}s (attempt ${session.restartAttempts + 1}/${maxAttempts})`,
+      `[Watcher] Scheduling restart for ${session.username} in ${this.config.restartDelaySeconds}s (attempt ${session.restartAttempts + 1})`,
     );
     this.logEvent({
       type: "session-restarted",
       sessionId: session.id,
       username: session.username,
-      message: `Scheduling restart for ${session.displayName || session.username} in ${this.config.restartDelaySeconds}s (attempt ${session.restartAttempts + 1}/${maxAttempts})`,
+      message: `Scheduling restart for ${session.displayName || session.username} in ${this.config.restartDelaySeconds}s (attempt ${session.restartAttempts + 1})`,
     });
 
-    // Increment attempt counter
     this.sessionManager.incrementRestartAttempts(session.id);
 
-    // Cancel any existing restart timer for this session
     const existingTimer = this.restartTimers.get(session.id);
     if (existingTimer) {
       console.log(
@@ -678,9 +696,6 @@ export class WatcherService {
     console.log(`[Watcher] Restart timer set for ${session.username}`);
   }
 
-  /**
-   * Restart a crashed session using the existing launcher
-   */
   private async restartSession(session: WatcherSession): Promise<void> {
     try {
       if (!session.launchConfig) {
@@ -706,7 +721,6 @@ export class WatcherService {
         `[Watcher] Launching game for ${session.username} on place ${placeId}`,
       );
 
-      // Ensure old process is killed if still running
       const isOldProcessStillRunning = await ProcessMonitor.isProcessRunning(
         session.pid,
       );
@@ -717,13 +731,11 @@ export class WatcherService {
         await ProcessMonitor.killProcess(session.pid);
       }
 
-      // Get current processes before launching
       const pidsBefore = await ProcessMonitor.getRobloxProcessPids();
       console.log(
         `[Watcher] Processes before restart: ${pidsBefore.join(", ")}`,
       );
 
-      // Use the existing launcher service
       let launchSuccess = false;
       try {
         const result = await RobloxLauncherService.launchGame(
@@ -747,7 +759,7 @@ export class WatcherService {
           message: `Failed to launch game: ${errorMsg}`,
         });
         this.sessionManager.updateSessionStatus(session.id, "crashed");
-        // Schedule another retry
+
         this.scheduleRestart(session);
         return;
       }
@@ -763,7 +775,7 @@ export class WatcherService {
           message: `Failed to launch game for ${session.displayName || session.username}`,
         });
         this.sessionManager.updateSessionStatus(session.id, "crashed");
-        // Schedule another retry
+
         this.scheduleRestart(session);
         return;
       }
@@ -772,13 +784,13 @@ export class WatcherService {
         `[Watcher] Game launched successfully for ${session.username}`,
       );
 
-      // Wait for new process to appear (up to 10 seconds)
       let newPid: number | null = null;
-      for (let i = 0; i < 20; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         const pidsAfter = await ProcessMonitor.getRobloxProcessPids();
-        const newPids = pidsAfter.filter((pid) => !pidsBefore.includes(pid));
+        const orderedAfter = [...pidsAfter].sort((a, b) => b - a);
+        const newPids = orderedAfter.filter((pid) => !pidsBefore.includes(pid));
 
         if (newPids.length > 0) {
           newPid = newPids[0];
@@ -789,7 +801,6 @@ export class WatcherService {
         }
       }
 
-      // Update PID if new process found, otherwise use first available process
       if (newPid) {
         console.log(
           `[Watcher] Updating session PID from ${session.pid} to ${newPid}`,
@@ -801,7 +812,6 @@ export class WatcherService {
           `[Watcher] No new process detected, available processes: ${pidsAfter.join(", ")}`,
         );
 
-        // Restart failed - no new process found
         if (pidsAfter.length === 0) {
           console.error(
             `[Watcher] Restart failed for ${session.username} - no Roblox processes found after launch`,
@@ -813,28 +823,26 @@ export class WatcherService {
             username: session.username,
             message: `Failed to restart ${session.displayName || session.username} - no process started`,
           });
-          // Schedule another retry if we haven't hit max attempts
+
           this.scheduleRestart(session);
           return;
         }
 
-        // Use first new process if any
         const newProcess = pidsAfter.find((pid) => !pidsBefore.includes(pid));
         if (newProcess) {
           console.log(`[Watcher] Found new process PID ${newProcess}`);
           this.sessionManager.updateSessionPid(session.id, newProcess);
           newPid = newProcess;
         } else if (pidsAfter.length > 0) {
-          // Fall back to any available process
+          const orderedAfter = [...pidsAfter].sort((a, b) => b - a);
           console.log(
-            `[Watcher] No new process found, using first available PID ${pidsAfter[0]}`,
+            `[Watcher] No new process found, using newest available PID ${orderedAfter[0]}`,
           );
-          this.sessionManager.updateSessionPid(session.id, pidsAfter[0]);
-          newPid = pidsAfter[0];
+          this.sessionManager.updateSessionPid(session.id, orderedAfter[0]);
+          newPid = orderedAfter[0];
         }
       }
 
-      // Try to find the new log file
       let newLogFile: string | null = null;
       if (newPid) {
         console.log(
@@ -855,9 +863,22 @@ export class WatcherService {
           );
           this.sessionManager.updateSessionLogFile(session.id, newLogFile);
         } else {
-          console.warn(
-            `[Watcher] Could not find new log file, keeping old one: ${session.logFile}`,
-          );
+          const startCutoff = session.lastStartTime || Date.now();
+          const sinceLaunchLog =
+            await logMonitor.findLatestLogFileAfter(startCutoff);
+          if (sinceLaunchLog) {
+            console.log(
+              `[Watcher] Using launch-specific log file for ${session.username}: ${sinceLaunchLog}`,
+            );
+            this.sessionManager.updateSessionLogFile(
+              session.id,
+              sinceLaunchLog,
+            );
+          } else {
+            console.warn(
+              `[Watcher] Could not find new log file, keeping old one: ${session.logFile}`,
+            );
+          }
         }
       }
 
@@ -874,19 +895,31 @@ export class WatcherService {
         message: `Successfully restarted ${session.displayName || session.username} - now running (Auto-restart #${session.restartCount})`,
       });
 
-      // Update session with new restart timestamp and status
       this.sessionManager.updateLastRestartTime(session.id, Date.now());
+      this.sessionManager.updateLastStartTime(session.id, Date.now());
       this.sessionManager.updateSessionStatus(session.id, "running");
       console.log(
         `[Watcher] Grace period started for ${session.username} (45s)`,
       );
 
-      // Notify renderer
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
         this.mainWindow.webContents.send(
           "watcher:sessions-updated",
           this.sessionManager.getAllSessions(),
         );
+      }
+
+      const robloxSettings = storageService.getRobloxSettings();
+      if (robloxSettings.windowLayoutEnabled) {
+        console.log(`[Watcher] Retiling windows after successful restart of ${session.username}`);
+        await PerformanceService.tileRobloxWindows({
+          pattern: robloxSettings.windowLayoutPattern ?? "grid",
+          spacing: robloxSettings.windowLayoutSpacing ?? 12,
+          columns: robloxSettings.windowLayoutColumns ?? 3,
+          width: robloxSettings.windowLayoutWidth ?? 0,
+          height: robloxSettings.windowLayoutHeight ?? 0,
+          monitors: "all",
+        });
       }
     } catch (error) {
       console.error(`[Watcher] Error restarting ${session.username}:`, error);
@@ -899,15 +932,11 @@ export class WatcherService {
       });
 
       this.sessionManager.updateSessionStatus(session.id, "crashed");
-      // Schedule another retry if we haven't hit max attempts
+
       this.scheduleRestart(session);
     }
   }
 
-  /**
-   * Auto-detect and register a newly launched game
-   * Called after launching a game from the Watcher UI
-   */
   async autoTrackLaunchedGame(
     accountId: string,
     username: string,
@@ -922,43 +951,48 @@ export class WatcherService {
         `[WatcherService] Starting auto-track for ${username} (place ${placeId})`,
       );
 
-      // Get initial process list before launch
       const initialPids = await ProcessMonitor.getRobloxProcessPids();
       console.log(
         `[WatcherService] Initial Roblox processes: ${initialPids.join(", ")} (count: ${initialPids.length})`,
       );
 
-      // Try to detect a new process (up to 20 seconds)
       let newPid: number | null = null;
-      for (let i = 0; i < 20; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      const maxWaitMs = 5000;
+      for (let elapsed = 0; elapsed <= maxWaitMs; elapsed += 500) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const currentPids = await ProcessMonitor.getRobloxProcessPids();
         const newPids = currentPids.filter((pid) => !initialPids.includes(pid));
 
         if (newPids.length > 0) {
-          newPid = newPids[0];
+          newPid = [...newPids].sort((a, b) => b - a)[0];
           console.log(
-            `[WatcherService] Detected new Roblox process: PID ${newPid} after ${i + 1}s`,
+            `[WatcherService] Detected new Roblox process: PID ${newPid} after ${(elapsed + 500) / 1000}s`,
           );
           break;
         }
 
-        if (i > 0 && i % 5 === 0) {
+        if (currentPids.length > 0 && elapsed >= 1500) {
+          newPid = currentPids[0];
           console.log(
-            `[WatcherService] Still waiting for process... (${i}s elapsed, current: ${currentPids.join(", ")})`,
+            `[WatcherService] Using newest active Roblox PID ${newPid} after ${(elapsed + 500) / 1000}s (no strictly new PID detected)`,
+          );
+          break;
+        }
+
+        if (elapsed % 2000 === 0 || elapsed === maxWaitMs) {
+          console.log(
+            `[WatcherService] Still waiting for process... (${(elapsed + 500) / 1000}s elapsed, current: ${currentPids.length > 0 ? currentPids.join(", ") : "none"})`,
           );
         }
       }
 
-      // If no new process detected, use the most recent PID (game may reuse existing process)
       if (!newPid) {
         const currentPids = await ProcessMonitor.getRobloxProcessPids();
         if (currentPids.length > 0) {
-          // Use the first/most recent process if game reuses existing process
           newPid = currentPids[0];
           console.log(
-            `[WatcherService] No new process detected, using existing PID ${newPid}. (Roblox may reuse process on macOS)`,
+            `[WatcherService] No new process detected, using newest active PID ${newPid}.`,
           );
         } else {
           console.warn("[WatcherService] No Roblox processes found");
@@ -966,26 +1000,35 @@ export class WatcherService {
         }
       }
 
-      // Wait for log file to be created (try for 10 seconds)
+      const sessionStartedAt = Date.now();
       console.log("[WatcherService] Waiting for log file to be created...");
       let logFile: string | null = null;
-      for (let i = 0; i < 20; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        logFile = await logMonitor.findLatestLogFile();
+      for (let i = 0; i < 12; i++) {
+        logFile = await logMonitor.findLatestLogFileAfter(sessionStartedAt);
         if (logFile) {
           console.log(
-            `[WatcherService] Found log file: ${logFile} after ${(i + 1) * 0.5}s`,
+            `[WatcherService] Found log file: ${logFile} after ${(i + 1) * 0.25}s`,
           );
           break;
         }
-        if (i % 4 === 0 && i > 0) {
-          console.log(
-            `[WatcherService] Still searching for log file... (attempt ${i + 1}/20)`,
-          );
+        if (i < 12) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
         }
       }
 
-      // Register session - even without log file, will find it during monitoring
+      if (logFile) {
+        const existingSession = this.sessionManager
+          .getAllSessions()
+          .find((s) => s.logFile === logFile);
+
+        if (existingSession) {
+          console.log(
+            `[WatcherService] Log file is already in use by ${existingSession.username}, deferring log assignment for ${username}`,
+          );
+          logFile = null;
+        }
+      }
+
       if (logFile) {
         console.log(
           `[WatcherService] Registering session for ${username} with log: ${logFile}`,
@@ -1020,9 +1063,6 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Join a private server with the specified account
-   */
   async joinPrivateServer(
     accountId: string,
     jobId: string,
@@ -1033,7 +1073,6 @@ export class WatcherService {
         `[WatcherService] Joining private server: placeId=${placeId}, jobId=${jobId}`,
       );
 
-      // Find account in storage
       const accounts = storageService.getAccounts();
       const account = accounts.find((acc) => acc.id === accountId);
 
@@ -1044,14 +1083,12 @@ export class WatcherService {
         return false;
       }
 
-      // Get active installation path
       const installPath = await RobloxInstallService.getActiveInstallPath();
       if (!installPath) {
         console.error("[WatcherService] No active installation found");
         return false;
       }
 
-      // Launch game with private server jobId
       const result = await RobloxLauncherService.launchGame(
         account.cookie,
         placeId,
@@ -1070,14 +1107,10 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Join a public server/game
-   */
   async joinGame(accountId: string, placeId: number): Promise<boolean> {
     try {
       console.log(`[WatcherService] Joining game: placeId=${placeId}`);
 
-      // Find account in storage
       const accounts = storageService.getAccounts();
       const account = accounts.find((acc) => acc.id === accountId);
 
@@ -1088,14 +1121,12 @@ export class WatcherService {
         return false;
       }
 
-      // Get active installation path
       const installPath = await RobloxInstallService.getActiveInstallPath();
       if (!installPath) {
         console.error("[WatcherService] No active installation found");
         return false;
       }
 
-      // Launch game without jobId (will join public server)
       const result = await RobloxLauncherService.launchGame(
         account.cookie,
         placeId,
@@ -1124,7 +1155,6 @@ export class WatcherService {
         `[WatcherService] Launching game with URL for placeId=${placeId}: ${url}`,
       );
 
-      // Find account in storage
       const accounts = storageService.getAccounts();
       const account = accounts.find((acc) => acc.id === accountId);
 
@@ -1135,14 +1165,12 @@ export class WatcherService {
         return false;
       }
 
-      // Get active installation path
       const installPath = await RobloxInstallService.getActiveInstallPath();
       if (!installPath) {
         console.error("[WatcherService] No active installation found");
         return false;
       }
 
-      // Extract private server link code from URL
       console.log(
         `[WatcherService] Attempting to extract link code from: "${url}"`,
       );
@@ -1161,7 +1189,6 @@ export class WatcherService {
       const linkCode = decodeURIComponent(linkCodeMatch[1]);
       console.log(`[WatcherService] Extracted link code: ${linkCode}`);
 
-      // Use the specialized private server launcher for better handling
       try {
         const result = await RobloxLauncherService.launchWithPrivateServerLink(
           account.cookie,
@@ -1177,7 +1204,6 @@ export class WatcherService {
 
         return success;
       } catch (error: any) {
-        // Fallback to regular launchGame if specialized launcher fails
         console.warn(
           `[WatcherService] Private server launcher failed, falling back to launchGame: ${error.message}`,
         );
@@ -1203,9 +1229,6 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Rejoin a watched session's private server
-   */
   async rejoinPrivateServer(
     sessionId: string,
     jobId: string,
@@ -1221,7 +1244,6 @@ export class WatcherService {
         `[WatcherService] Rejoining private server for ${session.username}`,
       );
 
-      // Find account cookie
       const accounts = storageService.getAccounts();
       const account = accounts.find((acc) => acc.id === session.accountId);
 
@@ -1232,14 +1254,12 @@ export class WatcherService {
         return false;
       }
 
-      // Get active installation path
       const installPath = await RobloxInstallService.getActiveInstallPath();
       if (!installPath) {
         console.error("[WatcherService] No active installation found");
         return false;
       }
 
-      // Launch with jobId
       const result = await RobloxLauncherService.launchGame(
         account.cookie,
         session.placeId,
@@ -1265,9 +1285,6 @@ export class WatcherService {
     }
   }
 
-  /**
-   * Log a watcher event
-   */
   private logEvent(event: Omit<WatcherEvent, "timestamp">): void {
     const fullEvent: WatcherEvent = {
       ...event,
@@ -1276,12 +1293,10 @@ export class WatcherService {
 
     this.events.push(fullEvent);
 
-    // Keep only last 1000 events
     if (this.events.length > 1000) {
       this.events = this.events.slice(-1000);
     }
 
-    // Send to renderer in real-time
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send("watcher:event", fullEvent);
     }
@@ -1289,9 +1304,6 @@ export class WatcherService {
     console.log(`[Watcher] Event: ${event.type} - ${event.message}`);
   }
 
-  /**
-   * Clear all sessions and stop watching
-   */
   clearAll(): void {
     this.stopWatching();
     this.sessionManager.clearAllSessions();
@@ -1299,5 +1311,4 @@ export class WatcherService {
   }
 }
 
-// Export singleton instance
 export const watcherService = new WatcherService();

@@ -38,8 +38,8 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
   return (
     <Dialog isOpen={isOpen} onClose={handleClose}>
       <DialogContent className="w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+        {}
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-strong)]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-[var(--color-surface-hover)] rounded-lg">
               <Lock className="text-[var(--color-text-primary)]" size={20} />
@@ -56,22 +56,22 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
           <button
             onClick={handleClose}
             disabled={isLoading}
-            className="p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-border)] rounded transition-colors disabled:opacity-50"
+            className="pressable p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors disabled:opacity-50"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
+        {}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Server Link Input */}
+          {}
           <div className="space-y-2">
             <label
               htmlFor="linkInput"
-              className="block text-base font-medium text-[var(--color-text-primary)]"
+              className="block text-sm font-medium text-[var(--color-text-primary)]"
             >
               <div className="flex items-center gap-2">
-                <Link2 size={16} />
+                <Link2 size={14} />
                 <span>Server Link</span>
               </div>
             </label>
@@ -80,8 +80,8 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
               type="text"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              placeholder="e.g. https://www.roblox.com/games/..."
-              className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded px-4 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all"
+              placeholder="https://www.roblox.com/games/..."
+              className="w-full bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-lg px-4 py-2.5 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] transition-all"
               required
               disabled={isLoading}
             />
@@ -90,11 +90,11 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
             </p>
           </div>
 
-          {/* Server Name Input (Optional) */}
+          {}
           <div className="space-y-2">
             <label
               htmlFor="serverNameInput"
-              className="block text-base font-medium text-[var(--color-text-primary)] pb-0"
+              className="block text-sm font-medium text-[var(--color-text-primary)]"
             >
               Server Name{" "}
               <span className="text-[var(--color-text-muted)] text-xs font-normal">
@@ -107,25 +107,25 @@ const PrivateServerModal: React.FC<PrivateServerModalProps> = ({
               value={serverName}
               onChange={(e) => setServerName(e.target.value)}
               placeholder="e.g. Trading Server"
-              className="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded px-4 py-2.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent transition-all"
+              className="w-full bg-[var(--color-surface-muted)] border border-[var(--color-border)] rounded-lg px-4 py-2.5 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] focus:border-[var(--accent-color)] transition-all"
               disabled={isLoading}
             />
           </div>
 
-          {/* Submit Button */}
+          {}
           <div className="pt-2 flex gap-3">
             <button
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-2 bg-[var(--color-surface-hover)] hover:bg-[var(--color-border)] text-[var(--color-text-primary)] font-medium py-3 rounded border border-[var(--color-border)] transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-[var(--color-text-primary)] font-medium h-10 rounded-lg border border-[var(--color-border)] transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!link.trim() || isLoading}
-              className="flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] text-md font-bold py-3 rounded shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold h-10 rounded-lg shadow-[0_10px_30px_var(--accent-color-shadow)] border border-[var(--accent-color-border)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={16} fill="currentColor" />
               <span>{isLoading ? "Joining..." : "Join Server"}</span>

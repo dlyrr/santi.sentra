@@ -7,8 +7,8 @@ import {
 import { queryKeys } from "../../../../../shared/queryKeys";
 import { Account } from "@renderer/types";
 import { avatar3DKeys } from "../hooks/useAvatar3DManifest";
+import { useSnackbarStore } from "@renderer/features/system/stores/useSnackbarStore";
 
-// Map asset type IDs to string names used by the inventory API
 const ASSET_TYPE_MAP: Record<number, string> = {
   2: "TShirt",
   8: "Hat",
@@ -17,6 +17,11 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   17: "Head",
   18: "Face",
   19: "Gear",
+  27: "Torso",
+  28: "RightArm",
+  29: "LeftArm",
+  30: "LeftLeg",
+  31: "RightLeg",
   41: "HairAccessory",
   42: "FaceAccessory",
   43: "NeckAccessory",
@@ -24,6 +29,13 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   45: "FrontAccessory",
   46: "BackAccessory",
   47: "WaistAccessory",
+  48: "ClimbAnimation",
+  50: "FallAnimation",
+  51: "IdleAnimation",
+  52: "JumpAnimation",
+  53: "RunAnimation",
+  54: "SwimAnimation",
+  55: "WalkAnimation",
   61: "EmoteAnimation",
   64: "TShirtAccessory",
   65: "ShirtAccessory",
@@ -31,10 +43,12 @@ const ASSET_TYPE_MAP: Record<number, string> = {
   67: "JacketAccessory",
   68: "SweaterAccessory",
   69: "ShortsAccessory",
+  70: "LeftShoeAccessory",
+  71: "RightShoeAccessory",
   72: "DressSkirtAccessory",
+  79: "DynamicHead",
 };
 
-// Convert asset type IDs to string names
 const mapAssetTypeIds = (ids: number[]): string[] => {
   return ids.map((id) => ASSET_TYPE_MAP[id]).filter(Boolean);
 };
@@ -86,7 +100,6 @@ const refreshAccountAvatarHeadshot = async (
       queryKey: queryKeys.thumbnails.userAvatars([uid], size),
     });
   } catch {
-    // ignore avatar refresh errors
   } finally {
     headshotRefreshInFlight.delete(uid);
   }
@@ -156,7 +169,6 @@ export function useInventory(
     queryFn: async (): Promise<InventoryItem[]> => {
       if (!cookie || !userId) return [];
 
-      // Convert numeric asset type IDs to string names
       const assetTypes = mapAssetTypeIds(assetTypeIds);
       if (assetTypes.length === 0) return [];
 
@@ -164,9 +176,9 @@ export function useInventory(
         cookie,
         userId,
         assetTypes,
-        undefined, // cursor
-        100, // limit
-        "Desc", // sortOrder
+        undefined,
+        100,
+        "Desc",
       );
 
       if (!result.data || result.data.length === 0) return [];
@@ -181,7 +193,6 @@ export function useInventory(
         );
       } catch (error) {
         console.error("[useInventory] Failed to fetch thumbnails:", error);
-        // Continue without thumbnails rather than failing the entire query
       }
 
       return result.data.map((asset: any) => ({
@@ -196,7 +207,7 @@ export function useInventory(
       !!userId &&
       assetTypeIds.length > 0 &&
       (options?.enabled ?? true),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
   });
 }
 
@@ -233,7 +244,6 @@ export function useUserOutfits(account: Account | null, isEditable: boolean) {
         );
       } catch (error) {
         console.error("[useUserOutfits] Failed to fetch thumbnails:", error);
-        // Continue without thumbnails rather than failing the entire query
       }
 
       return outfits.map((o: any) => ({
@@ -266,7 +276,6 @@ export function useFavoriteItems() {
         );
       } catch (error) {
         console.error("[useFavoriteItems] Failed to fetch thumbnails:", error);
-        // Continue without thumbnails rather than failing the entire query
       }
 
       return favs.map((f: any) => ({
@@ -345,7 +354,12 @@ export function useWearOutfit(account: Account | null) {
       if (!cookie) throw new Error("No cookie available");
       return window.api.wearOutfit(cookie, outfitId);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result?.warnings?.length) {
+        useSnackbarStore
+          .getState()
+          .showNotification(result.warnings.join("; "), "warning");
+      }
       queryClient.invalidateQueries({
         queryKey: queryKeys.avatar.current(accountId),
       });

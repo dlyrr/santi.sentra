@@ -7,7 +7,6 @@ interface GameServersResponse {
   nextPageCursor: string | null;
 }
 
-// Fetch game servers with infinite query for pagination
 export function useGameServers(
   placeId: string,
   excludeFullGames: boolean,
@@ -32,7 +31,7 @@ export function useGameServers(
           maxPlayers: s.maxPlayers,
           ping: s.ping,
           fps: s.fps,
-          region: "Unknown", // API doesn't provide region
+          region: "Unknown",
         }));
 
         return {
@@ -45,13 +44,12 @@ export function useGameServers(
     },
     getNextPageParam: (lastPage) => lastPage.nextPageCursor,
     enabled: enabled && !!placeId.trim(),
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
-    staleTime: 4000, // Slightly less than refetch interval
+    refetchInterval: 5000,
+    staleTime: 4000,
     initialPageParam: undefined as string | undefined,
   });
 }
 
-// Fetch game name by place ID
 export function useGameName(placeId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: queryKeys.servers.gameName(placeId),
@@ -63,6 +61,6 @@ export function useGameName(placeId: string, enabled: boolean = true) {
       return null;
     },
     enabled: enabled && !!placeId.trim(),
-    staleTime: 5 * 60 * 1000, // 5 minutes (game names don't change often)
+    staleTime: 5 * 60 * 1000,
   });
 }

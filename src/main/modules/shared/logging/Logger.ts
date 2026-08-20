@@ -1,8 +1,3 @@
-/**
- * Logging layer for structured logging across modules.
- * Supports multiple output levels and formatting.
- */
-
 export enum LogLevel {
   DEBUG = "DEBUG",
   INFO = "INFO",
@@ -27,9 +22,6 @@ export interface LogEntry {
 
 export type LogHandler = (entry: LogEntry) => void;
 
-/**
- * Structured logger with support for multiple handlers.
- */
 export class Logger {
   private static handlers: LogHandler[] = [];
   private static minLevel: LogLevel = LogLevel.DEBUG;
@@ -40,23 +32,14 @@ export class Logger {
     this.module = module;
   }
 
-  /**
-   * Register a log handler (e.g., file, console, remote service).
-   */
   public static addHandler(handler: LogHandler): void {
     Logger.handlers.push(handler);
   }
 
-  /**
-   * Set minimum log level for all loggers.
-   */
   public static setMinLevel(level: LogLevel): void {
     Logger.minLevel = level;
   }
 
-  /**
-   * Clear all handlers.
-   */
   public static clearHandlers(): void {
     Logger.handlers = [];
   }
@@ -130,9 +113,6 @@ export class Logger {
   }
 }
 
-/**
- * Default console log handler for development.
- */
 export const ConsoleLogHandler: LogHandler = (entry: LogEntry) => {
   const timestamp = new Date(entry.timestamp).toLocaleTimeString();
   const prefix = `[${timestamp}] [${entry.level}] [${entry.module}]`;

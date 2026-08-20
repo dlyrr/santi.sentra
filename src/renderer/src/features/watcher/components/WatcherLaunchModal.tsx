@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ interface WatcherLaunchModalProps {
   isLaunching: boolean;
 }
 
+type JoinMode = "public" | "private" | "jobid" | "username";
+
 export const WatcherLaunchModal: React.FC<WatcherLaunchModalProps> = ({
   isOpen,
   onClose,
@@ -35,9 +37,53 @@ export const WatcherLaunchModal: React.FC<WatcherLaunchModalProps> = ({
   setLaunchPrivateServerLink,
   isLaunching,
 }) => {
-  const [joinMode, setJoinMode] = useState<
-    "public" | "private" | "jobid" | "username"
-  >("public");
+  const [joinMode, setJoinMode] = useState<JoinMode>("public");
+
+  const modeOptions = useMemo<
+    Array<{
+      id: JoinMode;
+      title: string;
+      description: string;
+      selectedClass: string;
+      idleClass: string;
+    }>
+  >(
+    () => [
+      {
+        id: "public",
+        title: "Public Server",
+        description: "Join a random public server",
+        selectedClass: "bg-blue-500/20 border-blue-500 text-blue-300",
+        idleClass:
+          "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]",
+      },
+      {
+        id: "jobid",
+        title: "Job ID",
+        description: "Join a specific server by Job ID",
+        selectedClass: "bg-emerald-500/20 border-emerald-500 text-emerald-300",
+        idleClass:
+          "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]",
+      },
+      {
+        id: "private",
+        title: "Private Server Link",
+        description: "Join with an invite link or code",
+        selectedClass: "bg-purple-500/20 border-purple-500 text-purple-300",
+        idleClass:
+          "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]",
+      },
+      {
+        id: "username",
+        title: "Follow User",
+        description: "Join a user in game by username/ID",
+        selectedClass: "bg-orange-500/20 border-orange-500 text-orange-300",
+        idleClass:
+          "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]",
+      },
+    ],
+    [],
+  );
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose}>
@@ -51,65 +97,23 @@ export const WatcherLaunchModal: React.FC<WatcherLaunchModalProps> = ({
             <div className="space-y-2">
               <label className="text-sm font-medium">Joining Mode</label>
               <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
-                <button
-                  type="button"
-                  onClick={() => setJoinMode("public")}
-                  className={`w-full px-4 py-2.5 rounded-lg border transition-all text-left ${
-                    joinMode === "public"
-                      ? "bg-blue-500/20 border-blue-500 text-blue-300"
-                      : "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
-                  }`}
-                >
-                  <div className="font-medium text-sm">Public Server</div>
-                  <div className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Join a random public server
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setJoinMode("jobid")}
-                  className={`w-full px-4 py-2.5 rounded-lg border transition-all text-left ${
-                    joinMode === "jobid"
-                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
-                      : "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
-                  }`}
-                >
-                  <div className="font-medium text-sm">Job ID</div>
-                  <div className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Join a specific server by Job ID
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setJoinMode("private")}
-                  className={`w-full px-4 py-2.5 rounded-lg border transition-all text-left ${
-                    joinMode === "private"
-                      ? "bg-purple-500/20 border-purple-500 text-purple-300"
-                      : "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
-                  }`}
-                >
-                  <div className="font-medium text-sm">Private Server Link</div>
-                  <div className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Join with an invite link or code
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setJoinMode("username")}
-                  className={`w-full px-4 py-2.5 rounded-lg border transition-all text-left ${
-                    joinMode === "username"
-                      ? "bg-orange-500/20 border-orange-500 text-orange-300"
-                      : "bg-[var(--color-surface-muted)] border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
-                  }`}
-                >
-                  <div className="font-medium text-sm">Follow User</div>
-                  <div className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Join a user in game by username/ID
-                  </div>
-                </button>
+                {modeOptions.map(
+                  ({ id, title, description, selectedClass, idleClass }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setJoinMode(id)}
+                      className={`w-full px-4 py-2.5 rounded-lg border transition-all text-left ${
+                        joinMode === id ? selectedClass : idleClass
+                      }`}
+                    >
+                      <div className="font-medium text-sm">{title}</div>
+                      <div className="text-xs text-[var(--color-text-muted)] mt-1">
+                        {description}
+                      </div>
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 

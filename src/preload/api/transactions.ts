@@ -1,10 +1,6 @@
 import { invoke } from "./invoke";
 import * as S from "../../shared/ipc-schemas";
 
-// ============================================================================
-// TRANSACTIONS API
-// ============================================================================
-
 export const transactionsApi = {
   getTransactionTypes: (cookie: string) =>
     invoke("get-transaction-types", S.transactionTypesSchema, cookie),

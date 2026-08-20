@@ -1,11 +1,6 @@
-// Sniper API
 import { invoke } from "./invoke";
 import { z } from "zod";
 import { ipcRenderer } from "electron";
-
-// ============================================================================
-// SNIPER API
-// ============================================================================
 
 const successSchema = z.object({ success: z.boolean() });
 const configSchema = z.object({ success: z.boolean(), config: z.any() });
@@ -26,7 +21,6 @@ const watchesSchema = z.object({
   error: z.string().optional(),
 });
 
-// Username Sniper schemas
 const sessionIdSchema = z.object({
   success: z.boolean(),
   sessionId: z.string().optional(),
@@ -44,7 +38,6 @@ const usernamesListSchema = z.object({
 });
 
 export const sniperApi = {
-  // ========== LIMITED ITEMS SNIPER ==========
   startMonitoring: () => invoke("sniper:start-monitoring", successSchema),
   stopMonitoring: () => invoke("sniper:stop-monitoring", successSchema),
   updateConfig: (config: any) =>
@@ -58,7 +51,6 @@ export const sniperApi = {
   calculateProfit: (purchasePrice: number, resaleValue: number) =>
     invoke("sniper:calculate-profit", profitSchema, purchasePrice, resaleValue),
 
-  // Limited Item Watchlist API
   addLimitedWatch: (
     itemId: number,
     itemName: string,
@@ -77,7 +69,6 @@ export const sniperApi = {
   updateLimitedWatch: (itemId: number, updates: any) =>
     invoke("sniper:update-limited-watch", watchesSchema, itemId, updates),
 
-  // ========== USERNAME SNIPER ==========
   createSession: (
     usernames: string[],
     proxies?: string[],
@@ -107,7 +98,6 @@ export const sniperApi = {
   getValidUsernames: (sessionId: string) =>
     invoke("sniper:getValidUsernames", usernamesListSchema, sessionId),
 
-  // ========== USERNAME SNIPER EVENT LISTENERS ==========
   onValid: (callback: (data: any) => void) => {
     const listener = (_event: any, data: any) => callback(data);
     ipcRenderer.on("sniper:valid", listener);

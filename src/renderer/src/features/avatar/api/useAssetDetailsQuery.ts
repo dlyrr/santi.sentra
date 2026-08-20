@@ -10,10 +10,6 @@ import {
 } from "@shared/ipc-schemas/avatar";
 import { normalizeAssetDetails } from "../utils/assetNormalization";
 
-// ============================================================================
-// Asset Details Query
-// ============================================================================
-
 interface UseAssetDetailsQueryOptions {
   assetId: number | null;
   cookie: string | undefined;
@@ -30,33 +26,26 @@ export function useAssetDetailsQuery({
     queryFn: async () => {
       if (!assetId) throw new Error("Missing assetId");
 
-      // cookie may be undefined/empty for unauthenticated requests
       const data = await (window as any).api.getAssetDetails(
         cookie || "",
         assetId,
       );
 
-      // Validate with Zod schema
       const parsed = assetDetailsSchema.safeParse(data);
       if (!parsed.success) {
         console.warn(
           "[useAssetDetailsQuery] Validation warning:",
           parsed.error.issues,
         );
-        // Still return data even if validation fails (Zod schema is flexible with .optional())
       }
 
       return normalizeAssetDetails(data);
     },
-    enabled: enabled && !!assetId, // allow fetching without a cookie
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    enabled: enabled && !!assetId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
-
-// ============================================================================
-// Asset Recommendations Query
-// ============================================================================
 
 export function useAssetRecommendationsQuery({
   assetId,
@@ -78,7 +67,6 @@ export function useAssetRecommendationsQuery({
         assetId,
       );
 
-      // Validate with Zod schema
       const parsed = recommendationsSchema.safeParse(data);
       if (!parsed.success) {
         console.warn(
@@ -89,12 +77,11 @@ export function useAssetRecommendationsQuery({
 
       return data;
     },
-    enabled: enabled && !!assetId, // allow fetch without cookie
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: enabled && !!assetId,
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
-  // Process recommendations and fetch batch details
   useEffect(() => {
     if (!query.data?.data || !Array.isArray(query.data.data) || !cookie) {
       setRecommendations([]);
@@ -110,7 +97,6 @@ export function useAssetRecommendationsQuery({
       return;
     }
 
-    // Create placeholder items
     const placeholders: RecommendationItem[] = recIds.map((id: number) => ({
       id,
       name: "Loading...",
@@ -120,7 +106,6 @@ export function useAssetRecommendationsQuery({
     }));
     setRecommendations(placeholders);
 
-    // Fetch batch details
     (window as any).api
       .getBatchAssetDetails(cookie, recIds)
       .then((batchResults: any[]) => {
@@ -156,11 +141,9 @@ export function useAssetRecommendationsQuery({
         console.error("Failed to fetch batch recommendation details:", err);
       });
 
-    // Fetch thumbnails
     (window as any).api
       .getBatchThumbnails(recIds)
       .then((res: any) => {
-        // Validate with Zod schema
         const parsed = thumbnailBatchSchema.safeParse(res);
         if (!parsed.success) {
           console.warn(
@@ -191,10 +174,6 @@ export function useAssetRecommendationsQuery({
   };
 }
 
-// ============================================================================
-// Combined Hook (replaces useAssetDetails)
-// ============================================================================
-
 interface UseAssetDetailsResult {
   details: AssetDetails | null;
   recommendations: RecommendationItem[];
@@ -223,11 +202,8 @@ export function useAssetDetailsWithRecommendations(
     enabled: isOpen && !!assetId,
   });
 
-  // Reset cache when modal closes
   useEffect(() => {
     if (!isOpen && assetId) {
-      // Optionally invalidate queries when modal closes
-      // This is optional - you may want to keep the cache
     }
   }, [isOpen, assetId, queryClient]);
 

@@ -63,13 +63,11 @@
   --control-radius: var(--radius-lg);
   --menu-radius: var(--radius-xl);
 
-  /* New appearance settings */
   --ui-transition-duration: 200ms;
   --icon-size-scale: 1;
   --font-weight-base: 400;
 }
 
-/* --- Appearance Overrides --- */
 :root {
   --dialog-blur: 12px;
   --bento-gap: 0.75rem;
@@ -132,7 +130,7 @@
   --radius-lg: 24px;
   --radius-xl: 32px;
 }
-/* Nav border overrides */
+
 [data-nav-border="none"] header,
 [data-nav-border="none"] aside {
   border-color: transparent !important;
@@ -142,7 +140,6 @@
   border-color: var(--color-border-subtle) !important;
 }
 
-/* Icon stroke weight */
 [data-icon-weight="light"] .lucide {
   stroke-width: 1.4;
 }
@@ -150,7 +147,6 @@
   stroke-width: 2.4;
 }
 
-/* UI animation speed */
 [data-motion="none"] * {
   transition-duration: 0ms !important;
   animation-duration: 0ms !important;
@@ -162,7 +158,6 @@
   --ui-transition-duration: 400ms;
 }
 
-/* Font weight */
 [data-font-weight="light"] body {
   font-weight: 300;
 }
@@ -170,12 +165,10 @@
   font-weight: 500;
 }
 
-/* Global Lucide icon styling */
 .lucide {
   stroke-width: var(--icon-stroke-width);
 }
 
-/* Privacy mode: blur any element marked with .privacy-blur */
 .privacy-mode .privacy-blur {
   filter: blur(16px);
 }
@@ -203,7 +196,6 @@
   --accent-color-glow: rgba(94, 106, 210, 0.2);
 }
 
-/* Theme overrides for legacy neutral utility classes */
 .bg-neutral-950,
 .bg-neutral-900 {
   background-color: var(--color-surface) !important;
@@ -447,7 +439,6 @@ pre {
   scrollbar-width: none;
 }
 
-/* Range input styling — uses accent color, not hardcoded green */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -526,7 +517,6 @@ input[type="range"]:disabled::-moz-range-thumb {
     transform: scale(0.97);
   }
 
-  /* Glassmorphism utility */
   .glass {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -534,26 +524,29 @@ input[type="range"]:disabled::-moz-range-thumb {
     border: 1px solid var(--color-border-subtle);
   }
 
-  /* Liquid Glass Aesthetic */
   .liquid-glass {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: inset 0px 1px 1px rgba(255,255,255,0.15), 0 8px 32px rgba(0,0,0,0.4);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      inset 0px 1px 1px rgba(255, 255, 255, 0.15),
+      0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
-  /* Specific backing for important tabs (Accounts, Groups) to preserve readability while letting background show through */
   .glass-panel-main {
     backdrop-filter: blur(24px) saturate(1.2);
     -webkit-backdrop-filter: blur(24px) saturate(1.2);
-    background: rgba(10,10,12,0.65); /* dark frosted base */
-    border: 1px solid rgba(255,255,255,0.05);
+    background: rgba(10, 10, 12, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-xl);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   }
 
-  /* Accent glow on focus */
   .focus-glow:focus-within {
     box-shadow:
       0 0 0 2px var(--accent-color-ring),
@@ -561,7 +554,6 @@ input[type="range"]:disabled::-moz-range-thumb {
   }
 }
 
-/* Profile swap animation for sheet navigation */
 @keyframes profile-swap {
   0% {
     opacity: 0;
@@ -660,7 +652,6 @@ body {
   background-clip: padding-box;
 }
 
-/* Also keep the class for explicit usage if needed */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -672,7 +663,6 @@ body {
   background-clip: padding-box;
 }
 
-/* Status dot — slow, professional pulse with premium glow */
 @keyframes status-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(var(--status-color-rgb, 255, 255, 255), 0.7);
@@ -689,7 +679,6 @@ body {
   animation: status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Shimmer animation for skeleton loaders */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -699,7 +688,6 @@ body {
   }
 }
 
-/* Custom Dot Slider */
 .custom-dot-slider {
   -webkit-appearance: none;
   width: 100%;

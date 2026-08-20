@@ -148,7 +148,6 @@ export const useAvatarActions = ({
         setIsUpdatingAvatar(true);
         setLoadingItemId(itemId);
         try {
-          // Wear outfit sequentially
           for (const target of targetAccounts) {
             if (target.cookie) {
               await window.api.wearOutfit(target.cookie, itemId);
@@ -219,13 +218,11 @@ export const useAvatarActions = ({
           },
         };
 
-        // Apply changes to all target accounts sequentially with a 3s delay
         for (let i = 0; i < targetAccounts.length; i++) {
           const targetAcc = targetAccounts[i];
           if (!targetAcc.cookie || !targetAcc.userId) continue;
 
           try {
-            // First get their current avatar
             const avatarData = await window.api.getCurrentAvatar(
               targetAcc.cookie,
               parseInt(targetAcc.userId),
@@ -247,7 +244,6 @@ export const useAvatarActions = ({
             );
           }
 
-          // 3 second delay between accounts (skip after the last one)
           if (i < targetAccounts.length - 1) {
             await new Promise((resolve) => setTimeout(resolve, 3000));
           }

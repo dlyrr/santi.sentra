@@ -3,9 +3,6 @@ export interface SalesItem {
   sales: number;
 }
 
-/**
- * Get sales data for a single asset from the database
- */
 export async function getSalesData(assetId: number): Promise<SalesItem | null> {
   try {
     const result = await window.api.getSalesData(assetId);
@@ -15,9 +12,6 @@ export async function getSalesData(assetId: number): Promise<SalesItem | null> {
   }
 }
 
-/**
- * Get sales data for multiple assets from the database
- */
 export async function getBatchSalesData(
   assetIds: number[],
 ): Promise<Map<number, SalesItem>> {
@@ -36,10 +30,6 @@ export async function getBatchSalesData(
   }
 }
 
-/**
- * Check if sales data exists for an asset
- * Note: This now requires an async call to the database
- */
 export async function hasSalesData(assetId: number): Promise<boolean> {
   const data = await getSalesData(assetId);
   return data !== null;

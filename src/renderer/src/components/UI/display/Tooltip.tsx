@@ -35,7 +35,6 @@ const TooltipTrigger = React.forwardRef<HTMLElement, any>(
   ({ children, asChild, className, ...props }, ref) => {
     const context = React.useContext(TooltipContext);
 
-    // Handle case where TooltipTrigger is used without Tooltip
     if (!context) return children;
 
     const { setIsOpen, setRect, setAnchorEl } = context;
@@ -86,7 +85,7 @@ const TooltipTrigger = React.forwardRef<HTMLElement, any>(
 const ANIMATION_DURATION = 150;
 const TOOLTIP_MAX_WIDTH = 320;
 const VIEWPORT_PADDING = 8;
-const TOOLTIP_Z_INDEX = 12000; // Must sit above modals (z-[9999]) so tips remain visible
+const TOOLTIP_Z_INDEX = 12000;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);

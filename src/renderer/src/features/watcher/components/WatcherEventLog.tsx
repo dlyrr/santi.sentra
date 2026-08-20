@@ -7,9 +7,6 @@ interface WatcherEventLogProps {
   endRef?: RefObject<HTMLDivElement | null>;
 }
 
-/**
- * WatcherEventLog - Displays real-time event log from the watcher
- */
 export default function WatcherEventLog({
   events,
   endRef,
@@ -59,7 +56,7 @@ export default function WatcherEventLog({
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col border border-[var(--color-border)] rounded-[var(--control-radius)] bg-[var(--color-surface)]">
-      {/* Content */}
+      {}
       <div className="flex-1 overflow-y-auto font-mono text-[11px] styled-scrollbar">
         {events.map((event, index) => {
           const detailStr = event.details
@@ -85,7 +82,7 @@ export default function WatcherEventLog({
                     {event.type.replace(/^session-/, "").replace(/-/g, " ")}
                   </span>
                   {event.username !== "system" && (
-                    <span className="text-[10px] font-medium text-[var(--color-text-secondary)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 rounded border border-[var(--color-border)] truncate max-w-[120px]">
+                    <span className="text-sm font-semibold text-[var(--color-text-secondary)] bg-[var(--color-surface-muted)] px-1.5 py-0.5 rounded border border-[var(--color-border)] truncate max-w-[120px]">
                       @{event.username}
                     </span>
                   )}
@@ -109,7 +106,7 @@ export default function WatcherEventLog({
         <div ref={endRef} />
       </div>
 
-      {/* Footer */}
+      {}
       <div className="border-t border-[var(--color-border)] px-3 py-2 bg-[var(--color-surface-strong)] text-[10px] font-medium text-[var(--color-text-muted)] flex items-center justify-between">
         <span>
           {events.length} EVENT{events.length !== 1 ? "S" : ""} RECORDED

@@ -46,12 +46,14 @@ const SidebarItem = ({
           : { width: "calc(100% - 16px)" }
       }
     >
-      {/* Active indicator bar */}
+      {}
       {isActive && (
         <motion.div
           className={cn(
             "absolute top-1/2 -translate-y-1/2 bg-[var(--accent-color)]",
-            isCollapsed ? "left-[6px] w-[3px] h-5 rounded-full" : "left-0 w-[3px] h-5 rounded-r-full"
+            isCollapsed
+              ? "left-[6px] w-[3px] h-5 rounded-full"
+              : "left-0 w-[3px] h-5 rounded-r-full",
           )}
           initial={{ opacity: 0, scaleY: 0.5 }}
           animate={{ opacity: 1, scaleY: 1 }}
@@ -60,7 +62,7 @@ const SidebarItem = ({
         />
       )}
 
-      {/* Icon */}
+      {}
       <motion.div
         animate={{ scale: isActive ? 1.08 : 1 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -76,7 +78,7 @@ const SidebarItem = ({
         />
       </motion.div>
 
-      {/* Label */}
+      {}
       <span
         className={cn(
           "font-medium text-sm whitespace-nowrap overflow-hidden transition-all duration-200 origin-left relative z-10 flex items-center gap-2",

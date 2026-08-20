@@ -1,7 +1,3 @@
-/**
- * Browser Automation Module API - Expose browser automation to renderer process
- */
-
 import { invoke } from "./invoke";
 import { z } from "zod";
 

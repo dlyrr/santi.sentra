@@ -17,13 +17,13 @@ import {
   inventoryPageSchema,
   collectiblesSchema,
   OutfitDetails,
+  AvatarState,
   CatalogItemDetail,
   CatalogSearchResponse,
   ResellersResponse,
   AssetOwnersResponse,
 } from "@shared/ipc-schemas/avatar";
 
-// Schema for avatar render response
 const avatarRenderResponseSchema = z.object({
   targetId: z.number(),
   state: z.string(),
@@ -40,78 +40,72 @@ const BODY_COLOR_BASE_KEYS = [
   "leftLegColor",
 ] as const;
 
-// BrickColor ID to hex color mapping (common skin tones and colors)
-// Reference: https://developer.roblox.com/en-us/articles/BrickColor-Codes
 const BRICK_COLOR_TO_HEX: Record<number, string> = {
-  1: "F2F3F3", // White
-  5: "D7C59A", // Brick yellow
-  9: "E8BAC8", // Light reddish violet
-  18: "CC8E69", // Nougat
-  21: "C4281C", // Bright red
-  23: "0D69AC", // Bright blue
-  24: "F5CD30", // Bright yellow
-  26: "1B2A35", // Black
-  28: "287F47", // Dark green
-  29: "A1C48C", // Medium green
-  37: "4B974B", // Bright green
-  38: "AA5500", // Dark orange
-  45: "B4D2E4", // Light blue
-  101: "DA867A", // Medium red
-  102: "6E99CA", // Medium blue
-  104: "6B327C", // Bright violet
-  105: "E29B40", // Br. yellowish orange
-  106: "DA8541", // Bright orange
-  107: "008F9C", // Bright bluish green
-  119: "A4BD47", // Br. yellowish green
-  125: "EAB892", // Light orange
-  135: "74869D", // Sand blue
-  141: "27462D", // Earth green
-  151: "789082", // Sand green
-  153: "957977", // Sand red
-  192: "694028", // Reddish brown
-  194: "A3A2A5", // Medium stone grey
-  199: "635F62", // Dark stone grey
-  208: "E5E4DF", // Light stone grey
-  217: "7C5C46", // Brown
-  226: "FDEA8D", // Cool yellow
-  1001: "F8F8F8", // Institutional white
-  1002: "CDCDCD", // Mid gray
-  1003: "111111", // Really black
-  1004: "FF0000", // Really red
-  1005: "FFB000", // Deep orange
-  1006: "B480FF", // Alder
-  1007: "9F8660", // Dusty Rose (actually more brown)
-  1008: "C1BE42", // Olive
-  1009: "FFFF00", // New Yeller
-  1010: "0000FF", // Really blue
-  1011: "002060", // Navy blue
-  1012: "2154B9", // Deep blue
-  1013: "A86F99", // Magenta
-  1014: "AA5599", // Pink
-  1015: "AA00AA", // Hot pink
-  1016: "993399", // Crimson
-  1017: "FFCC00", // Bright yellow (deep)
-  1018: "006400", // Really green
-  1019: "00FFFF", // Cyan
-  1020: "00FF00", // Lime green
-  1021: "3A7D15", // Camo
-  1022: "7F8E64", // Grime
-  1023: "E8E8E8", // Lavender (actually light grey)
-  1024: "AFDDFF", // Pastel light blue
-  1025: "FFC9C9", // Pastel orange (actually pink)
-  1026: "B1A7FF", // Pastel violet
-  1027: "9FF3E9", // Pastel blue-green
-  1028: "CCFFCC", // Pastel green
-  1029: "FFFFCC", // Pastel yellow (common skin tone)
-  1030: "FFCC99", // Pastel brown
-  1031: "6C584C", // Royal purple (actually brown)
-  1032: "FF9494", // Hot pink (lighter)
+  1: "F2F3F3",
+  5: "D7C59A",
+  9: "E8BAC8",
+  18: "CC8E69",
+  21: "C4281C",
+  23: "0D69AC",
+  24: "F5CD30",
+  26: "1B2A35",
+  28: "287F47",
+  29: "A1C48C",
+  37: "4B974B",
+  38: "AA5500",
+  45: "B4D2E4",
+  101: "DA867A",
+  102: "6E99CA",
+  104: "6B327C",
+  105: "E29B40",
+  106: "DA8541",
+  107: "008F9C",
+  119: "A4BD47",
+  125: "EAB892",
+  135: "74869D",
+  141: "27462D",
+  151: "789082",
+  153: "957977",
+  192: "694028",
+  194: "A3A2A5",
+  199: "635F62",
+  208: "E5E4DF",
+  217: "7C5C46",
+  226: "FDEA8D",
+  1001: "F8F8F8",
+  1002: "CDCDCD",
+  1003: "111111",
+  1004: "FF0000",
+  1005: "FFB000",
+  1006: "B480FF",
+  1007: "9F8660",
+  1008: "C1BE42",
+  1009: "FFFF00",
+  1010: "0000FF",
+  1011: "002060",
+  1012: "2154B9",
+  1013: "A86F99",
+  1014: "AA5599",
+  1015: "AA00AA",
+  1016: "993399",
+  1017: "FFCC00",
+  1018: "006400",
+  1019: "00FFFF",
+  1020: "00FF00",
+  1021: "3A7D15",
+  1022: "7F8E64",
+  1023: "E8E8E8",
+  1024: "AFDDFF",
+  1025: "FFC9C9",
+  1026: "B1A7FF",
+  1027: "9FF3E9",
+  1028: "CCFFCC",
+  1029: "FFFFCC",
+  1030: "FFCC99",
+  1031: "6C584C",
+  1032: "FF9494",
 };
 
-/**
- * Convert a BrickColor ID to a hex color string
- * Used by renderAvatarWithAsset when avatar API returns colors as IDs
- */
 function brickColorToHex(brickColorId: number): string | undefined {
   return BRICK_COLOR_TO_HEX[brickColorId];
 }
@@ -175,71 +169,173 @@ export class RobloxAvatarService {
   static async wearOutfit(
     cookie: string,
     outfitId: number,
-  ): Promise<{ success: boolean }> {
+  ): Promise<{ success: boolean; warnings?: string[] }> {
     const outfit = await RobloxAvatarService.getOutfitDetails(cookie, outfitId);
 
     if (!outfit) {
       throw new Error(`Unable to load outfit ${outfitId}`);
     }
 
-    if (outfit.playerAvatarType) {
-      await RobloxAvatarService.postAvatarMutation(
-        cookie,
-        "/v1/avatar/set-player-avatar-type",
-        {
-          playerAvatarType: outfit.playerAvatarType,
-        },
+    let snapshot: AvatarState | null = null;
+    try {
+      snapshot = await RobloxAvatarService.getCurrentAvatar(cookie);
+    } catch (err) {
+      console.warn(
+        "[RobloxAvatarService] Could not snapshot avatar before wearOutfit; proceeding without rollback safety net:",
+        err,
       );
+    }
+
+    const warnings: string[] = [];
+
+    const steps: { name: string; run: () => Promise<void> }[] = [];
+
+    if (outfit.playerAvatarType) {
+      steps.push({
+        name: "playerAvatarType",
+        run: async () => {
+          await RobloxAvatarService.postAvatarMutation(
+            cookie,
+            "/v1/avatar/set-player-avatar-type",
+            { playerAvatarType: outfit.playerAvatarType },
+          );
+        },
+      });
     }
 
     const bodyColorPayload = RobloxAvatarService.buildBodyColorsPayload(
       outfit.bodyColors,
     );
     if (bodyColorPayload) {
-      await RobloxAvatarService.postAvatarMutation(
-        cookie,
-        "/v1/avatar/set-body-colors",
-        bodyColorPayload,
-      );
-    }
-
-    if (outfit.scale && typeof outfit.scale === "object") {
-      await RobloxAvatarService.postAvatarMutation(
-        cookie,
-        "/v1/avatar/set-scales",
-        outfit.scale as Record<string, unknown>,
-      );
-    }
-
-    // Use V2 API with full asset objects for better compatibility
-    if (outfit.assets && outfit.assets.length > 0) {
-      const assetsPayload = outfit.assets.map((asset: any) => ({
-        id: asset.id,
-        name: asset.name,
-        assetType: {
-          id: asset.assetType?.id,
-          name: asset.assetType?.name,
-        },
-        ...(asset.currentVersionId
-          ? { currentVersionId: asset.currentVersionId }
-          : {}),
-        ...(asset.meta ? { meta: asset.meta } : {}),
-      }));
-
-      await requestWithCsrf(wearingAssetsResultSchema, {
-        method: "POST",
-        url: "https://avatar.roblox.com/v2/avatar/set-wearing-assets",
-        cookie,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: {
-          assets: assetsPayload,
+      steps.push({
+        name: "bodyColors",
+        run: async () => {
+          await RobloxAvatarService.postAvatarMutation(
+            cookie,
+            "/v1/avatar/set-body-colors",
+            bodyColorPayload,
+          );
         },
       });
     }
 
-    return { success: true };
+    if (outfit.scale && typeof outfit.scale === "object") {
+      steps.push({
+        name: "scales",
+        run: async () => {
+          await RobloxAvatarService.postAvatarMutation(
+            cookie,
+            "/v1/avatar/set-scales",
+            outfit.scale as Record<string, unknown>,
+          );
+        },
+      });
+    }
+
+    if (outfit.assets && outfit.assets.length > 0) {
+      steps.push({
+        name: "assets",
+        run: async () => {
+          const result = await RobloxAvatarService.setWearingAssets(
+            cookie,
+            outfit.assets as any,
+          );
+          const invalid = (result as any)?.invalidAssets;
+          if (Array.isArray(invalid) && invalid.length > 0) {
+            warnings.push(`${invalid.length} asset(s) could not be worn`);
+          }
+        },
+      });
+    }
+
+    const applied: string[] = [];
+    for (const step of steps) {
+      try {
+        await step.run();
+        applied.push(step.name);
+      } catch (err) {
+        const detail = (err as Error)?.message ?? String(err);
+        const base = `Failed to apply outfit ${outfitId} at step "${step.name}": ${detail}`;
+
+        const rollbackError = await RobloxAvatarService.rollbackAvatar(
+          cookie,
+          snapshot,
+          applied,
+        );
+
+        if (!snapshot) {
+          throw new Error(
+            `${base}. No prior snapshot was available, so the avatar may be partially updated.`,
+          );
+        }
+        if (rollbackError) {
+          throw new Error(
+            `${base}. Rollback also failed (${rollbackError}); the avatar may be in an inconsistent state.`,
+          );
+        }
+        throw new Error(`${base}. Reverted the avatar to its previous state.`);
+      }
+    }
+
+    return warnings.length > 0
+      ? { success: true, warnings }
+      : { success: true };
+  }
+
+  private static async rollbackAvatar(
+    cookie: string,
+    snapshot: AvatarState | null,
+    appliedSteps: string[],
+  ): Promise<string | null> {
+    if (!snapshot || appliedSteps.length === 0) {
+      return null;
+    }
+
+    const errors: string[] = [];
+
+    for (const step of [...appliedSteps].reverse()) {
+      try {
+        if (step === "assets") {
+          await RobloxAvatarService.setWearingAssets(
+            cookie,
+            (snapshot.assets ?? []) as any,
+          );
+        } else if (
+          step === "scales" &&
+          snapshot.scales &&
+          typeof snapshot.scales === "object"
+        ) {
+          await RobloxAvatarService.postAvatarMutation(
+            cookie,
+            "/v1/avatar/set-scales",
+            snapshot.scales as Record<string, unknown>,
+          );
+        } else if (step === "bodyColors") {
+          const payload = RobloxAvatarService.buildBodyColorsPayload(
+            snapshot.bodyColors,
+          );
+          if (payload) {
+            await RobloxAvatarService.postAvatarMutation(
+              cookie,
+              "/v1/avatar/set-body-colors",
+              payload,
+            );
+          }
+        } else if (step === "playerAvatarType" && snapshot.playerAvatarType) {
+          await RobloxAvatarService.postAvatarMutation(
+            cookie,
+            "/v1/avatar/set-player-avatar-type",
+            { playerAvatarType: snapshot.playerAvatarType },
+          );
+        }
+      } catch (revertErr) {
+        errors.push(
+          `${step}: ${(revertErr as Error)?.message ?? String(revertErr)}`,
+        );
+      }
+    }
+
+    return errors.length > 0 ? errors.join("; ") : null;
   }
 
   static async getAssetDetails(cookie: string, assetId: number) {
@@ -259,14 +355,13 @@ export class RobloxAvatarService {
     const economyData =
       economyDetails.status === "fulfilled" ? economyDetails.value : {};
 
-    // Extract collectible lowest resale price from economy data
     const collectibleLowestResalePrice =
       economyData.CollectiblesItemDetails?.CollectibleLowestResalePrice ?? null;
 
     return {
       ...catalogData,
       ...economyData,
-      // Prioritize Catalog V1 for these if available, but Economy has some too
+
       name: catalogData.name || economyData.Name,
       description: catalogData.description || economyData.Description,
       price: catalogData.price ?? economyData.PriceInRobux,
@@ -276,7 +371,7 @@ export class RobloxAvatarService {
         catalogData.creatorHasVerifiedBadge ||
         economyData.Creator?.HasVerifiedBadge,
       created: catalogData.itemCreatedUtc || economyData.Created,
-      updated: economyData.Updated || catalogData.itemUpdatedUtc, // Economy V2 has the correct Updated field
+      updated: economyData.Updated || catalogData.itemUpdatedUtc,
       isLimited:
         catalogData.isLimited ||
         economyData.IsLimited ||
@@ -292,13 +387,6 @@ export class RobloxAvatarService {
     };
   }
 
-  /**
-   * Batch fetch catalog item details for multiple assets at once.
-   * @param cookie Authentication cookie
-   * @param assetIds Array of asset IDs to fetch details for
-   * @param itemType Type of items (default: 'Asset')
-   * @returns Array of catalog item details
-   */
   static async getBatchAssetDetails(
     cookie: string,
     assetIds: number[],
@@ -308,7 +396,6 @@ export class RobloxAvatarService {
       return [];
     }
 
-    // Roblox API has a limit of ~120 items per batch request
     const BATCH_LIMIT = 120;
     const chunks = this.chunkArray(assetIds, BATCH_LIMIT);
     const allResults: CatalogItemDetail[] = [];
@@ -338,7 +425,6 @@ export class RobloxAvatarService {
           "[RobloxAvatarService] Failed to fetch batch asset details for chunk:",
           error,
         );
-        // Continue with other chunks even if one fails
       }
     }
 
@@ -347,15 +433,13 @@ export class RobloxAvatarService {
 
   static async getAssetRecommendations(cookie: string, assetId: number) {
     try {
-      // Fetch asset details first to get the AssetTypeId
       const details = await RobloxAvatarService.getAssetDetails(
         cookie,
         assetId,
       );
-      const assetTypeId = details.AssetTypeId || details.assetType || 8; // Default to Hat (8) if unknown
+      const assetTypeId = details.AssetTypeId || details.assetType || 8;
 
       return await request(recommendationsSchema, {
-        // Updated to V2 endpoint as per user example
         url: `https://catalog.roblox.com/v2/recommendations/assets?assetId=${assetId}&assetTypeId=${assetTypeId}&details=false&numItems=10`,
         cookie,
       });
@@ -368,12 +452,6 @@ export class RobloxAvatarService {
     }
   }
 
-  /**
-   * Fetch resellers for a limited/collectible item
-   * @param collectibleItemId The collectible item ID (UUID) from asset details
-   * @param limit Number of resellers to fetch (default 100)
-   * @param cursor Pagination cursor
-   */
   static async getAssetResellers(
     collectibleItemId: string,
     limit: number = 100,
@@ -395,14 +473,6 @@ export class RobloxAvatarService {
     }
   }
 
-  /**
-   * Fetch owners for a limited asset
-   * @param cookie Authentication cookie (required for owner details)
-   * @param assetId The asset ID
-   * @param limit Number of owners to fetch (default 100)
-   * @param sortOrder Sort order (Asc or Desc)
-   * @param cursor Pagination cursor
-   */
   static async getAssetOwners(
     cookie: string,
     assetId: number,
@@ -416,7 +486,6 @@ export class RobloxAvatarService {
         url += `&cursor=${cursor}`;
       }
 
-      // Use a more lenient schema to avoid validation failures
       const lenientOwnerSchema = z
         .object({
           id: z.number(),
@@ -441,14 +510,12 @@ export class RobloxAvatarService {
         previousPageCursor: z.string().nullable().optional(),
       });
 
-      // Fetch with authentication - this is required to see owner details
       const rawData = await safeRequest<any>({
         url,
         method: "GET",
         cookie,
       });
 
-      // Parse with schema
       const result = lenientResponseSchema.parse(rawData);
 
       return result as AssetOwnersResponse;
@@ -474,29 +541,19 @@ export class RobloxAvatarService {
     });
   }
 
-  /**
-   * Search the Roblox catalog for items by keyword.
-   * Uses the catalog.roblox.com/v2/search/items/details endpoint.
-   * @param keyword Search keyword
-   * @param limit Number of results (default 30, max 120)
-   * @param creatorName Optional creator name filter (e.g., 'Roblox')
-   * @returns Catalog search response with items sorted by relevance
-   */
   static async searchCatalog(
     keyword: string,
     limit: number = 30,
     creatorName?: string,
   ): Promise<CatalogSearchResponse> {
     try {
-      // Build URL with query parameters
       const params = new URLSearchParams({
         keyword,
         limit: Math.min(limit, 120).toString(),
         includeNotForSale: "true",
-        salesTypeFilter: "1", // All sales types
+        salesTypeFilter: "1",
       });
 
-      // Filter by creator name if provided
       if (creatorName) {
         params.append("creatorName", creatorName);
       }
@@ -520,7 +577,6 @@ export class RobloxAvatarService {
     sellerId: number,
     productId: string,
   ) {
-    // Schema for purchase response
     const purchaseResponseSchema = z
       .object({
         purchased: z.boolean().optional(),
@@ -542,7 +598,7 @@ export class RobloxAvatarService {
         "Content-Type": "application/json",
       },
       body: {
-        expectedCurrency: 1, // 1 = Robux
+        expectedCurrency: 1,
         expectedPrice,
         expectedSellerId: sellerId,
         userAssetId: collectibleItemInstanceId,
@@ -550,15 +606,6 @@ export class RobloxAvatarService {
     });
   }
 
-  /**
-   * Purchase a catalog item using the marketplace-sales API.
-   * Used for purchasing regular catalog items (non-limited resales).
-   * @param cookie Authentication cookie
-   * @param collectibleItemId The collectible item ID (UUID) from asset details
-   * @param expectedPrice Expected price of the item
-   * @param expectedSellerId Expected seller ID
-   * @returns Purchase result with purchased status
-   */
   static async purchaseCatalogItem(
     cookie: string,
     collectibleItemId: string,
@@ -568,7 +615,6 @@ export class RobloxAvatarService {
     expectedPurchaserId?: string,
     idempotencyKey?: string,
   ) {
-    // Schema for marketplace-sales purchase response
     const purchaseResponseSchema = z
       .object({
         purchaseResult: z.string().optional(),
@@ -595,7 +641,6 @@ export class RobloxAvatarService {
     }
     if (idempotencyKey) body.idempotencyKey = idempotencyKey;
 
-    // The marketplace-sales API expects these specific fields
     return requestWithCsrf(purchaseResponseSchema, {
       method: "POST",
       url: `https://apis.roblox.com/marketplace-sales/v1/item/${collectibleItemId}/purchase-item`,
@@ -633,7 +678,7 @@ export class RobloxAvatarService {
 
     return {
       ...response,
-      success: response.success, // Zod schema ensures success boolean
+      success: response.success,
     };
   }
 
@@ -672,12 +717,6 @@ export class RobloxAvatarService {
     });
   }
 
-  /**
-   * Set wearing assets using V2 API with full asset details.
-   * This is the preferred method as it properly handles all asset types.
-   * @param cookie Authentication cookie
-   * @param assets Array of asset objects with id, name, assetType, and optionally currentVersionId
-   */
   static async setWearingAssets(
     cookie: string,
     assets: Array<{
@@ -688,7 +727,6 @@ export class RobloxAvatarService {
       meta?: { order?: number; puffiness?: number; version?: number };
     }>,
   ) {
-    // Build the V2 payload format
     const assetsPayload = assets.map((asset) => ({
       id: asset.id,
       name: asset.name,
@@ -717,10 +755,6 @@ export class RobloxAvatarService {
     return response;
   }
 
-  /**
-   * Legacy method using V1 API with just asset IDs.
-   * @deprecated Use setWearingAssets with full asset objects instead
-   */
   static async setWearingAssetsLegacy(cookie: string, assetIds: number[]) {
     return requestWithCsrf(wearingAssetsResultSchema, {
       method: "POST",
@@ -765,7 +799,6 @@ export class RobloxAvatarService {
     const cacheNamespace = `${resolvedType}|${resolvedSize}|${resolvedFormat}`;
     const entryMap = new Map<number, ThumbnailEntry>();
 
-    // Fetch all IDs (no caching on main process - TanStack Query handles caching on renderer)
     const chunks = this.chunkArray(sanitizedIds, this.THUMBNAIL_BATCH_LIMIT);
     const chunkResults = await Promise.all(
       chunks.map((chunk) =>
@@ -830,16 +863,24 @@ export class RobloxAvatarService {
         isCircular: false,
       }));
 
-      const response = await request(thumbnailBatchSchema, {
-        method: "POST",
-        url: "https://thumbnails.roblox.com/v1/batch",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: requests,
-      });
+      try {
+        const response = await request(thumbnailBatchSchema, {
+          method: "POST",
+          url: "https://thumbnails.roblox.com/v1/batch",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: requests,
+        });
 
-      return response.data || [];
+        return response.data || [];
+      } catch (err) {
+        console.warn(
+          "[RobloxAvatarService] thumbnail chunk request failed:",
+          err,
+        );
+        return [];
+      }
     })();
 
     this.thumbnailChunkPromises.set(chunkKey, promise);
@@ -965,7 +1006,6 @@ export class RobloxAvatarService {
       })
       .filter((id): id is number => typeof id === "number");
 
-    // Roblox expects unique asset IDs
     return Array.from(new Set(ids));
   }
 
@@ -1114,7 +1154,6 @@ export class RobloxAvatarService {
     path: string,
     body: Record<string, unknown>,
   ): Promise<any> {
-    // Generic success response usually { success: true }
     return requestWithCsrf(z.object({ success: z.boolean() }), {
       method: "POST",
       url: `https://avatar.roblox.com${path}`,
@@ -1127,16 +1166,13 @@ export class RobloxAvatarService {
   }
 
   static async setBodyColors(cookie: string, bodyColors: any) {
-    // Build payload with just Color3 hex values - the API accepts hex codes directly
     const payload: Record<string, string> = {};
 
     for (const baseKey of BODY_COLOR_BASE_KEYS) {
       const color3Key = `${baseKey}3`;
 
-      // Try to get hex color from various possible input formats
       let hexColor: string | undefined;
 
-      // Check for Color3 value (hex string)
       if (typeof bodyColors[color3Key] === "string") {
         hexColor = bodyColors[color3Key];
       } else if (typeof bodyColors[baseKey] === "string") {
@@ -1144,15 +1180,12 @@ export class RobloxAvatarService {
       }
 
       if (hexColor) {
-        // Normalize hex: remove # prefix and lowercase (Roblox v2 API expects lowercase)
         payload[color3Key] = hexColor.replace("#", "").toLowerCase();
       }
     }
 
-    // If payload is empty, fall back to the original bodyColors
     const finalPayload = Object.keys(payload).length > 0 ? payload : bodyColors;
 
-    // Use v2 endpoint - v1 returns 500 errors
     return this.postAvatarMutation(
       cookie,
       "/v2/avatar/set-body-colors",
@@ -1160,12 +1193,6 @@ export class RobloxAvatarService {
     );
   }
 
-  /**
-   * Set avatar body scales (height, width, head, proportion, bodyType)
-   * @param cookie Authentication cookie
-   * @param scales Object containing scale values
-   * @returns Success response
-   */
   static async setAvatarScales(
     cookie: string,
     scales: {
@@ -1179,12 +1206,6 @@ export class RobloxAvatarService {
     return this.postAvatarMutation(cookie, "/v1/avatar/set-scales", scales);
   }
 
-  /**
-   * Set player avatar type (R6 or R15)
-   * @param cookie Authentication cookie
-   * @param playerAvatarType 'R6' or 'R15'
-   * @returns Success response
-   */
   static async setPlayerAvatarType(
     cookie: string,
     playerAvatarType: "R6" | "R15",
@@ -1198,19 +1219,13 @@ export class RobloxAvatarService {
     );
   }
 
-  /**
-   * Renders a preview of what the user's avatar would look like with an additional asset
-   * without actually modifying the avatar. Uses the /v1/avatar/render endpoint.
-   */
   static async renderAvatarWithAsset(
     cookie: string,
     userId: number,
     assetIdToTryOn: number,
   ): Promise<{ imageUrl: string; renderType: "2d" | "3d" }> {
-    // Get the user's current avatar definition
     const currentAvatar = await this.getCurrentAvatar(cookie, userId);
 
-    // Build the assets array - existing assets + the new one to try on
     const existingAssetIds = currentAvatar.assets?.map((a: any) => a.id) || [];
     const allAssetIds = [...new Set([...existingAssetIds, assetIdToTryOn])];
     const assetsPayload = allAssetIds.map((id) => ({ id }));
@@ -1255,20 +1270,15 @@ export class RobloxAvatarService {
       for (const mapping of colorMappings) {
         let hexColor: string | undefined;
 
-        // Try to get from *Color3 key directly (hex string)
         if (bc[mapping.color3Key]) {
           hexColor = String(bc[mapping.color3Key])
             .replace("#", "")
             .toUpperCase();
-        }
-        // Try to get from nested bodyColor3s object
-        else if (bc.bodyColor3s && bc.bodyColor3s[mapping.color3Key]) {
+        } else if (bc.bodyColor3s && bc.bodyColor3s[mapping.color3Key]) {
           hexColor = String(bc.bodyColor3s[mapping.color3Key])
             .replace("#", "")
             .toUpperCase();
-        }
-        // Try to convert from BrickColor ID
-        else if (typeof bc[mapping.colorIdKey] === "number") {
+        } else if (typeof bc[mapping.colorIdKey] === "number") {
           hexColor = brickColorToHex(bc[mapping.colorIdKey]);
         }
 
@@ -1278,8 +1288,7 @@ export class RobloxAvatarService {
       }
     }
 
-    // If bodyColors is still empty or incomplete, fill with default skin color
-    const defaultColor = "FFFFCC"; // Pastel yellow - common default skin tone
+    const defaultColor = "FFFFCC";
     const requiredColors = [
       "headColor",
       "torsoColor",
@@ -1294,7 +1303,6 @@ export class RobloxAvatarService {
       }
     }
 
-    // Build scales - ensure all required scale properties are present
     const scales: Record<string, number> = {
       height: 1,
       width: 1,
@@ -1313,13 +1321,11 @@ export class RobloxAvatarService {
       if (typeof s.bodyType === "number") scales.bodyType = s.bodyType;
     }
 
-    // Player avatar type
     const playerAvatarType = currentAvatar.playerAvatarType || "R6";
 
-    // Build the render request payload matching Roblox's expected format
     const payload = {
       thumbnailConfig: {
-        thumbnailId: userId, // Use userId as the thumbnailId (target for the render)
+        thumbnailId: userId,
         thumbnailType: "3d",
         size: "420x420",
       },
@@ -1333,7 +1339,6 @@ export class RobloxAvatarService {
       },
     };
 
-    // POST to render endpoint to initiate the render
     const renderResponse = await requestWithCsrf(avatarRenderResponseSchema, {
       method: "POST",
       url: "https://avatar.roblox.com/v1/avatar/render",
@@ -1347,28 +1352,29 @@ export class RobloxAvatarService {
     let finalImageUrl = renderResponse.imageUrl;
     let finalState = renderResponse.state;
 
-    // If already complete, return immediately
     if (finalState === "Completed" && finalImageUrl) {
       return this.normalizeRenderResult(finalImageUrl);
     }
 
-    // Poll the render endpoint until it completes to avoid returning stale thumbnails
     const maxAttempts = 20;
-    const pollInterval = 1000; // ms - give more time between polls
+    const pollInterval = 1000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       await this.sleep(pollInterval);
 
       try {
-        const statusResponse = await request(avatarRenderResponseSchema, {
-          method: "POST",
-          url: "https://avatar.roblox.com/v1/avatar/render",
-          cookie,
-          headers: {
-            "Content-Type": "application/json",
+        const statusResponse = await requestWithCsrf(
+          avatarRenderResponseSchema,
+          {
+            method: "POST",
+            url: "https://avatar.roblox.com/v1/avatar/render",
+            cookie,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: payload,
           },
-          body: payload,
-        });
+        );
 
         finalState = statusResponse.state;
         if (statusResponse.imageUrl) {
@@ -1380,10 +1386,9 @@ export class RobloxAvatarService {
         }
 
         if (statusResponse.state === "Error") {
-          throw new Error("Avatar render failed");
+          break;
         }
       } catch (renderPollError: any) {
-        // 403 is expected without CSRF, ignore it
         if (renderPollError.statusCode !== 403) {
           console.warn(
             "[RobloxAvatarService] Render poll error:",
@@ -1391,6 +1396,10 @@ export class RobloxAvatarService {
           );
         }
       }
+    }
+
+    if (finalState === "Error") {
+      throw new Error("Avatar render failed");
     }
 
     if (!finalImageUrl) {

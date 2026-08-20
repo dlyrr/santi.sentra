@@ -36,7 +36,7 @@ class ConcurrencyQueue {
   }
 }
 
-const transactionsQueue = new ConcurrencyQueue(2); // Max 2 concurrent requests
+const transactionsQueue = new ConcurrencyQueue(2);
 
 export const useTransactionTypes = (cookie?: string) => {
   return useQuery({
@@ -44,7 +44,7 @@ export const useTransactionTypes = (cookie?: string) => {
     queryFn: () =>
       transactionsQueue.enqueue(() => window.api.getTransactionTypes(cookie!)),
     enabled: !!cookie,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -65,7 +65,7 @@ export const useTransactions = (
     getPreviousPageParam: (firstPage) =>
       firstPage.previousPageCursor ?? undefined,
     enabled: !!cookie && enabled,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 };
 
@@ -80,7 +80,7 @@ export const useTransactionTotals = (
         window.api.getTransactionTotals(cookie!, timeFrame),
       ),
     enabled: !!cookie,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 };
 

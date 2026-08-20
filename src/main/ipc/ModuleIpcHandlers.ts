@@ -3,49 +3,37 @@ import { Logger } from "../modules/shared/logging/Logger";
 import { AppError } from "../modules/shared/error/AppError";
 import https from "https";
 
-/**
- * Module IPC Handlers - Provides IPC endpoints for production modules
- *
- * Note: The actual module implementations are complex and require
- * specific input types (Item, BrowserLaunchOptions, etc.).
- * This handler provides basic status endpoints and can be extended
- * as needed with specific module initialization in main process.
- */
-
 const logger = new Logger("ModuleIpcHandlers");
 
-/**
- * Fetch free proxies from multiple sources using Node.js https module
- * Browser fetch won't work due to CORS restrictions
- */
 async function fetchFreeProxies(): Promise<string[]> {
   const sources = [
     {
       name: "proxy-list.download",
       fetch: async () => {
         return new Promise<string[]>((resolve, reject) => {
-          https
-            .get(
-              "https://www.proxy-list.download/api/v1/get?type=http",
-              { timeout: 5000 },
-              (res) => {
-                let data = "";
-                res.on("data", (chunk) => (data += chunk));
-                res.on("end", () => {
-                  try {
-                    const json = JSON.parse(data);
-                    if (json.LISTA && Array.isArray(json.LISTA)) {
-                      resolve(json.LISTA.slice(0, 10));
-                    } else {
-                      resolve([]);
-                    }
-                  } catch (e) {
-                    reject(e);
+          const req = https.get(
+            "https://www.proxy-list.download/api/v1/get?type=http",
+            { timeout: 5000 },
+            (res) => {
+              let data = "";
+              res.on("data", (chunk) => (data += chunk));
+              res.on("end", () => {
+                try {
+                  const json = JSON.parse(data);
+                  if (json.LISTA && Array.isArray(json.LISTA)) {
+                    resolve(json.LISTA.slice(0, 10));
+                  } else {
+                    resolve([]);
                   }
-                });
-              },
-            )
-            .on("error", reject);
+                } catch (e) {
+                  reject(e);
+                }
+              });
+            },
+          );
+          req.on("error", reject);
+
+          req.on("timeout", () => req.destroy(new Error("Request timed out")));
         });
       },
     },
@@ -53,23 +41,23 @@ async function fetchFreeProxies(): Promise<string[]> {
       name: "proxyscrape.com",
       fetch: async () => {
         return new Promise<string[]>((resolve, reject) => {
-          https
-            .get(
-              "https://api.proxyscrape.com/v2/?request=getproxies&format=textplain&timeout=5000&ssl=all&anonymity=all",
-              { timeout: 5000 },
-              (res) => {
-                let data = "";
-                res.on("data", (chunk) => (data += chunk));
-                res.on("end", () => {
-                  const proxies = data
-                    .split("\n")
-                    .filter((p: string) => p.trim().length > 0)
-                    .slice(0, 10);
-                  resolve(proxies);
-                });
-              },
-            )
-            .on("error", reject);
+          const req = https.get(
+            "https://api.proxyscrape.com/v2/?request=getproxies&format=textplain&timeout=5000&ssl=all&anonymity=all",
+            { timeout: 5000 },
+            (res) => {
+              let data = "";
+              res.on("data", (chunk) => (data += chunk));
+              res.on("end", () => {
+                const proxies = data
+                  .split("\n")
+                  .filter((p: string) => p.trim().length > 0)
+                  .slice(0, 10);
+                resolve(proxies);
+              });
+            },
+          );
+          req.on("error", reject);
+          req.on("timeout", () => req.destroy(new Error("Request timed out")));
         });
       },
     },
@@ -93,16 +81,8 @@ async function fetchFreeProxies(): Promise<string[]> {
   return [];
 }
 
-/**
- * Register IPC handlers for production modules
- * Called from main process after modules are initialized
- */
 export function registerModuleIpcHandlers(): void {
   logger.info("Registering production module IPC handlers");
-
-  // ============================================================================
-  // TRADING MODULE STATUS ENDPOINTS
-  // ============================================================================
 
   ipcMain.handle("trading:health", async () => {
     try {
@@ -112,10 +92,6 @@ export function registerModuleIpcHandlers(): void {
     }
   });
 
-  // ============================================================================
-  // BROWSER AUTOMATION MODULE STATUS ENDPOINTS
-  // ============================================================================
-
   ipcMain.handle("browser:health", async () => {
     try {
       return { success: true, status: "browser module ready" };
@@ -123,10 +99,6 @@ export function registerModuleIpcHandlers(): void {
       return { success: false, error: error.message };
     }
   });
-
-  // ============================================================================
-  // PROXY MANAGEMENT MODULE STATUS ENDPOINTS
-  // ============================================================================
 
   ipcMain.handle("proxy-mgmt:health", async () => {
     try {
@@ -152,11 +124,6 @@ export function registerModuleIpcHandlers(): void {
       return { success: false, error: error.message, proxies: [] };
     }
   });
-
-  // ============================================================================
-  // NOTE: USERNAME SNIPER HANDLERS ARE MANAGED BY SniperController
-  // Do not register sniper handlers here - they are registered in SniperController.ts
-  // ============================================================================
 
   logger.info("Module IPC handlers registered successfully");
 }

@@ -21,7 +21,13 @@ import { useLocalStorage } from "@renderer/hooks/useLocalStorage";
 import { WatcherSession } from "./hooks/useWatcher";
 import type { Account } from "@renderer/types";
 
-export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
+export default function WatcherTab({ 
+  privacyMode,
+  onBatchLaunchRequest,
+}: { 
+  privacyMode?: boolean;
+  onBatchLaunchRequest?: (callback: (path?: string) => void) => void;
+}) {
   const { accounts = [] } = useAccountsManager();
   const {
     sessions,
@@ -89,6 +95,7 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
             placeId: session.placeId,
             accountId: session.accountId,
             username: session.displayName || session.username || "Unknown",
+            installPath: session.launchConfig.installPath,
           },
         )) as any;
 
@@ -132,9 +139,8 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
     }
   }, [sessions, removeSession]);
 
-  // Per-account start: launches this single account into the watcher
   const handleStartAccount = useCallback(
-    async (account: Account, skipSetLaunching = false) => {
+    async (account: Account, skipSetLaunching = false, installPath?: string) => {
       if (!placeId) return alert("Please enter a Place ID first");
       if (!Number.isInteger(Number(placeId)) || Number(placeId) <= 0)
         return alert("Please enter a valid Place ID");
@@ -142,28 +148,38 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
 
       if (!skipSetLaunching) setIsLaunching(true);
       try {
+        let privateServerTarget: string | undefined;
         let jobId: string | undefined;
-        // If private server link is set, extract the link code
+
         if (privateServerLink.trim()) {
+          const raw = privateServerLink.trim();
           try {
-            const url = new URL(privateServerLink);
+            const url = new URL(raw);
             const code = url.searchParams.get("privateServerLinkCode");
-            jobId = code || privateServerLink.trim();
+            if (code) {
+              privateServerTarget = raw;
+            } else {
+              privateServerTarget = raw;
+            }
           } catch {
-            jobId = privateServerLink.trim();
+            privateServerTarget = raw;
           }
         }
 
-        const result = (await window.electron.ipcRenderer.invoke(
-          "games:launch-game",
-          {
-            cookie: account.cookie,
-            placeId: Number(placeId),
-            accountId: account.id,
-            username: account.displayName || account.username,
-            jobId,
-          },
-        )) as any;
+        const result = privateServerTarget
+          ? ((await window.api.launchPrivateServer(
+              account.cookie,
+              Number(placeId),
+              privateServerTarget,
+            )) as any)
+          : ((await window.electron.ipcRenderer.invoke("games:launch-game", {
+              cookie: account.cookie,
+              placeId: Number(placeId),
+              accountId: account.id,
+              username: account.displayName || account.username,
+              jobId,
+              installPath,
+            })) as any);
 
         if (result?.success) {
           await window.api.autoTrackLaunchedGame(
@@ -171,7 +187,7 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
             account.displayName || account.username,
             account.userId || "unknown",
             Number(placeId),
-            { cookie: account.cookie, placeId: Number(placeId), jobId },
+            { cookie: account.cookie, placeId: Number(placeId), jobId, installPath },
             account.displayName,
             account.avatarUrl,
           );
@@ -189,7 +205,17 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
     [placeId, privateServerLink],
   );
 
-  // Per-account stop: removes session from watcher
+  const handleStartAccountClick = useCallback(
+    (account: Account) => {
+      if (onBatchLaunchRequest) {
+        onBatchLaunchRequest((path) => handleStartAccount(account, false, path));
+      } else {
+        handleStartAccount(account, false);
+      }
+    },
+    [onBatchLaunchRequest, handleStartAccount],
+  );
+
   const handleStopAccount = useCallback(
     async (session: WatcherSession) => {
       try {
@@ -205,55 +231,47 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
 
   const handleToggleWatcher = useCallback(async () => {
     if (isWatcherRunning) {
-      stopWatching();
+      await stopWatching();
       setIsWatcherRunning(false);
       return;
     }
 
-    if (!placeId) {
-      alert("Please enter a Place ID to launch accounts.");
-      return;
-    }
-    if (!Number.isInteger(Number(placeId)) || Number(placeId) <= 0) {
-      alert("Please enter a valid numeric Place ID to launch accounts.");
-      return;
-    }
+    if (!placeId) return alert("Please enter a Place ID first");
+    if (!Number.isInteger(Number(placeId)) || Number(placeId) <= 0)
+      return alert("Please enter a valid Place ID");
 
-    if (selectedAccountIds.size === 0) {
-      alert("Please select at least one account to launch.");
-      return;
-    }
+    const launchGroup = async (installPath?: string) => {
+      setIsLaunching(true);
+      try {
+        await window.electron.ipcRenderer.invoke("watcher:set-config", {
+          autoRestart: true,
+          restartDelaySeconds: 5,
+        });
+      } catch (err) {}
 
-    cancelLaunchRef.current = false;
-    setIsLaunching(true);
+      await startWatching();
+      setIsWatcherRunning(true);
 
-    try {
-      // Keep basic autoRestart functionality without old settings
-      await window.electron.ipcRenderer.invoke("watcher:set-config", {
-        autoRestart: true,
-        restartDelaySeconds: 5,
-      });
-    } catch (err) {}
-
-    await startWatching();
-    setIsWatcherRunning(true);
-
-    // Launch all SELECTED inactive accounts sequentially
-    const selectedInactive = accounts.filter(
-      (a) =>
-        selectedAccountIds.has(a.id) &&
-        !sessions.some((s) => s.accountId === a.id),
-    );
-    for (const account of selectedInactive) {
-      if (cancelLaunchRef.current) break;
-      if (account.cookie) {
-        await handleStartAccount(account, true);
+      const selectedInactive = accounts.filter(
+        (a) =>
+          selectedAccountIds.has(a.id) &&
+          !sessions.some((s) => s.accountId === a.id),
+      );
+      for (const account of selectedInactive) {
         if (cancelLaunchRef.current) break;
-        // Short 500ms delay between manual launches to prevent total bottleneck
-        await new Promise((r) => setTimeout(r, 500));
+        if (account.cookie) {
+          await handleStartAccount(account, true, installPath);
+          if (cancelLaunchRef.current) break;
+        }
       }
+      setIsLaunching(false);
+    };
+
+    if (onBatchLaunchRequest) {
+      onBatchLaunchRequest(launchGroup);
+    } else {
+      launchGroup();
     }
-    setIsLaunching(false);
   }, [
     isWatcherRunning,
     startWatching,
@@ -263,174 +281,203 @@ export default function WatcherTab({ privacyMode }: { privacyMode?: boolean }) {
     placeId,
     handleStartAccount,
     selectedAccountIds,
+    onBatchLaunchRequest,
   ]);
 
   return (
-    <div className="flex h-full flex-col bg-[var(--color-app-bg)] text-[var(--color-text-secondary)]">
-      {/* Main Layout */}
-      <div className="flex-1 overflow-hidden grid lg:grid-cols-[1fr_360px] p-6 gap-6 max-w-[1600px] mx-auto w-full">
-        {/* Left Side: All Accounts Monitor */}
-        <div className="flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-sm h-full hover:border-[var(--accent-color)]/20 transition-colors">
-          <div className="px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)] flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent-color-faint)] text-[var(--accent-color)] shadow-sm shrink-0">
-                <MonitorPlay size={16} />
-              </div>
-              <h3 className="text-sm font-bold text-[var(--color-text-primary)] tracking-tight">
-                Account Watcher
-              </h3>
-              <div className="w-px h-4 bg-[var(--color-border)] hidden sm:block" />
-              <span className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md px-2 py-0.5 text-xs font-black text-[var(--color-text-primary)]">
-                {accounts.length}
-              </span>
-              {sessions.length > 0 && (
-                <span className="bg-emerald-500/10 border border-emerald-500/20 rounded-md px-2 py-0.5 text-xs font-bold text-emerald-400">
-                  {sessions.length} watching
-                </span>
-              )}
-            </div>
-            {sessions.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseAllSessions}
-                className="h-7 text-xs text-red-400 hover:text-red-500 hover:bg-red-500/10"
-              >
-                Stop All
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSelectAll}
-              className="h-7 text-xs text-[var(--color-text-primary)] hover:bg-[var(--color-surface)]"
-            >
-              Select All
-            </Button>
+    <div className="h-full flex flex-col p-5 overflow-y-auto space-y-5 bg-[var(--color-background)]">
+      {}
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-4 w-full">
+        <div className="flex items-center gap-2.5">
+          <MonitorPlay className="w-4 h-4 text-[var(--accent-color)]" />
+          <h1 className="text-md font-bold tracking-tight text-[var(--color-text-primary)]">
+            Account Watcher
+          </h1>
+        </div>
+      </div>
+
+      {}
+      <div className="w-full flex items-center justify-between bg-[var(--color-surface)] border border-[var(--color-border)] p-2.5 rounded-xl shadow-sm gap-4">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-2 bg-[var(--color-surface-strong)]/60 p-2 rounded-lg border border-[var(--color-border)]/60">
+            <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider px-1">
+              Accounts
+            </span>
+            <span className="bg-[var(--accent-color)]/20 text-[var(--accent-color)] text-xs px-2 py-0.5 rounded font-mono font-bold">
+              {accounts.length}
+            </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
-            <AccountsMonitor
-              accounts={accounts}
-              sessions={sessions}
-              isWatcherRunning={isWatcherRunning}
-              isLaunching={isLaunching}
-              selectedAccountIds={selectedAccountIds}
-              onToggleAccount={handleToggleAccount}
-              onStartAccount={handleStartAccount}
-              onStopAccount={handleStopAccount}
-              onRelaunchSession={handleRelaunchSession}
-              onRemoveSession={handleRemoveSession}
-              privacyMode={privacyMode}
-            />
-          </div>
+          {sessions.length > 0 && (
+            <div className="flex items-center gap-2 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider px-1">
+                Active
+              </span>
+              <span className="bg-emerald-500/30 text-emerald-400 text-xs px-2 py-0.5 rounded font-mono font-bold">
+                {sessions.length}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Right Side: Config & Terminal */}
-        <div className="flex flex-col gap-6 h-full min-h-0">
-          {/* Launch Config Panel */}
-          <div className="flex flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-sm shrink-0 hover:border-[var(--color-border-strong)] transition-colors">
-            <div className="px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)]">
-              <h3 className="text-[13px] font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-                <GripVertical
-                  size={14}
-                  className="text-[var(--color-text-muted)]"
-                />{" "}
-                Launch Config
-              </h3>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)] ml-1">
-                  Place ID
-                </label>
-                <input
-                  type="text"
-                  value={placeId}
-                  onChange={(e) => setPlaceId(e.target.value)}
-                  placeholder="e.g. 123456789"
-                  className="w-full h-9 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--accent-color-border)] focus:ring-1 focus:ring-[var(--accent-color-ring)] transition-all placeholder:text-[var(--color-text-muted)]"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Private Server Link
-                  </label>
-                  {privateServerLink && (
-                    <button
-                      onClick={() => setPrivateServerLink("")}
-                      className="text-[10px] text-[var(--color-text-muted)] hover:text-red-400 transition-colors"
-                    >
-                      clear
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={privateServerLink}
-                  onChange={(e) => setPrivateServerLink(e.target.value)}
-                  placeholder="https://www.roblox.com/games/..."
-                  className="w-full h-9 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--accent-color-border)] focus:ring-1 focus:ring-[var(--accent-color-ring)] transition-all placeholder:text-[var(--color-text-muted)]/40"
-                />
-                {privateServerLink && (
-                  <p className="text-[10px] text-emerald-400/80">
-                    ✓ Private server — all launches will use this link
-                  </p>
-                )}
-              </div>
-
-              {/* Launch All Selected */}
-              {accounts.length > 0 && (
+        <div className="flex items-center gap-2">
+          {accounts.length > 0 && (
+            <>
+              {isWatcherRunning ? (
                 <Button
-                  variant="default"
+                  onClick={handleToggleWatcher}
+                  disabled={isLaunching}
+                  className="h-10 px-5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-xs transition-all shadow-sm border-0 flex items-center gap-2"
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Stop</span>
+                </Button>
+              ) : (
+                <Button
                   onClick={handleToggleWatcher}
                   disabled={isLaunching || selectedAccountIds.size === 0}
-                  className="w-full h-9 rounded-lg gap-2 mt-2 shadow-sm hover:shadow-[0_0_12px_var(--accent-color-ring)] transition-shadow duration-200"
+                  className="h-10 px-5 rounded-lg bg-[var(--accent-color)] hover:bg-[var(--accent-color)]/90 text-[var(--accent-color-foreground)] font-medium text-xs transition-all shadow-sm border-0 flex items-center gap-2"
                 >
                   {isLaunching ? (
-                    <Activity className="animate-spin" size={14} />
-                  ) : isWatcherRunning ? (
-                    <Square size={14} />
+                    <Activity className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Play size={14} />
+                    <Play className="w-3.5 h-3.5" />
                   )}
-                  <span className="text-xs font-bold">
-                    {isWatcherRunning
-                      ? "Stop Watcher"
-                      : `Launch Selected (${selectedAccountIds.size})`}
-                  </span>
+                  <span>Launch ({selectedAccountIds.size})</span>
+                </Button>
+              )}
+            </>
+          )}
+
+          <Button
+            onClick={() => setSelectedAccountIds(new Set())}
+            disabled={selectedAccountIds.size === 0}
+            variant="outline"
+            className="h-10 px-3 rounded-lg border-[var(--color-border)] bg-[var(--color-surface-strong)]/40 hover:bg-[var(--color-surface-hover)] transition-all disabled:opacity-50 text-xs"
+          >
+            Clear
+          </Button>
+        </div>
+      </div>
+
+      {}
+      <div className="w-full flex-1 flex flex-col min-h-0">
+        <div className="grid h-full grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
+          {}
+          <div className="bg-[var(--color-surface)]/30 border border-[var(--color-border)] rounded-xl overflow-hidden flex flex-col h-full min-h-[420px]">
+            <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between bg-[var(--color-surface-strong)]/20">
+              <h2 className="text-xs font-bold flex items-center gap-2 text-[var(--color-text-primary)] uppercase tracking-wider">
+                Active Sessions
+                <span className="bg-[var(--accent-color)]/10 text-[var(--accent-color)] text-[10px] px-2 py-0.5 rounded font-mono font-bold">
+                  {sessions.length} Live
+                </span>
+              </h2>
+              {sessions.length > 0 && (
+                <Button
+                  onClick={handleCloseAllSessions}
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-red-500 text-[11px] hover:bg-red-500/5"
+                >
+                  Stop All
                 </Button>
               )}
             </div>
+
+            <div className="p-4 flex-1 overflow-y-auto">
+              <AccountsMonitor
+                accounts={accounts}
+                sessions={sessions}
+                isWatcherRunning={isWatcherRunning}
+                isLaunching={isLaunching}
+                selectedAccountIds={selectedAccountIds}
+                onToggleAccount={handleToggleAccount}
+                onStartAccount={handleStartAccountClick}
+                onStopAccount={handleStopAccount}
+                onRelaunchSession={handleRelaunchSession}
+                onRemoveSession={handleRemoveSession}
+                privacyMode={privacyMode}
+              />
+            </div>
           </div>
 
-          {/* Terminal / Event Log */}
-          <div className="flex-1 rounded-xl border border-[var(--color-border)] bg-[#0a0a0a] overflow-hidden shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] flex flex-col min-h-[300px]">
-            <div className="px-4 py-2 border-b border-[#222] bg-[#111] flex items-center justify-between shrink-0">
-              <h3 className="text-[10px] font-bold text-[#888] flex items-center gap-1.5 tracking-wider uppercase">
-                <Terminal size={12} className="text-[#666]" /> System Terminal
+          {}
+          <div className="flex flex-col gap-3 min-h-0">
+            {}
+            <div className="bg-[var(--color-surface)]/30 border border-[var(--color-border)] rounded-xl overflow-hidden p-4 space-y-2.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)]">
+                Launch Config
               </h3>
-              <button
-                onClick={handleClearEvents}
-                className="text-[10px] font-bold text-[#555] hover:text-[#fff] transition-colors"
-              >
-                CLEAR
-              </button>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[8px] font-bold uppercase tracking-[0.16em] text-[var(--color-text-muted)] block mb-1">
+                    Place ID <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={placeId}
+                    onChange={(e) => setPlaceId(e.target.value)}
+                    placeholder="123456789"
+                    className="h-8 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[11px] font-medium text-[var(--color-text-primary)] transition-all placeholder:text-[var(--color-text-muted)] focus:border-[var(--accent-color)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color-ring)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[8px] font-bold uppercase tracking-[0.16em] text-[var(--color-text-muted)] block mb-1 flex items-center justify-between">
+                    <span>Private Server</span>
+                    {privateServerLink && (
+                      <button
+                        onClick={() => setPrivateServerLink("")}
+                        className="text-[7px] text-[var(--color-text-muted)] transition-colors hover:text-red-400"
+                      >
+                        clear
+                      </button>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={privateServerLink}
+                    onChange={(e) => setPrivateServerLink(e.target.value)}
+                    placeholder="Optional"
+                    className="h-8 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-[11px] text-[var(--color-text-primary)] transition-all placeholder:text-[var(--color-text-muted)]/40 focus:border-[var(--accent-color)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color-ring)]"
+                  />
+                  {privateServerLink && (
+                    <p className="mt-1 text-[7px] font-medium text-emerald-400/80">
+                      ✓ active
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2.5" />
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed relative">
-              {events.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center text-[#333]">
-                  Waiting for events...
-                </div>
-              ) : (
-                <>
-                  <WatcherEventLog events={events} />
-                  <div ref={eventLogEndRef} />
-                </>
-              )}
+            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--color-app-bg)] border border-[var(--color-border)] rounded-xl shadow-sm min-h-[200px]">
+              <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+                  Event Log
+                </h3>
+                <button
+                  onClick={handleClearEvents}
+                  className="text-[10px] font-bold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-secondary)]"
+                >
+                  CLEAR
+                </button>
+              </div>
+
+              <div className="relative flex-1 overflow-y-auto p-3 font-mono text-[10px] leading-relaxed">
+                {events.length === 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center text-[var(--color-text-muted)]">
+                    <span className="text-[9px]">Waiting for events...</span>
+                  </div>
+                ) : (
+                  <>
+                    <WatcherEventLog events={events} />
+                    <div ref={eventLogEndRef} />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

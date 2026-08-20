@@ -130,7 +130,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
                   Sensitive account data may be encrypted at rest on your
                   device, depending on your OS capabilities.
                 </li>
-                {/* Open-source statement removed per request */}
+                {}
               </ul>
             </section>
 

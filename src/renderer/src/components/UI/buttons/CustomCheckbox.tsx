@@ -24,11 +24,11 @@ const CustomCheckbox = ({
         }
       }}
       className={`
-        relative w-5 h-5 rounded border flex items-center justify-center transition-all cursor-pointer flex-shrink-0 overflow-hidden
+        relative w-4 h-4 rounded-sm border flex items-center justify-center transition-all cursor-pointer flex-shrink-0 overflow-hidden
         ${
           checked || indeterminate
             ? "bg-[var(--accent-color)] border-[var(--accent-color)] text-[var(--accent-color-foreground)]"
-            : "bg-transparent border-[var(--color-border-strong)] hover:border-[var(--color-border-strong)]"
+            : "bg-[var(--color-surface)] border-[var(--color-border-strong)] hover:border-[var(--accent-color)]"
         }
         ${disabled ? "opacity-50 cursor-not-allowed" : ""}
       `}
@@ -36,7 +36,7 @@ const CustomCheckbox = ({
     >
       <svg
         viewBox="0 0 16 16"
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none w-4 h-4"
         stroke="currentColor"
         fill="none"
       >
