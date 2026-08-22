@@ -37,6 +37,14 @@ import {
   SIDEBAR_TAB_DEFINITION_MAP,
   SidebarTabDefinition,
 } from "@renderer/constants/sidebarTabs";
+import {
+  NAV_SPRING,
+  navIconStroke,
+  navIconTone,
+  navIndicator,
+  navItemBase,
+  navItemTone,
+} from "./navTokens";
 import NotificationTray from "../feedback/NotificationTray";
 import { ProfileCard } from "./ProfileCard";
 
@@ -62,32 +70,29 @@ const TopNavItem = ({
   <Tooltip>
     <TooltipTrigger asChild>
       <button
+        type="button"
         onMouseDown={onClick}
-        className={cn(
-          "relative flex flex-col items-center justify-center h-10 w-10 rounded-lg transition-all duration-200 group",
-          isActive
-            ? "bg-[var(--accent-color-soft)] text-[var(--color-text-primary)]"
-            : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]",
-        )}
         aria-label={label}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          navItemBase,
+          "justify-center h-9 w-9 shrink-0",
+          navItemTone(isActive),
+        )}
       >
-        <Icon
-          size={17}
-          strokeWidth={isActive ? 2.2 : 1.85}
-          className={cn(
-            "transition-colors duration-200",
-            isActive ? "text-[var(--accent-color)]" : "",
-          )}
-        />
-        {}
         {isActive && (
-          <motion.div
+          <motion.span
             layoutId="topnav-active"
-            className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2.5px] w-5 bg-[var(--accent-color)] rounded-full"
+            className={navIndicator}
             initial={false}
-            transition={{ type: "spring", stiffness: 420, damping: 36 }}
+            transition={NAV_SPRING}
           />
         )}
+        <Icon
+          size={17}
+          strokeWidth={navIconStroke(isActive)}
+          className={cn("relative z-10", navIconTone(isActive))}
+        />
       </button>
     </TooltipTrigger>
     <TooltipContent side="bottom" sideOffset={6}>

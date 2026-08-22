@@ -2011,6 +2011,18 @@ const App: React.FC = () => {
                       />
                     </Suspense>
                   );
+                case "Macro":
+                  return (
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
+                      <MacroTab />
+                    </Suspense>
+                  );
                 case "Sniper":
                   return (
                     <Suspense

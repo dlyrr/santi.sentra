@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { startTransition } from "react";
 import { TabId, JoinConfig, Account, Game, RobloxInstallation } from "../types";
+import type { SidebarSectionId } from "../constants/sidebarTabs";
 
 export type ModalType =
   | "join"
@@ -15,6 +16,9 @@ interface UIState {
   activeTab: TabId;
 
   isSidebarCollapsed: boolean;
+
+  /** Navigation groups the user has folded away in the sidebar. */
+  collapsedNavSections: SidebarSectionId[];
 
   navLayout: NavLayout;
 
@@ -38,6 +42,8 @@ interface UIActions {
 
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
+
+  toggleNavSection: (section: SidebarSectionId) => void;
 
   setNavLayout: (layout: NavLayout) => void;
 
@@ -63,6 +69,7 @@ type UIStore = UIState & UIActions;
 const initialState: UIState = {
   activeTab: "Accounts",
   isSidebarCollapsed: false,
+  collapsedNavSections: [],
   navLayout: "sidebar",
   modals: {
     join: false,
@@ -100,6 +107,17 @@ export const useUIStore = create<UIStore>()(
             (state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed }),
             false,
             "toggleSidebarCollapsed",
+          ),
+
+        toggleNavSection: (section) =>
+          set(
+            (state) => ({
+              collapsedNavSections: state.collapsedNavSections.includes(section)
+                ? state.collapsedNavSections.filter((id) => id !== section)
+                : [...state.collapsedNavSections, section],
+            }),
+            false,
+            `toggleNavSection:${section}`,
           ),
 
         setNavLayout: (navLayout) => {
@@ -151,6 +169,7 @@ export const useUIStore = create<UIStore>()(
 
         partialize: (state) => ({
           isSidebarCollapsed: state.isSidebarCollapsed,
+          collapsedNavSections: state.collapsedNavSections,
           navLayout: state.navLayout,
         }),
       },
@@ -166,6 +185,11 @@ export const useSidebarCollapsed = () =>
   useUIStore((state) => state.isSidebarCollapsed);
 export const useToggleSidebarCollapsed = () =>
   useUIStore((state) => state.toggleSidebarCollapsed);
+
+export const useCollapsedNavSections = () =>
+  useUIStore((state) => state.collapsedNavSections);
+export const useToggleNavSection = () =>
+  useUIStore((state) => state.toggleNavSection);
 
 export const useNavLayout = () => useUIStore((state) => state.navLayout);
 export const useSetNavLayout = () => useUIStore((state) => state.setNavLayout);

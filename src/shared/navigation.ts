@@ -20,6 +20,11 @@ export const SIDEBAR_TAB_IDS = [
   "AccountSettings",
 ] as const satisfies readonly TabId[];
 
+/**
+ * Grouped by section: Account, Explore, Tools, System. Keep this in sync with
+ * the `section` field in constants/sidebarTabs.ts so the default layout does
+ * not interleave groups.
+ */
 export const DEFAULT_SIDEBAR_TAB_ORDER: TabId[] = [
   "Accounts",
   "Profile",
@@ -36,8 +41,8 @@ export const DEFAULT_SIDEBAR_TAB_ORDER: TabId[] = [
   "Sniper",
   "Generator",
   "Logs",
-  "Settings",
   "AccountSettings",
+  "Settings",
 ];
 
 export const LOCKED_SIDEBAR_TABS: TabId[] = ["Settings"];
