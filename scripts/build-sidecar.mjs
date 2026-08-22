@@ -8,7 +8,7 @@
 
 import { build } from "esbuild";
 import { cp, mkdir, rm, writeFile, copyFile, readdir } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +27,37 @@ const EXTERNAL = [
   "@ryuziii/discord-rpc",
   "discord-rpc",
 ];
+
+/**
+ * Collects a package and everything it needs at runtime.
+ *
+ * Copying only the named externals is not enough. In development a missing
+ * transitive dependency still resolves, because Node walks up into the
+ * project's own node_modules — but once installed under Program Files there is
+ * no parent to walk up to, and the require fails. That is exactly what happened
+ * with `discord-rpc` needing `node-fetch`: the sidecar threw while importing its
+ * deferred controllers, which cost Macro, Sniper and Generator their channels in
+ * the installed build while dev worked perfectly.
+ */
+function collectWithDependencies(name, seen = new Set()) {
+  if (seen.has(name)) return seen;
+
+  const manifest = resolve(root, "node_modules", name, "package.json");
+  if (!existsSync(manifest)) return seen;
+
+  seen.add(name);
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(manifest, "utf8"));
+  } catch {
+    return seen;
+  }
+
+  for (const dep of Object.keys(pkg.dependencies ?? {})) {
+    collectWithDependencies(dep, seen);
+  }
+  return seen;
+}
 
 /** The Rust host triple, which is how Tauri names external binaries. */
 function hostTriple() {
@@ -85,16 +116,29 @@ async function main() {
     logLevel: "info",
   });
 
-  // Stage the externals so `require` finds them beside the bundle.
+  // Stage the externals, and everything they require, so `require` resolves
+  // beside the bundle with no parent node_modules to fall back on.
   await mkdir(resolve(outDir, "node_modules"), { recursive: true });
+
+  const staged = new Set();
   for (const dep of EXTERNAL) {
-    const from = resolve(root, "node_modules", dep);
-    if (!existsSync(from)) {
+    if (!existsSync(resolve(root, "node_modules", dep))) {
       console.warn(`[sidecar] optional dependency not installed, skipping: ${dep}`);
       continue;
     }
-    await cp(from, resolve(outDir, "node_modules", dep), { recursive: true });
+    for (const name of collectWithDependencies(dep)) staged.add(name);
   }
+
+  for (const name of staged) {
+    await cp(
+      resolve(root, "node_modules", name),
+      resolve(outDir, "node_modules", name),
+      { recursive: true },
+    );
+  }
+  console.log(
+    `[sidecar] staged ${staged.size} packages (${EXTERNAL.length} external + transitive)`,
+  );
 
   await pruneNativePrebuilds();
 
