@@ -39,6 +39,12 @@ const USER_ID = 1;
 const UNDEF = { __sentra_undefined__: true };
 
 const CALLS = [
+  // NOTE: read-only by design. This talks to the real config in
+  // %APPDATA%\sentra, so a probe that writes settings edits the user's actual
+  // preferences. An earlier version of this script did exactly that.
+  ["get-settings", [], "get-settings", []],
+  ["macro:list", [], "macro:list", []],
+  ["discord-rpc-get-state", [], "discord-rpc-get-state", []],
   ["get-user-by-username", ["roblox"]],
   ["get-catalog-navigation", []],
   ["get-friends  [omitted]", [], "get-friends", ["", USER_ID]],
@@ -101,7 +107,16 @@ for (const [label, argsA, realChannel, realArgs] of CALLS) {
   const reply = await call(channel, args);
   const ms = Date.now() - started;
   if (reply.ok) {
-    const rendered = JSON.stringify(reply.result);
+    // For settings calls, show only the fields under test.
+    let shown = reply.result;
+    if (channel === "get-settings" && shown && typeof shown === "object") {
+      shown = {
+        privacyMode: shown.privacyMode,
+        accentColor: shown.accentColor,
+        tint: shown.tint,
+      };
+    }
+    const rendered = JSON.stringify(shown);
     console.log(
       `OK   ${label.padEnd(26)} ${String(ms).padStart(6)}ms  ${
         rendered.length > 80 ? rendered.slice(0, 80) + "…" : rendered
