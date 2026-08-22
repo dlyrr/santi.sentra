@@ -1,6 +1,6 @@
 # Sentra
 
-Sentra is a desktop Roblox account manager built with Electron, React, and TypeScript.
+Sentra is a desktop Roblox account manager built with Tauri, React, and TypeScript.
 
 ## What it does
 
@@ -17,6 +17,10 @@ Sentra is a desktop Roblox account manager built with Electron, React, and TypeS
 - Windows, macOS, or Linux
 - Node.js 20 or newer
 - npm
+- Rust 1.77 or newer (the app shell is Tauri)
+
+On Windows, WebView2 is used for rendering; it ships with Windows 11 and current
+Windows 10.
 
 ## Run Locally
 
@@ -27,13 +31,16 @@ npm install
 npm run dev
 ```
 
-`npm install` also installs the native dependencies required by Electron Builder.
+The first `npm run dev` also compiles the Rust shell, which takes a few minutes. Later runs are incremental.
 
 ## Useful Commands
 
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start the development app |
+| `npm run build:sidecar` | Bundle the Node sidecar (required before a Rust build) |
+| `npm run test:sidecar` | Boot the sidecar and check every IPC channel registers |
+| `npm run migration:status` | Show which channels are served by Rust vs. the sidecar |
 | `npm run typecheck` | Check Node and renderer TypeScript |
 | `npm run lint` | Run ESLint |
 | `npm run format` | Format the project with Prettier |

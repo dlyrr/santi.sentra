@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, LogOut, Ticket, ArrowRightLeft, Heart } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Account } from "@renderer/types";
 import {
   useAccountsManager,
@@ -63,7 +64,17 @@ export const ProfileCard = ({
     setIsDropdownOpen(false);
   };
 
-  const dropdownGroups = [
+  interface DropdownItem {
+    icon: LucideIcon;
+    label: string;
+    onClick: () => void;
+    /** Destructive actions render in red. */
+    danger?: boolean;
+  }
+
+  // Typed explicitly: inferred separately, the groups union into shapes where
+  // only some carry `danger`, and reading it becomes a type error.
+  const dropdownGroups: DropdownItem[][] = [
     [
       {
         icon: ArrowRightLeft,

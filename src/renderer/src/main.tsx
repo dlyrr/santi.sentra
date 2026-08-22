@@ -1,3 +1,7 @@
+// Installs window.api / window.electron / window.platform on top of Tauri.
+// Must run before anything touches those globals.
+import "../../bridge";
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
