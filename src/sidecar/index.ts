@@ -25,7 +25,12 @@ if (!process.resourcesPath && process.env.SENTRA_RESOURCES) {
   });
 }
 
-import { listen, registerChannel, registeredChannels } from "./bridge";
+import {
+  listen,
+  registerChannel,
+  registeredChannels,
+  setReadyGate,
+} from "./bridge";
 import { BrowserWindow, primeAppVersion } from "./electron-shim";
 import { registerAppHandlers } from "./appHandlers";
 
@@ -91,16 +96,22 @@ async function main(): Promise<void> {
   // host delays every channel becoming available.
   void primeAppVersion();
 
+  // Armed before the controllers load, so an early call waits for the whole
+  // registration sequence rather than only the deferred tail.
+  let markReady: () => void = () => undefined;
+  setReadyGate(new Promise<void>((resolve) => (markReady = resolve)));
+
   await registerCritical();
   await registerFeatures();
 
   // Matches the old main process, which deferred these until after first paint.
-  setTimeout(() => {
-    registerDeferred().catch((error) => {
-      console.log(`[sidecar] deferred handler registration failed: ${error}`);
-    });
-  }, 0);
-
+  // Calls that arrive for a deferred channel in the meantime wait on this gate
+  // rather than failing.
+  const deferred = registerDeferred().catch((error) => {
+    console.log(`[sidecar] deferred handler registration failed: ${error}`);
+  });
+  await deferred;
+  markReady();
   console.log(`[sidecar] ready with ${registeredChannels().length} channels`);
 }
 
