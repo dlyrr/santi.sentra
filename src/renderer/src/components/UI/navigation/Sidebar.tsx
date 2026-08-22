@@ -12,7 +12,9 @@ import {
 import { motion } from "framer-motion";
 import {
   useActiveTab,
+  useCollapsedNavSections,
   useSidebarCollapsed,
+  useToggleNavSection,
   useToggleSidebarCollapsed,
 } from "../../../stores/useUIStore";
 import { useCommandPaletteStore } from "../../../features/command-palette/stores/useCommandPaletteStore";
@@ -24,10 +26,12 @@ import {
   sanitizeSidebarOrder,
 } from "@shared/navigation";
 import {
+  groupSidebarTabs,
   SidebarTabDefinition,
   SIDEBAR_TAB_DEFINITION_MAP,
 } from "@renderer/constants/sidebarTabs";
 import { ProfileCard } from "./ProfileCard";
+import SidebarSection from "./SidebarSection";
 
 interface SidebarProps {
   sidebarWidth: number;
@@ -62,6 +66,8 @@ const Sidebar = ({
   const setActiveTab = useTabTransition();
   const isSidebarCollapsed = useSidebarCollapsed();
   const toggleSidebarCollapsed = useToggleSidebarCollapsed();
+  const collapsedSections = useCollapsedNavSections();
+  const toggleNavSection = useToggleNavSection();
   const openCommandPalette = useCommandPaletteStore((s) => s.open);
 
   const normalizedOrder = useMemo(
@@ -82,6 +88,10 @@ const Sidebar = ({
         .map((tabId) => SIDEBAR_TAB_DEFINITION_MAP[tabId])
         .filter(Boolean) as SidebarTabDefinition[],
     [visibleTabs],
+  );
+  const tabGroups = useMemo(
+    () => groupSidebarTabs(sidebarTabs),
+    [sidebarTabs],
   );
 
   return (
@@ -171,29 +181,42 @@ const Sidebar = ({
         </div>
 
         {}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <nav>
-            {sidebarTabs.map((tab, index) => {
-              const previous = sidebarTabs[index - 1] as
-                | SidebarTabDefinition
-                | undefined;
-              const showSeparator =
-                previous && previous.section !== tab.section;
+        <div className="flex-1 overflow-y-auto scrollbar-hide pb-2">
+          <nav aria-label="Primary">
+            {tabGroups.map((group, groupIndex) => {
+              const containsActive = group.tabs.some(
+                (tab) => tab.id === activeTab,
+              );
+              // A folded group still opens itself when it owns the active tab,
+              // so keyboard shortcuts and the command palette never navigate
+              // to something the user cannot see.
+              const isOpen =
+                containsActive ||
+                !collapsedSections.includes(group.section.id);
 
               return (
-                <React.Fragment key={tab.id}>
-                  {showSeparator && (
-                    <div className="my-2 mx-3 border-t border-[var(--color-border)]" />
-                  )}
-                  <SidebarItem
-                    icon={tab.icon}
-                    label={tab.label}
-                    isActive={activeTab === tab.id}
-                    isCollapsed={isSidebarCollapsed}
-                    onClick={() => setActiveTab(tab.id)}
-                    disableLayoutAnimation={isResizing || isSidebarCollapsed}
-                  />
-                </React.Fragment>
+                <SidebarSection
+                  key={group.section.id}
+                  label={group.section.label}
+                  isRail={isSidebarCollapsed}
+                  isOpen={isOpen}
+                  onToggle={() => toggleNavSection(group.section.id)}
+                  containsActive={containsActive}
+                  disableAnimation={isResizing}
+                  showDivider={groupIndex > 0}
+                >
+                  {group.tabs.map((tab) => (
+                    <SidebarItem
+                      key={tab.id}
+                      icon={tab.icon}
+                      label={tab.label}
+                      isActive={activeTab === tab.id}
+                      isCollapsed={isSidebarCollapsed}
+                      onClick={() => setActiveTab(tab.id)}
+                      disableLayoutAnimation={isResizing || isSidebarCollapsed}
+                    />
+                  ))}
+                </SidebarSection>
               );
             })}
           </nav>
