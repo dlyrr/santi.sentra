@@ -19,6 +19,9 @@ import {
   UsersRound,
   Target,
   Wand2,
+  Compass,
+  Wrench,
+  MonitorCog,
 } from "lucide-react";
 
 export type SidebarSectionId = "account" | "explore" | "tools" | "system";
@@ -35,6 +38,11 @@ export interface SidebarTabDefinition {
 export interface SidebarSectionDefinition {
   id: SidebarSectionId;
   label: string;
+  /**
+   * The group's own icon. Fixed, rather than borrowed from whichever tab is
+   * open: a heading that renames itself as you navigate is not a heading.
+   */
+  icon: LucideIcon;
 }
 
 /**
@@ -42,10 +50,10 @@ export interface SidebarSectionDefinition {
  * sections are laid out by where their first tab appears in that order.
  */
 export const SIDEBAR_SECTIONS: SidebarSectionDefinition[] = [
-  { id: "account", label: "Account" },
-  { id: "explore", label: "Explore" },
-  { id: "tools", label: "Tools" },
-  { id: "system", label: "System" },
+  { id: "account", label: "Account", icon: Users },
+  { id: "explore", label: "Explore", icon: Compass },
+  { id: "tools", label: "Tools", icon: Wrench },
+  { id: "system", label: "System", icon: MonitorCog },
 ];
 
 export const SIDEBAR_SECTION_MAP: Record<

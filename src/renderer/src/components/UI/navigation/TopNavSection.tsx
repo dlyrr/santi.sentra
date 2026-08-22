@@ -56,8 +56,7 @@ export const TopNavSection = ({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
 
-  const active = tabs.find((tab) => tab.id === activeTab);
-  const isActive = Boolean(active);
+  const isActive = tabs.some((tab) => tab.id === activeTab);
 
   // A section the user has narrowed to a single tab does not need a menu.
   const isSingle = tabs.length === 1;
@@ -70,8 +69,11 @@ export const TopNavSection = ({
     setIsOpen((open) => !open);
   };
 
-  const TriggerIcon = active?.icon ?? tabs[0]?.icon;
-  const triggerLabel = active ? active.label : section.label;
+  // The group always shows its own name and icon. Swapping in the open tab's
+  // label made the bar look like it was renaming itself as you moved around;
+  // the active state is carried by the indicator and the accent instead.
+  const TriggerIcon = section.icon;
+  const triggerLabel = section.label;
 
   return (
     <div ref={containerRef} className="relative shrink-0">
