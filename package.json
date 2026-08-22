@@ -1,6 +1,6 @@
 {
   "name": "santi.manager",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Sentra",
   "author": "experimentid (ex9d)",
   "homepage": "https://github.com/ex9d/",
@@ -20,7 +20,8 @@
     "migration:status": "node scripts/migration-status.mjs",
     "test:sidecar": "node scripts/sidecar-smoke.mjs",
     "test:safestorage": "node scripts/test-safestorage.mjs",
-    "test": "npm run test:safestorage && npm run test:sidecar"
+    "test": "npm run test:safestorage && npm run test:sidecar",
+    "diagnose": "node scripts/diagnose-channels.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
