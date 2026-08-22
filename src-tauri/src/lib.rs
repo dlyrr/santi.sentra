@@ -7,6 +7,7 @@
 pub mod handlers;
 pub mod host;
 pub mod ipc;
+pub mod roblox_window;
 pub mod sidecar;
 
 use std::sync::Arc;
