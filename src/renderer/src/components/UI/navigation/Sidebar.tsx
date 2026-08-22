@@ -105,6 +105,7 @@ const Sidebar = ({
       >
         {}
         <div
+          data-tauri-drag-region
           className={`flex items-center shrink-0 bg-[var(--color-surface)] transition-all duration-300 relative select-none ${
             isSidebarCollapsed ? "justify-center px-0" : "justify-start px-4"
           }`}

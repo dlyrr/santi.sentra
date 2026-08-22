@@ -8,7 +8,9 @@ import React, {
   lazy,
   Suspense,
 } from "react";
-import notificationIcon from "../../../resources/build/icons/png/256x256.png";
+// The old path lived under resources/build/, which .gitignore excludes, so the
+// icon was missing from a fresh clone. It now ships from assets/ like the rest.
+import notificationIcon from "@assets/icons/app/sentra-256.png";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Account, AccountStatus, JoinMethod } from "./types";
@@ -21,6 +23,7 @@ import AddAccountModal from "./features/auth/Modals/AddAccountModal";
 import TwoFactorModal from "./components/Modals/TwoFactorModal";
 import promptTwoFactor from "./lib/twoFactor";
 import Sidebar from "./components/UI/navigation/Sidebar";
+import WindowControls from "@renderer/components/UI/navigation/WindowControls";
 import TopNav from "./components/UI/navigation/TopNav";
 import NotificationTray from "./components/UI/feedback/NotificationTray";
 import SnackbarContainer from "./features/system/components/SnackbarContainer";
@@ -1799,11 +1802,12 @@ const App: React.FC = () => {
         {}
         {navLayout === "sidebar" && (
           <div
+            data-tauri-drag-region
             className="h-[45px] bg-[var(--color-titlebar)] flex-shrink-0 w-full border-b border-[var(--color-border)] flex items-center justify-end"
             style={
               {
                 WebkitAppRegion: "drag",
-                paddingRight: isMac ? "16px" : "138px",
+                paddingRight: isMac ? "16px" : undefined,
               } as React.CSSProperties
             }
           >
@@ -1829,6 +1833,8 @@ const App: React.FC = () => {
                 <div className="w-px h-5 bg-[var(--color-border)] mx-2" />
               )}
             </div>
+            {/* Replaces Electron's titleBarOverlay caption buttons. */}
+            <WindowControls className="h-[45px]" />
           </div>
         )}
         {}

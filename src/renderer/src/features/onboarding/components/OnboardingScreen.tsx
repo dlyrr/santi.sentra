@@ -14,7 +14,7 @@ import {
   OnboardingStep,
   useIsFirstLaunch,
 } from "../stores/useOnboardingStore";
-import appIcon from "../../../../../../resources/build/icons/png/512x512.png";
+import appIcon from "@assets/icons/app/sentra-512.png";
 import AddAccountStep from "./AddAccountStep";
 import PinSetupStep from "./PinSetupStep";
 import InstallationStep from "./InstallationStep";

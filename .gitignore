@@ -22,3 +22,13 @@ build/
 tmp/
 temp/
 .cache/
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Sidecar build output (produced by `npm run build:sidecar`)
+src-tauri/binaries/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+.eslintcache

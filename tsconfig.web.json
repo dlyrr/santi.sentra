@@ -1,24 +1,36 @@
 {
-  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
   "include": [
-    "src/renderer/src/env.d.ts",
     "src/renderer/src/**/*",
-    "src/renderer/src/**/*.tsx",
-    "src/renderer/src/window.d.ts",
-    "src/preload/*.d.ts",
+    "src/bridge/**/*",
+    "src/preload/api/**/*",
     "src/shared/**/*"
   ],
   "compilerOptions": {
-    "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "allowJs": true,
     "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "composite": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "baseUrl": ".",
-    "resolveJsonModule": true,
     "paths": {
       "@renderer/*": ["src/renderer/src/*"],
+      "@bridge/*": ["src/bridge/*"],
+      "@preload/*": ["src/preload/*"],
       "@shared/*": ["src/shared/*"],
-      "@assets/*": ["assets/*"]
+      "@assets/*": ["assets/*"],
+      "electron": ["src/bridge/electron.ts"]
     }
   }
 }

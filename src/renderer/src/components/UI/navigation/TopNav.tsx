@@ -46,6 +46,7 @@ import {
   navItemTone,
 } from "./navTokens";
 import NotificationTray from "../feedback/NotificationTray";
+import WindowControls from "./WindowControls";
 import { ProfileCard } from "./ProfileCard";
 
 const isMac = window.platform?.isMac ?? false;
@@ -157,6 +158,7 @@ const TopNav = ({
   return (
     <TooltipProvider>
       <header
+        data-tauri-drag-region
         className="flex-shrink-0 z-30 relative flex items-center bg-[var(--color-surface-strong)] border-b border-[var(--color-border)]"
         style={
           {
@@ -209,13 +211,7 @@ const TopNav = ({
         {}
         <div
           className="flex items-center gap-1.5 px-3 shrink-0"
-          style={
-            {
-              WebkitAppRegion: "no-drag",
-
-              paddingRight: isMac ? undefined : "138px",
-            } as React.CSSProperties
-          }
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
           {showProfileCard && accountForProfile && (
             <ProfileCard
@@ -242,6 +238,9 @@ const TopNav = ({
 
           <NotificationTray onOpenUserProfile={onOpenUserProfile} />
         </div>
+
+        {/* Tauri has no titleBarOverlay, so the caption buttons are ours. */}
+        <WindowControls className="self-stretch" />
       </header>
     </TooltipProvider>
   );
