@@ -35,8 +35,10 @@ const SECURITY_COOKIE: &str = ".ROBLOSECURITY";
 const POLL_INTERVAL: Duration = Duration::from_millis(400);
 
 /// Gives up on a login the user has walked away from. Long enough for 2FA,
-/// email verification and a captcha.
-const LOGIN_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+/// email verification and a captcha, and deliberately the *shortest* of the
+/// three nested budgets (this, the sidecar's host call, the Rust call timeout)
+/// so that this layer is the one that reports a timeout.
+const LOGIN_TIMEOUT: Duration = Duration::from_secs(8 * 60);
 
 /// How many consecutive cookie reads may fail before the window is treated as
 /// broken. A webview whose message channel has died leaves the window on screen

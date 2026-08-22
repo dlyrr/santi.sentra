@@ -18,6 +18,7 @@
 pub mod app;
 pub mod http;
 pub mod shell;
+pub mod updater;
 pub mod window;
 
 use serde_json::Value;
@@ -52,6 +53,11 @@ pub const NATIVE_CHANNELS: &[&str] = &[
     // network
     "proxy:fetchFreeProxies",
     "roblox:fetch",
+    // auto-update
+    "updater:check",
+    "updater:download",
+    "updater:install",
+    "updater:get-state",
 ];
 
 pub fn is_native(channel: &str) -> bool {
@@ -100,6 +106,10 @@ pub async fn dispatch(
         }
 
         "proxy:fetchFreeProxies" | "roblox:fetch" => http::handle(channel, args).await,
+
+        "updater:check" | "updater:download" | "updater:install" | "updater:get-state" => {
+            updater::handle(app, channel, args).await
+        }
 
         _ => Err(format!("channel '{channel}' is listed as native but unrouted")),
     };

@@ -96,7 +96,7 @@ const TopNav = ({
         >
           <SentraLogo className="h-7 w-7 shrink-0" />
           <span className="font-bold text-base tracking-tight text-[var(--color-text-primary)] hidden sm:block">
-            Sentra
+            santi.manager
           </span>
         </div>
 

@@ -74,17 +74,51 @@ function drop(channel: string, listener: Listener): void {
 }
 
 /**
+ * Turns a rejection from `ipc_invoke` back into a real `Error`.
+ *
+ * Tauri rejects with whatever the command serialised — here the `IpcError`
+ * struct, a plain `{channel, message}` object. Electron rejected with an
+ * `Error`, and call sites across the app branch on `error instanceof Error` and
+ * compare `error.message` against sentinels like `LOGIN_WINDOW_CLOSED`. Against
+ * a plain object every one of those checks silently fails and the specific
+ * reason is replaced by a generic "something went wrong".
+ */
+function toError(raw: unknown, channel: string): Error {
+  if (raw instanceof Error) return raw;
+
+  if (raw && typeof raw === "object") {
+    const record = raw as { message?: unknown; channel?: unknown };
+    if (typeof record.message === "string") {
+      const error = new Error(record.message);
+      (error as Error & { channel?: string }).channel =
+        typeof record.channel === "string" ? record.channel : channel;
+      return error;
+    }
+  }
+
+  if (typeof raw === "string") return new Error(raw);
+  return new Error(`IPC call failed: ${channel}`);
+}
+
+/**
  * The unrestricted surface, equivalent to importing `ipcRenderer` from the
  * `electron` package inside the old preload. Used by the preload API modules,
  * which are first-party code shipped with the app.
  */
 export const ipcRenderer = {
-  invoke(channel: string, ...args: unknown[]): Promise<unknown> {
-    return invoke("ipc_invoke", { channel, args });
+  async invoke(channel: string, ...args: unknown[]): Promise<unknown> {
+    try {
+      return await invoke("ipc_invoke", { channel, args });
+    } catch (raw) {
+      throw toError(raw, channel);
+    }
   },
 
   send(channel: string, ...args: unknown[]): void {
-    void invoke("ipc_invoke", { channel, args });
+    void invoke("ipc_invoke", { channel, args }).catch((raw) => {
+      // Fire-and-forget, but a silent failure here is still worth seeing.
+      console.error(toError(raw, channel));
+    });
   },
 
   on(channel: string, listener: Listener): () => void {

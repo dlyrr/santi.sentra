@@ -31,8 +31,10 @@ use tokio::sync::{oneshot, Mutex};
 use crate::host;
 
 /// How long a single sidecar call may take before it is abandoned. Generous,
-/// because some channels drive a real browser or a multi-gigabyte download.
-const CALL_TIMEOUT: Duration = Duration::from_secs(600);
+/// because some channels drive a real browser, wait on a person signing in, or
+/// download several gigabytes. Must exceed the sidecar's own host-call budgets
+/// so the inner layer reports first.
+const CALL_TIMEOUT: Duration = Duration::from_secs(15 * 60);
 
 type Pending = Arc<DashMap<String, oneshot::Sender<Result<Value, String>>>>;
 
@@ -101,7 +103,7 @@ impl Sidecar {
             tokio::spawn(async move {
                 let mut lines = BufReader::new(stderr).lines();
                 while let Ok(Some(line)) = lines.next_line().await {
-                    log::warn!("[sidecar] {line}");
+                    log::info!("[sidecar] {line}");
                 }
             });
         }
@@ -227,9 +229,9 @@ async fn dispatch(app: &AppHandle, pending: &Pending, msg: Value) {
 /// Resolves the bundled sidecar binary, falling back to the dev build tree.
 fn sidecar_path(app: &AppHandle) -> Result<std::path::PathBuf> {
     let name = if cfg!(windows) {
-        "sentra-sidecar.exe"
+        "santi.manager-sidecar.exe"
     } else {
-        "sentra-sidecar"
+        "santi.manager-sidecar"
     };
 
     if let Ok(dir) = app.path().resource_dir() {

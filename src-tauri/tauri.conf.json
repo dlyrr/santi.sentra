@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Sentra",
-  "version": "1.1.8",
+  "productName": "santi.manager",
+  "mainBinaryName": "santi.manager",
+  "version": "1.2.0",
   "identifier": "com.sentra.app",
   "build": {
     "frontendDist": "../out/renderer",
@@ -14,7 +15,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Sentra",
+        "title": "santi.manager",
         "width": 1400,
         "height": 900,
         "minWidth": 940,
@@ -68,13 +69,13 @@
       "binaries/node_modules": "node_modules"
     },
     "externalBin": [
-      "binaries/sentra-sidecar"
+      "binaries/santi.manager-sidecar"
     ],
     "windows": {
       "nsis": {
         "installMode": "perMachine",
         "installerIcon": "icons/icon.ico",
-        "startMenuFolder": "Sentra"
+        "startMenuFolder": "santi.manager"
       }
     },
     "macOS": {
@@ -84,7 +85,18 @@
       "deb": {
         "depends": []
       }
-    }
+    },
+    "createUpdaterArtifacts": true
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVFMUU3QjI2OUI1Mzk3NzkKUldSNWwxT2JKbnNlWHRzQTFEcVpIaCt6RktLY2owWXl4NHp5YXNwbzcwQjVuT3p3YVVkUkRKNFkK",
+      "endpoints": [
+        "https://github.com/dlyrr/santi.sentra/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
 }

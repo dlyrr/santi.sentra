@@ -69,17 +69,38 @@ export function sendToRenderer(event: string, payload: unknown): void {
   writeFrame({ event, payload });
 }
 
-/** A host that never answers must not be able to wedge the sidecar. */
+/**
+ * A host that never answers must not be able to wedge the sidecar.
+ *
+ * This is a *default*, not a rule. Some host calls are inherently as slow as a
+ * person: the Roblox login window sits open until someone finishes signing in,
+ * including 2FA and a captcha. Timing those out on the generic budget cancelled
+ * logins after 30 seconds while the window was still on screen, and reported it
+ * as a generic capture failure.
+ */
 const HOST_CALL_TIMEOUT_MS = 30_000;
 
 /** Ask the Tauri host to do something only it can do. */
 export function hostCall<T>(host: string, ...args: unknown[]): Promise<T> {
+  return hostCallWithTimeout<T>(host, HOST_CALL_TIMEOUT_MS, ...args);
+}
+
+/**
+ * As `hostCall`, with an explicit budget for calls that wait on a person.
+ * Keep it shorter than the Rust side's sidecar call timeout, so the innermost
+ * layer is the one that reports the failure.
+ */
+export function hostCallWithTimeout<T>(
+  host: string,
+  timeoutMs: number,
+  ...args: unknown[]
+): Promise<T> {
   const rid = randomUUID();
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       pendingHostCalls.delete(rid);
       reject(new Error(`host call timed out: ${host}`));
-    }, HOST_CALL_TIMEOUT_MS);
+    }, timeoutMs);
     // A pending host call should never hold the process open on its own.
     timer.unref?.();
 

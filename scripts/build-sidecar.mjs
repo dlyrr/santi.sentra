@@ -108,8 +108,8 @@ async function main() {
   // again when bundling. Both names are written so `tauri build` and a plain
   // `cargo run` from the crate directory each find one.
   const triple = hostTriple();
-  const targetName = `sentra-sidecar${ext}`;
-  const tripleName = `sentra-sidecar-${triple}${ext}`;
+  const targetName = `santi.manager-sidecar${ext}`;
+  const tripleName = `santi.manager-sidecar-${triple}${ext}`;
 
   if (process.platform === "win32") {
     // A .cmd shim would flash a console window, so the Node runtime itself is

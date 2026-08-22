@@ -133,9 +133,15 @@ const Sidebar = ({
             </div>
           ) : (
             <>
-              <div className="font-bold text-[28px] tracking-tight text-[var(--color-text-primary)] flex items-center justify-start gap-2.5">
-                <SentraLogo className="h-11 w-11 shrink-0" />
-                <span>Sentra</span>
+              {/*
+                The collapse button is absolutely positioned at the right edge,
+                so the wordmark reserves room for it and truncates rather than
+                sliding underneath. Sized to fit the product name at the
+                sidebar's default width instead of the old six-letter one.
+              */}
+              <div className="min-w-0 flex-1 pr-10 font-bold text-[19px] tracking-tight text-[var(--color-text-primary)] flex items-center justify-start gap-2.5">
+                <SentraLogo className="h-9 w-9 shrink-0" />
+                <span className="truncate">santi.manager</span>
               </div>
               {!isMac && (
                 <Button

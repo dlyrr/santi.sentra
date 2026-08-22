@@ -24,6 +24,7 @@ import TwoFactorModal from "./components/Modals/TwoFactorModal";
 import promptTwoFactor from "./lib/twoFactor";
 import Sidebar from "./components/UI/navigation/Sidebar";
 import WindowControls from "@renderer/components/UI/navigation/WindowControls";
+import { UpdatePrompt } from "@renderer/features/updater";
 import TopNav from "./components/UI/navigation/TopNav";
 import NotificationTray from "./components/UI/feedback/NotificationTray";
 import SnackbarContainer from "./features/system/components/SnackbarContainer";
@@ -2091,6 +2092,9 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* App-level update prompt. Not a native dialog by design. */}
+      <UpdatePrompt />
 
       {}
       <JoinModal
