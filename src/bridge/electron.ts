@@ -74,6 +74,28 @@ function drop(channel: string, listener: Listener): void {
 }
 
 /**
+ * JSON cannot represent `undefined`, and inside an array it becomes `null`.
+ *
+ * That matters because ~24 channels validate their arguments with a zod tuple
+ * whose trailing entries are `.optional()`, and `.optional()` accepts a *missing*
+ * value, not a null one. Electron's structured clone carried `undefined` across
+ * intact, so `invoke(ch, schema, cookie, id, undefined)` arrived as three
+ * arguments with the last undefined and validated fine. Over JSON the same call
+ * arrives as `[cookie, id, null]` and is rejected — which silently broke every
+ * paged or filtered view: friends, followers, inventory, avatar and catalog.
+ *
+ * So `undefined` is encoded explicitly and restored on the other side. `null`
+ * stays `null`, because some channels pass it deliberately.
+ */
+const UNDEFINED_SENTINEL = "__sentra_undefined__";
+
+function encodeUndefined(value: unknown): unknown {
+  if (value === undefined) return { [UNDEFINED_SENTINEL]: true };
+  if (Array.isArray(value)) return value.map(encodeUndefined);
+  return value;
+}
+
+/**
  * Turns a rejection from `ipc_invoke` back into a real `Error`.
  *
  * Tauri rejects with whatever the command serialised — here the `IpcError`
@@ -108,14 +130,20 @@ function toError(raw: unknown, channel: string): Error {
 export const ipcRenderer = {
   async invoke(channel: string, ...args: unknown[]): Promise<unknown> {
     try {
-      return await invoke("ipc_invoke", { channel, args });
+      return await invoke("ipc_invoke", {
+        channel,
+        args: args.map(encodeUndefined),
+      });
     } catch (raw) {
       throw toError(raw, channel);
     }
   },
 
   send(channel: string, ...args: unknown[]): void {
-    void invoke("ipc_invoke", { channel, args }).catch((raw) => {
+    void invoke("ipc_invoke", {
+      channel,
+      args: args.map(encodeUndefined),
+    }).catch((raw) => {
       // Fire-and-forget, but a silent failure here is still worth seeing.
       console.error(toError(raw, channel));
     });

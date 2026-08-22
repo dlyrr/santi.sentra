@@ -47,6 +47,12 @@ pub async fn ipc_invoke(
         other => Value::Array(vec![other]),
     };
 
+    // Native handlers reason in JSON, where the renderer's `undefined` sentinel
+    // has no meaning; collapse it to null before they see it. The sidecar
+    // decodes it back to a real `undefined` instead, because its zod tuples
+    // distinguish the two. See src/bridge/electron.ts.
+    let args = strip_undefined_sentinel(args);
+
     // Native first. `None` means "not ported yet", which is not an error.
     if let Some(result) = handlers::dispatch(&app, &channel, &args).await {
         if let Err(error) = &result {
@@ -64,6 +70,25 @@ pub async fn ipc_invoke(
         log::warn!("ipc {channel} (sidecar) failed: {e}");
         IpcError::new(&channel, e)
     })
+}
+
+/// Replaces `{"__sentra_undefined__": true}` markers with null, recursively.
+fn strip_undefined_sentinel(value: Value) -> Value {
+    match value {
+        Value::Array(items) => {
+            Value::Array(items.into_iter().map(strip_undefined_sentinel).collect())
+        }
+        Value::Object(ref map)
+            if map.len() == 1
+                && map
+                    .get("__sentra_undefined__")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false) =>
+        {
+            Value::Null
+        }
+        other => other,
+    }
 }
 
 /// Reports which side currently answers a channel. Used by the dev overlay and

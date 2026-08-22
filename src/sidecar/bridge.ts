@@ -133,6 +133,28 @@ export function setReadyGate(promise: Promise<void>): void {
   readyGate = promise;
 }
 
+/**
+ * Restores `undefined` arguments encoded by the renderer bridge.
+ *
+ * See the matching comment in src/bridge/electron.ts: JSON turns `undefined`
+ * inside an array into `null`, and the zod tuples guarding these channels treat
+ * those very differently. `null` is left alone — only the explicit sentinel is
+ * converted back.
+ */
+const UNDEFINED_SENTINEL = "__sentra_undefined__";
+
+function decodeUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(decodeUndefined);
+  if (
+    value !== null &&
+    typeof value === "object" &&
+    (value as Record<string, unknown>)[UNDEFINED_SENTINEL] === true
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
 async function handleCall(id: string, channel: string, args: unknown[]) {
   let registration = channels.get(channel);
 
@@ -153,7 +175,7 @@ async function handleCall(id: string, channel: string, args: unknown[]) {
   if (registration.once) channels.delete(channel);
 
   try {
-    const result = await registration.handler(args);
+    const result = await registration.handler(args.map(decodeUndefined));
     writeFrame({ id, ok: true, result: result ?? null });
   } catch (error) {
     writeFrame({
