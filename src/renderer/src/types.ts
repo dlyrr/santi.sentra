@@ -11,6 +11,7 @@ export type TabId =
   | "Settings"
   | "Avatar"
   | "Install"
+  | "Launch"
   | "AccountSettings"
   | "Watcher"
   | "Macro"

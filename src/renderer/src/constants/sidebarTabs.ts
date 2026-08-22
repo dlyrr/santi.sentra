@@ -6,6 +6,7 @@ import {
   Gamepad2,
   HardDrive,
   Keyboard,
+  Rocket,
   Package,
   Receipt,
   ScrollText,
@@ -75,6 +76,7 @@ export const SIDEBAR_TAB_DEFINITIONS: SidebarTabDefinition[] = [
     section: "explore",
   },
 
+  { id: "Launch", label: "Launch", icon: Rocket, section: "tools" },
   { id: "Install", label: "Install", icon: HardDrive, section: "tools" },
   { id: "Watcher", label: "Watcher", icon: Eye, section: "tools" },
   { id: "Macro", label: "Macro", icon: Keyboard, section: "tools" },

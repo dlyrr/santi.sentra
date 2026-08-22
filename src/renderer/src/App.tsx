@@ -132,6 +132,7 @@ const InstallTab = lazy(() => import("./features/install/index"));
 
 const WatcherTab = lazy(() => import("./features/watcher/index"));
 const MacroTab = lazy(() => import("./features/macro/index"));
+const LaunchTab = lazy(() => import("./features/launch/LaunchTab"));
 const SniperTab = lazy(() => import("./features/sniper/index"));
 const GeneratorTab = lazy(() => import("./features/generator/index"));
 const AccountSettingsTab = lazy(
@@ -2016,6 +2017,21 @@ const App: React.FC = () => {
                       <WatcherTab 
                         privacyMode={settings.privacyMode} 
                         onBatchLaunchRequest={handleBatchLaunchRequest}
+                      />
+                    </Suspense>
+                  );
+                case "Launch":
+                  return (
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <LoadingSpinner size="lg" label="Loading..." />
+                        </div>
+                      }
+                    >
+                      <LaunchTab
+                        accounts={accounts}
+                        selectedAccount={selectedAccount}
                       />
                     </Suspense>
                   );
