@@ -39,7 +39,7 @@ import {
   browserApi,
   proxyMgmtApi,
 } from "../preload/api";
-import { ipcRenderer } from "./electron";
+import { restrictedIpcRenderer } from "./electron";
 
 const api = {
   ...appApi,
@@ -117,7 +117,9 @@ const platform = {
 };
 
 const electron = {
-  ipcRenderer,
+  // The narrowed surface. The preload API modules use the unrestricted
+  // `ipcRenderer` directly, exactly as they did under Electron.
+  ipcRenderer: restrictedIpcRenderer,
   process: {
     platform: current,
     versions: {} as Record<string, string>,

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, LogOut, Ticket, ArrowRightLeft, Heart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
