@@ -44,12 +44,14 @@ async function registerCritical(): Promise<void> {
     import("../main/modules/system/LogsController"),
   ]);
 
-  roblox.registerRobloxHandlers();
-  storage.registerStorageHandlers();
-  logs.registerLogsHandlers();
+  await registerSafely("RobloxHandlers", () => roblox.registerRobloxHandlers());
+  await registerSafely("StorageController", () =>
+    storage.registerStorageHandlers(),
+  );
+  await registerSafely("LogsController", () => logs.registerLogsHandlers());
 
   // Handlers that used to sit inline in the Electron main entry.
-  registerAppHandlers();
+  await registerSafely("AppHandlers", () => registerAppHandlers());
 }
 
 /**
@@ -65,6 +67,32 @@ async function registerFeatures(): Promise<void> {
   registerModuleIpcHandlers();
 }
 
+/**
+ * Registers one controller, containing any failure to that controller.
+ *
+ * These used to run as a straight sequence, so the first one to throw took
+ * every controller after it with it. Discord Rich Presence is registered first
+ * and talks to a socket that may not be there, which meant that with Discord
+ * closed the Macro, Sniper, Generator and Updater channels silently never
+ * existed — surfacing much later as "no sidecar handler registered for channel:
+ * macro:list". Losing one feature is survivable; losing four without a word is
+ * not.
+ */
+async function registerSafely(
+  name: string,
+  register: () => void | Promise<void>,
+): Promise<void> {
+  try {
+    await register();
+  } catch (error) {
+    console.log(
+      `[sidecar] ${name} failed to register; its channels will be unavailable: ${
+        error instanceof Error ? (error.stack ?? error.message) : error
+      }`,
+    );
+  }
+}
+
 async function registerDeferred(): Promise<void> {
   const modules = await Promise.all([
     import("../main/modules/discord/DiscordRPCController"),
@@ -75,12 +103,24 @@ async function registerDeferred(): Promise<void> {
     import("../main/modules/updater/UpdaterController"),
   ]);
 
-  modules[0].registerDiscordRPCHandlers();
-  modules[1].registerWatcherHandlers(mainWindow);
-  modules[2].registerMacroHandlers();
-  modules[3].registerSniperHandlers();
-  modules[4].registerGeneratorHandlers();
-  modules[5].registerUpdaterHandlers(mainWindow);
+  await registerSafely("DiscordRPCController", () =>
+    modules[0].registerDiscordRPCHandlers(),
+  );
+  await registerSafely("WatcherController", () =>
+    modules[1].registerWatcherHandlers(mainWindow),
+  );
+  await registerSafely("MacroController", () =>
+    modules[2].registerMacroHandlers(),
+  );
+  await registerSafely("SniperController", () =>
+    modules[3].registerSniperHandlers(),
+  );
+  await registerSafely("GeneratorController", () =>
+    modules[4].registerGeneratorHandlers(),
+  );
+  await registerSafely("UpdaterController", () =>
+    modules[5].registerUpdaterHandlers(mainWindow),
+  );
 }
 
 async function main(): Promise<void> {
