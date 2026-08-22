@@ -19,7 +19,7 @@ import { homedir, tmpdir } from "node:os";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const binDir = resolve(root, "src-tauri/binaries");
-const exe = join(binDir, process.platform === "win32" ? "sentra-sidecar.exe" : "sentra-sidecar");
+const exe = join(binDir, process.platform === "win32" ? "santi.manager-sidecar.exe" : "santi.manager-sidecar");
 const script = join(binDir, "sidecar.cjs");
 
 if (!existsSync(exe) || !existsSync(script)) {

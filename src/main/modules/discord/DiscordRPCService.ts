@@ -349,7 +349,7 @@ class DiscordRPCService {
           largeImageKey: this.currentGame.thumbnailUrl || "sentra_icon",
           largeImageText: gameName,
           smallImageKey: "sentra_icon",
-          smallImageText: "Sentra",
+          smallImageText: "santi.manager",
           buttons: [
             {
               label: "View Game Page",
@@ -367,7 +367,7 @@ class DiscordRPCService {
         if (this.customStatusText) {
           details = this.customStatusText;
           state =
-            accountCount > 0 ? `${accountCount} accounts loaded` : "Sentra";
+            accountCount > 0 ? `${accountCount} accounts loaded` : "santi.manager";
         } else if (this.statusMode === "accounts") {
           details =
             accountCount === 1
@@ -375,16 +375,16 @@ class DiscordRPCService {
               : `Managing ${accountCount} accounts`;
           state = "Roblox Account Manager";
         } else if (this.statusMode === "minimal") {
-          details = "Sentra";
+          details = "santi.manager";
           state = "Roblox Multi-Tool";
         } else if (this.statusMode === "playing") {
           details = "In the Launcher";
           state =
-            accountCount > 0 ? `${accountCount} accounts loaded` : "Sentra";
+            accountCount > 0 ? `${accountCount} accounts loaded` : "santi.manager";
         } else {
           const tabInfo = this.currentTab ? TAB_DISPLAY[this.currentTab] : null;
           details = tabInfo?.details ?? "In the Launcher";
-          state = tabInfo?.state ?? "Sentra";
+          state = tabInfo?.state ?? "santi.manager";
         }
 
         const activity: any = {
@@ -392,7 +392,7 @@ class DiscordRPCService {
           state,
           startTimestamp: this.appStartTimestamp,
           largeImageKey: "sentra_icon",
-          largeImageText: "Sentra",
+          largeImageText: "santi.manager",
         };
 
         await this.client.setActivity(activity);

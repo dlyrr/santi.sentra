@@ -169,7 +169,7 @@ const OnboardingScreen: React.FC = () => {
                 <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl shadow-[var(--accent-color)]/30">
                   <motion.img
                     src={appIcon}
-                    alt="Sentra"
+                    alt="santi.manager"
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.5, duration: 0.3 }}

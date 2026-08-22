@@ -5,13 +5,11 @@
  * artifacts, the update manifest and the install-on-quit step all belong to
  * `tauri-plugin-updater`, which has no Electron equivalent to wrap.
  *
- * This keeps `UpdaterService` loading and its channels answering — the UI's
- * update panel renders "no update available" instead of erroring — while the
- * real implementation moves to the Rust side. It is deliberately inert rather
- * than pretending to update: silently doing nothing under a working-looking API
- * is how users end up stranded on an old build.
- *
- * See MIGRATION.md, "Auto-update", for what replacing this involves.
+ * Auto-update is now implemented, in `src-tauri/src/handlers/updater.rs`. Rust
+ * claims the `updater:*` channels before they reach the sidecar, so nothing
+ * here is ever called at runtime. It remains only so `UpdaterService` still
+ * imports and type-checks; it is inert rather than pretending to update, so
+ * that if the native handlers were ever unregistered the failure would be loud.
  */
 
 import { EventEmitter } from "node:events";

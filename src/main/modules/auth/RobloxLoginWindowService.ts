@@ -1,4 +1,4 @@
-import { hostCall } from "../../../sidecar/bridge";
+import { hostCall, hostCallWithTimeout } from "../../../sidecar/bridge";
 import { UserAgentService } from "./UserAgentService";
 
 /**
@@ -17,6 +17,14 @@ export class RobloxLoginWindowService {
   private static pendingLogin: Promise<string> | null = null;
 
   /**
+   * A login waits on a person: reading email, 2FA, sometimes a captcha. The
+   * generic host-call budget is 30s, which cancelled the attempt while the
+   * window was still open. Kept below the Rust sidecar call timeout so the
+   * window's own timeout is what reports first.
+   */
+  private static readonly LOGIN_TIMEOUT_MS = 10 * 60 * 1000;
+
+  /**
    * Opens a Roblox login window and resolves with the account's
    * `.ROBLOSECURITY` cookie.
    *
@@ -27,9 +35,11 @@ export class RobloxLoginWindowService {
     // leave one of them hanging until it timed out.
     if (this.pendingLogin) return this.pendingLogin;
 
-    this.pendingLogin = hostCall<string>("roblox:open-login", {
-      userAgent: this.getRealisticUserAgent(),
-    }).finally(() => {
+    this.pendingLogin = hostCallWithTimeout<string>(
+      "roblox:open-login",
+      this.LOGIN_TIMEOUT_MS,
+      { userAgent: this.getRealisticUserAgent() },
+    ).finally(() => {
       this.pendingLogin = null;
     });
 

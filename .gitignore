@@ -32,3 +32,7 @@ src-tauri/binaries/
 # TypeScript incremental build info
 *.tsbuildinfo
 .eslintcache
+
+# Updater signing keys - never commit these
+*.key
+*.key.pub
