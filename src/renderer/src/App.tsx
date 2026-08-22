@@ -24,6 +24,7 @@ import TwoFactorModal from "./components/Modals/TwoFactorModal";
 import promptTwoFactor from "./lib/twoFactor";
 import Sidebar from "./components/UI/navigation/Sidebar";
 import WindowControls from "@renderer/components/UI/navigation/WindowControls";
+import { ThemeRain } from "@renderer/theme/ThemeRain";
 import { UpdatePrompt } from "@renderer/features/updater";
 import TopNav from "./components/UI/navigation/TopNav";
 import NotificationTray from "./components/UI/feedback/NotificationTray";
@@ -2092,6 +2093,9 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Decorative sprites for the themes that have them. */}
+      <ThemeRain presetId={settings.themePreset} />
 
       {/* App-level update prompt. Not a native dialog by design. */}
       <UpdatePrompt />

@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: Settings = {
   allowMultipleInstances: false,
   multiInstanceMethod: "mutex",
   defaultInstallationPath: null,
+  themePreset: null,
   accentColor: DEFAULT_ACCENT_COLOR,
   useDynamicAccentColor: false,
   tint: "neutral",

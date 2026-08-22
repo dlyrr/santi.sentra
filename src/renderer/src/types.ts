@@ -143,6 +143,8 @@ export interface Settings {
   multiInstanceMethod: "mutex" | "handle64";
   defaultInstallationPath?: string | null;
   accentColor: string;
+  /** A named palette from the launcher's theme set; null uses the built-in theme. */
+  themePreset: string | null;
   useDynamicAccentColor: boolean;
   tint: TintPreference;
   customTheme?: string;

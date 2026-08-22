@@ -722,3 +722,43 @@ body {
 .custom-dot-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
+
+/* ── Theme artwork ──────────────────────────────────────────── */
+
+/*
+    Ball 2.0 paints its tile on every surface, which is the whole joke — so this
+    is deliberately broad rather than a tasteful accent. Tailwind's arbitrary
+    values put the token name in the class itself, so a substring match reaches
+    every element painted with a surface or accent colour without having to list
+    components one by one; the element selectors below pick up the controls.
+
+    Everything is keyed on the preset, so no other theme pays for any of it.
+*/
+:root[data-preset="ball20"] body,
+:root[data-preset="ball20"] [class*="bg-[var(--color-surface"],
+:root[data-preset="ball20"] [class*="bg-[var(--color-muted-bg"],
+:root[data-preset="ball20"] [class*="bg-[var(--color-app-bg"],
+:root[data-preset="ball20"] [class*="bg-[var(--accent-color"],
+:root[data-preset="ball20"] button,
+:root[data-preset="ball20"] input,
+:root[data-preset="ball20"] textarea,
+:root[data-preset="ball20"] select {
+    background-image: var(--theme-tile);
+    background-size: var(--theme-tile-size);
+}
+
+/*
+    The falling sprites for voxlis.NET and Sirmeme.
+
+    Drawn *over* the interface rather than behind it. Behind, the app's own
+    panes are opaque, so the sprites only showed in the gaps between cards and
+    vanished entirely on a full-bleed view like Accounts. The z-index sits above
+    the content and the navigation but below dialogs, so a modal the user is
+    reading stays clear. Never in the way of a click.
+*/
+.theme-rain {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    pointer-events: none;
+}

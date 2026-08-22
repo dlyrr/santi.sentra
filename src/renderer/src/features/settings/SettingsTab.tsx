@@ -59,7 +59,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
       </div>
 
       {}
-      <div className="shrink-0 pt-6 px-6 pb-4 z-10 sticky top-0 bg-[var(--color-surface)]/40 backdrop-blur-xl border-b border-[var(--color-border)]/30">
+      <div className="shrink-0 pt-6 px-6 pb-4 z-10 sticky top-0 bg-[var(--color-app-bg)]/85 backdrop-blur-xl border-b border-[var(--color-border)]/30">
         <div className="max-w-3xl mx-auto flex justify-center">
           <div className="flex items-center gap-1.5 p-1.5 bg-[var(--color-surface-strong)]/60 backdrop-blur-md border border-[var(--color-border)]/50 rounded-2xl shadow-xl shadow-black/10">
             {[

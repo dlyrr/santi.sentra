@@ -118,6 +118,7 @@ const storeDataSchema = z.object({
       useDynamicAccentColor: z.boolean().optional(),
       theme: themePreferenceEnum.optional(),
       tint: tintPreferenceEnum.optional(),
+      themePreset: z.string().nullable().optional(),
       privacyMode: z.boolean().optional(),
       showSidebarProfileCard: z.boolean().optional(),
       sidebarTabOrder: z.array(sidebarTabIdEnum).optional(),

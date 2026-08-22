@@ -33,6 +33,7 @@ import {
 } from "@renderer/stores/useViewPreferencesStore";
 import { useSettingsManager } from "@renderer/hooks/queries";
 import { BentoCard, SectionDivider, PageHeader } from "./SharedComponents";
+import { THEME_PRESETS } from "@renderer/theme/presets";
 import CustomDropdown, {
   DropdownOption,
 } from "@renderer/components/UI/menus/CustomDropdown";
@@ -246,7 +247,9 @@ export function AppearanceBentoGrid() {
   };
 
   const handleTintChange = (id: TintPreference) => {
-    updateSettings({ tint: id });
+    // A preset owns the whole palette, so switching to a tint has to release it
+    // or the tint would appear to do nothing.
+    updateSettings({ tint: id, themePreset: null });
     applyTint("dark", id);
   };
   const handleAccentPreset = (hex: string) =>
@@ -277,6 +280,91 @@ export function AppearanceBentoGrid() {
         />
         {}
         <SectionDivider label="Theme & Colors" />
+
+        {/*
+            Themes carried over from santi.weblauncher. A theme sets the whole
+            palette, so choosing one supersedes the accent and tint below —
+            picking a tint clears it and hands control back to them.
+        */}
+        <BentoCard
+          colSpan={2}
+          icon={<PaintBucket size={16} />}
+          title="Theme"
+          description="A complete palette. Overrides the accent colour and surface tint while active."
+          disabled={false}
+        >
+          <div className="grid grid-cols-5 gap-2">
+            <button
+              onClick={() => updateSettings({ themePreset: null })}
+              className={cn(
+                "relative flex flex-col items-center gap-2 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                !settings?.themePreset
+                  ? "border-[var(--accent-color)] bg-[var(--accent-color-faint)]"
+                  : "border-[var(--color-border)] bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]",
+              )}
+            >
+              <div className="w-9 h-9 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)]" />
+              <span className="text-[10.5px] font-semibold text-[var(--color-text-muted)]">
+                Default
+              </span>
+            </button>
+
+            {THEME_PRESETS.map((preset) => {
+              const active = settings?.themePreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  onClick={() => updateSettings({ themePreset: preset.id })}
+                  title={preset.name}
+                  className={cn(
+                    "relative flex flex-col items-center gap-2 py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                    active
+                      ? "border-[var(--accent-color)] bg-[var(--accent-color-faint)]"
+                      : "border-[var(--color-border)] bg-[var(--color-surface-hover)] hover:border-[var(--color-border-strong)]",
+                  )}
+                >
+                  {/* A swatch of the palette itself, so the name is not the
+                      only thing distinguishing nine dark themes. */}
+                  <div
+                    className="w-9 h-9 rounded-lg border overflow-hidden flex flex-col"
+                    style={{
+                      background: preset.palette.surface,
+                      borderColor: preset.palette.description,
+                    }}
+                  >
+                    <div
+                      className="h-1/2 w-full"
+                      style={{ background: preset.palette.background }}
+                    />
+                    <div
+                      className="h-1/2 w-full"
+                      style={{ background: preset.palette.accent }}
+                    />
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[10.5px] font-semibold truncate max-w-full px-1",
+                      active
+                        ? "text-[var(--color-text-primary)]"
+                        : "text-[var(--color-text-muted)]",
+                    )}
+                  >
+                    {preset.name}
+                  </span>
+                  {active && (
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[var(--accent-color)] flex items-center justify-center">
+                      <Check
+                        size={9}
+                        strokeWidth={3}
+                        className="text-[var(--accent-color-foreground)]"
+                      />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </BentoCard>
 
         {}
         <BentoCard

@@ -86,6 +86,8 @@ export const settingsSchema = z.object({
   multiInstanceMethod: z.enum(["mutex", "handle64"]).default("mutex"),
   defaultInstallationPath: optionalPathSchema,
   accentColor: accentColorSchema,
+  /** A named palette from the launcher's theme set; null means the built-in one. */
+  themePreset: z.string().nullable(),
   useDynamicAccentColor: z.boolean(),
   tint: tintPreferenceSchema,
   showSidebarProfileCard: z.boolean(),
@@ -157,6 +159,7 @@ export const settingsPatchSchema = z.object({
   multiInstanceMethod: z.enum(["mutex", "handle64"]).optional(),
   defaultInstallationPath: optionalPathSchema,
   accentColor: accentColorSchema.optional(),
+  themePreset: z.string().nullable().optional(),
   useDynamicAccentColor: z.boolean().optional(),
   tint: tintPreferenceSchema.optional(),
   showSidebarProfileCard: z.boolean().optional(),

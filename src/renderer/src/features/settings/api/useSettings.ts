@@ -9,9 +9,11 @@ import {
 } from "@shared/navigation";
 import { applyAccentColor } from "@renderer/utils/themeUtils";
 import { applyTint, getCurrentThemeNameFromDom } from "@renderer/theme/theme";
+import { applyPreset, clearPreset, getPreset } from "@renderer/theme/presets";
 import { initializeFonts, CustomFont } from "@renderer/utils/fontUtils";
 
 const DEFAULT_SETTINGS: Settings = {
+  themePreset: null,
   primaryAccountId: null,
   allowMultipleInstances: false,
   multiInstanceMethod: "mutex",
@@ -206,10 +208,21 @@ export function useSettingsManager() {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
+
+    // A preset supplies the whole surface ramp itself, so the tint palette must
+    // not run afterwards and overwrite it with the built-in dark values.
+    const preset = getPreset(settings.themePreset);
+    if (preset) {
+      applyPreset(preset);
+      return;
+    }
+
+    clearPreset();
     const tint = settings.tint || "neutral";
     document.documentElement.dataset.tint = tint;
     applyTint(getCurrentThemeNameFromDom(), tint);
-  }, [settings.tint]);
+    if (settings.accentColor) applyAccentColor(settings.accentColor);
+  }, [settings.themePreset, settings.tint, settings.accentColor]);
 
   useEffect(() => {
     const raw =
