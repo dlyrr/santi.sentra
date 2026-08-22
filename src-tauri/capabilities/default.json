@@ -1,8 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capabilities for the Sentra main window.",
-  "windows": ["main", "roblox-login"],
+  "description": "Capabilities for the Sentra main window. Deliberately scoped to \"main\" only: the roblox-login and roblox-browser windows load roblox.com, and a remote origin must never be granted Tauri command access.",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",

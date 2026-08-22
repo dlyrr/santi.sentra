@@ -178,6 +178,14 @@ pub async fn handle(app: &AppHandle, host_fn: &str, args: Value) -> Result<Value
             Ok(Value::Null)
         }
 
+        // ---- roblox windows ------------------------------------------------
+        //
+        // The sidecar resolves which account and which user agent, then asks us
+        // to put a window on screen. See roblox_window.rs.
+        "roblox:open-login" | "roblox:open-browser" => {
+            crate::roblox_window::handle(app, host_fn, args).await
+        }
+
         other => Err(format!("unknown host function: {other}")),
     }
 }

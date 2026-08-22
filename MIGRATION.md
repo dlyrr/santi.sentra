@@ -87,14 +87,51 @@ are used during module initialisation:
   existing encrypted config keeps opening. `npm run test:safestorage` asserts
   this: it checks the DPAPI magic and round-trips a non-ASCII value.
 
+## The Roblox windows
+
+`RobloxLoginWindowService` used `BrowserWindow` + `BrowserView` on a named
+session partition, and learned about the harvested cookie from a
+`cookies.on("changed")` event. Both windows are now created natively in
+`src-tauri/src/roblox_window.rs`:
+
+- **Cookie discovery.** Tauri has no cookie-change event, so the login flow
+  polls `cookies_for_url` every 400ms. Reads happen on a blocking thread for two
+  reasons: on Windows the call deadlocks from the main thread or an event
+  handler, and wry answers a dead webview by dropping the reply channel and
+  `unwrap`ing the receive, so a read against a broken webview panics.
+  `spawn_blocking` contains that, and enough consecutive failures ends the
+  attempt rather than spinning until the timeout.
+- **Session isolation.** Electron's `partition` becomes a `data_directory`, one
+  per attempt. A single fixed directory does not work: WebView2 holds a lock on
+  its user data folder while any process is attached and lingers after close, so
+  clearing it fails and the next webview silently fails to attach. Old
+  directories are swept best-effort instead.
+- **Layering.** These are host functions, not IPC channels. Resolving an account
+  to a cookie needs StorageService, which is in the sidecar, so Node decides
+  *which* account and Rust owns *the window*.
+- **Capabilities** are scoped to the `main` window only. These windows load
+  roblox.com, and a remote origin must never hold Tauri command access.
+
+The contract is unchanged, including the `LOGIN_WINDOW_CLOSED` rejection the
+renderer already handles.
+
+Verified on a running build: the window opens against its own session
+directory, `cookies_for_url` returns live Roblox cookies (`RBXEventTrackerV2`,
+`GuestData`, `cf_clearance`, ...) as the page loads, and closing the window
+produces `LOGIN_WINDOW_CLOSED`. A completed sign-in was not exercised, as that
+needs real credentials — but `.ROBLOSECURITY` arrives in exactly the list the
+poll already reads.
+
 ## Still to do
 
-**Roblox login window.** `RobloxLoginWindowService` builds a `BrowserWindow` and
-a `BrowserView` to host Roblox's login page and harvest the resulting cookie.
-Tauri has no `BrowserView`; this needs a second `WebviewWindow` plus cookie
-extraction. Constructing one currently throws with a pointer to this section,
-rather than failing in a subtler way later. Cookie-based and quick-login imports
-are unaffected.
+**Account generator signup browser.** `openSignupBrowser` is the one window
+flow still unported. It does not just want a window — it returns the window
+object, its `webContents` and its session partition so the generator can drive
+form automation through `executeJavaScript` and read cookies straight off the
+partition. That is an Electron-object-passing API with no Tauri counterpart;
+replacing it means redesigning the generator's automation around injected
+scripts and host calls. It throws with a pointer to this section. Everything
+else in the app is unaffected.
 
 **Auto-update.** `electron-updater` is replaced by an inert shim
 (`src/sidecar/shims/electron-updater.ts`) that reports "no update available".

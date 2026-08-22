@@ -174,14 +174,13 @@ export const dialog = {
 export const safeStorage = dpapiSafeStorage;
 
 /**
- * Almost every service only ever addresses the main window, so `BrowserWindow`
+ * Every remaining service addresses only the main window, so `BrowserWindow`
  * collapses to a proxy that forwards to the real Tauri window.
  *
- * The exception is `RobloxLoginWindowService`, which constructs its own window
- * and a `BrowserView` to host Roblox's login page and harvest the resulting
- * cookie. That needs a real Tauri webview window plus cookie extraction, so
- * constructing one throws with a pointer to the work rather than failing in
- * some subtler way later. See MIGRATION.md, "Roblox login window".
+ * Nothing constructs one any more: the Roblox login and account-browser windows
+ * are created natively in `src-tauri/src/roblox_window.rs`. Construction still
+ * throws, so that a future caller reaching for an embedded browser window gets
+ * told where windows actually come from instead of a confusing null.
  */
 class MainWindowProxy {
   webContents = {
@@ -253,21 +252,20 @@ class MainWindowProxy {
 const mainWindowProxy = new MainWindowProxy();
 
 /**
- * Extends the proxy so the instance *type* matches what the services expect
- * (`webContents`, `isDestroyed`, ...), while construction throws: nothing in
- * the Tauri shell can create an embedded browser window yet.
+ * Extends the proxy so the instance *type* still matches what services expect
+ * (`webContents`, `isDestroyed`, ...), while construction throws.
  *
- * `RobloxLoginWindowService` is the only caller that constructs one, to host
- * Roblox's login page and harvest the resulting cookie. That needs a real Tauri
- * WebviewWindow plus cookie extraction. See MIGRATION.md, "Roblox login window".
+ * Nothing constructs one any more — the Roblox login and account-browser
+ * windows are created natively in `src-tauri/src/roblox_window.rs`. This
+ * remains so that a future caller reaching for an embedded browser window is
+ * told where windows come from, rather than getting a confusing null.
  */
 class NotPortedWindow extends MainWindowProxy {
   /**
    * Intentionally open-ended. Construction throws, so this type never describes
-   * a live object — `RobloxLoginWindowService` drives a dozen more BrowserView
-   * and webContents methods, and mirroring each one here would be inventing an
-   * API surface that nothing implements. Anything genuinely reachable lives on
-   * MainWindowProxy above, which stays precisely typed.
+   * a live object, and mirroring Electron's full BrowserView surface here would
+   * be inventing an API that nothing implements. Anything genuinely reachable
+   * lives on MainWindowProxy above, which stays precisely typed.
    */
   [key: string]: any;
   declare webContents: MainWindowProxy["webContents"] & Record<string, any>;
@@ -275,8 +273,8 @@ class NotPortedWindow extends MainWindowProxy {
   constructor(_options?: unknown) {
     super();
     throw new Error(
-      "Embedded browser windows are not available in the Tauri shell yet. " +
-        "The Roblox login window needs a Tauri WebviewWindow; see MIGRATION.md.",
+      "Embedded browser windows are not created in Node. Roblox windows are " +
+        "opened by the Rust shell; see src-tauri/src/roblox_window.rs.",
     );
   }
 }
