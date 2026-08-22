@@ -2,6 +2,15 @@
 
 Sentra is a desktop Roblox account manager built with Tauri, React, and TypeScript.
 
+> **Fork notice.** This is a fork of [ex9d/sentra](https://github.com/ex9d/sentra)
+> by *experimentid (ex9d)*, who wrote the original application. It is
+> redistributed under the GPL-3.0 licence it was released with.
+>
+> What changed in this fork: the Electron shell was replaced with Tauri (the
+> React frontend is unchanged), and the sidebar navigation was regrouped and
+> restyled. See [MIGRATION.md](MIGRATION.md) for the full account of the shell
+> rewrite and what is still outstanding.
+
 ## What it does
 
 - Manage multiple Roblox accounts
