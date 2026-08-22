@@ -97,8 +97,30 @@ export function hostCall<T>(host: string, ...args: unknown[]): Promise<T> {
   });
 }
 
+/**
+ * Resolves once every controller has registered.
+ *
+ * Registration is staged (critical, then features, then deferred) to match the
+ * old main process. The renderer starts calling as soon as it paints, so a
+ * channel owned by a later stage can be asked for before it exists. Under
+ * Electron the window only loaded after registration finished; here the two
+ * race, and the first call for a deferred channel would fail outright.
+ */
+let readyGate: Promise<void> = Promise.resolve();
+
+export function setReadyGate(promise: Promise<void>): void {
+  readyGate = promise;
+}
+
 async function handleCall(id: string, channel: string, args: unknown[]) {
-  const registration = channels.get(channel);
+  let registration = channels.get(channel);
+
+  if (!registration) {
+    // Wait for registration to finish before concluding it does not exist.
+    await readyGate;
+    registration = channels.get(channel);
+  }
+
   if (!registration) {
     writeFrame({
       id,

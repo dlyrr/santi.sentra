@@ -49,13 +49,21 @@ pub async fn ipc_invoke(
 
     // Native first. `None` means "not ported yet", which is not an error.
     if let Some(result) = handlers::dispatch(&app, &channel, &args).await {
+        if let Err(error) = &result {
+            log::warn!("ipc {channel} (rust) failed: {error}");
+        } else {
+            log::debug!("ipc {channel} -> rust");
+        }
         return result.map_err(|e| IpcError::new(&channel, e));
     }
 
-    sidecar
-        .call(&channel, args)
-        .await
-        .map_err(|e| IpcError::new(&channel, e))
+    log::debug!("ipc {channel} -> sidecar");
+    sidecar.call(&channel, args).await.map_err(|e| {
+        // Worth a warning: a failure here is either a missing handler or a dead
+        // sidecar, and both are invisible from the renderer's side.
+        log::warn!("ipc {channel} (sidecar) failed: {e}");
+        IpcError::new(&channel, e)
+    })
 }
 
 /// Reports which side currently answers a channel. Used by the dev overlay and

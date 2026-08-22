@@ -8,8 +8,6 @@
  * `src/bridge/electron.ts` at build time.
  */
 
-import { platform as osPlatform } from "@tauri-apps/plugin-os";
-
 import {
   accountApi,
   usersApi,
@@ -96,17 +94,24 @@ const api = {
   proxyMgmt: proxyMgmtApi,
 };
 
-const current = (() => {
-  try {
-    return osPlatform();
-  } catch {
-    return "windows";
-  }
+/**
+ * Derived from the user agent rather than @tauri-apps/plugin-os.
+ *
+ * `window.platform` is read synchronously at module scope by several
+ * components, so it cannot come from an async plugin call — and pulling in a
+ * whole plugin (plus its Rust half and capability grant) to learn the OS name
+ * is more moving parts than this needs.
+ */
+const current: NodeJS.Platform = (() => {
+  const ua = navigator.userAgent;
+  if (/Mac|iPhone|iPad/i.test(ua)) return "darwin";
+  if (/Linux|X11/i.test(ua) && !/Android/i.test(ua)) return "linux";
+  return "win32";
 })();
 
 const platform = {
-  isMac: current === "macos",
-  isWindows: current === "windows",
+  isMac: current === "darwin",
+  isWindows: current === "win32",
   isLinux: current === "linux",
   platform: current,
 };
