@@ -7,7 +7,7 @@
  */
 
 import { build } from "esbuild";
-import { cp, mkdir, rm, writeFile, copyFile } from "node:fs/promises";
+import { cp, mkdir, rm, writeFile, copyFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
@@ -34,6 +34,29 @@ function hostTriple() {
   const match = output.match(/^host:\s*(.+)$/m);
   if (!match) throw new Error("could not determine the rustc host triple");
   return match[1].trim();
+}
+
+/**
+ * Drops native prebuilds for platforms we are not shipping.
+ *
+ * koffi vendors a binary for every platform and architecture it supports, which
+ * is ~84MB of which one directory is ever loaded. The others are dead weight in
+ * the installer.
+ */
+async function pruneNativePrebuilds() {
+  const koffiBuilds = resolve(outDir, "node_modules/koffi/build/koffi");
+  if (!existsSync(koffiBuilds)) return;
+
+  const arch = process.arch === "ia32" ? "ia32" : process.arch;
+  const keep = `${process.platform}_${arch}`;
+
+  let removed = 0;
+  for (const entry of await readdir(koffiBuilds)) {
+    if (entry === keep) continue;
+    await rm(resolve(koffiBuilds, entry), { recursive: true, force: true });
+    removed += 1;
+  }
+  console.log(`[sidecar] pruned ${removed} koffi prebuilds, kept ${keep}`);
 }
 
 async function main() {
@@ -72,6 +95,8 @@ async function main() {
     }
     await cp(from, resolve(outDir, "node_modules", dep), { recursive: true });
   }
+
+  await pruneNativePrebuilds();
 
   // Tauri's externalBin wants a real executable. Node's own binary is copied in
   // and paired with a launcher, which keeps native addons loadable — a

@@ -84,7 +84,8 @@ are used during module initialisation:
 - `safeStorage` → `src/sidecar/safeStorage.ts`. Real DPAPI through koffi.
   Electron's Windows safeStorage blob *is* a `CryptProtectData` blob with no
   extra entropy, so calling the same API reproduces the format byte-for-byte and
-  existing encrypted config keeps opening.
+  existing encrypted config keeps opening. `npm run test:safestorage` asserts
+  this: it checks the DPAPI magic and round-trips a non-ASCII value.
 
 ## Still to do
 
@@ -118,7 +119,9 @@ reproduced exactly.
 | `npm run dev` | Tauri dev with renderer HMR |
 | `npm run build` | typecheck, bundle sidecar, build installers |
 | `npm run build:sidecar` | bundle the Node sidecar only |
+| `npm test` | both checks below |
 | `npm run test:sidecar` | boot the sidecar, assert channels register |
+| `npm run test:safestorage` | assert DPAPI still reads Electron's blob format |
 | `npm run migration:status` | Rust/Node split, `--list` for channel names |
 
 `npm run build:sidecar` must run before `cargo build`: Tauri treats the sidecar

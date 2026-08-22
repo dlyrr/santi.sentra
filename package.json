@@ -18,7 +18,9 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "migration:status": "node scripts/migration-status.mjs",
-    "test:sidecar": "node scripts/sidecar-smoke.mjs"
+    "test:sidecar": "node scripts/sidecar-smoke.mjs",
+    "test:safestorage": "node scripts/test-safestorage.mjs",
+    "test": "npm run test:safestorage && npm run test:sidecar"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
