@@ -54,7 +54,12 @@ export const LaunchTab = ({ accounts, selectedAccount }: LaunchTabProps) => {
 
       if (place) {
         if (!account?.cookie) {
-          setStatus("Joining an experience needs an account with a valid cookie.");
+          // Falling back to a plain launch beats refusing outright: the client
+          // opens, and the user can join from inside it.
+          await window.api.launchRobloxInstall(install.path);
+          setStatus(
+            "Started Roblox signed out — joining an experience directly needs a saved account.",
+          );
           return;
         }
         await window.api.launchGame(
@@ -148,8 +153,8 @@ export const LaunchTab = ({ accounts, selectedAccount }: LaunchTabProps) => {
 
           {accounts.length === 0 ? (
             <p className="text-[12px] text-[var(--color-text-muted)]">
-              Add an account to join an experience. Without one, the client still
-              starts — it just opens signed out.
+              No account saved. Roblox still starts — it just opens signed out.
+              An account is only needed to join a specific experience.
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
