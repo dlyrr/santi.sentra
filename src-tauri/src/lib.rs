@@ -42,8 +42,13 @@ pub fn run() {
         ])
         // The window is configured hidden so it never flashes an unpainted
         // frame. This is the Tauri equivalent of Electron's `ready-to-show`.
-        .on_page_load(|window, _payload| {
-            if window.label() == "main" {
+        //
+        // Note `webview.window()`: `Webview::show()` shows the *webview*, not
+        // the window containing it. Calling it here compiles and does nothing
+        // useful, leaving the app running with no visible window.
+        .on_page_load(|webview, _payload| {
+            if webview.label() == "main" {
+                let window = webview.window();
                 let _ = window.show();
                 let _ = window.set_focus();
             }
@@ -64,6 +69,24 @@ pub fn run() {
                             "console.error('Sentra sidecar failed to start: {}')",
                             error.to_string().replace('\'', "\\'")
                         ));
+                    }
+                }
+            });
+
+            // Safety net. If the frontend never finishes loading, the
+            // page-load hook never fires and the window stays hidden forever —
+            // the app would be running with nothing on screen and no way to
+            // tell. Showing it anyway turns that into a visible failure.
+            let reveal = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                if let Some(window) = reveal.get_webview_window("main") {
+                    if !window.is_visible().unwrap_or(true) {
+                        log::warn!(
+                            "frontend did not signal page load within 10s;                              showing the window anyway"
+                        );
+                        let _ = window.show();
+                        let _ = window.set_focus();
                     }
                 }
             });

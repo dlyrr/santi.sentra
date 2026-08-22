@@ -59,6 +59,16 @@ impl Sidecar {
 
         let mut command = Command::new(&exe);
 
+        // The sidecar binary is the Node runtime, which is a console-subsystem
+        // executable: spawning it pops a black terminal window next to the app.
+        // CREATE_NO_WINDOW suppresses that without detaching the pipes we talk
+        // over.
+        #[cfg(windows)]
+        {
+            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+            command.creation_flags(CREATE_NO_WINDOW);
+        }
+
         // Several Node services read `process.resourcesPath` at module load to
         // locate the bundled catalog database and icons. That is an Electron
         // property, so the Tauri resource directory is handed over here.
