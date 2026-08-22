@@ -36,6 +36,20 @@ pub async fn handle(app: &AppHandle, channel: &str, args: &Value) -> Result<Valu
             }))
         }
 
+        // Lets the renderer put a line in the app log. Validation failures
+        // happen after a successful IPC round trip, so they were previously
+        // invisible: the webview console is not captured anywhere.
+        "app:log" => {
+            let level = arg_str(args, 0).unwrap_or_else(|| "info".into());
+            let message = arg_str(args, 1).unwrap_or_default();
+            match level.as_str() {
+                "error" => log::error!("[renderer] {message}"),
+                "warn" => log::warn!("[renderer] {message}"),
+                _ => log::info!("[renderer] {message}"),
+            }
+            Ok(Value::Null)
+        }
+
         "clipboard:write-text" => {
             let text = arg_str(args, 0).unwrap_or_default();
             app.clipboard().write_text(text).map_err(|e| e.to_string())?;

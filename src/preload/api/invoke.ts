@@ -34,10 +34,20 @@ export async function invoke<T>(
   if (parsed.success) return parsed.data;
 
   const error = parsed.error;
+  const detail = error.issues
+    .map((issue: z.core.$ZodIssue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("; ");
+
   console.error(`[IPC] Validation error for channel "${channel}":`, error.issues);
+  // Also report it into the app log. A validation failure happens after the IPC
+  // call succeeds, so without this it exists only in the webview console and a
+  // view just says "something went wrong".
+  if (channel !== "app:log") {
+    void ipcRenderer
+      .invoke("app:log", "warn", `IPC validation failed for ${channel}: ${detail}`)
+      .catch(() => undefined);
+  }
   throw new Error(
-    `IPC validation failed for ${channel}: ${error.issues
-      .map((issue: z.core.$ZodIssue) => `${issue.path.join(".")} - ${issue.message}`)
-      .join("; ")}`,
+    `IPC validation failed for ${channel}: ${detail}`,
   );
 }

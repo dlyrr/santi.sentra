@@ -44,6 +44,7 @@ pub const NATIVE_CHANNELS: &[&str] = &[
     "app:get-version",
     "app:get-platform",
     "app:get-paths",
+    "app:log",
     "clipboard:write-text",
     "clipboard:read-text",
     // health probes
@@ -100,7 +101,7 @@ pub async fn dispatch(
         "open-external" | "open-path" | "choose-backup-location" | "open-roblox-folder"
         | "open-log-file" => shell::handle(app, channel, args).await,
 
-        "app:get-version" | "app:get-platform" | "app:get-paths" | "clipboard:write-text"
+        "app:get-version" | "app:get-platform" | "app:get-paths" | "app:log" | "clipboard:write-text"
         | "clipboard:read-text" | "trading:health" | "browser:health" | "proxy-mgmt:health" => {
             app::handle(app, channel, args).await
         }

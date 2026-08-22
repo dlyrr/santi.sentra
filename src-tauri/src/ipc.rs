@@ -47,20 +47,24 @@ pub async fn ipc_invoke(
         other => Value::Array(vec![other]),
     };
 
-    // Native handlers reason in JSON, where the renderer's `undefined` sentinel
-    // has no meaning; collapse it to null before they see it. The sidecar
-    // decodes it back to a real `undefined` instead, because its zod tuples
-    // distinguish the two. See src/bridge/electron.ts.
-    let args = strip_undefined_sentinel(args);
-
     // Native first. `None` means "not ported yet", which is not an error.
-    if let Some(result) = handlers::dispatch(&app, &channel, &args).await {
-        if let Err(error) = &result {
-            log::warn!("ipc {channel} (rust) failed: {error}");
-        } else {
-            log::debug!("ipc {channel} -> rust");
+    //
+    // Native handlers reason in JSON and have no notion of `undefined`, so the
+    // renderer's sentinel is collapsed to null *for them only*. The sidecar
+    // must receive it intact: its zod tuples treat a missing optional and a
+    // null one very differently, and stripping it here defeated the whole
+    // point of encoding it — which is exactly what happened, silently, and
+    // left every paged view still broken after the encoding was added.
+    if handlers::is_native(&channel) {
+        let native_args = strip_undefined_sentinel(args.clone());
+        if let Some(result) = handlers::dispatch(&app, &channel, &native_args).await {
+            if let Err(error) = &result {
+                log::warn!("ipc {channel} (rust) failed: {error}");
+            } else {
+                log::debug!("ipc {channel} -> rust");
+            }
+            return result.map_err(|e| IpcError::new(&channel, e));
         }
-        return result.map_err(|e| IpcError::new(&channel, e));
     }
 
     log::debug!("ipc {channel} -> sidecar");
