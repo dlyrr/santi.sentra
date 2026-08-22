@@ -8,6 +8,14 @@
  *
  * Every call becomes one `ipc_invoke` command; every push event becomes a Tauri
  * event subscription.
+ *
+ * Note the two surfaces below. Under Electron, the preload API modules imported
+ * `ipcRenderer` straight from the package, while `window.electron.ipcRenderer`
+ * was a separate, channel-allowlisted wrapper built in the preload entry. That
+ * split matters: the API modules legitimately listen on a dozen channels the
+ * allowlist never covered. Exposing only the restricted one here collapsed the
+ * two and broke every push-event feature — the Watcher tab died on load with
+ * "Blocked listen on disallowed IPC channel: watcher:event".
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -30,19 +38,10 @@ declare global {
   }
 }
 
-/** Kept from the old preload: the renderer may only push on these channels. */
-const ALLOWED_SEND_CHANNELS = new Set(["two-factor-response"]);
-
-const ALLOWED_RECEIVE_CHANNELS = new Set([
-  "install-progress",
-  "prompt-two-factor",
-  "show-notification",
-]);
-
 /**
- * Tauri's `listen` resolves asynchronously, but the renderer expects `on()` to
- * hand back a synchronous unsubscribe and to support `removeListener` later.
- * Each subscription is tracked so both styles work.
+ * Tauri's `listen` resolves asynchronously, but callers expect `on()` to hand
+ * back a synchronous unsubscribe and to support `removeListener` later. Each
+ * subscription is tracked so both styles work.
  */
 const subscriptions = new WeakMap<Listener, Map<string, Promise<UnlistenFn>>>();
 
@@ -66,20 +65,78 @@ function track(channel: string, listener: Listener): () => void {
   };
 }
 
-function assertAllowed(channel: string, allowed: Set<string>, kind: string) {
-  if (typeof channel !== "string" || !allowed.has(channel)) {
-    throw new Error(`Blocked ${kind} on disallowed IPC channel: ${channel}`);
+function drop(channel: string, listener: Listener): void {
+  const pending = subscriptions.get(listener)?.get(channel);
+  if (pending) {
+    void pending.then((off) => off());
+    subscriptions.get(listener)?.delete(channel);
   }
 }
 
+/**
+ * The unrestricted surface, equivalent to importing `ipcRenderer` from the
+ * `electron` package inside the old preload. Used by the preload API modules,
+ * which are first-party code shipped with the app.
+ */
 export const ipcRenderer = {
   invoke(channel: string, ...args: unknown[]): Promise<unknown> {
     return invoke("ipc_invoke", { channel, args });
   },
 
   send(channel: string, ...args: unknown[]): void {
-    assertAllowed(channel, ALLOWED_SEND_CHANNELS, "send");
     void invoke("ipc_invoke", { channel, args });
+  },
+
+  on(channel: string, listener: Listener): () => void {
+    return track(channel, listener);
+  },
+
+  once(channel: string, listener: Listener): void {
+    const off = track(channel, (event, ...args) => {
+      off();
+      listener(event, ...args);
+    });
+  },
+
+  removeListener(channel: string, listener: Listener): void {
+    drop(channel, listener);
+  },
+
+  removeAllListeners(channel: string): void {
+    // Tauri unsubscribes per-handle rather than per-channel, so this is a no-op
+    // beyond what removeListener already covers. Several components still call
+    // it during cleanup.
+    void channel;
+  },
+};
+
+/** Channels the renderer may push on, carried over from the old preload. */
+const ALLOWED_SEND_CHANNELS = new Set(["two-factor-response"]);
+
+/** Channels `window.electron.ipcRenderer` may subscribe to. */
+const ALLOWED_RECEIVE_CHANNELS = new Set([
+  "install-progress",
+  "prompt-two-factor",
+  "show-notification",
+]);
+
+function assertAllowed(channel: string, allowed: Set<string>, kind: string) {
+  if (typeof channel !== "string" || !allowed.has(channel)) {
+    throw new Error(`Blocked ${kind} on disallowed IPC channel: ${channel}`);
+  }
+}
+
+/**
+ * The narrowed surface exposed as `window.electron.ipcRenderer`, matching the
+ * allowlist the preload entry used to apply.
+ */
+export const restrictedIpcRenderer = {
+  invoke: (channel: string, ...args: unknown[]) =>
+    ipcRenderer.invoke(channel, ...args),
+
+  send(channel: string, ...args: unknown[]): void {
+    assertAllowed(channel, ALLOWED_SEND_CHANNELS, "send");
+    ipcRenderer.send(channel, ...args);
   },
 
   on(channel: string, listener: Listener): () => void {
@@ -96,25 +153,18 @@ export const ipcRenderer = {
   },
 
   removeListener(channel: string, listener: Listener): void {
-    const pending = subscriptions.get(listener)?.get(channel);
-    if (pending) {
-      void pending.then((off) => off());
-      subscriptions.get(listener)?.delete(channel);
-    }
+    assertAllowed(channel, ALLOWED_RECEIVE_CHANNELS, "listen");
+    drop(channel, listener);
   },
 
   removeAllListeners(channel: string): void {
-    // Tauri unsubscribes per-handle rather than per-channel, so this is a no-op
-    // beyond what removeListener already covers. Left in place because several
-    // components call it during cleanup.
-    void channel;
+    assertAllowed(channel, ALLOWED_RECEIVE_CHANNELS, "listen");
   },
 };
 
 /**
  * `webUtils.getPathForFile` existed because Chromium hides real paths on File
- * objects. Tauri's drag-drop event supplies real paths directly, and the file
- * input path is stashed there by the bridge bootstrap.
+ * objects. Tauri's drag-drop event supplies real paths directly.
  */
 export const webUtils = {
   getPathForFile(file: File & { path?: string }): string {

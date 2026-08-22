@@ -1,13 +1,24 @@
 import { defineConfig } from "eslint/config";
-import tseslint from "@electron-toolkit/eslint-config-ts";
-import eslintConfigPrettier from "@electron-toolkit/eslint-config-prettier";
+// Was @electron-toolkit/eslint-config-{ts,prettier}. Those came with Electron
+// and went with it; these are the upstream packages they wrapped.
+import tseslint from "typescript-eslint";
+import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginReact from "eslint-plugin-react";
 import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import eslintPluginReactRefresh from "eslint-plugin-react-refresh";
 
 export default defineConfig(
-  { ignores: ["**/node_modules", "**/dist", "**/out", "**/.vite"] },
-  tseslint.configs.recommended,
+  {
+    ignores: [
+      "**/node_modules",
+      "**/dist",
+      "**/out",
+      "**/.vite",
+      "src-tauri/target",
+      "src-tauri/binaries",
+    ],
+  },
+  ...tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat["jsx-runtime"],
   {
