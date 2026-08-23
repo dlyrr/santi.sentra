@@ -85,29 +85,28 @@ const TopNav = ({
           {
             height: isMac ? "72px" : "52px",
             paddingTop: isMac ? "28px" : "0px",
-            WebkitAppRegion: "drag",
           } as React.CSSProperties
         }
       >
         {}
-        <div
-          className="flex items-center gap-2 px-4 shrink-0"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-        >
+        <div data-tauri-drag-region className="flex items-center gap-2 px-4 shrink-0">
           <SentraLogo className="h-7 w-7 shrink-0" />
-          <span className="font-bold text-base tracking-tight text-[var(--color-text-primary)] hidden sm:block">
+          <span
+            data-tauri-drag-region
+            className="font-bold text-base tracking-tight text-[var(--color-text-primary)] hidden sm:block"
+          >
             santi.manager
           </span>
         </div>
 
         {}
-        <div className="w-px h-5 bg-[var(--color-border)] mx-1" />
+        <div data-tauri-drag-region className="w-px h-5 bg-[var(--color-border)] mx-1" />
 
         {}
         <nav
+          data-tauri-drag-region
           aria-label="Primary"
           className="flex-1 flex items-center gap-1 px-2"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
           {navGroups.map((group) => (
             <TopNavSection
@@ -121,10 +120,7 @@ const TopNav = ({
         </nav>
 
         {}
-        <div
-          className="flex items-center gap-1.5 px-3 shrink-0"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-        >
+        <div className="flex items-center gap-1.5 px-3 shrink-0">
           {showProfileCard && accountForProfile && (
             <ProfileCard
               account={accountForProfile}
