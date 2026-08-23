@@ -14,6 +14,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+
+# For the MCP server's bearer token.
+getrandom = "0.2"
+
+# The Roblox installer, shared with santi.weblauncher rather than reimplemented
+# here — the two apps fetch the same builds from the same CDN.
+roblox-deploy = { git = "https://github.com/dlyrr/santi-weblauncher.git", branch = "main" }
 tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"

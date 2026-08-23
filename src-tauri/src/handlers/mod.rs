@@ -15,7 +15,8 @@
 //!   * MultiInstance / Handle64 — koffi FFI into Win32 handle tables.
 //!   * Playwright automation and the binary .rbxm reader.
 
-pub mod app;
+mod app;
+pub mod install;
 pub mod http;
 pub mod shell;
 pub mod updater;
@@ -51,6 +52,11 @@ pub const NATIVE_CHANNELS: &[&str] = &[
     "trading:health",
     "browser:health",
     "proxy-mgmt:health",
+    // installing Roblox itself, via the shared roblox-deploy crate
+    "get-deploy-history",
+    "install-roblox-version",
+    "verify-roblox-files",
+    "check-for-updates",
     // network
     "proxy:fetchFreeProxies",
     "roblox:fetch",
@@ -107,6 +113,9 @@ pub async fn dispatch(
         }
 
         "proxy:fetchFreeProxies" | "roblox:fetch" => http::handle(channel, args).await,
+
+        "get-deploy-history" | "install-roblox-version" | "verify-roblox-files"
+        | "check-for-updates" => install::handle(app, channel, args).await,
 
         "updater:check" | "updater:download" | "updater:install" | "updater:get-state" => {
             updater::handle(app, channel, args).await

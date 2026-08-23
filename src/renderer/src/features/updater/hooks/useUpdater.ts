@@ -56,17 +56,22 @@ export function useUpdater() {
   const downloadMutation = useDownloadUpdate();
   const installMutation = useInstallUpdate();
 
-  const checkForUpdates = useCallback(() => {
-    checkMutation.mutate();
-  }, [checkMutation]);
+  /*
+      Depend on `mutate`, not on the mutation object.
 
-  const downloadUpdate = useCallback(() => {
-    downloadMutation.mutate();
-  }, [downloadMutation]);
+      React Query hands back a fresh result object on every render, so keying
+      these callbacks to it made them change identity constantly. Anything that
+      held one in an effect's dependencies re-ran that effect on every render —
+      which is what stopped the automatic update check from ever firing. `mutate`
+      itself is stable for the life of the mutation.
+  */
+  const { mutate: check } = checkMutation;
+  const { mutate: download } = downloadMutation;
+  const { mutate: install } = installMutation;
 
-  const installUpdate = useCallback(() => {
-    installMutation.mutate();
-  }, [installMutation]);
+  const checkForUpdates = useCallback(() => check(), [check]);
+  const downloadUpdate = useCallback(() => download(), [download]);
+  const installUpdate = useCallback(() => install(), [install]);
 
   return {
     state: state.data,

@@ -6,36 +6,15 @@ import { handle } from "../core/utils/handle";
 import { RobloxInstallService } from "./InstallService";
 import { AccountBackupService } from "../backup/BackupService";
 
+/*
+    Installing a build is handled natively now, by the shared roblox-deploy
+    crate — get-deploy-history, install-roblox-version, verify-roblox-files and
+    check-for-updates are all answered before they ever reach this process, so
+    registering them here would only be a second implementation waiting to
+    drift. What is left is the part that was never about downloading.
+*/
 export const registerInstallHandlers = (): void => {
-  handle(
-    "get-deploy-history",
-    z.tuple([z.boolean().optional()]),
-    async (_, force) => {
-      return RobloxInstallService.getDeployHistory(force || false);
-    },
-  );
 
-  handle(
-    "install-roblox-version",
-    z.tuple([z.string(), z.string(), z.string().optional()]),
-    async (event, binaryType, version, installPath) => {
-      const webContents = event.sender;
-
-      const targetPath =
-        installPath ||
-        path.join(getDataFile("Versions"), `${binaryType}-${version}`);
-
-      const success = await RobloxInstallService.downloadAndInstall(
-        binaryType,
-        version,
-        targetPath,
-        (status, progress, detail) => {
-          webContents.send("install-progress", { status, progress, detail });
-        },
-      );
-      return success ? targetPath : null;
-    },
-  );
 
   handle(
     "launch-roblox-install",
@@ -61,33 +40,7 @@ export const registerInstallHandlers = (): void => {
     },
   );
 
-  handle(
-    "check-for-updates",
-    z.tuple([z.string(), z.string()]),
-    async (_, binaryType, currentVersionHash) => {
-      return RobloxInstallService.checkForUpdates(
-        binaryType,
-        currentVersionHash,
-      );
-    },
-  );
 
-  handle(
-    "verify-roblox-files",
-    z.tuple([z.string(), z.string(), z.string()]),
-    async (event, binaryType, version, installPath) => {
-      const webContents = event.sender;
-      const success = await RobloxInstallService.downloadAndInstall(
-        binaryType,
-        version,
-        installPath,
-        (status, progress, detail) => {
-          webContents.send("install-progress", { status, progress, detail });
-        },
-      );
-      return success;
-    },
-  );
 
   handle("get-fflags", z.tuple([z.string()]), async (_, installPath) => {
     return RobloxInstallService.getFFlags(installPath);

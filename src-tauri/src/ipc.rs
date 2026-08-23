@@ -40,6 +40,21 @@ pub async fn ipc_invoke(
     channel: String,
     args: Value,
 ) -> Result<Value, IpcError> {
+    route(&app, &sidecar, &channel, args).await
+}
+
+/// The routing itself, callable by anything inside the app.
+///
+/// The renderer reaches it through `ipc_invoke`; the MCP server reaches it
+/// directly, so a tool call and a click take exactly the same path and cannot
+/// disagree about what a channel does.
+pub async fn route(
+    app: &AppHandle,
+    sidecar: &Arc<Sidecar>,
+    channel: &str,
+    args: Value,
+) -> Result<Value, IpcError> {
+    let channel = channel.to_string();
     let args = match args {
         Value::Null => Value::Array(vec![]),
         Value::Array(items) => Value::Array(items),
@@ -57,7 +72,7 @@ pub async fn ipc_invoke(
     // left every paged view still broken after the encoding was added.
     if handlers::is_native(&channel) {
         let native_args = strip_undefined_sentinel(args.clone());
-        if let Some(result) = handlers::dispatch(&app, &channel, &native_args).await {
+        if let Some(result) = handlers::dispatch(app, &channel, &native_args).await {
             if let Err(error) = &result {
                 log::warn!("ipc {channel} (rust) failed: {error}");
             } else {

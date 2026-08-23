@@ -7,6 +7,7 @@
 pub mod handlers;
 pub mod host;
 pub mod ipc;
+pub mod mcp;
 pub mod roblox_window;
 pub mod sidecar;
 
@@ -58,6 +59,14 @@ pub fn run() {
         .setup(move |app| {
             let handle = app.handle().clone();
             let sidecar = sidecar.clone();
+
+            // The MCP server, so a client can drive this running app. Bound to
+            // loopback behind a bearer token; if it cannot bind — usually a
+            // second copy of the app already listening — the app carries on.
+            if let Some(server) = mcp::start(handle.clone(), sidecar.clone()) {
+                log::info!("mcp: {} (token in the app data directory)", server.url());
+                handle.manage(server);
+            }
 
             // The window starts hidden so the renderer can paint before it is
             // shown, which is what `ready-to-show` bought us under Electron.

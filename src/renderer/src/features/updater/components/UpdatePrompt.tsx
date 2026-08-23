@@ -62,16 +62,24 @@ export const UpdatePrompt = () => {
   } = useUpdater();
 
   const [dismissed, setDismissed] = useState(false);
-  const hasChecked = useRef(false);
   const hasStartedInstall = useRef(false);
 
-  // One quiet check after launch. The settings card still offers a manual one.
+  /*
+      One quiet check after launch. The settings card still offers a manual one.
+
+      The callback goes through a ref rather than the dependency array on
+      purpose: when it was a dependency, every re-render tore the timer down and
+      the guard that stopped a second one from being scheduled meant the check
+      simply never happened. Mounting once and reading the latest callback at
+      fire time is what actually makes it run.
+  */
+  const checkRef = useRef(checkForUpdates);
+  checkRef.current = checkForUpdates;
+
   useEffect(() => {
-    if (hasChecked.current) return;
-    hasChecked.current = true;
-    const timer = setTimeout(() => checkForUpdates(), CHECK_DELAY_MS);
+    const timer = setTimeout(() => checkRef.current(), CHECK_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [checkForUpdates]);
+  }, []);
 
   const version = state?.info?.version ?? null;
 
@@ -91,14 +99,25 @@ export const UpdatePrompt = () => {
 
   const busy = isDownloading || state?.status === "downloaded";
 
+  /*
+      A failure has to be visible somewhere. It used to need `busy` to show,
+      so a check that errored rendered nothing at all and read exactly like
+      "you are up to date" — the one thing it definitely did not mean.
+
+      An error still only surfaces here once something was actually under way
+      or an update had been found; a bare failed check belongs in the settings
+      card, not in a prompt over the app on every offline launch.
+  */
+  const failed = state?.status === "error" && (busy || Boolean(version));
+
   const visible =
     !dismissed &&
     !isDeclined &&
-    Boolean(version) &&
-    (state?.status === "available" ||
-      state?.status === "downloading" ||
-      state?.status === "downloaded" ||
-      (state?.status === "error" && busy));
+    (failed ||
+      (Boolean(version) &&
+        (state?.status === "available" ||
+          state?.status === "downloading" ||
+          state?.status === "downloaded")));
 
   if (!visible) return null;
 
