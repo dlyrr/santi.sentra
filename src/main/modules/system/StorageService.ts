@@ -19,6 +19,13 @@ import { MultiInstance } from "@main/lib/MultiInstance";
 import { z } from "zod";
 import { favoriteItemSchema } from "../../../shared/ipc-schemas/avatar";
 import { pinService } from "./PinService";
+import {
+  ACCOUNT_BLOB,
+  ACCOUNT_BLOB_OFFSETS,
+  PIN_POLICY,
+  lockoutDurationMs,
+  lockoutNumberForFailures,
+} from "@shared/pinPolicy";
 
 import {
   sanitizeSidebarHidden,
@@ -684,11 +691,17 @@ class StorageService {
     pin: string,
   ): string | null {
     try {
-      const salt = crypto.randomBytes(16);
-      const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, "sha256");
+      const salt = crypto.randomBytes(ACCOUNT_BLOB.saltLength);
+      const key = crypto.pbkdf2Sync(
+        pin,
+        salt,
+        ACCOUNT_BLOB.iterations,
+        ACCOUNT_BLOB.keyLength,
+        ACCOUNT_BLOB.digest,
+      );
 
-      const iv = crypto.randomBytes(12);
-      const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+      const iv = crypto.randomBytes(ACCOUNT_BLOB.ivLength);
+      const cipher = crypto.createCipheriv(ACCOUNT_BLOB.algorithm, key, iv);
 
       const plaintext = JSON.stringify(accounts);
       let encrypted = cipher.update(plaintext, "utf-8", "hex");
@@ -714,19 +727,43 @@ class StorageService {
     pin: string,
   ): Account[] | null {
     try {
-      if (encryptedData.length < 88) {
+      if (encryptedData.length < ACCOUNT_BLOB_OFFSETS.end) {
         console.warn("[StorageService] PIN-based decrypt: data too short");
         return null;
       }
 
-      const salt = Buffer.from(encryptedData.substring(0, 32), "hex");
-      const iv = Buffer.from(encryptedData.substring(32, 56), "hex");
-      const authTag = Buffer.from(encryptedData.substring(56, 88), "hex");
-      const encrypted = encryptedData.substring(88);
+      const salt = Buffer.from(
+        encryptedData.substring(
+          ACCOUNT_BLOB_OFFSETS.salt,
+          ACCOUNT_BLOB_OFFSETS.iv,
+        ),
+        "hex",
+      );
+      const iv = Buffer.from(
+        encryptedData.substring(
+          ACCOUNT_BLOB_OFFSETS.iv,
+          ACCOUNT_BLOB_OFFSETS.authTag,
+        ),
+        "hex",
+      );
+      const authTag = Buffer.from(
+        encryptedData.substring(
+          ACCOUNT_BLOB_OFFSETS.authTag,
+          ACCOUNT_BLOB_OFFSETS.end,
+        ),
+        "hex",
+      );
+      const encrypted = encryptedData.substring(ACCOUNT_BLOB_OFFSETS.end);
 
-      const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, "sha256");
+      const key = crypto.pbkdf2Sync(
+        pin,
+        salt,
+        ACCOUNT_BLOB.iterations,
+        ACCOUNT_BLOB.keyLength,
+        ACCOUNT_BLOB.digest,
+      );
 
-      const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+      const decipher = crypto.createDecipheriv(ACCOUNT_BLOB.algorithm, key, iv);
       decipher.setAuthTag(authTag);
 
       let plaintext = decipher.update(encrypted, "hex", "utf-8");
@@ -1372,14 +1409,15 @@ class StorageService {
       if (!verifyResult.success) {
         this.pinLockoutState.count++;
         this.pinLockoutState.lastAttempt = now;
-        const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count);
+        const remainingAttempts = Math.max(
+          0,
+          PIN_POLICY.maxAttempts - this.pinLockoutState.count,
+        );
 
-        if (this.pinLockoutState.count >= 5) {
-          const lockoutMultiplier = Math.min(
-            this.pinLockoutState.count - 4,
-            12,
+        if (this.pinLockoutState.count >= PIN_POLICY.maxAttempts) {
+          const lockoutDuration = lockoutDurationMs(
+            lockoutNumberForFailures(this.pinLockoutState.count),
           );
-          const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier;
           this.pinLockoutState.lockedUntil = now + lockoutDuration;
           this._saveDebounced();
           return {
@@ -1486,7 +1524,7 @@ class StorageService {
 
     if (
       this.pinLockoutState.lastAttempt &&
-      now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000
+      now - this.pinLockoutState.lastAttempt > PIN_POLICY.attemptResetMs
     ) {
       this.pinLockoutState.count = 0;
       this.pinLockoutState.lastAttempt = 0;
@@ -1494,7 +1532,11 @@ class StorageService {
     }
 
     if (!storedHash) {
-      return { success: false, locked: false, remainingAttempts: 5 };
+      return {
+        success: false,
+        locked: false,
+        remainingAttempts: PIN_POLICY.maxAttempts,
+      };
     }
 
     const verifyResult = pinService.verifyPin(trimmedPin, storedHash);
@@ -1517,17 +1559,26 @@ class StorageService {
       );
 
       const accounts = this.getAccounts();
-      return { success: true, locked: false, remainingAttempts: 5, accounts };
+      return {
+        success: true,
+        locked: false,
+        remainingAttempts: PIN_POLICY.maxAttempts,
+        accounts,
+      };
     }
 
     this.pinLockoutState.count++;
     this.pinLockoutState.lastAttempt = now;
 
-    const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count);
+    const remainingAttempts = Math.max(
+      0,
+      PIN_POLICY.maxAttempts - this.pinLockoutState.count,
+    );
 
-    if (this.pinLockoutState.count >= 5) {
-      const lockoutMultiplier = Math.min(this.pinLockoutState.count - 4, 12);
-      const lockoutDuration = 5 * 60 * 1000 * lockoutMultiplier;
+    if (this.pinLockoutState.count >= PIN_POLICY.maxAttempts) {
+      const lockoutDuration = lockoutDurationMs(
+        lockoutNumberForFailures(this.pinLockoutState.count),
+      );
       this.pinLockoutState.lockedUntil = now + lockoutDuration;
       this.#persistPinMetadata();
       return {
@@ -1565,14 +1616,17 @@ class StorageService {
 
     if (
       this.pinLockoutState.lastAttempt &&
-      now - this.pinLockoutState.lastAttempt > 15 * 60 * 1000
+      now - this.pinLockoutState.lastAttempt > PIN_POLICY.attemptResetMs
     ) {
       this.pinLockoutState.count = 0;
       this.pinLockoutState.lastAttempt = 0;
       this.pinLockoutState.lockedUntil = null;
     }
 
-    const remainingAttempts = Math.max(0, 5 - this.pinLockoutState.count);
+    const remainingAttempts = Math.max(
+      0,
+      PIN_POLICY.maxAttempts - this.pinLockoutState.count,
+    );
     return { locked: false, remainingAttempts };
   }
 

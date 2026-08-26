@@ -44,6 +44,10 @@ import type {
   ContentRestrictionLevel,
 } from "../../../../shared/ipc-schemas/accountSettings";
 import { useNotification } from "@renderer/system/stores/useSnackbarStore";
+import {
+  ROBLOX_ACCOUNT_PIN,
+  ROBLOX_ACCOUNT_PIN_INDEXES,
+} from "@shared/pinPolicy";
 
 interface AccountSettingsTabProps {
   account: Account | null;
@@ -2264,14 +2268,14 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                 Account PIN
               </h3>
               <p className="text-sm text-[var(--color-text-muted)] mt-1">
-                Enter your 4-digit Account PIN to{" "}
+                Enter your {ROBLOX_ACCOUNT_PIN.length}-digit Account PIN to{" "}
                 {pinChallenge.action === "lock" ? "lock" : "unlock"} this
                 setting.
               </p>
             </div>
 
             <div className="flex justify-center gap-3 mb-6">
-              {[0, 1, 2, 3].map((index) => (
+              {ROBLOX_ACCOUNT_PIN_INDEXES.map((index) => (
                 <input
                   key={index}
                   type="password"
@@ -2282,10 +2286,12 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                     const char = e.target.value.replace(/\D/g, "");
                     const newCode = pinCode.split("");
                     newCode[index] = char;
-                    const finalCode = newCode.join("").slice(0, 4);
+                    const finalCode = newCode
+                      .join("")
+                      .slice(0, ROBLOX_ACCOUNT_PIN.length);
                     setPinCode(finalCode);
 
-                    if (char && index < 3) {
+                    if (char && index < ROBLOX_ACCOUNT_PIN.length - 1) {
                       const nextInput = document.getElementById(
                         `pin-${index + 1}`,
                       );
@@ -2298,7 +2304,10 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                         `pin-${index - 1}`,
                       );
                       if (prevInput) prevInput.focus();
-                    } else if (e.key === "Enter" && pinCode.length >= 4) {
+                    } else if (
+                      e.key === "Enter" &&
+                      pinCode.length >= ROBLOX_ACCOUNT_PIN.length
+                    ) {
                     }
                   }}
                   id={`pin-${index}`}
@@ -2324,7 +2333,10 @@ const AccountSettingsTab: React.FC<AccountSettingsTabProps> = ({
                     pin: pinCode,
                   });
                 }}
-                disabled={pinCode.length < 4 || setPinEnabledMutation.isPending}
+                disabled={
+                  pinCode.length < ROBLOX_ACCOUNT_PIN.length ||
+                  setPinEnabledMutation.isPending
+                }
                 className="flex-1 py-2.5 rounded-xl bg-[var(--accent-color)] text-[var(--accent-color-foreground)] text-sm font-bold hover:brightness-110 disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(var(--accent-color-rgb),0.2)]"
               >
                 {setPinEnabledMutation.isPending ? "Saving..." : "Continue"}

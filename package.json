@@ -20,7 +20,8 @@
     "migration:status": "node scripts/migration-status.mjs",
     "test:sidecar": "node scripts/sidecar-smoke.mjs",
     "test:safestorage": "node scripts/test-safestorage.mjs",
-    "test": "npm run test:safestorage && npm run test:sidecar",
+    "test:pin": "node scripts/test-pin.mjs",
+    "test": "npm run test:pin && npm run test:safestorage && npm run test:sidecar",
     "diagnose": "node scripts/diagnose-channels.mjs"
   },
   "dependencies": {

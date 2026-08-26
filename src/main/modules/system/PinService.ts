@@ -6,28 +6,41 @@ import {
   createDecipheriv,
 } from "crypto";
 import { safeStorage } from "electron";
+import {
+  PIN_ENCRYPTION,
+  PIN_HASH,
+  PIN_POLICY,
+  isValidPin,
+  lockoutDurationMs,
+  MAX_LOCKOUT_SECONDS,
+} from "@shared/pinPolicy";
 
+/**
+ * Every number this service works from comes out of `@shared/pinPolicy`, so
+ * the renderer's six input boxes and the lockout the user is told about are
+ * the same six boxes and the same lockout enforced here.
+ */
 const CONFIG = {
   salt: {
-    length: 32,
+    length: PIN_HASH.saltLength,
   },
   hash: {
-    iterations: 350_000,
-    keyLength: 64,
-    digest: "sha512",
+    iterations: PIN_HASH.iterations,
+    keyLength: PIN_HASH.keyLength,
+    digest: PIN_HASH.digest,
   },
   encryption: {
-    keyLength: 32,
-    ivLength: 16,
-    authTagLength: 16,
-    iterations: 50_000,
-    algorithm: "aes-256-gcm",
+    keyLength: PIN_ENCRYPTION.keyLength,
+    ivLength: PIN_ENCRYPTION.ivLength,
+    authTagLength: PIN_ENCRYPTION.authTagLength,
+    iterations: PIN_ENCRYPTION.iterations,
+    algorithm: PIN_ENCRYPTION.algorithm,
   },
   rateLimit: {
-    maxAttempts: 5,
-    baseLockoutMs: 5 * 60 * 1000,
-    attemptResetMs: 15 * 60 * 1000,
-    maxLockoutMultiplier: 12,
+    maxAttempts: PIN_POLICY.maxAttempts,
+    baseLockoutMs: PIN_POLICY.baseLockoutMs,
+    attemptResetMs: PIN_POLICY.attemptResetMs,
+    maxLockoutMultiplier: PIN_POLICY.maxLockoutMultiplier,
   },
 } as const;
 
@@ -74,12 +87,16 @@ class LockoutManager {
     return { count: 0, lastAttempt: 0, lockedUntil: null, lockoutCount: 0 };
   }
 
+  /**
+   * `recordFailure` has already counted this lockout by the time it asks, so
+   * `lockoutCount` is the ordinal — the first lockout is `baseLockoutMs`.
+   * This used to add one on top of that increment, which skipped the base
+   * step entirely and locked people out for twice as long as StorageService
+   * did for the same failure, and twice as long as the screen telling them
+   * to wait said it would.
+   */
   #calculateLockoutDuration(): number {
-    const multiplier = Math.min(
-      this.#state.lockoutCount + 1,
-      CONFIG.rateLimit.maxLockoutMultiplier,
-    );
-    return CONFIG.rateLimit.baseLockoutMs * multiplier;
+    return lockoutDurationMs(this.#state.lockoutCount);
   }
 
   loadFromPinData(lockout: LockoutState | undefined): void {
@@ -176,8 +193,9 @@ class LockoutManager {
   }
 
   applyMaxLockout(now: number = Date.now()): number {
-    const lockoutDuration =
-      CONFIG.rateLimit.baseLockoutMs * CONFIG.rateLimit.maxLockoutMultiplier;
+    const lockoutDuration = lockoutDurationMs(
+      CONFIG.rateLimit.maxLockoutMultiplier,
+    );
     this.#state = {
       count: CONFIG.rateLimit.maxAttempts,
       lastAttempt: now,
@@ -227,7 +245,7 @@ class PinService {
   }
 
   #validatePinFormat(pin: string): boolean {
-    return typeof pin === "string" && /^\d{6}$/.test(pin);
+    return isValidPin(pin);
   }
 
   #isValidPinData(data: unknown): data is PinData {
@@ -324,9 +342,9 @@ class PinService {
 
   public createPinHash(pin: string): string | null {
     try {
-      const salt = randomBytes(32);
-      const encryptionSalt = randomBytes(32);
-      const hash = pbkdf2Sync(pin, salt, 350000, 64, "sha512");
+      const salt = randomBytes(CONFIG.salt.length);
+      const encryptionSalt = randomBytes(PIN_ENCRYPTION.saltLength);
+      const hash = this.#hashPin(pin, salt);
       return `${salt.toString("hex")}:${hash.toString("hex")}:${encryptionSalt.toString("hex")}`;
     } catch (error) {
       console.error("Failed to create PIN hash:", error);
@@ -362,7 +380,7 @@ class PinService {
 
       const salt = Buffer.from(saltHex, "hex");
       const storedHashBuffer = Buffer.from(hashHex, "hex");
-      const derived = pbkdf2Sync(pin, salt, 350000, 64, "sha512");
+      const derived = this.#hashPin(pin, salt);
       const success = timingSafeEqual(derived, storedHashBuffer);
       if (success) {
         const encryptionSalt = Buffer.from(encryptionSaltHex, "hex");
@@ -492,11 +510,7 @@ class PinService {
       if (!decryptResult.ok) {
         return {
           locked: true,
-          lockoutSeconds: Math.ceil(
-            (CONFIG.rateLimit.baseLockoutMs *
-              CONFIG.rateLimit.maxLockoutMultiplier) /
-              1000,
-          ),
+          lockoutSeconds: MAX_LOCKOUT_SECONDS,
           remainingAttempts: 0,
         };
       }

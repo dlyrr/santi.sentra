@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Eye, EyeOff, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "../../../../../shared/queryKeys";
+import { LAST_PIN_INDEX, PIN_POLICY, emptyPinDigits } from "@shared/pinPolicy";
 
 interface PinSetupStepProps {
   onComplete: () => void;
@@ -11,8 +12,8 @@ interface PinSetupStepProps {
 const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<"enter" | "confirm">("enter");
-  const [pin, setPin] = useState<string[]>(Array(6).fill(""));
-  const [confirmPin, setConfirmPin] = useState<string[]>(Array(6).fill(""));
+  const [pin, setPin] = useState<string[]>(emptyPinDigits);
+  const [confirmPin, setConfirmPin] = useState<string[]>(emptyPinDigits);
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,7 +37,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         return newPin;
       });
 
-      if (digit && index < 5) {
+      if (digit && index < LAST_PIN_INDEX) {
         refs.current[index + 1]?.focus();
       }
     },
@@ -71,7 +72,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
         }
       } else if (e.key === "ArrowLeft" && index > 0) {
         refs.current[index - 1]?.focus();
-      } else if (e.key === "ArrowRight" && index < 5) {
+      } else if (e.key === "ArrowRight" && index < LAST_PIN_INDEX) {
         refs.current[index + 1]?.focus();
       }
     },
@@ -79,8 +80,8 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
   );
 
   const handleContinue = () => {
-    if (pin.join("").length !== 6) {
-      setError("Please enter all 6 digits");
+    if (pin.join("").length !== PIN_POLICY.length) {
+      setError(`Please enter all ${PIN_POLICY.length} digits`);
       return;
     }
     setError(null);
@@ -92,14 +93,14 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
     const enteredPin = pin.join("");
     const confirmedPin = confirmPin.join("");
 
-    if (confirmedPin.length !== 6) {
-      setError("Please enter all 6 digits");
+    if (confirmedPin.length !== PIN_POLICY.length) {
+      setError(`Please enter all ${PIN_POLICY.length} digits`);
       return;
     }
 
     if (enteredPin !== confirmedPin) {
       setError("PINs do not match. Please try again.");
-      setConfirmPin(Array(6).fill(""));
+      setConfirmPin(emptyPinDigits());
       confirmInputRefs.current[0]?.focus();
       return;
     }
@@ -127,7 +128,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
 
   const handleBack = () => {
     setStep("enter");
-    setConfirmPin(Array(6).fill(""));
+    setConfirmPin(emptyPinDigits());
     setError(null);
   };
 
@@ -212,7 +213,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
               </h3>
               <p className="text-sm text-[var(--color-text-muted)]">
                 {step === "enter"
-                  ? "Set a 6-digit PIN to protect your app"
+                  ? `Set a ${PIN_POLICY.length}-digit PIN to protect your app`
                   : "Re-enter your PIN to confirm"}
               </p>
             </div>
@@ -247,7 +248,7 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                   )}
                   <button
                     onClick={handleContinue}
-                    disabled={pin.join("").length !== 6}
+                    disabled={pin.join("").length !== PIN_POLICY.length}
                     className="pressable w-full flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue
@@ -291,7 +292,8 @@ const PinSetupStep: React.FC<PinSetupStepProps> = ({ onComplete }) => {
                     <button
                       onClick={handleSave}
                       disabled={
-                        confirmPin.join("").length !== 6 || isSubmitting
+                        confirmPin.join("").length !== PIN_POLICY.length ||
+                        isSubmitting
                       }
                       className="pressable flex-1 flex items-center justify-center gap-2 bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] text-[var(--accent-color-foreground)] font-bold py-3 rounded-lg transition-colors border border-[var(--accent-color-border)] shadow-[0_5px_20px_var(--accent-color-shadow)] disabled:opacity-50 disabled:cursor-not-allowed"
                     >

@@ -24,6 +24,7 @@ import { Account, Settings } from "../../../types";
 import { useSetAppUnlocked } from "../../../stores/useUIStore";
 import { useNotificationTrayStore } from "../../system/stores/useNotificationTrayStore";
 import { queryKeys } from "../../../../../shared/queryKeys";
+import { LAST_PIN_INDEX, PIN_POLICY, emptyPinDigits } from "@shared/pinPolicy";
 import PinSetupDialog from "../../../components/UI/security/PinSetupDialog";
 import {
   Dialog,
@@ -60,14 +61,12 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
   const [restoreStep, setRestoreStep] = useState<"pin" | "backuppin" | "file">(
     "pin",
   );
-  const [backupPin, setBackupPin] = useState<string[]>(Array(6).fill(""));
-  const [backupPinConfirm, setBackupPinConfirm] = useState<string[]>(
-    Array(6).fill(""),
-  );
-  const [restorePin, setRestorePin] = useState<string[]>(Array(6).fill(""));
-  const [restoreBackupPin, setRestoreBackupPin] = useState<string[]>(
-    Array(6).fill(""),
-  );
+  const [backupPin, setBackupPin] = useState<string[]>(emptyPinDigits);
+  const [backupPinConfirm, setBackupPinConfirm] =
+    useState<string[]>(emptyPinDigits);
+  const [restorePin, setRestorePin] = useState<string[]>(emptyPinDigits);
+  const [restoreBackupPin, setRestoreBackupPin] =
+    useState<string[]>(emptyPinDigits);
   const [selectedBackupFile, setSelectedBackupFile] = useState<string | null>(
     null,
   );
@@ -357,32 +356,32 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
 
   useEffect(() => {
     if (isBackupDialogOpen && backupStep === "pin") {
-      backupPinRefs.current = new Array(6).fill(null);
-      backupPinConfirmRefs.current = new Array(6).fill(null);
+      backupPinRefs.current = new Array(PIN_POLICY.length).fill(null);
+      backupPinConfirmRefs.current = new Array(PIN_POLICY.length).fill(null);
       focusFirstRef(backupPinRefs);
     }
   }, [isBackupDialogOpen, backupStep]);
 
   useEffect(() => {
     if (isBackupDialogOpen && backupStep === "backuppin") {
-      backupPinRefs.current = new Array(6).fill(null);
-      backupPinConfirmRefs.current = new Array(6).fill(null);
+      backupPinRefs.current = new Array(PIN_POLICY.length).fill(null);
+      backupPinConfirmRefs.current = new Array(PIN_POLICY.length).fill(null);
       focusFirstRef(backupPinRefs);
     }
   }, [isBackupDialogOpen, backupStep]);
 
   useEffect(() => {
     if (isRestoreDialogOpen && restoreStep === "pin") {
-      restorePinRefs.current = new Array(6).fill(null);
-      restoreBackupPinRefs.current = new Array(6).fill(null);
+      restorePinRefs.current = new Array(PIN_POLICY.length).fill(null);
+      restoreBackupPinRefs.current = new Array(PIN_POLICY.length).fill(null);
       focusFirstRef(restorePinRefs);
     }
   }, [isRestoreDialogOpen, restoreStep]);
 
   useEffect(() => {
     if (isRestoreDialogOpen && restoreStep === "backuppin") {
-      restorePinRefs.current = new Array(6).fill(null);
-      restoreBackupPinRefs.current = new Array(6).fill(null);
+      restorePinRefs.current = new Array(PIN_POLICY.length).fill(null);
+      restoreBackupPinRefs.current = new Array(PIN_POLICY.length).fill(null);
       focusFirstRef(restoreBackupPinRefs);
     }
   }, [isRestoreDialogOpen, restoreStep]);
@@ -393,42 +392,46 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
     if (backupStep === "pin") {
       const pinStr = backupPin.join("");
       if (backupPin.some((digit) => digit === "")) {
-        setBackupError("Please enter all 6 digits");
+        setBackupError(`Please enter all ${PIN_POLICY.length} digits`);
         return;
       }
       try {
         const result = await window.api.verifyPin(pinStr);
         if (result.success) {
           setBackupStep("backuppin");
-          setBackupPin(Array(6).fill(""));
-          setBackupPinConfirm(Array(6).fill(""));
+          setBackupPin(emptyPinDigits());
+          setBackupPinConfirm(emptyPinDigits());
         } else {
           setBackupError("Incorrect PIN");
-          setBackupPin(Array(6).fill(""));
+          setBackupPin(emptyPinDigits());
         }
       } catch (error) {
         setBackupError(
           "PIN verification failed: " +
             (error instanceof Error ? error.message : String(error)),
         );
-        setBackupPin(Array(6).fill(""));
+        setBackupPin(emptyPinDigits());
       }
     } else if (backupStep === "backuppin") {
       const pin1 = backupPin.join("");
       const pin2 = backupPinConfirm.join("");
 
       if (backupPin.some((digit) => digit === "")) {
-        setBackupError("Please enter all 6 digits for encryption PIN");
+        setBackupError(
+          `Please enter all ${PIN_POLICY.length} digits for encryption PIN`,
+        );
         return;
       }
       if (backupPinConfirm.some((digit) => digit === "")) {
-        setBackupError("Please enter all 6 digits for confirmation PIN");
+        setBackupError(
+          `Please enter all ${PIN_POLICY.length} digits for confirmation PIN`,
+        );
         return;
       }
       if (pin1 !== pin2) {
         setBackupError("Backup PINs do not match");
-        setBackupPin(Array(6).fill(""));
-        setBackupPinConfirm(Array(6).fill(""));
+        setBackupPin(emptyPinDigits());
+        setBackupPinConfirm(emptyPinDigits());
         return;
       }
 
@@ -454,8 +457,8 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
         });
         setIsBackupDialogOpen(false);
         setBackupStep("pin");
-        setBackupPin(Array(6).fill(""));
-        setBackupPinConfirm(Array(6).fill(""));
+        setBackupPin(emptyPinDigits());
+        setBackupPinConfirm(emptyPinDigits());
         setBackupError(null);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -477,24 +480,24 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
     if (restoreStep === "pin") {
       const pinStr = restorePin.join("");
       if (restorePin.some((digit) => digit === "")) {
-        setRestoreError("Please enter all 6 digits");
+        setRestoreError(`Please enter all ${PIN_POLICY.length} digits`);
         return;
       }
       try {
         const result = await window.api.verifyPin(pinStr);
         if (result.success) {
           setRestoreStep("file");
-          setRestorePin(Array(6).fill(""));
+          setRestorePin(emptyPinDigits());
         } else {
           setRestoreError("Incorrect PIN");
-          setRestorePin(Array(6).fill(""));
+          setRestorePin(emptyPinDigits());
         }
       } catch (error) {
         setRestoreError(
           "PIN verification failed: " +
             (error instanceof Error ? error.message : String(error)),
         );
-        setRestorePin(Array(6).fill(""));
+        setRestorePin(emptyPinDigits());
       }
     } else if (restoreStep === "file") {
       try {
@@ -512,7 +515,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
     } else if (restoreStep === "backuppin") {
       const pinStr = restoreBackupPin.join("");
       if (restoreBackupPin.some((digit) => digit === "")) {
-        setRestoreError("Please enter all 6 digits");
+        setRestoreError(`Please enter all ${PIN_POLICY.length} digits`);
         return;
       }
       if (!selectedBackupFile) {
@@ -534,8 +537,8 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
         });
         setIsRestoreDialogOpen(false);
         setRestoreStep("pin");
-        setRestorePin(Array(6).fill(""));
-        setRestoreBackupPin(Array(6).fill(""));
+        setRestorePin(emptyPinDigits());
+        setRestoreBackupPin(emptyPinDigits());
         setSelectedBackupFile(null);
         setRestoreError(null);
         queryClient.invalidateQueries({ queryKey: ["accounts"] });
@@ -569,7 +572,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
         return newPin;
       });
 
-      if (digit && index < 5) {
+      if (digit && index < LAST_PIN_INDEX) {
         refs.current[index + 1]?.focus();
       }
     },
@@ -714,7 +717,7 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
                     PIN Lock
                   </h4>
                   <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Require a 6-digit PIN when Sentra starts.
+                    Require a {PIN_POLICY.length}-digit PIN when Sentra starts.
                   </p>
                 </div>
               </div>
@@ -755,8 +758,8 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
               onClick={() => {
                 setIsBackupDialogOpen(true);
                 setBackupStep("pin");
-                setBackupPin(Array(6).fill(""));
-                setBackupPinConfirm(Array(6).fill(""));
+                setBackupPin(emptyPinDigits());
+                setBackupPinConfirm(emptyPinDigits());
               }}
               className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"
             >
@@ -774,8 +777,8 @@ export const SecuritySettingsTab: React.FC<SecuritySettingsTabProps> = ({
               onClick={() => {
                 setIsRestoreDialogOpen(true);
                 setRestoreStep("pin");
-                setRestorePin(Array(6).fill(""));
-                setRestoreBackupPin(Array(6).fill(""));
+                setRestorePin(emptyPinDigits());
+                setRestoreBackupPin(emptyPinDigits());
                 setSelectedBackupFile(null);
               }}
               className="w-full py-2 px-4 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-muted)] text-sm font-medium text-[var(--color-text-primary)] transition-colors border border-[var(--color-border)] flex items-center justify-center gap-2"

@@ -10,6 +10,12 @@ import {
   DialogBody,
   DialogFooter,
 } from "../dialogs/Dialog";
+import {
+  DEFAULT_LOCKOUT_SECONDS,
+  LAST_PIN_INDEX,
+  PIN_POLICY,
+  emptyPinDigits,
+} from "@shared/pinPolicy";
 
 interface PinSetupDialogProps {
   isOpen: boolean;
@@ -36,9 +42,9 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
   currentPin,
 }) => {
   const [step, setStep] = useState<SetupStep>("enter");
-  const [verifyPin, setVerifyPin] = useState<string[]>(Array(6).fill(""));
-  const [pin, setPin] = useState<string[]>(Array(6).fill(""));
-  const [confirmPin, setConfirmPin] = useState<string[]>(Array(6).fill(""));
+  const [verifyPin, setVerifyPin] = useState<string[]>(emptyPinDigits);
+  const [pin, setPin] = useState<string[]>(emptyPinDigits);
+  const [confirmPin, setConfirmPin] = useState<string[]>(emptyPinDigits);
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removeConfirm, setRemoveConfirm] = useState(false);
@@ -53,14 +59,14 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
   useEffect(() => {
     if (isOpen) {
       setStep(currentPin ? "verify" : "enter");
-      setVerifyPin(Array(6).fill(""));
-      setPin(Array(6).fill(""));
-      setConfirmPin(Array(6).fill(""));
+      setVerifyPin(emptyPinDigits());
+      setPin(emptyPinDigits());
+      setConfirmPin(emptyPinDigits());
       setShowPin(false);
       setError(null);
       setRemoveConfirm(false);
       setIsSubmitting(false);
-      setRemainingAttempts(5);
+      setRemainingAttempts(PIN_POLICY.maxAttempts);
       setIsLocked(false);
       setLockoutSeconds(0);
     }
@@ -73,7 +79,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
           if (prev <= 1) {
             setIsLocked(false);
             setError(null);
-            setRemainingAttempts(5);
+            setRemainingAttempts(PIN_POLICY.maxAttempts);
             return 0;
           }
           return prev - 1;
@@ -127,7 +133,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
         return newPin;
       });
 
-      if (digit && index < 5) {
+      if (digit && index < LAST_PIN_INDEX) {
         refs.current[index + 1]?.focus();
       }
     },
@@ -177,7 +183,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
         }
       } else if (e.key === "ArrowLeft" && index > 0) {
         refs.current[index - 1]?.focus();
-      } else if (e.key === "ArrowRight" && index < 5) {
+      } else if (e.key === "ArrowRight" && index < LAST_PIN_INDEX) {
         refs.current[index + 1]?.focus();
       }
     },
@@ -186,8 +192,8 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
 
   const handleVerifyCurrentPin = async () => {
     const enteredPin = verifyPin.join("");
-    if (enteredPin.length !== 6) {
-      setError("Please enter all 6 digits");
+    if (enteredPin.length !== PIN_POLICY.length) {
+      setError(`Please enter all ${PIN_POLICY.length} digits`);
       return;
     }
 
@@ -199,22 +205,24 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
 
       if (result.success) {
         setStep("remove");
-        setVerifyPin(Array(6).fill(""));
+        setVerifyPin(emptyPinDigits());
       } else {
         if (result.locked) {
           setIsLocked(true);
-          setLockoutSeconds(result.lockoutSeconds || 300);
+          setLockoutSeconds(result.lockoutSeconds || DEFAULT_LOCKOUT_SECONDS);
           setError("Too many failed attempts. Please wait.");
         } else {
-          setRemainingAttempts(result.remainingAttempts || 5);
+          setRemainingAttempts(
+            result.remainingAttempts || PIN_POLICY.maxAttempts,
+          );
           setError(result.error || "Incorrect PIN");
-          setVerifyPin(Array(6).fill(""));
+          setVerifyPin(emptyPinDigits());
           verifyInputRefs.current[0]?.focus();
         }
       }
     } catch (_err) {
       setError("An error occurred. Please try again.");
-      setVerifyPin(Array(6).fill(""));
+      setVerifyPin(emptyPinDigits());
     } finally {
       setIsSubmitting(false);
     }
@@ -222,8 +230,8 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
 
   const handleContinue = () => {
     const enteredPin = pin.join("");
-    if (enteredPin.length !== 6) {
-      setError("Please enter all 6 digits");
+    if (enteredPin.length !== PIN_POLICY.length) {
+      setError(`Please enter all ${PIN_POLICY.length} digits`);
       return;
     }
     setError(null);
@@ -234,14 +242,14 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
     const enteredPin = pin.join("");
     const confirmedPin = confirmPin.join("");
 
-    if (confirmedPin.length !== 6) {
-      setError("Please enter all 6 digits");
+    if (confirmedPin.length !== PIN_POLICY.length) {
+      setError(`Please enter all ${PIN_POLICY.length} digits`);
       return;
     }
 
     if (enteredPin !== confirmedPin) {
       setError("PINs do not match. Please try again.");
-      setConfirmPin(Array(6).fill(""));
+      setConfirmPin(emptyPinDigits());
       confirmInputRefs.current[0]?.focus();
       return;
     }
@@ -260,10 +268,10 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
       } else {
         if (result.locked) {
           setIsLocked(true);
-          setLockoutSeconds(result.lockoutSeconds || 300);
+          setLockoutSeconds(result.lockoutSeconds || DEFAULT_LOCKOUT_SECONDS);
           setRemainingAttempts(result.remainingAttempts || 0);
           setError(
-            `Too many failed attempts. Try again in ${formatTime(result.lockoutSeconds || 300)}`,
+            `Too many failed attempts. Try again in ${formatTime(result.lockoutSeconds || DEFAULT_LOCKOUT_SECONDS)}`,
           );
         } else {
           setError(result.error || "Failed to set PIN");
@@ -304,10 +312,10 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
   const handleBack = () => {
     if (step === "confirm") {
       setStep("enter");
-      setConfirmPin(Array(6).fill(""));
+      setConfirmPin(emptyPinDigits());
     } else if (step === "enter" && currentPin) {
       setStep("verify");
-      setPin(Array(6).fill(""));
+      setPin(emptyPinDigits());
     }
     setError(null);
   };
@@ -422,7 +430,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                         className="text-center"
                       >
                         <p className="text-red-500 text-xs">{error}</p>
-                        {remainingAttempts < 5 && (
+                        {remainingAttempts < PIN_POLICY.maxAttempts && (
                           <p className="text-yellow-500 text-xs mt-1">
                             {remainingAttempts} attempt
                             {remainingAttempts !== 1 ? "s" : ""} remaining
@@ -441,7 +449,8 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                       <button
                         onClick={handleVerifyCurrentPin}
                         disabled={
-                          verifyPin.join("").length !== 6 || isSubmitting
+                          verifyPin.join("").length !== PIN_POLICY.length ||
+                          isSubmitting
                         }
                         className="flex-1 px-4 py-2 text-sm font-medium text-[var(--accent-color-foreground)] bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                       >
@@ -469,8 +478,8 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                 </div>
 
                 <p className="text-sm text-[var(--color-text-secondary)]">
-                  Your app is protected with a 6-digit PIN. Would you like to
-                  remove it?
+                  Your app is protected with a {PIN_POLICY.length}-digit PIN.
+                  Would you like to remove it?
                 </p>
 
                 {removeConfirm && (
@@ -533,8 +542,8 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
               >
                 <p className="text-sm text-[var(--color-text-secondary)] text-center">
                   {currentPin
-                    ? "Enter your new 6-digit PIN"
-                    : "Enter a 6-digit PIN to protect your app"}
+                    ? `Enter your new ${PIN_POLICY.length}-digit PIN`
+                    : `Enter a ${PIN_POLICY.length}-digit PIN to protect your app`}
                 </p>
 
                 {renderPinInputs(pin, inputRefs, "pin")}
@@ -572,7 +581,7 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                   </button>
                   <button
                     onClick={handleContinue}
-                    disabled={pin.join("").length !== 6}
+                    disabled={pin.join("").length !== PIN_POLICY.length}
                     className="flex-1 px-4 py-2 text-sm font-medium text-[var(--accent-color-foreground)] bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                   >
                     Continue
@@ -634,7 +643,10 @@ const PinSetupDialog: React.FC<PinSetupDialogProps> = ({
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={confirmPin.join("").length !== 6 || isSubmitting}
+                    disabled={
+                      confirmPin.join("").length !== PIN_POLICY.length ||
+                      isSubmitting
+                    }
                     className="flex-1 px-4 py-2 text-sm font-medium text-[var(--accent-color-foreground)] bg-[var(--accent-color)] hover:bg-[var(--accent-color-muted)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
                   >
                     {isSubmitting ? "Saving..." : "Save PIN"}

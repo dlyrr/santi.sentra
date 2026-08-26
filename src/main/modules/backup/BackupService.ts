@@ -8,6 +8,21 @@ import {
   isPasswordEncrypted,
 } from "../../lib/secureStore";
 
+/**
+ * Parameters of the pre-`sg1` backup format, kept only so old backup files
+ * still restore. New backups go through `encryptWithPassword`, which uses
+ * scrypt and a random per-file salt; this format derived its key from the
+ * PIN and one salt shared by every backup ever written, which is why it is
+ * read-only. Nothing here may change without orphaning those files.
+ */
+const LEGACY_BACKUP = {
+  salt: "sentra-backup-salt-v1",
+  iterations: 100_000,
+  keyLength: 32,
+  digest: "sha256",
+  algorithm: "aes-256-cbc",
+} as const;
+
 export interface BackupData {
   version: string;
   createdAt: string;
@@ -153,12 +168,21 @@ export class AccountBackupService {
 
       const isHex = /^[0-9a-fA-F]+$/.test(ivPart) && ivPart.length % 2 === 0;
 
-      const salt = "sentra-backup-salt-v1";
-      const key = crypto.pbkdf2Sync(pin, salt, 100000, 32, "sha256");
+      const key = crypto.pbkdf2Sync(
+        pin,
+        LEGACY_BACKUP.salt,
+        LEGACY_BACKUP.iterations,
+        LEGACY_BACKUP.keyLength,
+        LEGACY_BACKUP.digest,
+      );
 
       if (isHex) {
         const iv = Buffer.from(ivPart, "hex");
-        const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+        const decipher = crypto.createDecipheriv(
+          LEGACY_BACKUP.algorithm,
+          key,
+          iv,
+        );
         let decrypted = decipher.update(encryptedPart, "hex", "utf-8");
         decrypted += decipher.final("utf-8");
         console.debug &&
@@ -166,7 +190,11 @@ export class AccountBackupService {
         return decrypted;
       } else {
         const iv = Buffer.from(ivPart, "base64");
-        const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+        const decipher = crypto.createDecipheriv(
+          LEGACY_BACKUP.algorithm,
+          key,
+          iv,
+        );
         let decrypted = decipher.update(encryptedPart, "base64", "utf-8");
         decrypted += decipher.final("utf-8");
         console.debug &&

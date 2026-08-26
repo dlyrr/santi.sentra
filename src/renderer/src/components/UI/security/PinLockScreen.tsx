@@ -3,6 +3,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@shared/queryKeys";
+import {
+  DEFAULT_LOCKOUT_SECONDS,
+  LAST_PIN_INDEX,
+  PIN_POLICY,
+  emptyPinDigits,
+} from "@shared/pinPolicy";
 
 interface PinLockScreenProps {
   onUnlock: () => void;
@@ -56,13 +62,15 @@ PinInputField.displayName = "PinInputField";
 
 const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
   const queryClient = useQueryClient();
-  const [pin, setPin] = useState<string[]>(Array(6).fill(""));
+  const [pin, setPin] = useState<string[]>(emptyPinDigits);
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
-  const [remainingAttempts, setRemainingAttempts] = useState(5);
+  const [remainingAttempts, setRemainingAttempts] = useState(
+    PIN_POLICY.maxAttempts,
+  );
   const [isCheckingLockout, setIsCheckingLockout] = useState(true);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const lastVerifiedPinRef = useRef<string>("");
@@ -102,7 +110,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         if (next <= 0) {
           setIsLocked(false);
           setError(null);
-          setRemainingAttempts(5);
+          setRemainingAttempts(PIN_POLICY.maxAttempts);
           return 0;
         }
         return next;
@@ -133,12 +141,12 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           onUnlock();
         } else if (result.locked) {
           setIsLocked(true);
-          setLockoutSeconds(result.lockoutSeconds || 300);
+          setLockoutSeconds(result.lockoutSeconds || DEFAULT_LOCKOUT_SECONDS);
           setError(`Too many failed attempts. Please wait.`);
           setShake(true);
           setTimeout(() => {
             setShake(false);
-            setPin(Array(6).fill(""));
+            setPin(emptyPinDigits());
             lastVerifiedPinRef.current = "";
           }, 500);
         } else {
@@ -151,7 +159,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           setShake(true);
           setTimeout(() => {
             setShake(false);
-            setPin(Array(6).fill(""));
+            setPin(emptyPinDigits());
             lastVerifiedPinRef.current = "";
             inputRefs.current[0]?.focus();
           }, 500);
@@ -159,7 +167,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
       } catch (err) {
         console.error("PIN verification error:", err);
         setError("An error occurred. Please try again.");
-        setPin(Array(6).fill(""));
+        setPin(emptyPinDigits());
         lastVerifiedPinRef.current = "";
       } finally {
         setIsVerifying(false);
@@ -171,7 +179,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
   useEffect(() => {
     const enteredPin = pin.join("");
     if (
-      enteredPin.length === 6 &&
+      enteredPin.length === PIN_POLICY.length &&
       !isVerifying &&
       !isLocked &&
       enteredPin !== lastVerifiedPinRef.current
@@ -194,7 +202,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         return newPin;
       });
 
-      if (digit && index < 5) {
+      if (digit && index < LAST_PIN_INDEX) {
         inputRefs.current[index + 1]?.focus();
       }
     },
@@ -222,7 +230,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         }
       } else if (e.key === "ArrowLeft" && index > 0) {
         inputRefs.current[index - 1]?.focus();
-      } else if (e.key === "ArrowRight" && index < 5) {
+      } else if (e.key === "ArrowRight" && index < LAST_PIN_INDEX) {
         inputRefs.current[index + 1]?.focus();
       }
     },
@@ -300,7 +308,7 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           >
             {isLocked
               ? `Too many failed attempts. Try again in ${formatTime(lockoutSeconds)}`
-              : "Enter your 6-digit PIN to unlock"}
+              : `Enter your ${PIN_POLICY.length}-digit PIN to unlock`}
           </motion.p>
 
           {}
@@ -346,13 +354,13 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           </AnimatePresence>
 
           {}
-          {!isLocked && remainingAttempts < 5 && (
+          {!isLocked && remainingAttempts < PIN_POLICY.maxAttempts && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="flex gap-1 mb-4"
             >
-              {Array.from({ length: 5 }).map((_, i) => (
+              {Array.from({ length: PIN_POLICY.maxAttempts }).map((_, i) => (
                 <div
                   key={i}
                   className={`w-2 h-2 rounded-full transition-colors ${
@@ -376,8 +384,8 @@ const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           >
             Your PIN is securely hashed and encrypted.
             {!isLocked &&
-              remainingAttempts === 5 &&
-              " 5 attempts before lockout."}
+              remainingAttempts === PIN_POLICY.maxAttempts &&
+              ` ${PIN_POLICY.maxAttempts} attempts before lockout.`}
           </motion.p>
         </motion.div>
       )}

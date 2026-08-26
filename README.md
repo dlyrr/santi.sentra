@@ -48,7 +48,8 @@ The first `npm run dev` also compiles the Rust shell, which takes a few minutes.
 | --- | --- |
 | `npm run dev` | Start the development app |
 | `npm run build:sidecar` | Bundle the Node sidecar (required before a Rust build) |
-| `npm test` | Run the sidecar and safeStorage checks |
+| `npm test` | Run the PIN, sidecar, and safeStorage checks |
+| `npm run test:pin` | Check the app PIN end to end (hash, lockout, encryption) |
 | `npm run test:sidecar` | Boot the sidecar and check every IPC channel registers |
 | `npm run migration:status` | Show which channels are served by Rust vs. the sidecar |
 | `npm run typecheck` | Check Node and renderer TypeScript |
